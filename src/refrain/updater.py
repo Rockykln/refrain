@@ -248,7 +248,7 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
         # AppImages must be executable to run; 0o755 matches what `chmod +x`
         # produces and what `linuxdeploy --output appimage` writes. Atomic
         # in-place replacement on Linux even while the old file is mmap'd.
-        os.chmod(tmp, 0o755)  # nosec B103 — AppImages need world-executable
+        os.chmod(tmp, 0o755)  # nosec B103  lgtm[py/overly-permissive-file]
         os.replace(tmp, target)
     except Exception as e:
         if tmp.exists():

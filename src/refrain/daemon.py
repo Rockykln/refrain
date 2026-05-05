@@ -286,22 +286,29 @@ class DaemonWorker(QObject):
         if track.album:
             body = f"{track.artist} — {track.album}" if track.artist else track.album
 
-        # Prefer the locally cached cover art so Discord-style album thumbnails
-        # show up in the notification too. Falls back to the themed app icon
-        # when the image hasn't been downloaded yet (first occurrence) or
-        # cover-art lookups are disabled.
-        icon_arg = "refrain"
+        # `-i refrain` points at the themed app icon (small badge in the
+        # corner of the notification). The album cover goes via the
+        # `image-path` hint, which is what every spec-compliant
+        # notification daemon (KDE, GNOME, Mako, Dunst, …) actually
+        # consults to render an inline image. `-i <abs path>` works on
+        # some daemons but not all — using both is reliable.
+        cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", "refrain"]
+
         if self._config.behavior.cover_art:
-            local = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
+            local = self._cover_fetcher.get_local_path(
+                track.artist, track.title, track.album
+            )
             if local is not None:
-                icon_arg = str(local)
+                cover_path = str(local)
+                cmd.extend([
+                    "--hint", f"string:image-path:{cover_path}",
+                    "--hint", f"string:x-kde-iconName:{cover_path}",
+                ])
+
+        cmd.extend([track.title, body or ""])
 
         try:
-            subprocess.Popen(
-                [_NOTIFY_BIN, "-a", "Refrain", "-i", icon_arg, track.title, body or ""],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             log.debug("notify-send failed: %s", e)
 

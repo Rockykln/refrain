@@ -16,6 +16,13 @@ query-filters:
   - exclude:
       id: py/empty-except
 
+  # `_qt_bridge` is a module-level memo for `attach_qt_log_bridge()` so
+  # repeat calls return the same QObject. CodeQL's per-function analysis
+  # mistakes the cross-call read for "unused". The pattern is
+  # idiomatic for one-shot lazy initializers.
+  - exclude:
+      id: py/unused-global-variable
+
 paths-ignore:
   - tests/**
   - reference/**
