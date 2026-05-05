@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.Rockykln.Refrain</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-RefrainUseOnly</project_license>
+
+  <name>Refrain</name>
+  <summary>Discord Rich Presence for Apple Music on Linux</summary>
+
+  <description>
+    <p>
+      Refrain shows what you are listening to on Apple Music as your Discord
+      status — whether the audio is playing in your browser
+      (music.apple.com) or streaming from your iPhone over Bluetooth.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Reads playback metadata from MPRIS (Apple Music in any major Linux browser)</li>
+      <li>Reads playback metadata from BlueZ AVRCP (any AVRCP-capable Bluetooth source)</li>
+      <li>Forwards track info plus iTunes-resolved cover art to Discord</li>
+      <li>System-tray icon with Play / Pause / Next / Previous controls</li>
+      <li>Settings window for sources, privacy mode, autostart and Bluetooth device picker</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.Rockykln.Refrain.desktop</launchable>
+
+  <url type="homepage">https://github.com/Rockykln/refrain</url>
+  <url type="bugtracker">https://github.com/Rockykln/refrain/issues</url>
+  <url type="vcs-browser">https://github.com/Rockykln/refrain</url>
+
+  <developer id="io.github.Rockykln">
+    <name>Rockykln</name>
+  </developer>
+
+  <categories>
+    <category>Audio</category>
+    <category>Music</category>
+    <category>Network</category>
+  </categories>
+
+  <keywords>
+    <keyword>apple music</keyword>
+    <keyword>discord</keyword>
+    <keyword>rich presence</keyword>
+    <keyword>rpc</keyword>
+    <keyword>mpris</keyword>
+    <keyword>bluetooth</keyword>
+  </keywords>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.0" date="2026-05-05">
+      <description>
+        <p>Initial public release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">560</display_length>
+  </requires>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#FFB347</color>
+    <color type="primary" scheme_preference="dark">#E85D04</color>
+  </branding>
+</component>

@@ -1,0 +1,69 @@
+# AppImage build recipe.
+#
+# Status: starting point — tested only against Ubuntu 22.04 / 24.04.
+# Build:
+#   pip install appimage-builder
+#   cd packaging/appimage
+#   appimage-builder --recipe AppImageBuilder.yml --skip-test
+#
+# The result is a single .AppImage file that runs Refrain on any glibc-
+# compatible Linux without installing system dependencies.
+
+version: 1
+
+script:
+  - rm -rf AppDir
+  - python3 -m venv --copies --without-pip AppDir/usr
+  - AppDir/usr/bin/python3 -m ensurepip
+  - AppDir/usr/bin/pip install --upgrade pip
+  - AppDir/usr/bin/pip install ../../  # installs refrain from the project root
+
+AppDir:
+  app_info:
+    id: io.github.Rockykln.Refrain
+    name: Refrain
+    icon: refrain
+    version: 0.1.0
+    exec: usr/bin/python3
+    exec_args: -m refrain $@
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ jammy main universe'
+        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
+    include:
+      - python3
+      - python3-dbus
+      - python3-venv
+      - libdbus-1-3
+      - libglib2.0-0
+      - libqt6core6
+      - libqt6gui6
+      - libqt6widgets6
+      - libqt6dbus6
+      - libqt6svg6
+      - libqt6network6
+      - libxkbcommon0
+      - libegl1
+      - libfontconfig1
+
+  files:
+    include:
+      - ../../src/refrain/assets/icons/refrain.svg
+
+  test:
+    fedora-39:
+      image: appimagecrafters/tests-env:fedora-39
+      command: ./AppRun --version
+      use_host_x: false
+    debian-stable:
+      image: appimagecrafters/tests-env:debian-stable
+      command: ./AppRun --version
+      use_host_x: false
+
+AppImage:
+  arch: x86_64
+  update-information: 'gh-releases-zsync|Rockykln|refrain|latest|*x86_64.AppImage.zsync'
+  sign-key: None
+  file_name: 'Refrain-{version}-x86_64.AppImage'

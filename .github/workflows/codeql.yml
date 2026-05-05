@@ -1,0 +1,41 @@
+name: codeql
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Weekly scheduled scan picks up newly disclosed vulnerabilities
+    - cron: "27 4 * * 1"
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    # Skip on private repos — Code Scanning needs GitHub Advanced Security
+    # to ingest the SARIF results, which isn't free for private repos.
+    if: github.event.repository.visibility == 'public'
+    permissions:
+      actions:        read
+      contents:       read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"

@@ -1,0 +1,10 @@
+# Force users into the templates — no blank "issue" without a category.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Security report (private)
+    url: https://github.com/Rockykln/refrain/security/advisories/new
+    about: For vulnerabilities, please use private reporting (or email report@rockykln.com).
+  - name: General questions / feedback
+    url: mailto:contact@rockykln.com
+    about: For non-bug, non-vulnerability questions — feature ideas, packaging help, etc.

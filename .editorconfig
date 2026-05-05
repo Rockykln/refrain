@@ -1,0 +1,29 @@
+# https://editorconfig.org — picked up automatically by VS Code, JetBrains,
+# Sublime, Vim/Neovim (with plugin), and most other editors. Keeps the
+# project consistent regardless of contributor local settings.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Python: 4-space indent, soft 100-col guideline (matches Ruff defaults)
+[*.py]
+indent_size = 4
+max_line_length = 100
+
+# Configs, docs, web assets: 2-space indent
+[*.{svg,yml,yaml,toml,json,desktop}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+# Markdown allows two trailing spaces as a hard line-break
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2

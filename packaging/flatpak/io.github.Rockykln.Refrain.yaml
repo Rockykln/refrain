@@ -1,0 +1,79 @@
+# Flatpak manifest for Refrain.
+#
+# Build:
+#   flatpak install -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
+#   flatpak-builder --user --install --force-clean build io.github.Rockykln.Refrain.yaml
+#   flatpak run io.github.Rockykln.Refrain
+#
+# Before submitting to Flathub:
+#   1. Replace the local `dir` source under modules.refrain.sources with a
+#      `git` source pinned to a tag, e.g.
+#          - type: git
+#            url: https://github.com/Rockykln/refrain.git
+#            tag: v0.1.0
+#   2. Generate the python-modules block via:
+#          flatpak-pip-generator --requirements-file=requirements.txt -o python-deps
+#      and include `python-deps.json` as an additional module before `refrain`.
+#   3. Verify with `flatpak run org.flatpak.Builder --run build io.github.Rockykln.Refrain.yaml refrain --version`
+
+id: io.github.Rockykln.Refrain
+runtime: org.kde.Platform
+runtime-version: '6.7'
+sdk: org.kde.Sdk
+command: refrain
+
+finish-args:
+  # Display
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # Network for the iTunes Search cover-art lookup + Discord IPC fallback
+  - --share=network
+  # Bluetooth metadata via the system bus
+  - --system-talk-name=org.bluez
+  # Notifications
+  - --talk-name=org.freedesktop.Notifications
+  # MPRIS metadata from any media player on the session bus
+  - --talk-name=org.mpris.MediaPlayer2.*
+  # Discord IPC sockets (Discord may use any of 0..9)
+  - --filesystem=xdg-run/discord-ipc-0
+  - --filesystem=xdg-run/discord-ipc-1
+  - --filesystem=xdg-run/discord-ipc-2
+  - --filesystem=xdg-run/discord-ipc-3
+  - --filesystem=xdg-run/discord-ipc-4
+  - --filesystem=xdg-run/discord-ipc-5
+  - --filesystem=xdg-run/discord-ipc-6
+  - --filesystem=xdg-run/discord-ipc-7
+  - --filesystem=xdg-run/discord-ipc-8
+  - --filesystem=xdg-run/discord-ipc-9
+  # XDG-style config / state / cache
+  - --filesystem=xdg-config/refrain:create
+  - --filesystem=xdg-cache/refrain:create
+  - --filesystem=xdg-data/refrain:create
+
+modules:
+  # Python deps that aren't part of the KDE Platform runtime.
+  # Use `flatpak-pip-generator` to regenerate this file from requirements.txt
+  # before each release; this is a placeholder describing the expected shape.
+  - name: python-deps
+    buildsystem: simple
+    build-commands:
+      - pip3 install --prefix=${FLATPAK_DEST} --no-deps --no-build-isolation
+        pypresence dbus-python PySide6
+    # NOTE: Flathub builds run offline — replace the above one-liner with a
+    # generated `python-deps.json` that vendors each wheel as a `file` source.
+
+  - name: refrain
+    buildsystem: simple
+    build-commands:
+      - pip3 install --prefix=${FLATPAK_DEST} --no-deps --no-build-isolation .
+      - install -Dm644 packaging/flatpak/io.github.Rockykln.Refrain.desktop
+        ${FLATPAK_DEST}/share/applications/io.github.Rockykln.Refrain.desktop
+      - install -Dm644 src/refrain/assets/icons/refrain.svg
+        ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/io.github.Rockykln.Refrain.svg
+      - install -Dm644 packaging/flatpak/io.github.Rockykln.Refrain.metainfo.xml
+        ${FLATPAK_DEST}/share/metainfo/io.github.Rockykln.Refrain.metainfo.xml
+    sources:
+      - type: dir
+        path: ../..

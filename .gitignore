@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Local config / runtime
+*.log
+.refrain.local.toml
+
+# Build artifacts (Flatpak / packaging)
+.flatpak-builder/
+flatpak-build/
+repo/
+
+# Original script kept as a local dev reference; contains the original
+# author's hardcoded paths and Bluetooth MAC. Do not publish.
+reference/

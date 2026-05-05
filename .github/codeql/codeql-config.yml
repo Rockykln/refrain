@@ -1,0 +1,23 @@
+name: refrain CodeQL config
+
+# We run the security-and-quality query suite. The "security" half is what
+# we care about; the "quality" half ships notes for stylistic patterns that
+# are intentional in this codebase. Suppress those so the alerts page
+# surfaces real findings, not background noise.
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # Empty `except` blocks are deliberate in best-effort cleanup paths
+  # (DBus disconnects, Discord IPC, tray icon teardown). Each site has
+  # context in surrounding code; the CodeQL note here would be repeated
+  # ~10× without adding signal.
+  - exclude:
+      id: py/empty-except
+
+paths-ignore:
+  - tests/**
+  - reference/**
+  - assets/**
+  - docs/**

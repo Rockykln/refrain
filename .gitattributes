@@ -1,0 +1,24 @@
+# Normalize line endings across platforms — every text file gets LF.
+# Without this, Windows contributors would silently inject CRLF.
+
+* text=auto eol=lf
+
+# Explicit text declarations for common project files
+*.py     text eol=lf diff=python
+*.svg    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.toml   text eol=lf
+*.md     text eol=lf
+*.sh     text eol=lf
+*.desktop text eol=lf
+.gitignore   text eol=lf
+.gitattributes text eol=lf
+.editorconfig  text eol=lf
+
+# Binary files — never normalize
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary

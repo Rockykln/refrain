@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  # Python dependencies (pip — reads requirements*.txt + pyproject.toml)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+    groups:
+      qt:
+        patterns:
+          - "PySide6*"
+          - "shiboken6*"
+      runtime:
+        patterns:
+          - "pypresence"
+          - "dbus-python"
+      dev-tools:
+        patterns:
+          - "pytest*"
+          - "coverage"
+          - "ruff"
+          - "bandit"
+          - "pip-audit"
+
+  # GitHub Actions used in workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"

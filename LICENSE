@@ -1,0 +1,71 @@
+Refrain License (Use-Only)
+
+Copyright (c) 2026 Rockykln. All rights reserved.
+
+Refrain is source-available but not open source. By obtaining, copying,
+or using the Software ("Refrain"), you agree to the following terms.
+
+================================================================
+PERMITTED
+================================================================
+
+  - Run the unmodified Software for any purpose, personal or commercial,
+    free of charge.
+
+  - Read, study, and reference the source code.
+
+  - Redistribute the Software, in source or binary form, provided that:
+      (a) the redistribution is unmodified,
+      (b) this license is included verbatim, and
+      (c) the copyright notice and any author attributions are preserved.
+
+  - Make modifications to the Software for the sole purpose of running
+    it on your own machines. Such local-only modifications must not be
+    redistributed in any form.
+
+================================================================
+NOT PERMITTED
+================================================================
+
+  - Modify, adapt, port, translate, fork, or create derivative works
+    based on the Software for distribution in any form.
+
+  - Re-license the Software, in whole or in part, under any other terms.
+
+  - Use the "Refrain" name, mark, or logo to imply endorsement of, or
+    affiliation with, modified versions, forks, or unrelated products.
+
+================================================================
+CONTRIBUTIONS
+================================================================
+
+Contributions to the Refrain project (pull requests, patches, issues
+with code attached) are accepted only on the condition that the
+contributor agrees their contribution will be incorporated under the
+terms of this license, with copyright assigned to the project's
+primary maintainer for the purpose of consolidating ownership.
+
+================================================================
+NO WARRANTY
+================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+================================================================
+THIRD-PARTY DEPENDENCIES
+================================================================
+
+Refrain links to or uses the following third-party libraries, each
+under its own respective license. This Refrain License applies only to
+the Refrain source code itself; third-party libraries retain their
+original licenses.
+
+  - PySide6        Lesser General Public License, version 3 (LGPL-3.0)
+  - pypresence     MIT License
+  - dbus-python    MIT License / Academic Free License v2.1

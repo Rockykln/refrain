@@ -1,0 +1,154 @@
+"""TOML config: load on startup, save on Apply, sensible defaults."""
+
+from __future__ import annotations
+
+import logging
+import tomllib
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any
+
+from refrain.paths import config_path
+
+log = logging.getLogger(__name__)
+
+
+@dataclass
+class DiscordConfig:
+    # Empty by default — every user registers their own Discord app at
+    # https://discord.com/developers/applications and pastes the
+    # Application ID into Settings → General. The status won't appear in
+    # Discord until this is filled in.
+    client_id: str = ""
+
+
+DEFAULT_BROWSER_HINTS = (
+    "firefox",
+    "zen",
+    "librewolf",
+    "chromium",
+    "chrome",
+    "brave",
+    "edge",
+    "vivaldi",
+    "opera",
+    "plasma-browser-integration",
+)
+
+
+@dataclass
+class SourcesConfig:
+    mpris_enabled: bool = True
+    bluetooth_enabled: bool = True
+    bluetooth_device: str = ""  # empty = auto-detect, otherwise MAC like "AA:BB:CC:DD:EE:FF"
+    # Comma-separated MPRIS bus-name / desktop-entry hints. Refrain only
+    # picks up players whose name/identity matches one of these. Edit if
+    # your browser isn't auto-detected.
+    browser_hints: str = ",".join(DEFAULT_BROWSER_HINTS)
+
+    def browser_hints_list(self) -> list[str]:
+        return [h.strip().lower() for h in self.browser_hints.split(",") if h.strip()]
+
+
+@dataclass
+class PrivacyConfig:
+    mode: str = "full"  # "full" | "minimal" | "off"
+
+
+@dataclass
+class BehaviorConfig:
+    autostart: bool = False
+    notifications: bool = True
+    cover_art: bool = True
+    show_buttons: bool = True
+    # How long to wait after a track change before firing the desktop
+    # notification, so the cover-art download has time to land on disk.
+    notify_delay_ms: int = 1500
+
+
+@dataclass
+class AdvancedConfig:
+    poll_interval_ms: int = 1000
+    log_level: str = "INFO"
+    # On-disk cover-art cache cap. Older files are pruned at startup when
+    # the count exceeds this. ~50-150 KB per cover.
+    cover_cache_size: int = 200
+
+
+@dataclass
+class UpdateConfig:
+    auto_check: bool = True
+    last_check_ts: int = 0  # unix epoch seconds
+
+
+@dataclass
+class Config:
+    discord: DiscordConfig = field(default_factory=DiscordConfig)
+    sources: SourcesConfig = field(default_factory=SourcesConfig)
+    privacy: PrivacyConfig = field(default_factory=PrivacyConfig)
+    behavior: BehaviorConfig = field(default_factory=BehaviorConfig)
+    advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
+    update: UpdateConfig = field(default_factory=UpdateConfig)
+
+    @classmethod
+    def load(cls, path: Path | None = None) -> Config:
+        path = path or config_path()
+        if not path.exists():
+            cfg = cls()
+            cfg.save(path)
+            log.info("Created default config at %s", path)
+            return cfg
+        try:
+            with path.open("rb") as f:
+                data = tomllib.load(f)
+            return cls.from_dict(data)
+        except Exception as e:
+            log.warning("Config at %s unreadable (%s), using defaults", path, e)
+            return cls()
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Config:
+        return cls(
+            discord=DiscordConfig(**(data.get("discord") or {})),
+            sources=SourcesConfig(**(data.get("sources") or {})),
+            privacy=PrivacyConfig(**(data.get("privacy") or {})),
+            behavior=BehaviorConfig(**(data.get("behavior") or {})),
+            advanced=AdvancedConfig(**(data.get("advanced") or {})),
+            update=UpdateConfig(**(data.get("update") or {})),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "discord": asdict(self.discord),
+            "sources": asdict(self.sources),
+            "privacy": asdict(self.privacy),
+            "behavior": asdict(self.behavior),
+            "advanced": asdict(self.advanced),
+            "update": asdict(self.update),
+        }
+
+    def save(self, path: Path | None = None) -> None:
+        path = path or config_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_serialize(self.to_dict()), encoding="utf-8")
+        log.info("Config saved to %s", path)
+
+
+def _serialize(data: dict[str, Any]) -> str:
+    """Minimal TOML writer for our flat-section schema (no nested tables)."""
+    lines: list[str] = []
+    for section, body in data.items():
+        lines.append(f"[{section}]")
+        for k, v in body.items():
+            lines.append(f"{k} = {_format_value(v)}")
+        lines.append("")
+    return "\n".join(lines)
+
+
+def _format_value(v: Any) -> str:
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, (int, float)):
+        return str(v)
+    s = str(v).replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{s}"'
