@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-05
+
+A second polish pass after v0.1.1 — focused on real production-readiness.
+No breaking changes.
+
+### Added
+
+- **Discord connection indicator** in the tray menu — `●  Discord:
+  connected` / `○  Discord: not connected` so you can tell at a glance
+  whether the RPC channel is live.
+- **Reset all settings to defaults** button in *Settings → Advanced*.
+  Preserves your Discord client_id and resets everything else to its
+  shipped default. Click *Apply* afterwards to persist.
+- **Open log folder** button in *Settings → Advanced* — opens
+  `$XDG_STATE_HOME/refrain/` in the file manager for easy log access.
+- **`prepare_release_notes()`** in `refrain.updater` — preprocesses any
+  Markdown body so bare GitHub compare URLs (containing `...`) stay
+  one indivisible link in the update dialog. 7 unit tests.
+
+### Fixed
+
+- **Empty Discord `client_id` no longer log-spams.** When the field is
+  empty (the default for new installs), `DiscordRPC` short-circuits the
+  reconnect loop and logs the disabled state once instead of retrying
+  on every poll with exponential backoff.
+- **Notification respects `cover_art = off`.** Previously the
+  refrain.svg fallback was emitted regardless of the user's toggle —
+  now the big-image hint is only added when cover art is enabled.
+- **AppImage restart picks the right binary.** Inside an AppImage
+  `$APPIMAGE` is the original mount path, which is what `os.execvp`
+  needs; falls back to `sys.argv[0]` for venv / system installs.
+- **AppImage build recipe** — `pip install` step failed in CI because
+  Python 3.12's `ensurepip` no longer creates a `bin/pip` launcher.
+  Switched to `python3 -m pip` everywhere.
+
+### Changed
+
+- **Update-dialog release notes** are now passed through
+  `prepare_release_notes()` so bare URLs become Markdown autolinks
+  before Qt's parser sees them — fixes the "clickable link ends at
+  the `...`" problem on GitHub-generated release bodies.
+- **`is_newer()` variable rename** (`l` → `loc`) so the linter no
+  longer needs an `E741` suppression.
+
+### Removed (dead code)
+
+- One more `try/except/pass` block in `updater._apply_appimage` →
+  `contextlib.suppress(Exception)`.
+- One more `try/except/pass` block in `discord_rpc.close` → same.
+
 ## [0.1.1] - 2026-05-05
 
 A reliability + polish pass over the initial release. No breaking changes.
@@ -136,6 +186,7 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/Rockykln/refrain/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Rockykln/refrain/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Rockykln/refrain/releases/tag/v0.1.0

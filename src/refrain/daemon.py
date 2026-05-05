@@ -35,6 +35,7 @@ class DaemonWorker(QObject):
     trackChanged = Signal(object)  # TrackInfo
     statusChanged = Signal(object)  # PlaybackStatus
     progressTick = Signal(int, int)  # position_ms, duration_ms (only when playing)
+    discordConnectionChanged = Signal(bool)  # True = connected, False = disconnected
 
     def __init__(self, config: Config):
         super().__init__()
@@ -50,6 +51,7 @@ class DaemonWorker(QObject):
         self._last_track_fp = ""
         self._last_status: PlaybackStatus | None = None
         self._last_notified_fp = ""
+        self._last_rpc_connected: bool | None = None
         self._active_source: str = "none"
         # RPC `start` is recomputed only when the track *content* changes,
         # not every tick — otherwise Discord's elapsed timer jitters.
@@ -113,12 +115,18 @@ class DaemonWorker(QObject):
     def _control(self, action: str) -> None:
         active = self._active_source
         log.debug("control %s → active=%s", action, active)
-        if active == "mpris" and self._config.sources.mpris_enabled:
-            if getattr(self._mpris, action)():
-                return
-        if active == "bluetooth" and self._config.sources.bluetooth_enabled:
-            if getattr(self._bluetooth, action)():
-                return
+        if (
+            active == "mpris"
+            and self._config.sources.mpris_enabled
+            and getattr(self._mpris, action)()
+        ):
+            return
+        if (
+            active == "bluetooth"
+            and self._config.sources.bluetooth_enabled
+            and getattr(self._bluetooth, action)()
+        ):
+            return
         # Fallback: try whichever is enabled.
         if self._config.sources.mpris_enabled and getattr(self._mpris, action)():
             self._active_source = "mpris"
@@ -180,6 +188,13 @@ class DaemonWorker(QObject):
             self.progressTick.emit(track.position_ms, track.duration_ms)
 
         self._update_rpc(track)
+
+        # Surface RPC connect/disconnect transitions so the tray can show
+        # an at-a-glance "● Discord connected" indicator.
+        rpc_connected = self._rpc.is_connected()
+        if rpc_connected != self._last_rpc_connected:
+            self.discordConnectionChanged.emit(rpc_connected)
+            self._last_rpc_connected = rpc_connected
 
     # Up to 2 seconds of additional wait time, polled every 250 ms, in case
     # the cover image is still downloading when the initial notify-delay
@@ -315,18 +330,21 @@ class DaemonWorker(QObject):
         # some daemons but not all — using both is reliable.
         cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", "refrain"]
 
-        # Pick the image to embed. Always emit *some* image so the
-        # notification looks visually consistent, even for tracks with
-        # no iTunes match.
+        # Pick the image to embed. Only opt in to a "big image" when the
+        # user has cover-art lookups enabled — if they've turned it off,
+        # we respect that and let the notification render with just the
+        # `-i refrain` app-icon badge.
         image_path: str | None = None
         if self._config.behavior.cover_art:
             local = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
             if local is not None:
                 image_path = str(local)
-        if image_path is None:
-            fallback = assets_dir() / "icons" / "refrain.svg"
-            if fallback.exists():
-                image_path = str(fallback)
+            else:
+                # iTunes had no match — use the brand SVG as a stand-in
+                # so the notification still has a visual.
+                fallback = assets_dir() / "icons" / "refrain.svg"
+                if fallback.exists():
+                    image_path = str(fallback)
 
         if image_path:
             cmd.extend(

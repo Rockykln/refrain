@@ -17,6 +17,7 @@ The HTTP client is plain ``urllib`` so the module has no extra deps.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -29,6 +30,29 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from refrain import __version__
+
+# Match http(s) URLs not already inside <>, [text](…), or `code`.
+_BARE_URL_RE = re.compile(
+    r"(?<![<\[(`])"
+    r"(https?://[^\s<>\[\]()`]+)"
+    r"(?![>\])`])"
+)
+
+
+def prepare_release_notes(body: str | None) -> str:
+    """Wrap bare http(s) URLs in Markdown autolink syntax.
+
+    Several Markdown renderers (Qt's QTextBrowser among them) break bare
+    URLs at sequences like ``...``, which is exactly what GitHub compare
+    links contain (``/compare/v0.1.0...v0.1.1``). Wrapping in ``<…>`` is
+    the Markdown-spec-compliant way to mark a URL as one indivisible
+    token, so the rendered link works regardless of any punctuation
+    inside it.
+    """
+    if not body:
+        return "_No release notes provided._"
+    return _BARE_URL_RE.sub(r"<\1>", body)
+
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +75,9 @@ def detect_install_type() -> str:
     """
     if os.environ.get("APPIMAGE"):
         return "appimage"
-    if os.environ.get("FLATPAK_ID") or os.environ.get("container") == "flatpak":
+    # `container=flatpak` is lowercase by systemd / Flatpak convention,
+    # so SIM112's "should be uppercase" advice doesn't apply here.
+    if os.environ.get("FLATPAK_ID") or os.environ.get("container") == "flatpak":  # noqa: SIM112
         return "flatpak"
 
     # Canonical venv detection — works regardless of whether sys.executable is
@@ -105,10 +131,10 @@ def _parse_version(s: str) -> tuple[int, int, int] | None:
 
 def is_newer(remote: str, local: str) -> bool:
     r = _parse_version(remote)
-    l = _parse_version(local)  # noqa: E741 — readable as "local"
-    if r is None or l is None:
+    loc = _parse_version(local)
+    if r is None or loc is None:
         return False
-    return r > l
+    return r > loc
 
 
 # ---------------------------------------------------------------------------
@@ -252,10 +278,8 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
         os.replace(tmp, target)
     except Exception as e:
         if tmp.exists():
-            try:
+            with contextlib.suppress(Exception):
                 tmp.unlink()
-            except Exception:
-                pass
         return UpdateResult(success=False, message=f"AppImage download failed: {e}")
 
     return UpdateResult(

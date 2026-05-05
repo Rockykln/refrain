@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QSpinBox,
     QTabWidget,
@@ -24,7 +25,7 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__
 from refrain.config import Config
-from refrain.paths import assets_dir
+from refrain.paths import assets_dir, state_dir
 from refrain.sources.bluetooth import BluetoothSource
 
 GITHUB_URL = "https://github.com/Rockykln/refrain"
@@ -228,11 +229,39 @@ class SettingsWindow(QDialog):
         log_btn.clicked.connect(self.showLogRequested.emit)
         f.addRow(log_btn)
 
+        log_folder_btn = QPushButton("Open log folder")
+        log_folder_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(state_dir())))
+        )
+        f.addRow(log_folder_btn)
+
         restart_btn = QPushButton("Restart Refrain")
         restart_btn.clicked.connect(self.restartRequested.emit)
         f.addRow(restart_btn)
 
+        reset_btn = QPushButton("Reset all settings to defaults")
+        reset_btn.clicked.connect(self._on_reset_clicked)
+        f.addRow(reset_btn)
+
         return w
+
+    def _on_reset_clicked(self) -> None:
+        reply = QMessageBox.question(
+            self,
+            "Reset all settings",
+            "Reset every setting to its default? Your Discord client_id will "
+            "be preserved — everything else (sources, privacy, autostart, "
+            "advanced) goes back to the shipped defaults.\n\n"
+            "Click Apply afterwards to make it permanent.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        keep_id = self._config.discord.client_id
+        self._config = Config()
+        self._config.discord.client_id = keep_id
+        self._load_into_form()
 
     # ----------------------------------------------------------------- form
 

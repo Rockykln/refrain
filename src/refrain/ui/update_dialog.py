@@ -29,6 +29,7 @@ from refrain.updater import (
     UpdateResult,
     apply_update,
     detect_install_type,
+    prepare_release_notes,
 )
 
 log = logging.getLogger(__name__)
@@ -73,7 +74,7 @@ class UpdateDialog(QDialog):
 
         self.notes = QTextBrowser()
         self.notes.setOpenExternalLinks(True)
-        self.notes.setMarkdown(release.body or "_No release notes provided._")
+        self.notes.setMarkdown(prepare_release_notes(release.body))
         layout.addWidget(self.notes, 1)
 
         self.progress = QProgressBar()

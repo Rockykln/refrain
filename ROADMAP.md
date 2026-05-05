@@ -36,6 +36,21 @@ What's done, what's next, what's deliberately not in scope.
 - **Source-available, no-derivatives license** (Refrain License — Use-Only).
 - **AppImage in release workflow** + email channels (`contact@`, `report@`).
 
+## Done — v0.1.2
+
+- **Discord connection indicator** in tray (`● connected` / `○ not connected`)
+- **Reset all settings to defaults** + **Open log folder** buttons in
+  *Settings → Advanced*
+- **Empty `client_id` no longer log-spams** the reconnect loop
+- **Notification cover toggle is honored** (was previously fallback-anyway)
+- **AppImage restart uses `$APPIMAGE`** explicitly so re-exec inside the
+  AppImage points at the right mount
+- **AppImageBuilder recipe fix** (Python 3.12 `ensurepip` no longer creates
+  `bin/pip`, so the build step crashed)
+- Update-dialog release notes auto-wrap bare URLs in Markdown autolink
+  syntax to keep `...`-containing GitHub compare links clickable
+- More dead-code sweeps (try/except/pass → contextlib.suppress)
+
 ## Up next — v0.2
 
 - **D-Bus PropertiesChanged signals** for MPRIS and BlueZ instead of the

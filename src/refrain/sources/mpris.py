@@ -74,7 +74,9 @@ def _clean_album(album: str, title: str) -> str:
         cleaned,
         flags=re.IGNORECASE,
     )
-    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—")
+    # Strip ASCII hyphen, en-dash, em-dash — three different glyphs the
+    # iTunes catalog likes to use interchangeably in album titles.
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—")  # noqa: RUF001
     if _normalize(album) and _normalize(title) and _normalize(album) in _normalize(title):
         return ""
     return cleaned

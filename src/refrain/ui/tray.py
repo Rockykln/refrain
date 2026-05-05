@@ -42,6 +42,8 @@ class TrayIcon(QObject):
         self._progress_action = QAction("")
         self._progress_action.setEnabled(False)
         self._progress_action.setVisible(False)
+        self._discord_action = QAction("○  Discord: not connected")
+        self._discord_action.setEnabled(False)
 
         self._previous_action = QAction("⏮  Previous")
         self._previous_action.triggered.connect(self.previousRequested.emit)
@@ -54,6 +56,7 @@ class TrayIcon(QObject):
         menu.addAction(self._title_action)
         menu.addAction(self._artist_action)
         menu.addAction(self._progress_action)
+        menu.addAction(self._discord_action)
         menu.addSeparator()
         menu.addAction(self._previous_action)
         menu.addAction(self._play_pause_action)
@@ -98,6 +101,12 @@ class TrayIcon(QObject):
             self._update_action.setText("⬆  Update available")
         self._update_action.setVisible(available)
 
+    def set_discord_connected(self, connected: bool) -> None:
+        if connected:
+            self._discord_action.setText("●  Discord: connected")
+        else:
+            self._discord_action.setText("○  Discord: not connected")
+
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         if duration_ms <= 0:
             self._progress_action.setText("")
@@ -108,7 +117,7 @@ class TrayIcon(QObject):
         rem = max(0, dur - pos)
         self._progress_action.setText(
             f"⏱  {pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
-            f"(–{rem // 60}:{rem % 60:02d})"
+            f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
         )
         self._progress_action.setVisible(True)
 

@@ -14,16 +14,18 @@ version: 1
 script:
   - rm -rf AppDir
   - python3 -m venv --copies --without-pip AppDir/usr
-  - AppDir/usr/bin/python3 -m ensurepip
-  - AppDir/usr/bin/pip install --upgrade pip
-  - AppDir/usr/bin/pip install ../../  # installs refrain from the project root
+  # ensurepip installs pip as a *module*; recent Python builds skip the
+  # `bin/pip` launcher script, so we always go through `python3 -m pip`.
+  - AppDir/usr/bin/python3 -m ensurepip --upgrade
+  - AppDir/usr/bin/python3 -m pip install --upgrade pip
+  - AppDir/usr/bin/python3 -m pip install ../../  # installs refrain from the project root
 
 AppDir:
   app_info:
     id: io.github.Rockykln.Refrain
     name: Refrain
     icon: refrain
-    version: 0.1.1
+    version: 0.1.2
     exec: usr/bin/python3
     exec_args: -m refrain $@
 

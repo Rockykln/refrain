@@ -51,6 +51,19 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.1.2" date="2026-05-05">
+      <description>
+        <p>
+          More production-readiness: empty Discord client_id no longer
+          spams reconnect attempts, the cover-art toggle is now actually
+          honored by the desktop notification, AppImage restart uses
+          $APPIMAGE explicitly, the AppImage build recipe was fixed,
+          and the tray menu shows a Discord connection indicator.
+          Reset-to-defaults and Open-log-folder buttons added to
+          Settings → Advanced.
+        </p>
+      </description>
+    </release>
     <release version="0.1.1" date="2026-05-05">
       <description>
         <p>

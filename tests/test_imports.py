@@ -11,12 +11,12 @@ from __future__ import annotations
 
 def test_lightweight_modules_import():
     import refrain
-    import refrain.autostart  # noqa: F401
-    import refrain.config  # noqa: F401
-    import refrain.cover_art  # noqa: F401
-    import refrain.logging_setup  # noqa: F401
-    import refrain.paths  # noqa: F401
-    import refrain.sources  # noqa: F401
-    import refrain.sources.base  # noqa: F401
+    import refrain.autostart
+    import refrain.config
+    import refrain.cover_art
+    import refrain.logging_setup
+    import refrain.paths
+    import refrain.sources
+    import refrain.sources.base
 
     assert refrain.__version__

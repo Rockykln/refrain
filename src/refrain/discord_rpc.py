@@ -8,6 +8,7 @@ Wraps `pypresence.Presence` with:
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 
@@ -19,15 +20,25 @@ log = logging.getLogger(__name__)
 
 class DiscordRPC:
     def __init__(self, client_id: str):
-        self.client_id = client_id
+        self.client_id = (client_id or "").strip()
         self._presence: Presence | None = None
         self._next_retry_ts: float = 0.0
         self._backoff_s: float = 2.0
         self._max_backoff_s: float = 60.0
+        if not self.client_id:
+            log.info(
+                "Discord RPC disabled — no client_id configured. "
+                "Set one in Settings → General to enable Discord status."
+            )
+
+    def is_connected(self) -> bool:
+        return self._presence is not None
 
     def _ensure_connected(self) -> bool:
         if self._presence is not None:
             return True
+        if not self.client_id:
+            return False
         if time.monotonic() < self._next_retry_ts:
             return False
         try:
@@ -74,10 +85,8 @@ class DiscordRPC:
     def close(self) -> None:
         if self._presence is None:
             return
-        try:
+        with contextlib.suppress(Exception):
             self._presence.close()
-        except Exception:
-            pass
         self._presence = None
 
     def _schedule_retry(self) -> None:

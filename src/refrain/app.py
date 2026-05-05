@@ -279,6 +279,7 @@ def main() -> int:
     daemon.worker.trackChanged.connect(tray.set_track)
     daemon.worker.statusChanged.connect(tray.set_status)
     daemon.worker.progressTick.connect(tray.set_progress)
+    daemon.worker.discordConnectionChanged.connect(tray.set_discord_connected)
     tray.settingsRequested.connect(settings.show)
     tray.settingsRequested.connect(settings.raise_)
     tray.settingsRequested.connect(settings.activateWindow)
@@ -350,10 +351,17 @@ def main() -> int:
         new_argv = [
             arg for arg in sys.argv[1:] if arg not in ("--install-desktop", "--uninstall-desktop")
         ]
+        # Pick the right binary to re-exec:
+        #   - Inside an AppImage, $APPIMAGE is the original .AppImage path
+        #     (sys.argv[0] points into the AppImage's mount, which exec
+        #     would resolve correctly but is less stable across mounts).
+        #   - Otherwise, sys.argv[0] is the entry-point script the user
+        #     actually launched (venv shim, system /usr/bin/refrain, etc.).
+        binary = os.environ.get("APPIMAGE") or sys.argv[0]
         # Release the bus name explicitly before exec so the new process
         # never races with the dying old one for the single-instance lock.
         app._refrain_bus_lock = None
-        os.execvp(sys.argv[0], [sys.argv[0], *new_argv])
+        os.execvp(binary, [binary, *new_argv])
 
     log.info("Refrain shutting down with rc=%d", rc)
     return rc
