@@ -163,6 +163,7 @@ log_level = "INFO"
 | ⬆ Update available| Only visible when a newer release exists                  |
 | Settings…         | Open the settings window                                  |
 | Live log…         | Open the live-log window                                  |
+| ⟳ Restart Refrain | Cleanly stop and re-launch (release D-Bus name + RPC, exec the same binary) |
 | Quit Refrain      | Stop the daemon and exit                                  |
 
 ## Settings
@@ -194,7 +195,7 @@ the background.
     <td align="center">
       <b>Advanced</b><br/>
       <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
-      <br/><sub>Poll interval, log level, live-log window</sub>
+      <br/><sub>Poll interval, notification delay, cover cache size, log level, live-log, restart</sub>
     </td>
   </tr>
 </table>
