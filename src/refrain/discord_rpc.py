@@ -25,10 +25,6 @@ class DiscordRPC:
         self._backoff_s: float = 2.0
         self._max_backoff_s: float = 60.0
 
-    @property
-    def connected(self) -> bool:
-        return self._presence is not None
-
     def _ensure_connected(self) -> bool:
         if self._presence is not None:
             return True

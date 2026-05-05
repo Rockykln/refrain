@@ -38,6 +38,7 @@ class SettingsWindow(QDialog):
     applied = Signal(object)
     checkUpdatesRequested = Signal()
     showLogRequested = Signal()
+    restartRequested = Signal()
 
     def __init__(self, config: Config, parent: QWidget | None = None):
         super().__init__(parent)
@@ -226,6 +227,10 @@ class SettingsWindow(QDialog):
         log_btn = QPushButton("Open live-log window")
         log_btn.clicked.connect(self.showLogRequested.emit)
         f.addRow(log_btn)
+
+        restart_btn = QPushButton("Restart Refrain")
+        restart_btn.clicked.connect(self.restartRequested.emit)
+        f.addRow(restart_btn)
 
         return w
 

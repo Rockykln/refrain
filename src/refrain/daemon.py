@@ -9,6 +9,7 @@ being delivered.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import shutil
 import subprocess
@@ -19,6 +20,7 @@ from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Sl
 from refrain.config import Config
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
+from refrain.paths import assets_dir
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
@@ -44,6 +46,7 @@ class DaemonWorker(QObject):
         self._timer: QTimer | None = None
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
+        self._notify_retry_count = 0
         self._last_track_fp = ""
         self._last_status: PlaybackStatus | None = None
         self._last_notified_fp = ""
@@ -72,14 +75,10 @@ class DaemonWorker(QObject):
         if self._notify_timer is not None:
             self._notify_timer.stop()
             self._notify_timer = None
-        try:
+        with contextlib.suppress(Exception):
             self._rpc.clear()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             self._rpc.close()
-        except Exception:
-            pass
         self._cover_fetcher.shutdown()
         log.info("Daemon stopped")
 
@@ -182,6 +181,13 @@ class DaemonWorker(QObject):
 
         self._update_rpc(track)
 
+    # Up to 2 seconds of additional wait time, polled every 250 ms, in case
+    # the cover image is still downloading when the initial notify-delay
+    # fires. Worst case: notification arrives ~3.5 s after the track
+    # change instead of immediately, but always with the album cover.
+    _NOTIFY_RETRY_INTERVAL_MS = 250
+    _NOTIFY_MAX_RETRIES = 8
+
     def _schedule_notify(self, track: TrackInfo) -> None:
         """Stash the track and start a single-shot timer; on fire, the
         notification reads the freshest cover from disk. If the track
@@ -192,16 +198,31 @@ class DaemonWorker(QObject):
             self._notify_timer.setSingleShot(True)
             self._notify_timer.timeout.connect(self._fire_pending_notify)
         self._pending_notify_track = track
+        self._notify_retry_count = 0
         self._notify_timer.start(max(0, self._config.behavior.notify_delay_ms))
 
     def _fire_pending_notify(self) -> None:
         track = self._pending_notify_track
-        self._pending_notify_track = None
         if track is None:
             return
         # Skip if the user already moved on
         if track.fingerprint() != self._last_track_fp:
+            self._pending_notify_track = None
+            self._notify_retry_count = 0
             return
+
+        # If cover-art is on but the image hasn't landed on disk yet,
+        # don't fire a "naked" notification. Retry briefly so the
+        # notification consistently shows the album cover.
+        if self._config.behavior.cover_art and self._notify_retry_count < self._NOTIFY_MAX_RETRIES:
+            cover = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
+            if cover is None:
+                self._notify_retry_count += 1
+                self._notify_timer.start(self._NOTIFY_RETRY_INTERVAL_MS)
+                return
+
+        self._pending_notify_track = None
+        self._notify_retry_count = 0
         self._notify(track)
 
     def _update_rpc(self, track: TrackInfo) -> None:
@@ -294,16 +315,28 @@ class DaemonWorker(QObject):
         # some daemons but not all — using both is reliable.
         cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", "refrain"]
 
+        # Pick the image to embed. Always emit *some* image so the
+        # notification looks visually consistent, even for tracks with
+        # no iTunes match.
+        image_path: str | None = None
         if self._config.behavior.cover_art:
-            local = self._cover_fetcher.get_local_path(
-                track.artist, track.title, track.album
-            )
+            local = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
             if local is not None:
-                cover_path = str(local)
-                cmd.extend([
-                    "--hint", f"string:image-path:{cover_path}",
-                    "--hint", f"string:x-kde-iconName:{cover_path}",
-                ])
+                image_path = str(local)
+        if image_path is None:
+            fallback = assets_dir() / "icons" / "refrain.svg"
+            if fallback.exists():
+                image_path = str(fallback)
+
+        if image_path:
+            cmd.extend(
+                [
+                    "--hint",
+                    f"string:image-path:{image_path}",
+                    "--hint",
+                    f"string:x-kde-iconName:{image_path}",
+                ]
+            )
 
         cmd.extend([track.title, body or ""])
 

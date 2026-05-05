@@ -39,10 +39,6 @@ class TrackLookup:
     cover_url: str = ""
     song_url: str = ""
 
-    @property
-    def is_empty(self) -> bool:
-        return not self.cover_url and not self.song_url
-
 
 def lookup_track_info(artist: str, title: str, album: str = "") -> TrackLookup:
     """Resolve a track to its iTunes-hosted cover URL and Apple Music page URL.
@@ -85,12 +81,6 @@ def lookup_track_info(artist: str, title: str, album: str = "") -> TrackLookup:
     result = _extract(data.get("results", []))
     _write_cache(key, result)
     return result
-
-
-def lookup_cover_url(artist: str, title: str, album: str = "") -> str | None:
-    """Backwards-compatible facade returning just the cover URL."""
-    info = lookup_track_info(artist, title, album)
-    return info.cover_url or None
 
 
 def _extract(results: list) -> TrackLookup:

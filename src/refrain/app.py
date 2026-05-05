@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
 import shutil
 import signal
 import sys
@@ -315,6 +316,17 @@ def main() -> int:
     tray.logRequested.connect(_show_log)
     settings.showLogRequested.connect(_show_log)
 
+    # Restart wireup — set a flag and quit; main() re-execs after the Qt
+    # event loop returns so the daemon, RPC and DBus name release cleanly
+    # before the new process starts.
+    def _restart() -> None:
+        log.info("Restart requested")
+        app._refrain_should_restart = True
+        app.quit()
+
+    tray.restartRequested.connect(_restart)
+    settings.restartRequested.connect(_restart)
+
     _install_signal_handlers(app)
     _sync_autostart(config)
 
@@ -331,6 +343,18 @@ def main() -> int:
 
     rc = app.exec()
     daemon.stop()
+
+    if getattr(app, "_refrain_should_restart", False):
+        log.info("Re-execing for restart")
+        # Drop one-shot CLI flags from the next launch.
+        new_argv = [
+            arg for arg in sys.argv[1:] if arg not in ("--install-desktop", "--uninstall-desktop")
+        ]
+        # Release the bus name explicitly before exec so the new process
+        # never races with the dying old one for the single-instance lock.
+        app._refrain_bus_lock = None
+        os.execvp(sys.argv[0], [sys.argv[0], *new_argv])
+
     log.info("Refrain shutting down with rc=%d", rc)
     return rc
 

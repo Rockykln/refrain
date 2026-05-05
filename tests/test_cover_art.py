@@ -44,17 +44,26 @@ def _fake_response(payload: dict):
 
 
 def test_lookup_upgrades_artwork_to_600(monkeypatch, cover_art):
-    payload = {"results": [{"artworkUrl100": "https://is1.example/100x100bb.jpg"}]}
+    payload = {
+        "results": [
+            {
+                "artworkUrl100": "https://is1.example/100x100bb.jpg",
+                "trackViewUrl": "https://music.apple.com/us/album/x/1?i=2",
+            }
+        ]
+    }
     monkeypatch.setattr(
         cover_art.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload)
     )
-    url = cover_art.lookup_cover_url("Artist", "Title", "Album")
-    assert url == "https://is1.example/600x600bb.jpg"
+    info = cover_art.lookup_track_info("Artist", "Title", "Album")
+    assert info.cover_url == "https://is1.example/600x600bb.jpg"
+    assert info.song_url == "https://music.apple.com/us/album/x/1?i=2"
 
 
-def test_lookup_returns_none_for_blank_input(cover_art):
-    assert cover_art.lookup_cover_url("", "Title") is None
-    assert cover_art.lookup_cover_url("Artist", "") is None
+def test_lookup_returns_empty_for_blank_input(cover_art):
+    empty = cover_art.TrackLookup()
+    assert cover_art.lookup_track_info("", "Title") == empty
+    assert cover_art.lookup_track_info("Artist", "") == empty
 
 
 def test_lookup_caches_positive_result(monkeypatch, cover_art):
@@ -67,8 +76,8 @@ def test_lookup_caches_positive_result(monkeypatch, cover_art):
 
     monkeypatch.setattr(cover_art.urllib.request, "urlopen", _opener)
 
-    a = cover_art.lookup_cover_url("Artist", "Title", "Album")
-    b = cover_art.lookup_cover_url("Artist", "Title", "Album")
+    a = cover_art.lookup_track_info("Artist", "Title", "Album")
+    b = cover_art.lookup_track_info("Artist", "Title", "Album")
     assert a == b
     assert calls["n"] == 1, "second lookup must hit the cache, not the network"
 
@@ -83,22 +92,57 @@ def test_lookup_caches_negative_result(monkeypatch, cover_art):
 
     monkeypatch.setattr(cover_art.urllib.request, "urlopen", _opener)
 
-    a = cover_art.lookup_cover_url("Nobody", "Nothing", "Nowhere")
-    b = cover_art.lookup_cover_url("Nobody", "Nothing", "Nowhere")
-    assert a is None
-    assert b is None
+    a = cover_art.lookup_track_info("Nobody", "Nothing", "Nowhere")
+    b = cover_art.lookup_track_info("Nobody", "Nothing", "Nowhere")
+    assert a.cover_url == "" and a.song_url == ""
+    assert b.cover_url == "" and b.song_url == ""
     assert calls["n"] == 1
 
 
-def test_lookup_returns_none_on_network_error(monkeypatch, cover_art):
+def test_lookup_returns_empty_on_network_error(monkeypatch, cover_art):
     def _boom(*a, **kw):
         raise OSError("network down")
 
     monkeypatch.setattr(cover_art.urllib.request, "urlopen", _boom)
-    assert cover_art.lookup_cover_url("X", "Y", "Z") is None
+    info = cover_art.lookup_track_info("X", "Y", "Z")
+    assert info.cover_url == "" and info.song_url == ""
 
 
 def test_cache_key_is_stable_and_lowercase(cover_art):
     a = cover_art._key("Drake", "One Dance", "Views")
     b = cover_art._key("DRAKE", "one dance", "VIEWS")
     assert a == b
+
+
+def test_cache_file_format_is_two_lines(monkeypatch, cover_art):
+    """The on-disk cache stores both URLs; legacy single-line files still load."""
+    payload = {
+        "results": [
+            {
+                "artworkUrl100": "https://is1.example/100x100bb.jpg",
+                "trackViewUrl": "https://music.apple.com/us/album/x/1?i=2",
+            }
+        ]
+    }
+    monkeypatch.setattr(
+        cover_art.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload)
+    )
+    cover_art.lookup_track_info("Drake", "One Dance", "Views")
+
+    key = cover_art._key("Drake", "One Dance", "Views")
+    cache_file = cover_art.cover_cache_dir() / f"{key}.txt"
+    assert cache_file.exists()
+    lines = cache_file.read_text().strip().splitlines()
+    assert len(lines) == 2
+    assert lines[0].endswith(".jpg")
+    assert lines[1].startswith("https://music.apple.com/")
+
+
+def test_legacy_single_line_cache_still_loads(cover_art):
+    """An older cache file with just the cover URL on one line is read with empty song_url."""
+    cover_art.cover_cache_dir().mkdir(parents=True, exist_ok=True)
+    key = cover_art._key("Old", "Track", "Album")
+    (cover_art.cover_cache_dir() / f"{key}.txt").write_text("https://is1.example/600x600bb.jpg\n")
+    info = cover_art.lookup_track_info("Old", "Track", "Album")
+    assert info.cover_url == "https://is1.example/600x600bb.jpg"
+    assert info.song_url == ""

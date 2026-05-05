@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 class TrayIcon(QObject):
     settingsRequested = Signal()
     quitRequested = Signal()
+    restartRequested = Signal()
     playPauseRequested = Signal()
     nextRequested = Signal()
     previousRequested = Signal()
@@ -68,6 +69,8 @@ class TrayIcon(QObject):
         log_action = menu.addAction("Live log…")
         log_action.triggered.connect(self.logRequested.emit)
         menu.addSeparator()
+        restart_action = menu.addAction("⟳  Restart Refrain")
+        restart_action.triggered.connect(self.restartRequested.emit)
         quit_action = menu.addAction("Quit Refrain")
         quit_action.triggered.connect(self.quitRequested.emit)
 
