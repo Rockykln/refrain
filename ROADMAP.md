@@ -88,11 +88,11 @@ What's done, what's next, what's deliberately not in scope.
 - **AUR `refrain` and `refrain-git` published.** Both PKGBUILDs pushed
   to AUR with SSH key + signed git tags. `refrain` pinned to the v0.1.3
   source tarball SHA; `refrain-git` auto-bumps via `pkgver()`.
-- **Flatpak manifest tested locally.** Builds and runs cleanly via
-  `flatpak-builder` against `org.kde.Platform//6.10` + the
-  `io.qt.PySide.BaseApp//6.10` BaseApp + an inline patchelf 0.18.0
-  module + vendored `python-deps.json`. Flathub PR is the next manual
-  step.
+- **Flatpak manifest validated + Flathub PR open.** Builds and runs
+  cleanly via `flatpak-builder` against `org.kde.Platform//6.10` +
+  the `io.qt.PySide.BaseApp//6.10` BaseApp + an inline patchelf
+  0.18.0 module + vendored `python-deps.json`. PR submitted to
+  flathub/flathub, awaiting maintainer review.
 - **Markdown refresh.** README install table now leads with PyPI and
   marks AUR/AppImage as live; `packaging/README.md` rewritten with
   per-channel runbooks (PyPI Trusted Publisher gotcha, Flathub
@@ -100,12 +100,13 @@ What's done, what's next, what's deliberately not in scope.
 - **Bug-report template** placeholder bumped from `0.1.0` to `0.1.4`
   so users see a current example.
 
-## Up next — v0.1.4+ (still requires a human)
+## In flight
 
-- **Submit to Flathub** under `io.github.Rockykln.Refrain`. Fork
-  flathub/flathub, copy the four files from `packaging/flatpak/` into
-  a `new-pr` branch, open the PR. Wait for `flathubbot` test build +
-  maintainer review. Manifest + python-deps are validated locally.
+- **Flathub submission** — PR open against flathub/flathub
+  (`io.github.Rockykln.Refrain`). `flathubbot` runs the offline test
+  build; once it goes green and a maintainer signs off, the PR merges
+  and Flathub auto-creates the dedicated repo. Future updates are
+  pushed there directly, no `flathub/flathub` PR needed.
 
 ## Up next — v0.2
 
