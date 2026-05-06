@@ -31,8 +31,14 @@ jobs:
       - name: Install + run tests (gate the release)
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov
-          PYTHONPATH=src pytest -q
+          # System libs that dbus-python links against during build.
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
+          # Install the package itself so the test imports get every
+          # runtime dep (PySide6, pypresence, dbus-python) — without
+          # this the new test_daemon_*.py files fail at collection.
+          pip install -e ".[dev]"
+          pytest -q
 
       - name: Verify tag matches package version
         run: |

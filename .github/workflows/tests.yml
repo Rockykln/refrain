@@ -23,13 +23,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install test dependencies
-        # Tests are designed not to require PySide6 / dbus-python / pypresence,
-        # so the heavy runtime deps don't need to be installed in CI. The
-        # modules that do depend on them are syntax-checked in the compile step.
+      - name: Install runtime + test dependencies
+        # The newer tests import refrain modules that pull PySide6 /
+        # pypresence / dbus-python at module load, so the runtime deps
+        # have to be present in CI too.
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
+          pip install -e ".[dev]"
 
       - name: Compile-check every module
         # Catches syntax errors in modules tests don't import (daemon, ui/*, sources/mpris, sources/bluetooth)
