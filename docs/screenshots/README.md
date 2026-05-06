@@ -16,8 +16,9 @@ The README references screenshots from this directory. To regenerate them:
 ## How to capture on KDE Plasma
 
 ```sh
-# Spectacle, full screen, with delay so menus stay open
-spectacle -bnod 5 -o ~/Schreibtisch/refrain/docs/screenshots/<name>.png
+# Spectacle, full screen, with delay so menus stay open.
+# Run from the repo root; <name> is one of the rows in the table above.
+spectacle -bnod 5 -o docs/screenshots/<name>.png
 ```
 
 For tray-menu screenshots, use spectacle's *Rectangular Region* mode with a
