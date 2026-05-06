@@ -31,6 +31,11 @@ env/
 *.swo
 .DS_Store
 
+# AI assistants
+.claude/
+.cursor/
+.aider*
+
 # Local config / runtime
 *.log
 .refrain.local.toml
@@ -43,3 +48,6 @@ repo/
 # Original script kept as a local dev reference; contains the original
 # author's hardcoded paths and Bluetooth MAC. Do not publish.
 reference/
+
+# Local-build variant of the Flatpak manifest (uses dir source instead of git tag)
+packaging/flatpak/*.test.yaml

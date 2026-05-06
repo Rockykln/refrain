@@ -1,25 +1,32 @@
-# Flatpak manifest for Refrain.
+# Flatpak manifest for Refrain — Flathub submission target.
 #
-# Build:
-#   flatpak install -y flathub org.kde.Platform//6.7 org.kde.Sdk//6.7
-#   flatpak-builder --user --install --force-clean build io.github.Rockykln.Refrain.yaml
+# Local build / test:
+#   flatpak install -y flathub org.kde.Platform//6.10 org.kde.Sdk//6.10
+#   flatpak-builder --user --install --force-clean build-dir io.github.Rockykln.Refrain.yaml
 #   flatpak run io.github.Rockykln.Refrain
 #
-# Before submitting to Flathub:
-#   1. Replace the local `dir` source under modules.refrain.sources with a
-#      `git` source pinned to a tag, e.g.
-#          - type: git
-#            url: https://github.com/Rockykln/refrain.git
-#            tag: v0.1.0
-#   2. Generate the python-modules block via:
-#          flatpak-pip-generator --requirements-file=requirements.txt -o python-deps
-#      and include `python-deps.json` as an additional module before `refrain`.
-#   3. Verify with `flatpak run org.flatpak.Builder --run build io.github.Rockykln.Refrain.yaml refrain --version`
+# Refresh the bundled Python deps when pinning a new release:
+#   cd packaging/flatpak
+#   flatpak-pip-generator --runtime org.kde.Sdk//6.10 \
+#       --requirements-file=../../requirements.txt -o python-deps
+#   git add python-deps.json
+#
+# When bumping `tag:` below, also bump the matching <release/> entry in
+# io.github.Rockykln.Refrain.metainfo.xml — Flathub's CI fails the build
+# without it.
 
 id: io.github.Rockykln.Refrain
 runtime: org.kde.Platform
-runtime-version: '6.7'
+runtime-version: '6.10'
 sdk: org.kde.Sdk
+# PySide6 is huge and Flathub-policy says use the official BaseApp instead
+# of vendoring it as a Python wheel. The BaseApp's branch must match the
+# runtime branch (6.10 → 6.10). Cleanup= drops headers / pyc files we
+# inherit from the BaseApp but don't need at runtime.
+base: io.qt.PySide.BaseApp
+base-version: '6.10'
+cleanup-commands:
+  - /app/cleanup-BaseApp.sh
 command: refrain
 
 finish-args:
@@ -53,16 +60,22 @@ finish-args:
   - --filesystem=xdg-data/refrain:create
 
 modules:
-  # Python deps that aren't part of the KDE Platform runtime.
-  # Use `flatpak-pip-generator` to regenerate this file from requirements.txt
-  # before each release; this is a placeholder describing the expected shape.
-  - name: python-deps
-    buildsystem: simple
-    build-commands:
-      - pip3 install --prefix=${FLATPAK_DEST} --no-deps --no-build-isolation
-        pypresence dbus-python PySide6
-    # NOTE: Flathub builds run offline — replace the above one-liner with a
-    # generated `python-deps.json` that vendors each wheel as a `file` source.
+  # patchelf is a build-time dependency of meson-python (the PEP 517 backend
+  # used by dbus-python). The KDE SDK doesn't ship it, so we build it once
+  # here and clean it up before the final image.
+  - name: patchelf
+    buildsystem: autotools
+    cleanup:
+      - '*'
+    sources:
+      - type: archive
+        url: https://github.com/NixOS/patchelf/releases/download/0.18.0/patchelf-0.18.0.tar.gz
+        sha256: 64de10e4c6b8b8379db7e87f58030f336ea747c0515f381132e810dbf84a86e7
+
+  # Python deps that aren't part of the KDE Platform runtime, vendored as
+  # individual file: sources because Flathub builds run offline. Regenerate
+  # via the flatpak-pip-generator command in the header comment.
+  - python-deps.json
 
   - name: refrain
     buildsystem: simple
@@ -75,5 +88,10 @@ modules:
       - install -Dm644 packaging/flatpak/io.github.Rockykln.Refrain.metainfo.xml
         ${FLATPAK_DEST}/share/metainfo/io.github.Rockykln.Refrain.metainfo.xml
     sources:
-      - type: dir
-        path: ../..
+      - type: git
+        url: https://github.com/Rockykln/refrain.git
+        tag: v0.1.3
+        # Flathub requires a commit SHA pinned alongside the tag for
+        # reproducibility. Fill in after `git push origin v0.1.3`:
+        #   git rev-parse v0.1.3^{}
+        # commit: <40-char SHA>
