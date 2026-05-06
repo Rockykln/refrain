@@ -91,7 +91,4 @@ modules:
       - type: git
         url: https://github.com/Rockykln/refrain.git
         tag: v0.1.3
-        # Flathub requires a commit SHA pinned alongside the tag for
-        # reproducibility. Fill in after `git push origin v0.1.3`:
-        #   git rev-parse v0.1.3^{}
-        # commit: <40-char SHA>
+        commit: 14539783808417c2ad3921ec4521d54dfe0f12cf
