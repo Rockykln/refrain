@@ -8,10 +8,14 @@ on:
 
 permissions:
   contents: write   # required to create the release
+  id-token: write   # required by PyPA Trusted Publishers (OIDC) for PyPI upload
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/refrain/
 
     steps:
       - name: Checkout (full history for changelog)
@@ -53,6 +57,11 @@ jobs:
         run: |
           pip install build
           python -m build
+          # Keep a clean copy of just the Python distributions for PyPI;
+          # the AppImage step writes additional files into dist/ later.
+          mkdir -p pypi-dist
+          cp dist/*.whl dist/*.tar.gz pypi-dist/
+          ls -la pypi-dist/
 
       # Single-file AppImage so end users can grab one binary from the
       # Releases page and run it without installing anything else.
@@ -72,6 +81,12 @@ jobs:
         id: appimage
         continue-on-error: true
         run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          # The recipe pins a literal `version:` value, which determines the
+          # output filename (Refrain-<version>-x86_64.AppImage). Rewrite it
+          # to match the tag so we don't hand-edit the recipe per release.
+          sed -i -E "s/^(    version: ).*/\1${TAG}/" packaging/appimage/AppImageBuilder.yml
+          grep "    version:" packaging/appimage/AppImageBuilder.yml
           cd packaging/appimage
           appimage-builder --recipe AppImageBuilder.yml --skip-test
           mkdir -p ../../dist
@@ -91,3 +106,20 @@ jobs:
             dist/*.tar.gz
             dist/*.AppImage
             dist/*.AppImage.zsync
+
+      # PyPI upload via Trusted Publishers (OIDC). No API token needed; the
+      # one-time setup is on pypi.org → Manage → Publishing → Add a new
+      # pending publisher (project: refrain, owner: Rockykln,
+      # repository: refrain, workflow: release.yml, environment: pypi).
+      # Skips silently if the version already exists on PyPI so re-running
+      # a release for AppImage-only fixes doesn't fail the workflow.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: pypi-dist/
+          skip-existing: true
+          verbose: true
+          attestations: true
+        # Don't let an upload hiccup wipe out the GitHub release that
+        # already succeeded above — reruns can fix PyPI later.
+        continue-on-error: true

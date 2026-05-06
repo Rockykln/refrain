@@ -51,6 +51,48 @@ What's done, what's next, what's deliberately not in scope.
   syntax to keep `...`-containing GitHub compare links clickable
 - More dead-code sweeps (try/except/pass → contextlib.suppress)
 
+## Done — v0.1.3
+
+- **Start on Login fixed for non-system installs.** Autostart
+  `.desktop` no longer relies on a bare `refrain` on `$PATH`; resolves
+  the launch command in order `$APPIMAGE` → `shutil.which` →
+  `sys.argv[0]` → `<sys.executable> -m refrain`, with proper Exec=
+  quoting. Toggling the setting in Settings always rewrites the file
+  with a path that actually works for the current install.
+- **Qt XDG-portal warning silenced.** A `qInstallMessageHandler` now
+  routes all Qt-internal log messages through Python's `logging`
+  (under the `qt` logger) and drops the noisy
+  `qt.qpa.services: Failed to register with host portal` line.
+- **PyPI publishing wired into the release workflow.** Uses PyPA
+  Trusted Publishers (OIDC) — no API token to manage, just a one-time
+  pending-publisher setup on pypi.org (project: refrain, owner:
+  Rockykln, repo: refrain, workflow: release.yml, environment: pypi).
+  Builds are staged in `pypi-dist/` so the AppImage doesn't get
+  uploaded by accident.
+- **AppImage filename auto-syncs to the tag.** Release workflow
+  rewrites `version:` in `AppImageBuilder.yml` from `${GITHUB_REF}`,
+  so `Refrain-<version>-x86_64.AppImage` always matches the release.
+
+## Up next — v0.1.3 (still requires a human)
+
+These items are wired up in code / CI but cannot be completed without
+out-of-band credentials and one-time external account setup:
+
+- **Pending publisher on pypi.org** must be created once before the
+  next tag push, otherwise the upload step will fail (the rest of the
+  release continues thanks to `continue-on-error: true`).
+- **Submit `refrain-git` to AUR.** PKGBUILD is in
+  `packaging/aur/refrain-git/PKGBUILD`; needs an SSH-keyed AUR
+  account + initial `git push aur:refrain-git`.
+- **Submit to Flathub** under `io.github.Rockykln.Refrain`. Manifest
+  is in `packaging/flatpak/`; the missing piece is running
+  `flatpak-pip-generator --requirements-file=requirements.txt
+  -o python-deps` and including `python-deps.json` so the build can
+  run offline on Flathub infra.
+- **Verify the AppImage build end-to-end** on the next tag — the
+  recipe was patched in v0.1.2 and the version-sync step was added in
+  v0.1.3, but neither has been run through CI for a real release yet.
+
 ## Up next — v0.2
 
 - **D-Bus PropertiesChanged signals** for MPRIS and BlueZ instead of the

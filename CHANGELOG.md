@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-06
+
+The "you should not need a clone to install Refrain" pass. Wires up
+PyPI publishing in CI and tightens autostart for non-system installs.
+
+### Added
+
+- **PyPI publishing in the release workflow** via PyPA Trusted
+  Publishers (OIDC, no token to manage). A `v*.*.*` tag now uploads
+  the wheel + sdist to PyPI alongside the GitHub release, so
+  `pip install refrain` becomes the canonical install path. Requires
+  a one-time pending-publisher setup on pypi.org.
+- **AppImage version auto-sync.** The release workflow now rewrites
+  `version:` in `packaging/appimage/AppImageBuilder.yml` from the git
+  tag, so the AppImage filename always matches the release.
+
+### Fixed
+
+- **Start on Login now works for venv / pipx / pip --user installs.**
+  The autostart `.desktop` file used a bare `Exec=refrain --silent`,
+  which fails when `refrain` is not on the desktop session's `$PATH`
+  (the common case for any non-system install). Refrain now resolves
+  the launch command in this order: `$APPIMAGE` → `shutil.which`
+  → `sys.argv[0]` → `<sys.executable> -m refrain`, and writes the
+  absolute path into `Exec=` with proper quoting.
+- **Noisy `qt.qpa.services: Failed to register with host portal`
+  warning is suppressed.** Installed a `qInstallMessageHandler` that
+  routes Qt log messages through Python's `logging` (under the `qt`
+  logger) and drops this one specific harmless line so the live-log
+  window isn't confusing on first open.
+
 ## [0.1.2] - 2026-05-05
 
 A second polish pass after v0.1.1 — focused on real production-readiness.

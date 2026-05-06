@@ -16,7 +16,7 @@ import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, QTimer, Signal
+from PySide6.QtCore import QObject, QThread, QTimer, QtMsgType, Signal, qInstallMessageHandler
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
@@ -114,6 +114,27 @@ def uninstall_desktop_files() -> int:
     else:
         print("Nothing to remove (refrain.desktop and refrain.svg are not installed).")
     return 0
+
+
+_QT_NOISE_SUBSTRINGS = (
+    # Harmless on systems where xdg-desktop-portal isn't running or doesn't
+    # know about us yet. Confuses users when they open the live log.
+    "Failed to register with host portal",
+)
+
+_QT_LEVEL_MAP = {
+    QtMsgType.QtDebugMsg: logging.DEBUG,
+    QtMsgType.QtInfoMsg: logging.INFO,
+    QtMsgType.QtWarningMsg: logging.WARNING,
+    QtMsgType.QtCriticalMsg: logging.ERROR,
+    QtMsgType.QtFatalMsg: logging.CRITICAL,
+}
+
+
+def _qt_message_handler(msg_type, _context, message: str) -> None:
+    if any(noise in message for noise in _QT_NOISE_SUBSTRINGS):
+        return
+    logging.getLogger("qt").log(_QT_LEVEL_MAP.get(msg_type, logging.INFO), "%s", message)
 
 
 def _install_signal_handlers(app: QApplication) -> None:
@@ -240,6 +261,7 @@ def main() -> int:
     log_level = "DEBUG" if args.debug else config.advanced.log_level
     setup_logging(log_level)
     log_bridge = attach_qt_log_bridge()
+    qInstallMessageHandler(_qt_message_handler)
     log.info("Refrain %s starting", __version__)
 
     app = QApplication(sys.argv)

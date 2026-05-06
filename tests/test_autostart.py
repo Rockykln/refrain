@@ -23,7 +23,10 @@ def test_enable_then_disable(xdg_tmp):
 
     contents = autostart_file.read_text(encoding="utf-8")
     assert "[Desktop Entry]" in contents
-    assert "Exec=refrain" in contents
+    # Exec= must point at *something* with --silent appended; the exact path
+    # depends on how the test runner is invoked (pytest binary, venv, etc).
+    assert "\nExec=" in contents
+    assert "--silent" in contents
     assert "Name=Refrain" in contents
 
     autostart.disable()
@@ -59,5 +62,6 @@ def test_enable_overwrites_existing(xdg_tmp):
 
     autostart.enable()
     contents = autostart_file.read_text(encoding="utf-8")
-    assert "Exec=refrain" in contents
+    assert "\nExec=" in contents
+    assert "--silent" in contents
     assert "garbage" not in contents
