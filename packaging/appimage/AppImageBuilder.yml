@@ -73,4 +73,8 @@ AppImage:
   arch: x86_64
   update-information: 'gh-releases-zsync|Rockykln|refrain|latest|*x86_64.AppImage.zsync'
   sign-key: None
-  file_name: 'Refrain-{version}-x86_64.AppImage'
+  # file_name omitted on purpose — appimage-builder's {version} placeholder
+  # was rendered as the literal string ".version." in v0.1.3, leaving us
+  # with `Refrain-.version.-x86_64.AppImage`. The default name is
+  # `<app_info.name>-<app_info.version>-<arch>.AppImage` which evaluates
+  # correctly at recipe-parse time, so we use that.
