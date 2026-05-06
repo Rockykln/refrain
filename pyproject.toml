@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refrain"
-version = "0.1.5"
+version = "0.2.0"
 description = "Discord Rich Presence for Apple Music on Linux"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -50,6 +50,14 @@ Changelog = "https://github.com/Rockykln/refrain/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/refrain"]
+# Include compiled translations + bundled assets in the wheel.
+# .qm files are pre-compiled (via `make i18n`) and committed; .ts files
+# are the editable Linguist sources for translators.
+artifacts = [
+    "src/refrain/i18n/*.qm",
+    "src/refrain/i18n/*.ts",
+    "src/refrain/assets/**/*",
+]
 
 # ----------------------------------------------------------------------------
 # Test runner
@@ -128,5 +136,8 @@ exclude_dirs = ["tests", ".venv", "reference"]
 # B607 (partial path) — notify-send is intentionally invoked by name (PATH lookup)
 # B606 (start_process_with_no_shell) — os.execvp in app.py is the intended
 #                                       Restart implementation, no shell wanted
+# B310 (urlopen blacklist) — only called against hardcoded HTTPS URLs
+#                            (GitHub Releases API, iTunes Search) — no
+#                            user-controlled scheme exposure
 # B101 (assert) — used in tests, not in src/
-skips = ["B101", "B404", "B603", "B606", "B607"]
+skips = ["B101", "B310", "B404", "B603", "B606", "B607"]

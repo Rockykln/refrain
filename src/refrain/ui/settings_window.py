@@ -43,18 +43,21 @@ class SettingsWindow(QDialog):
 
     def __init__(self, config: Config, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Refrain — Settings")
+        # Qt's applicationDisplayName ("Refrain") is auto-appended to
+        # this title by the window manager. Setting the manual prefix
+        # too would duplicate it as "Refrain — Settings — Refrain".
+        self.setWindowTitle(self.tr("Settings"))
         self.setMinimumSize(560, 480)
         self._config = config
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._build_general_tab(), "General")
-        self.tabs.addTab(self._build_sources_tab(), "Sources")
-        self.tabs.addTab(self._build_updates_tab(), "Updates")
-        self.tabs.addTab(self._build_advanced_tab(), "Advanced")
+        self.tabs.addTab(self._build_general_tab(), self.tr("General"))
+        self.tabs.addTab(self._build_sources_tab(), self.tr("Sources"))
+        self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
+        self.tabs.addTab(self._build_advanced_tab(), self.tr("Advanced"))
 
-        self.cancel_btn = QPushButton("Cancel")
-        self.apply_btn = QPushButton("Apply")
+        self.cancel_btn = QPushButton(self.tr("Cancel"))
+        self.apply_btn = QPushButton(self.tr("Apply"))
         self.apply_btn.setDefault(True)
         self.cancel_btn.clicked.connect(self.reject)
         self.apply_btn.clicked.connect(self._on_apply_clicked)
@@ -94,25 +97,25 @@ class SettingsWindow(QDialog):
         w = QWidget()
         f = QFormLayout(w)
         self.client_id_input = QLineEdit()
-        self.client_id_input.setPlaceholderText("Discord Application Client ID")
-        f.addRow("Discord Client ID:", self.client_id_input)
+        self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
+        f.addRow(self.tr("Discord Client ID:"), self.client_id_input)
 
         self.privacy_combo = QComboBox()
-        self.privacy_combo.addItem("Full — title, artist, album, cover", "full")
-        self.privacy_combo.addItem("Minimal — only 'Listening to music'", "minimal")
-        self.privacy_combo.addItem("Off — disable Discord status entirely", "off")
-        f.addRow("Privacy:", self.privacy_combo)
+        self.privacy_combo.addItem(self.tr("Full — title, artist, album, cover"), "full")
+        self.privacy_combo.addItem(self.tr("Minimal — only 'Listening to music'"), "minimal")
+        self.privacy_combo.addItem(self.tr("Off — disable Discord status entirely"), "off")
+        f.addRow(self.tr("Privacy:"), self.privacy_combo)
 
-        self.autostart_box = QCheckBox("Start Refrain automatically on login")
+        self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
         f.addRow(self.autostart_box)
 
-        self.notifications_box = QCheckBox("Show desktop notifications on track change")
+        self.notifications_box = QCheckBox(self.tr("Show desktop notifications on track change"))
         f.addRow(self.notifications_box)
 
-        self.cover_art_box = QCheckBox("Fetch album cover art from iTunes")
+        self.cover_art_box = QCheckBox(self.tr("Fetch album cover art from iTunes"))
         f.addRow(self.cover_art_box)
 
-        self.buttons_box = QCheckBox("Show 'Listen on Apple Music' button in Discord")
+        self.buttons_box = QCheckBox(self.tr("Show 'Listen on Apple Music' button in Discord"))
         f.addRow(self.buttons_box)
         return w
 
@@ -120,10 +123,10 @@ class SettingsWindow(QDialog):
         w = QWidget()
         f = QFormLayout(w)
 
-        self.mpris_box = QCheckBox("Apple Music Web (browser)")
+        self.mpris_box = QCheckBox(self.tr("Apple Music Web (browser)"))
         f.addRow(self.mpris_box)
 
-        self.bluetooth_box = QCheckBox("Bluetooth (AVRCP)")
+        self.bluetooth_box = QCheckBox(self.tr("Bluetooth (AVRCP)"))
         f.addRow(self.bluetooth_box)
 
         self.bluetooth_device = QComboBox()
@@ -131,10 +134,10 @@ class SettingsWindow(QDialog):
 
         refresh_row = QHBoxLayout()
         refresh_row.addWidget(self.bluetooth_device, 1)
-        refresh_btn = QPushButton("Refresh")
+        refresh_btn = QPushButton(self.tr("Refresh"))
         refresh_btn.clicked.connect(self._populate_bluetooth_devices)
         refresh_row.addWidget(refresh_btn)
-        f.addRow("Bluetooth Device:", refresh_row)
+        f.addRow(self.tr("Bluetooth Device:"), refresh_row)
 
         self._populate_bluetooth_devices()
 
@@ -142,7 +145,7 @@ class SettingsWindow(QDialog):
         self.browser_hints_input.setPlaceholderText(
             "firefox,zen,chromium,chrome,brave,edge,vivaldi,opera,…"
         )
-        f.addRow("Browser hints:", self.browser_hints_input)
+        f.addRow(self.tr("Browser hints:"), self.browser_hints_input)
 
         hint = QLabel(
             "<i>Comma-separated substrings to identify browsers playing Apple Music. "
@@ -175,18 +178,18 @@ class SettingsWindow(QDialog):
         f = QFormLayout(w)
 
         self.auto_check_box = QCheckBox(
-            "Automatically check for updates on startup (max once per day)"
+            self.tr("Automatically check for updates on startup (max once per day)")
         )
         f.addRow(self.auto_check_box)
 
         self.last_check_label = QLabel("—")
-        f.addRow("Last checked:", self.last_check_label)
+        f.addRow(self.tr("Last checked:"), self.last_check_label)
 
         self._last_check_dt_format = lambda ts: (
-            "never" if not ts else datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+            self.tr("never") if not ts else datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
         )
 
-        check_btn = QPushButton("Check for updates now")
+        check_btn = QPushButton(self.tr("Check for updates now"))
         check_btn.clicked.connect(self.checkUpdatesRequested.emit)
         f.addRow(check_btn)
 
@@ -206,40 +209,40 @@ class SettingsWindow(QDialog):
         self.poll_spin.setRange(250, 10000)
         self.poll_spin.setSingleStep(250)
         self.poll_spin.setSuffix(" ms")
-        f.addRow("Poll interval:", self.poll_spin)
+        f.addRow(self.tr("Poll interval:"), self.poll_spin)
 
         self.notify_delay_spin = QSpinBox()
         self.notify_delay_spin.setRange(0, 10000)
         self.notify_delay_spin.setSingleStep(250)
         self.notify_delay_spin.setSuffix(" ms")
-        f.addRow("Notification delay:", self.notify_delay_spin)
+        f.addRow(self.tr("Notification delay:"), self.notify_delay_spin)
 
         self.cover_cache_spin = QSpinBox()
         self.cover_cache_spin.setRange(10, 5000)
         self.cover_cache_spin.setSingleStep(50)
-        self.cover_cache_spin.setSuffix(" covers")
-        f.addRow("Cover cache size:", self.cover_cache_spin)
+        self.cover_cache_spin.setSuffix(self.tr(" covers"))
+        f.addRow(self.tr("Cover cache size:"), self.cover_cache_spin)
 
         self.log_level_combo = QComboBox()
         for lvl in ("DEBUG", "INFO", "WARNING", "ERROR"):
             self.log_level_combo.addItem(lvl, lvl)
-        f.addRow("Log level:", self.log_level_combo)
+        f.addRow(self.tr("Log level:"), self.log_level_combo)
 
-        log_btn = QPushButton("Open live-log window")
+        log_btn = QPushButton(self.tr("Open live-log window"))
         log_btn.clicked.connect(self.showLogRequested.emit)
         f.addRow(log_btn)
 
-        log_folder_btn = QPushButton("Open log folder")
+        log_folder_btn = QPushButton(self.tr("Open log folder"))
         log_folder_btn.clicked.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(state_dir())))
         )
         f.addRow(log_folder_btn)
 
-        restart_btn = QPushButton("Restart Refrain")
+        restart_btn = QPushButton(self.tr("Restart Refrain"))
         restart_btn.clicked.connect(self.restartRequested.emit)
         f.addRow(restart_btn)
 
-        reset_btn = QPushButton("Reset all settings to defaults")
+        reset_btn = QPushButton(self.tr("Reset all settings to defaults"))
         reset_btn.clicked.connect(self._on_reset_clicked)
         f.addRow(reset_btn)
 
@@ -248,11 +251,13 @@ class SettingsWindow(QDialog):
     def _on_reset_clicked(self) -> None:
         reply = QMessageBox.question(
             self,
-            "Reset all settings",
-            "Reset every setting to its default? Your Discord client_id will "
-            "be preserved — everything else (sources, privacy, autostart, "
-            "advanced) goes back to the shipped defaults.\n\n"
-            "Click Apply afterwards to make it permanent.",
+            self.tr("Reset all settings"),
+            self.tr(
+                "Reset every setting to its default? Your Discord client_id will "
+                "be preserved — everything else (sources, privacy, autostart, "
+                "advanced) goes back to the shipped defaults.\n\n"
+                "Click Apply afterwards to make it permanent."
+            ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )

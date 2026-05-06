@@ -93,18 +93,18 @@ def _fake_response(payload):
 
 def test_check_latest_release_parses_basic_payload(monkeypatch, updater):
     payload = {
-        "tag_name": "v0.2.0",
-        "name": "Refrain v0.2.0",
+        "tag_name": "v9.9.9",
+        "name": "Refrain v9.9.9",
         "body": "## Changes\n- Fixed thing",
-        "html_url": "https://github.com/Rockykln/refrain/releases/tag/v0.2.0",
+        "html_url": "https://github.com/Rockykln/refrain/releases/tag/v9.9.9",
         "assets": [
             {
-                "name": "Refrain-0.2.0-x86_64.AppImage",
+                "name": "Refrain-9.9.9-x86_64.AppImage",
                 "browser_download_url": "https://github.com/x/y/Refrain.AppImage",
                 "size": 12345678,
             },
             {
-                "name": "refrain-0.2.0.tar.gz",
+                "name": "refrain-9.9.9.tar.gz",
                 "browser_download_url": "https://github.com/x/y/refrain.tar.gz",
                 "size": 100000,
             },
@@ -114,9 +114,9 @@ def test_check_latest_release_parses_basic_payload(monkeypatch, updater):
 
     info = updater.check_latest_release()
     assert info is not None
-    assert info.tag == "v0.2.0"
-    assert info.version == "0.2.0"
-    assert info.name == "Refrain v0.2.0"
+    assert info.tag == "v9.9.9"
+    assert info.version == "9.9.9"
+    assert info.name == "Refrain v9.9.9"
     assert info.appimage_url == "https://github.com/x/y/Refrain.AppImage"
     assert info.appimage_size == 12345678
     assert info.is_newer_than_current is True
@@ -132,8 +132,8 @@ def test_check_latest_release_returns_none_on_network_error(monkeypatch, updater
 
 def test_check_latest_release_handles_empty_assets(monkeypatch, updater):
     payload = {
-        "tag_name": "v0.2.0",
-        "name": "Refrain v0.2.0",
+        "tag_name": "v9.9.9",
+        "name": "Refrain v9.9.9",
         "body": "",
         "html_url": "",
         "assets": [],

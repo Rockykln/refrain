@@ -51,6 +51,23 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.0" date="2026-05-06">
+      <description>
+        <p>
+          First minor-version release. Five new features plus a batch
+          of polish: theme-aware tray icons that follow the system
+          dark/light scheme; idle detection that drops the Discord
+          status when an MPRIS source is dangling; D-Bus
+          PropertiesChanged listeners so track changes register
+          instantly instead of within a poll tick; a first-run
+          welcome wizard with live Discord IPC + iTunes diagnostics;
+          translation infrastructure with German shipped and stubs
+          for FR / ES / IT / PT / NL / PL / JA / ZH_CN open for
+          community PRs. Discord activity layout cleaned up so the
+          three RPC lines show title, artist, and album one per line.
+        </p>
+      </description>
+    </release>
     <release version="0.1.5" date="2026-05-06">
       <description>
         <p>

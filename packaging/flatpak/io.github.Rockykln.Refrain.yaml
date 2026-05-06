@@ -43,6 +43,13 @@ finish-args:
   - --talk-name=org.freedesktop.Notifications
   # MPRIS metadata from any media player on the session bus
   - --talk-name=org.mpris.MediaPlayer2.*
+  # System tray. QSystemTrayIcon uses the StatusNotifierItem protocol on
+  # KDE Plasma and on GNOME with the AppIndicator extension; without
+  # talk-access to the watcher, Qt thinks no tray is available and
+  # Refrain's startup check refuses to launch.
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=com.canonical.AppMenu.Registrar
+  - --talk-name=com.canonical.indicator.application
   # Discord IPC sockets (Discord may use any of 0..9)
   - --filesystem=xdg-run/discord-ipc-0
   - --filesystem=xdg-run/discord-ipc-1

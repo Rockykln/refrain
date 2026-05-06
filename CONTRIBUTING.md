@@ -119,3 +119,34 @@ descriptions instead.
 - Other operating systems — there are mature options on macOS and Windows
   already.
 - Heavy dependencies for marginal features.
+
+## Translations
+
+User-visible strings live wrapped in `tr()` calls; the source list is
+maintained in `src/refrain/i18n/refrain_<lang>.ts` (Qt Linguist format).
+German is shipped complete. French, Spanish, Italian, Portuguese, Dutch,
+Polish, Japanese, and Simplified Chinese have stub `.ts` files with all
+source strings already extracted, marked
+`<translation type="unfinished"></translation>` — those are the ones we'd
+love community PRs for.
+
+To translate one of the stub languages end-to-end:
+
+```sh
+# 1. Pick a language file. Linguist (the GUI) is friendlier than
+#    editing XML by hand.
+pyside6-linguist src/refrain/i18n/refrain_fr.ts
+
+# 2. Replace each "unfinished" translation with the real string.
+
+# 3. Compile to .qm and run the result locally.
+make i18n
+LANG=fr_FR.UTF-8 refrain
+```
+
+If you've wrapped any new strings on the source side, run
+`make i18n-update` first — it refreshes every `.ts` file's
+source-string list while preserving existing translations.
+
+PRs that just translate a `.ts` (no source changes) are very welcome.
+So is native-speaker review of an existing translation.

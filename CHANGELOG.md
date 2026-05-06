@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-06
+
+First minor-version bump. Five planned v0.2 features land together
+along with a clutch of UX fixes that surfaced during demo recording.
+
+### Added
+
+- **Theme-aware tray icons** — Refrain now reads
+  `QStyleHints.colorScheme()` (Qt 6.5+) and switches between bright
+  glyphs on dark trays and dark glyphs on light trays automatically,
+  including live re-render when the system theme flips at runtime.
+  Three new SVG variants under `assets/icons/tray-*-dark.svg`.
+- **Idle detection** — when a track has been reported as PLAYING for
+  longer than its own duration plus a grace window (default 30 s,
+  config field `advanced.idle_grace_s`), Refrain treats the source as
+  dangling (typical: closed browser tab whose MPRIS handle never
+  released) and clears Discord + tray. Disabled by setting the grace
+  to 0. 8 unit tests in `test_daemon_idle.py`.
+- **D-Bus PropertiesChanged listeners** for MPRIS and BlueZ via
+  `QDBusConnection`. Track switches, pauses, and seeks register
+  instantly instead of within the next 1 Hz poll tick. Polling stays
+  on as the fallback for source discovery. Lives in
+  `refrain.sources.dbus_watcher`.
+- **First-run wizard** — single-page welcome dialog that shows the
+  tray-icon orientation, runs a live Discord IPC probe + a live
+  iTunes Search probe (off the GUI thread) so the user knows whether
+  both are reachable, and prompts for the Discord Application ID with
+  a direct link to the Developer Portal. Triggers when
+  `behavior.first_run_complete` is False AND no client_id is set;
+  skipping is fine — Settings still works.
+- **Localization infrastructure**, `i18n/refrain_<lang>.ts`. Source
+  strings under tray, settings window, log window, update dialog,
+  and welcome dialog wrapped in `tr()`. German fully translated
+  (62/62 strings). Stub `.ts` files for French, Spanish, Italian,
+  Portuguese, Dutch, Polish, Japanese, and Simplified Chinese — all
+  ready for community translation PRs. Pre-compiled `.qm` files ship
+  in the wheel; `make i18n` regenerates them.
+
+### Changed
+
+- **Discord RPC layout reworked** to one-piece-of-metadata-per-line:
+  - line 1 (`details`) — track title
+  - line 2 (`state`) — artist (was "artist • album")
+  - line 3 (`large_text`) — album, with artist/title prefixes
+    stripped so it never echoes line 2
+- **Window titles** dropped their manual "Refrain — " prefixes —
+  Qt's `applicationDisplayName` already auto-appends "Refrain", so
+  the Settings header no longer reads "Refrain — Settings — Refrain".
+- **Bandit suppression** for B606 (`os.execvp` in app.py — intended
+  Restart implementation, no shell wanted).
+
+### Fixed
+
+- **Flatpak no longer fails with "No system tray available"** — the
+  manifest now declares `--talk-name=org.kde.StatusNotifierWatcher`
+  and the canonical AppMenu / AppIndicator names, so Qt's tray
+  detection can reach KDE / GNOME's tray watcher from inside the
+  sandbox.
+- **`updater._detect_install_type` try/except/pass** replaced with
+  `contextlib.suppress` (B110 cleanup, consistent with the v0.1.2
+  sweep).
+
+### Notes
+
+- Flathub submission has been deferred indefinitely after a friction
+  with maintainer review; the manifest stays under
+  `packaging/flatpak/` for users who want to self-build, and a
+  re-submission attempt is listed in the roadmap under "Maybe v0.3+".
+
 ## [0.1.5] - 2026-05-06
 
 Three real bugs surfaced during the Flathub demo recording. All

@@ -106,8 +106,9 @@ def test_dataclasses_have_expected_fields():
         "cover_art",
         "show_buttons",
         "notify_delay_ms",
+        "first_run_complete",
     } == set(BehaviorConfig.__dataclass_fields__)
-    assert {"poll_interval_ms", "log_level", "cover_cache_size"} == set(
+    assert {"poll_interval_ms", "log_level", "cover_cache_size", "idle_grace_s"} == set(
         AdvancedConfig.__dataclass_fields__
     )
 

@@ -64,6 +64,9 @@ class BehaviorConfig:
     # How long to wait after a track change before firing the desktop
     # notification, so the cover-art download has time to land on disk.
     notify_delay_ms: int = 1500
+    # Set to True after the first-run wizard runs once. Prevents the
+    # welcome dialog from re-appearing on every launch.
+    first_run_complete: bool = False
 
 
 @dataclass
@@ -73,6 +76,12 @@ class AdvancedConfig:
     # On-disk cover-art cache cap. Older files are pruned at startup when
     # the count exceeds this. ~50-150 KB per cover.
     cover_cache_size: int = 200
+    # Idle-detection grace window (in seconds). When the *same* track has
+    # been "playing" for longer than its own duration plus this grace,
+    # Refrain assumes the source is dangling (e.g. browser tab closed
+    # without releasing the MPRIS handle) and clears the Discord status.
+    # Set to 0 to disable idle detection entirely.
+    idle_grace_s: int = 30
 
 
 @dataclass

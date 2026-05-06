@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 import shutil
 import subprocess
 import time
@@ -23,12 +24,78 @@ from refrain.discord_rpc import DiscordRPC
 from refrain.paths import assets_dir
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
+from refrain.sources.dbus_watcher import BluetoothWatcher, MPRISWatcher
 from refrain.sources.mpris import MPRISSource
 from refrain.timing import compute_rpc_start_ts
 
 log = logging.getLogger(__name__)
 
 _NOTIFY_BIN = shutil.which("notify-send")
+
+
+def compute_idle_state(
+    track: TrackInfo,
+    prev_track_key: str,
+    prev_seen_at: float,
+    grace_s: int,
+    now: float,
+) -> tuple[TrackInfo, str, float]:
+    """Pure-logic idle detection. Returns ``(track_or_empty, new_key, new_seen_at)``.
+
+    When the same track has been reported as PLAYING for longer than its
+    own duration plus ``grace_s`` seconds, returns ``TrackInfo.empty()``
+    — the source is dangling (typical: closed browser tab whose MPRIS
+    handle never released). Caller treats the empty result as "nothing
+    is playing", which clears Discord and the tray.
+    """
+    if grace_s <= 0:
+        return track, "", 0.0
+    if (
+        track.status != PlaybackStatus.PLAYING
+        or not track.has_track
+        or track.duration_ms <= 0
+    ):
+        return track, "", 0.0
+    track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
+    if track_key != prev_track_key:
+        return track, track_key, now
+    deadline_s = (track.duration_ms / 1000.0) + grace_s
+    if (now - prev_seen_at) > deadline_s:
+        log.info(
+            "Idle source detected: same track for %.0fs > duration+grace (%.0fs); "
+            "clearing playback state",
+            now - prev_seen_at,
+            deadline_s,
+        )
+        return TrackInfo.empty(), track_key, prev_seen_at
+    return track, track_key, prev_seen_at
+
+
+def _format_album_for_display(album: str, artist: str, title: str) -> str:
+    """Strip artist / title cruft from an album name for Discord's bottom
+    line. MPRIS album fields sometimes embed the artist as a prefix
+    (`"W&W & Scooter - Sun Rise"`) or repeat the title verbatim; without
+    this the third RPC line just echoes what's already shown above.
+    """
+    if not album:
+        return ""
+    cleaned = album.strip()
+    if artist:
+        cleaned = re.sub(
+            rf"^{re.escape(artist)}\s*[-:–—]\s*",  # noqa: RUF001 — en-dash and em-dash
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = re.sub(
+            rf"\s*[-:–—]\s*{re.escape(artist)}$",  # noqa: RUF001
+            "",
+            cleaned,
+            flags=re.IGNORECASE,
+        ).strip()
+    if title and cleaned and cleaned.lower() == title.lower():
+        return ""
+    return cleaned
 
 
 class DaemonWorker(QObject):
@@ -57,6 +124,19 @@ class DaemonWorker(QObject):
         # not every tick — otherwise Discord's elapsed timer jitters.
         self._rpc_track_key = ""
         self._rpc_start_ts = 0
+        # Idle detection: when the same track-content key has been
+        # reported as "playing" for longer than its own duration + a
+        # grace window, the source is dangling (typical: browser tab
+        # closed without releasing MPRIS). We track first-seen-at and
+        # clear playback state in `_poll` once that window expires.
+        self._idle_track_key = ""
+        self._idle_seen_at: float = 0.0
+        # PropertiesChanged listeners — emit `changed` when the active
+        # MPRIS player or any BlueZ MediaPlayer1 publishes an update.
+        # Connected to `_on_external_change` so a track switch / pause /
+        # seek shows up immediately instead of waiting for the next tick.
+        self._mpris_watcher: MPRISWatcher | None = None
+        self._bt_watcher: BluetoothWatcher | None = None
 
     # ----------------------------------------------------------------- lifecycle
 
@@ -64,6 +144,12 @@ class DaemonWorker(QObject):
     def start_polling(self) -> None:
         """Called on the worker thread once the QThread's event loop is up."""
         log.info("Daemon started")
+        # Watchers must be created on the worker thread so their D-Bus
+        # signal slots are delivered into this thread's event loop.
+        self._mpris_watcher = MPRISWatcher()
+        self._mpris_watcher.changed.connect(self._on_external_change)
+        self._bt_watcher = BluetoothWatcher()
+        self._bt_watcher.changed.connect(self._on_external_change)
         self._timer = QTimer()
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
@@ -77,6 +163,12 @@ class DaemonWorker(QObject):
         if self._notify_timer is not None:
             self._notify_timer.stop()
             self._notify_timer = None
+        if self._mpris_watcher is not None:
+            self._mpris_watcher.set_target(None)
+            self._mpris_watcher = None
+        if self._bt_watcher is not None:
+            self._bt_watcher.set_targets([])
+            self._bt_watcher = None
         with contextlib.suppress(Exception):
             self._rpc.clear()
         with contextlib.suppress(Exception):
@@ -142,10 +234,39 @@ class DaemonWorker(QObject):
         try:
             track = self._poll()
             self._dispatch(track)
+            self._refresh_watchers()
         except Exception:
             log.exception("Daemon tick failed")
 
+    @Slot()
+    def _on_external_change(self) -> None:
+        """A subscribed PropertiesChanged signal fired — re-read + dispatch
+        right away so the user sees the track switch without waiting for
+        the next 1 Hz tick."""
+        try:
+            track = self._poll()
+            self._dispatch(track)
+        except Exception:
+            log.exception("Signal-driven dispatch failed")
+
+    def _refresh_watchers(self) -> None:
+        """Point the PropertiesChanged listeners at whatever player set
+        the last poll picked. Re-subscriptions are no-ops when nothing
+        changed (handled inside the watchers)."""
+        if self._mpris_watcher is not None:
+            target = self._mpris._last_player_name if self._config.sources.mpris_enabled else None
+            self._mpris_watcher.set_target(target)
+        if self._bt_watcher is not None:
+            paths: list[str] = []
+            if self._config.sources.bluetooth_enabled and self._bluetooth._last_player_path:
+                paths.append(self._bluetooth._last_player_path)
+            self._bt_watcher.set_targets(paths)
+
     def _poll(self) -> TrackInfo:
+        track = self._poll_sources()
+        return self._apply_idle_detection(track)
+
+    def _poll_sources(self) -> TrackInfo:
         if self._config.sources.mpris_enabled:
             t = self._mpris.read()
             if t.has_track or t.status in (PlaybackStatus.PLAYING, PlaybackStatus.PAUSED):
@@ -157,6 +278,18 @@ class DaemonWorker(QObject):
                 self._active_source = "bluetooth"
                 return t
         return TrackInfo.empty()
+
+    def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
+        result, new_key, new_seen = compute_idle_state(
+            track,
+            self._idle_track_key,
+            self._idle_seen_at,
+            int(self._config.advanced.idle_grace_s),
+            time.monotonic(),
+        )
+        self._idle_track_key = new_key
+        self._idle_seen_at = new_seen
+        return result
 
     def _dispatch(self, track: TrackInfo) -> None:
         fp = track.fingerprint()
@@ -273,10 +406,12 @@ class DaemonWorker(QObject):
         self._rpc_track_key = track_key
         self._rpc_start_ts = new_start_ts
 
+        # Three-line layout, one piece of metadata per line — matches
+        # how Spotify/other music RPCs render in Discord. Album is
+        # filtered against artist / title so the bottom line never just
+        # echoes what's already on a line above.
         details = track.title
-        if track.artist and track.album:
-            state = f"{track.artist} • {track.album}"
-        elif track.artist:
+        if track.artist:
             state = track.artist
         elif track.album:
             state = track.album
@@ -289,15 +424,19 @@ class DaemonWorker(QObject):
             if url:
                 large_image = url
 
-        large_text = "Apple Music Web" if track.source == "mpris" else "Bluetooth"
+        album_for_display = _format_album_for_display(track.album, track.artist, track.title)
 
         payload: dict = {
             "details": details[:128],
             "state": state[:128],
             "start": self._rpc_start_ts,
             "large_image": large_image,
-            "large_text": large_text,
         }
+        # Only emit `large_text` when it adds new info — Discord shows it
+        # as a third visible line for LISTENING activity, and an
+        # echo of `state` looks broken to viewers.
+        if album_for_display and album_for_display.lower() != state.lower():
+            payload["large_text"] = album_for_display[:128]
 
         # Setting `end` makes Discord show "elapsed / total" (e.g. "1:23 / 3:45")
         # — the user-visible timer is bounded by the actual track length instead

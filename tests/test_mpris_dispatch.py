@@ -12,11 +12,16 @@ back onto the browser-native player to actually do anything.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from unittest.mock import MagicMock
 
-# dbus is a required runtime dep but tests should run without a session
-# bus. Replace `dbus` with a stub before refrain.sources.mpris imports it.
+# dbus is a required runtime dep but these tests target the *dispatch*
+# logic against an in-memory player set. Forcefully replace `dbus`
+# with our stub *and* reload refrain.sources.mpris so its module-level
+# `import dbus` picks up the fake — `setdefault` doesn't work here
+# because earlier tests in the suite may have already pulled in the
+# real `dbus` module.
 _fake_dbus = MagicMock()
 
 
@@ -25,9 +30,11 @@ class _FakeDBusException(Exception):
 
 
 _fake_dbus.DBusException = _FakeDBusException
-sys.modules.setdefault("dbus", _fake_dbus)
+sys.modules["dbus"] = _fake_dbus
+import refrain.sources.mpris as _mpris_mod  # noqa: E402
 
-from refrain.sources.mpris import MPRISSource  # noqa: E402
+_mpris_mod = importlib.reload(_mpris_mod)
+MPRISSource = _mpris_mod.MPRISSource
 
 
 class _FakePlayer:

@@ -53,7 +53,7 @@ class _UpdateRunner(QThread):
 class UpdateDialog(QDialog):
     def __init__(self, release: ReleaseInfo, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Refrain — Update available")
+        self.setWindowTitle(self.tr("Update available"))
         self.setMinimumSize(560, 480)
         self._release = release
         self._install_type = detect_install_type()
@@ -147,8 +147,8 @@ class UpdateDialog(QDialog):
 
     def _show_result(self, result: UpdateResult) -> None:
         if result.success:
-            QMessageBox.information(self, "Refrain — Update complete", result.message)
+            QMessageBox.information(self, "Update complete", result.message)
             if result.needs_restart:
                 self.accept()
         else:
-            QMessageBox.warning(self, "Refrain — Update", result.message)
+            QMessageBox.warning(self, "Update", result.message)

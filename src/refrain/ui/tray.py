@@ -2,16 +2,40 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 
-from PySide6.QtCore import QObject, Signal
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from refrain.paths import assets_dir
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
 log = logging.getLogger(__name__)
+
+
+def _detect_color_scheme() -> str:
+    """Return ``'dark'`` if the system theme is dark, else ``'light'``.
+
+    Prefers Qt 6.5+'s `styleHints().colorScheme()`. Falls back to a
+    luminance check on the WindowText palette colour for older Qt — if
+    the *text* the system draws is bright, the surface behind it is
+    dark, so we want bright tray glyphs.
+    """
+    hints = QGuiApplication.styleHints()
+    scheme = getattr(hints, "colorScheme", None)
+    if callable(scheme):
+        with contextlib.suppress(Exception):
+            value = scheme()
+            if value == Qt.ColorScheme.Dark:
+                return "dark"
+            if value == Qt.ColorScheme.Light:
+                return "light"
+    palette = QGuiApplication.palette()
+    text = palette.color(palette.ColorRole.WindowText)
+    luminance = 0.299 * text.red() + 0.587 * text.green() + 0.114 * text.blue()
+    return "dark" if luminance > 128 else "light"
 
 
 class TrayIcon(QObject):
@@ -26,12 +50,9 @@ class TrayIcon(QObject):
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
-        icons_dir = assets_dir() / "icons"
-        self._icons = {
-            PlaybackStatus.PLAYING: QIcon(str(icons_dir / "tray-playing.svg")),
-            PlaybackStatus.PAUSED: QIcon(str(icons_dir / "tray-paused.svg")),
-            PlaybackStatus.STOPPED: QIcon(str(icons_dir / "tray-stopped.svg")),
-        }
+        self._icons_dir = assets_dir() / "icons"
+        self._current_status: PlaybackStatus = PlaybackStatus.STOPPED
+        self._icons = self._build_icons_for_current_theme()
         self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
         self._tray.setToolTip("Refrain")
         # Tray menu actions are rendered via DBusMenu by the system shell;
@@ -40,22 +61,50 @@ class TrayIcon(QObject):
         # because tooltips DO refresh in real time.
         self._current_track_line = ""
         self._current_progress_line = ""
+        # Re-render tray glyphs when the system flips between dark and
+        # light theme — Qt 6.5+ exposes this signal on styleHints().
+        hints = QGuiApplication.styleHints()
+        signal = getattr(hints, "colorSchemeChanged", None)
+        if signal is not None:
+            try:
+                signal.connect(self._on_color_scheme_changed)
+            except Exception as e:
+                log.debug("colorSchemeChanged connect failed: %s", e)
 
-        self._title_action = QAction("(nothing playing)")
+    def _build_icons_for_current_theme(self) -> dict[PlaybackStatus, QIcon]:
+        # On a dark system theme the tray panel is dark, so the glyph has
+        # to be bright (the existing `tray-<state>.svg` set). On a light
+        # theme it has to be dark — that's the `*-dark.svg` variants.
+        scheme = _detect_color_scheme()
+        suffix = "-dark" if scheme == "light" else ""
+        return {
+            PlaybackStatus.PLAYING: QIcon(str(self._icons_dir / f"tray-playing{suffix}.svg")),
+            PlaybackStatus.PAUSED: QIcon(str(self._icons_dir / f"tray-paused{suffix}.svg")),
+            PlaybackStatus.STOPPED: QIcon(str(self._icons_dir / f"tray-stopped{suffix}.svg")),
+        }
+
+    def _on_color_scheme_changed(self, *_args) -> None:
+        log.debug("System color scheme changed; refreshing tray icons")
+        self._icons = self._build_icons_for_current_theme()
+        icon = self._icons.get(self._current_status)
+        if icon is not None:
+            self._tray.setIcon(icon)
+
+        self._title_action = QAction(self.tr("(nothing playing)"))
         self._title_action.setEnabled(False)
         self._artist_action = QAction("")
         self._artist_action.setEnabled(False)
         self._progress_action = QAction("")
         self._progress_action.setEnabled(False)
         self._progress_action.setVisible(False)
-        self._discord_action = QAction("○  Discord: not connected")
+        self._discord_action = QAction(self.tr("○  Discord: not connected"))
         self._discord_action.setEnabled(False)
 
-        self._previous_action = QAction("⏮  Previous")
+        self._previous_action = QAction(self.tr("⏮  Previous"))
         self._previous_action.triggered.connect(self.previousRequested.emit)
-        self._play_pause_action = QAction("⏵  Play")
+        self._play_pause_action = QAction(self.tr("⏵  Play"))
         self._play_pause_action.triggered.connect(self.playPauseRequested.emit)
-        self._next_action = QAction("⏭  Next")
+        self._next_action = QAction(self.tr("⏭  Next"))
         self._next_action.triggered.connect(self.nextRequested.emit)
 
         menu = QMenu()
@@ -69,18 +118,18 @@ class TrayIcon(QObject):
         menu.addAction(self._next_action)
         menu.addSeparator()
         # Hidden by default — only shown when an update has been detected.
-        self._update_action = QAction("⬆  Update available")
+        self._update_action = QAction(self.tr("⬆  Update available"))
         self._update_action.setVisible(False)
         self._update_action.triggered.connect(self.updateRequested.emit)
         menu.addAction(self._update_action)
-        settings_action = menu.addAction("Settings…")
+        settings_action = menu.addAction(self.tr("Settings…"))
         settings_action.triggered.connect(self.settingsRequested.emit)
-        log_action = menu.addAction("Live log…")
+        log_action = menu.addAction(self.tr("Live log…"))
         log_action.triggered.connect(self.logRequested.emit)
         menu.addSeparator()
-        restart_action = menu.addAction("⟳  Restart Refrain")
+        restart_action = menu.addAction(self.tr("⟳  Restart Refrain"))
         restart_action.triggered.connect(self.restartRequested.emit)
-        quit_action = menu.addAction("Quit Refrain")
+        quit_action = menu.addAction(self.tr("Quit Refrain"))
         quit_action.triggered.connect(self.quitRequested.emit)
 
         self._tray.setContextMenu(menu)
@@ -92,26 +141,27 @@ class TrayIcon(QObject):
             self.settingsRequested.emit()
 
     def set_status(self, status: PlaybackStatus) -> None:
+        self._current_status = status
         icon = self._icons.get(status)
         if icon is not None:
             self._tray.setIcon(icon)
         if status == PlaybackStatus.PLAYING:
-            self._play_pause_action.setText("⏸  Pause")
+            self._play_pause_action.setText(self.tr("⏸  Pause"))
         else:
-            self._play_pause_action.setText("⏵  Play")
+            self._play_pause_action.setText(self.tr("⏵  Play"))
 
     def set_update_available(self, available: bool, version: str = "") -> None:
         if available and version:
-            self._update_action.setText(f"⬆  Update available — v{version}")
+            self._update_action.setText(self.tr("⬆  Update available — v{version}").format(version=version))
         else:
-            self._update_action.setText("⬆  Update available")
+            self._update_action.setText(self.tr("⬆  Update available"))
         self._update_action.setVisible(available)
 
     def set_discord_connected(self, connected: bool) -> None:
         if connected:
-            self._discord_action.setText("●  Discord: connected")
+            self._discord_action.setText(self.tr("●  Discord: connected"))
         else:
-            self._discord_action.setText("○  Discord: not connected")
+            self._discord_action.setText(self.tr("○  Discord: not connected"))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         if duration_ms <= 0:
@@ -134,7 +184,7 @@ class TrayIcon(QObject):
 
     def set_track(self, track: TrackInfo) -> None:
         if not track.has_track:
-            self._title_action.setText("(nothing playing)")
+            self._title_action.setText(self.tr("(nothing playing)"))
             self._artist_action.setText("")
             self._progress_action.setVisible(False)
             self._current_track_line = ""

@@ -35,7 +35,7 @@ _LEVEL_COLORS = {
 class LogWindow(QDialog):
     def __init__(self, bridge, parent: QWidget | None = None):
         super().__init__(parent)
-        self.setWindowTitle("Refrain — Live Log")
+        self.setWindowTitle(self.tr("Live Log"))
         self.setMinimumSize(720, 480)
         # Don't override windowFlags here — QDialog defaults are correct.
         # Adding Qt.WindowType.Window broke visibility on some compositors.

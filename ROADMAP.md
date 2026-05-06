@@ -117,20 +117,44 @@ What's done, what's next, what's deliberately not in scope.
   now gives a working ticker; the menu line stays as a snapshot
   that's accurate at the moment it's opened.
 
-## Up next — v0.2
+## Done — v0.2.0
 
-- **D-Bus PropertiesChanged signals** for MPRIS and BlueZ instead of the
-  1 Hz polling loop. Lower CPU, instant track-change reactions. Polling
-  stays as a fallback for source-discovery.
-- **Idle-detection**: drop the Discord status when the same track has been
-  shown longer than its duration + N seconds (handles dangling MPRIS
-  metadata after a tab close).
-- **Localization** (German + English to start) via Qt Linguist `.ts` files.
-- **First-run wizard**: a one-page welcome that points out the tray icon,
-  validates the Discord IPC socket, and runs an iTunes lookup to confirm
-  network access works.
-- **Theme-aware tray icons** that pick light or dark variants based on the
-  Qt palette luminance.
+- **Theme-aware tray icons** — Qt 6.5+ `colorScheme()` detection plus
+  three new dark-glyph SVG variants. Re-renders live when the system
+  theme flips.
+- **Idle detection** — drops Discord + tray when a track has been
+  reported as PLAYING for longer than its own duration plus a grace
+  window. Handles closed-tab MPRIS handles cleanly. New config field
+  `advanced.idle_grace_s` (default 30 s, 0 disables).
+- **D-Bus PropertiesChanged listeners** for MPRIS + BlueZ via
+  `QDBusConnection`. Track switches register instantly instead of
+  within the next 1 Hz poll. Polling stays on as discovery fallback.
+- **First-run wizard** — single-page welcome with tray-icon
+  orientation, live Discord IPC + iTunes probes, Discord
+  Application-ID input field with link to the Developer Portal.
+  Skippable; the Settings tab still works.
+- **Localization** — `tr()` wrapping + Qt Linguist `.ts` files under
+  `i18n/`. German fully translated (62 strings). Stub `.ts` files
+  for FR / ES / IT / PT / NL / PL / JA / ZH_CN waiting for
+  community translation PRs. `make i18n` rebuilds the `.qm` files.
+- **Discord RPC layout reworked** — title / artist / album each get
+  their own line; album is filtered against artist + title so the
+  bottom line never echoes what's above.
+- **Flatpak tray fix** — manifest declares the Status-Notifier-Watcher
+  D-Bus names, so the sandbox can reach KDE/GNOME's tray.
+- **Window-title cleanup** — no more "Refrain — Settings — Refrain"
+  triple; Qt's auto-suffix is the only place "Refrain" appears.
+
+## Up next — v0.3
+
+- **Polishing the wrapped i18n surface** — wrap the remaining
+  fixed-position strings (date formatters, advanced-tab subtitles,
+  bluetooth picker labels) so the German build covers everything a
+  user sees, not just the high-traffic widgets.
+- **Stable-release AUR build** that doesn't rely on the GitHub
+  release tarball — switch to a `git`-source PKGBUILD pinned to the
+  signed tag, so AUR users get the exact same commit the release
+  workflow ships.
 
 ## Maybe — v0.3+
 

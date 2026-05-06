@@ -16,7 +16,17 @@ import sys
 import time
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, QTimer, QtMsgType, Signal, qInstallMessageHandler
+from PySide6.QtCore import (
+    QLibraryInfo,
+    QLocale,
+    QObject,
+    QThread,
+    QTimer,
+    QtMsgType,
+    QTranslator,
+    Signal,
+    qInstallMessageHandler,
+)
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
@@ -34,6 +44,7 @@ from refrain.ui.log_window import LogWindow
 from refrain.ui.settings_window import SettingsWindow
 from refrain.ui.tray import TrayIcon
 from refrain.ui.update_dialog import UpdateDialog
+from refrain.ui.welcome_dialog import WelcomeDialog
 from refrain.updater import ReleaseInfo, check_latest_release
 
 log = logging.getLogger(__name__)
@@ -114,6 +125,33 @@ def uninstall_desktop_files() -> int:
     else:
         print("Nothing to remove (refrain.desktop and refrain.svg are not installed).")
     return 0
+
+
+def _install_translators(app: QApplication) -> list[QTranslator]:
+    """Load Refrain's own .qm files plus Qt's built-in translations.
+
+    Picks the system locale (`QLocale.system()`) and falls back to
+    English source strings whenever a translation is missing or
+    unfinished. Translators are kept alive via the returned list — Qt
+    drops them silently if they're garbage-collected.
+    """
+    keep_alive: list[QTranslator] = []
+    locale = QLocale.system()
+    # Refrain's own translations (i18n/refrain_<lang>.qm), shipped with
+    # the wheel under refrain/i18n/.
+    package_i18n = Path(__file__).parent / "i18n"
+    refrain_t = QTranslator(app)
+    if refrain_t.load(locale, "refrain", "_", str(package_i18n), ".qm"):
+        app.installTranslator(refrain_t)
+        keep_alive.append(refrain_t)
+        log.info("Loaded Refrain translation for %s", locale.name())
+    # Qt's own translations for stock widgets (button labels, menus).
+    qt_t = QTranslator(app)
+    qt_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+    if qt_t.load(locale, "qtbase", "_", qt_path, ".qm"):
+        app.installTranslator(qt_t)
+        keep_alive.append(qt_t)
+    return keep_alive
 
 
 _QT_NOISE_SUBSTRINGS = (
@@ -275,17 +313,21 @@ def main() -> int:
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 
+    # Translators must be installed BEFORE any user-visible widget is
+    # created — strings are looked up at construction time.
+    app._refrain_translators = _install_translators(app)
+
     try:
         bus_lock = acquire_lock()
     except AlreadyRunning:
-        QMessageBox.information(None, "Refrain", "Refrain is already running.")
+        QMessageBox.information(None, "Already running", "Refrain is already running.")
         return 0
     app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
         QMessageBox.critical(
             None,
-            "Refrain",
+            "No system tray",
             "No system tray available.\n\n"
             "On GNOME, install the 'AppIndicator and KStatusNotifierItem' "
             "extension and re-run Refrain.",
@@ -324,11 +366,11 @@ def main() -> int:
     updater.checkUpToDate.connect(
         lambda v: QMessageBox.information(
             settings,
-            "Refrain — Updates",
+            "Updates",
             f"You're already on the latest version ({v}).",
         )
     )
-    updater.checkFailed.connect(lambda msg: QMessageBox.warning(settings, "Refrain — Updates", msg))
+    updater.checkFailed.connect(lambda msg: QMessageBox.warning(settings, "Updates", msg))
 
     # Log-window wireup
     def _show_log() -> None:
@@ -355,7 +397,30 @@ def main() -> int:
 
     daemon.start()
 
-    if not args.silent:
+    # First-run wizard fires once: when the user has never finished it AND
+    # hasn't yet pasted a Discord client_id. Shows tray-icon orientation,
+    # runs Discord IPC + iTunes probes for live diagnostics, prompts for
+    # the Application ID. Skipping is fine — the user can paste it later
+    # from Settings → General.
+    if not config.behavior.first_run_complete and not config.discord.client_id:
+        welcome = WelcomeDialog()
+
+        def _on_welcome_applied(client_id: str) -> None:
+            config.behavior.first_run_complete = True
+            if client_id:
+                config.discord.client_id = client_id
+            try:
+                config.save()
+            except Exception as e:
+                log.warning("Could not persist first-run wizard result: %s", e)
+            daemon.worker.update_config(config)
+
+        welcome.applied.connect(_on_welcome_applied)
+        welcome.show()
+        welcome.raise_()
+        welcome.activateWindow()
+        welcome.start_diagnostics()
+    elif not args.silent:
         settings.show()
 
     if args.debug:
@@ -395,7 +460,7 @@ def _open_update_dialog_factory(updater: UpdateOrchestrator, parent_widget):
         if release is None:
             QMessageBox.information(
                 parent_widget,
-                "Refrain — Updates",
+                "Updates",
                 "No update information available yet. Try again in a moment.",
             )
             return
