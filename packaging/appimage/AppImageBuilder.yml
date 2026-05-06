@@ -19,6 +19,11 @@ script:
   - AppDir/usr/bin/python3 -m ensurepip --upgrade
   - AppDir/usr/bin/python3 -m pip install --upgrade pip
   - AppDir/usr/bin/python3 -m pip install ../../  # installs refrain from the project root
+  # appimage-builder's icon_bundler walks the standard XDG icon paths to
+  # find the `icon:` named in app_info. Drop the SVG at the canonical
+  # hicolor/scalable/apps location so it gets picked up + bundled.
+  - install -Dm644 ../../src/refrain/assets/icons/refrain.svg
+      AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg
 
 AppDir:
   app_info:
@@ -50,9 +55,9 @@ AppDir:
       - libegl1
       - libfontconfig1
 
-  files:
-    include:
-      - ../../src/refrain/assets/icons/refrain.svg
+  # files.include is intentionally absent — the icon is installed into
+  # AppDir/usr/share/icons/hicolor/scalable/apps/ by the script: section
+  # above, which is the path icon_bundler actually searches.
 
   test:
     fedora-39:
