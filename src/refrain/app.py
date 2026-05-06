@@ -329,6 +329,20 @@ def main() -> int:
     qInstallMessageHandler(_qt_message_handler)
     log.info("Refrain %s starting", __version__)
 
+    # Wire dbus-python's dispatch into a GLib main loop *before* anything
+    # touches the session bus. Has to happen before MPRISSource /
+    # BluetoothSource construct their first SessionBus, otherwise the
+    # bus connection won't have a main loop attached and our published
+    # MPRIS server fails to register ("D-Bus connections must be
+    # attached to a main loop"). No-op if PyGObject is missing — the
+    # Discord-RPC + tray sides keep working without it.
+    try:
+        from refrain.sources.mpris_server import _ensure_dbus_glib_loop
+
+        _ensure_dbus_glib_loop()
+    except Exception as e:
+        log.debug("dbus-glib loop init skipped: %s", e)
+
     app = QApplication(sys.argv)
     app.setApplicationName("Refrain")
     app.setApplicationDisplayName("Refrain")
@@ -431,18 +445,64 @@ def main() -> int:
     # from Settings → General.
     if not config.behavior.first_run_complete and not config.discord.client_id:
         welcome = WelcomeDialog()
+        # Pin so neither the QDialog nor its diagnostics QThread are
+        # collected before the user closes the wizard. Without this,
+        # `welcome` falls out of scope as soon as the if-branch ends
+        # and the still-running diagnostics thread crashes refrain
+        # with "QThread: Destroyed while thread is still running".
+        app._refrain_welcome = welcome
 
         def _on_welcome_applied(client_id: str) -> None:
-            config.behavior.first_run_complete = True
-            if client_id:
-                config.discord.client_id = client_id
+            log.info(
+                "Welcome wizard applied — client_id=%s",
+                "(empty)" if not client_id else f"set ({len(client_id)} chars)",
+            )
             try:
-                config.save()
+                config.behavior.first_run_complete = True
+                if client_id:
+                    config.discord.client_id = client_id
+                try:
+                    config.save()
+                    log.info("Welcome wizard: config persisted to disk")
+                except Exception as e:
+                    log.warning("Could not persist first-run wizard result: %s", e)
+                # Cross-thread safe: emit the existing `settings.applied`
+                # signal (already QueuedConnection-wired to
+                # `daemon.worker.update_config`) instead of trying to
+                # use QMetaObject.invokeMethod with Q_ARG(object, ...),
+                # which PySide6 rejects with "Unable to find a
+                # QMetaType for 'object'".
+                settings.applied.emit(config)
             except Exception as e:
-                log.warning("Could not persist first-run wizard result: %s", e)
-            daemon.worker.update_config(config)
+                log.exception("Welcome wizard apply hook failed: %s", e)
 
+        # Connect to BOTH the explicit Apply signal AND the dialog's
+        # `finished` signal. `finished` fires for any close path
+        # (accept, reject, X, Esc) — listening to it guarantees the
+        # post-wizard hook runs even if the user dismisses without
+        # confirming. When applied has already fired, finished fires
+        # *after* it, so the post-dialog handler sees the persisted
+        # state.
         welcome.applied.connect(_on_welcome_applied)
+
+        def _after_wizard(_result: int) -> None:
+            log.info("Welcome wizard closed (result=%s)", _result)
+            if not args.silent:
+                try:
+                    # SettingsWindow loaded its form from the original
+                    # (empty client_id) config when it was constructed,
+                    # before the wizard saved the user's input. Reload
+                    # so the Discord-ID input shows the value the user
+                    # just entered instead of staying blank.
+                    settings._load_into_form()
+                    settings.show()
+                    settings.raise_()
+                    settings.activateWindow()
+                    log.info("Settings window shown")
+                except Exception as e:
+                    log.exception("Could not open Settings after wizard: %s", e)
+
+        welcome.finished.connect(_after_wizard)
         welcome.show()
         welcome.raise_()
         welcome.activateWindow()

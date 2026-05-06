@@ -36,6 +36,14 @@ def setup_logging(level: str = "INFO") -> None:
     root.addHandler(file_handler)
     root.addHandler(console_handler)
 
+    # Silence dbus-python's own loggers — `dbus.proxies` in particular
+    # logs every introspection timeout against unrelated MPRIS players
+    # (Apple Music's plasma-browser-integration drops to ~25 s replies
+    # under load), drowning the live log in tracebacks that have nothing
+    # to do with refrain. CRITICAL = effectively off.
+    logging.getLogger("dbus.proxies").setLevel(logging.CRITICAL)
+    logging.getLogger("dbus.connection").setLevel(logging.CRITICAL)
+
 
 def attach_qt_log_bridge():
     """Install a Qt-aware log handler. Returns a QObject whose ``log_record``

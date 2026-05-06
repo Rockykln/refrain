@@ -51,6 +51,20 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.2" date="2026-05-06">
+      <description>
+        <p>
+          Two roadmap features pulled forward: per-source Discord
+          client IDs (so Apple Music and Bluetooth can render under
+          different Discord applications, with their own artwork in
+          the user's profile), and MPRIS-server mode (Refrain
+          publishes itself as org.mpris.MediaPlayer2.refrain so KDE
+          Plasma's panel media-controls applet, KDE Connect, GNOME
+          Shell, etc. drive the same Play / Pause / Next / Previous
+          as the tray and render the same track Discord renders).
+        </p>
+      </description>
+    </release>
     <release version="0.2.1" date="2026-05-06">
       <description>
         <p>

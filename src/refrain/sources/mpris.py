@@ -98,20 +98,26 @@ class MPRISSource:
 
     def __init__(self, browser_hints: list[str] | None = None) -> None:
         self._last_player_name: str | None = None
-        # Browser-MPRIS players that are *capable* of the action but lack the
-        # rich metadata. Apple Music in Chromium typically exposes two
-        # players: KDE's `plasma-browser-integration` (good metadata, but
-        # CanGoNext=False) and the browser's own MPRIS (CanGoNext=True but
-        # only the tab title as metadata). We pick plasma for `read()`,
-        # then fall back to the browser-native player for skip controls.
         self._control_fallback_names: list[str] = []
         self._browser_hints = list(browser_hints) if browser_hints else list(BROWSER_HINTS)
+        # Per-player blacklist: bus-name → monotonic time when it
+        # becomes eligible to retry. A single property timeout banishes
+        # the player for `_BLACKLIST_S` seconds so subsequent reads
+        # don't keep eating the dbus reply timeout per stuck player.
+        # Apple Music's plasma-browser-integration freezes mid-session
+        # under load; without this the daemon's poll cycle backed up
+        # to ~50 s and notifications + Discord status froze with it.
+        self._timeout_blacklist: dict[str, float] = {}
+
+    _BLACKLIST_S = 5.0
 
     def set_browser_hints(self, hints: list[str]) -> None:
         if hints:
             self._browser_hints = list(hints)
 
     def read(self) -> TrackInfo:
+        import time as _time
+
         try:
             bus = dbus.SessionBus()
             obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
@@ -121,6 +127,7 @@ class MPRISSource:
             log.debug("MPRIS: ListNames failed: %s", e)
             return TrackInfo.empty()
 
+        now = _time.monotonic()
         candidates: list[tuple[int, TrackInfo, str]] = []
         # Browser-looking players that *can* control playback but failed the
         # apple-music URL filter — kept around so skip/next/prev fall back
@@ -130,38 +137,73 @@ class MPRISSource:
             name = str(raw)
             if not name.startswith("org.mpris.MediaPlayer2."):
                 continue
+            # Skip our own published MPRIS server — reading from
+            # refrain's own bus name is circular, and the GLib-thread
+            # response can race the polling thread badly enough to add
+            # whole seconds of latency per tick.
+            if name == "org.mpris.MediaPlayer2.refrain":
+                continue
+            until = self._timeout_blacklist.get(name, 0.0)
+            if now < until:
+                continue  # this player just timed out; skip until cooldown ends
             ti, score, control_capable = self._read_player(bus, name)
             if ti is not None:
                 candidates.append((score, ti, name))
             elif control_capable:
                 fallbacks.append(name)
 
-        self._control_fallback_names = fallbacks
-
         if not candidates:
+            self._control_fallback_names = fallbacks
             return TrackInfo.empty()
         candidates.sort(key=lambda c: c[0], reverse=True)
         best = candidates[0]
         self._last_player_name = best[2]
+        # Every other apple-music candidate (typically the browser-native
+        # MPRIS sitting next to plasma-browser-integration) joins the
+        # fallback list. Their Next/Previous calls reach Apple Music's
+        # mediaSession via a different path than plasma's wrapper, and
+        # in practice that's the path that *actually* fires when plasma
+        # claims success but the song doesn't change.
+        for _, _, name in candidates[1:]:
+            if name not in fallbacks:
+                fallbacks.append(name)
+        self._control_fallback_names = fallbacks
         return best[1]
 
     def play_pause(self) -> bool:
-        return self._dispatch_action("PlayPause", "CanPause")
+        # PlayPause is a TOGGLE — calling it twice is back to the
+        # original state. Prefer the primary metadata player so a
+        # single user click never races a fallback into double-toggling.
+        return self._dispatch_action("PlayPause", "CanPause", deprioritise_plasma=False)
 
     def next(self) -> bool:
-        return self._dispatch_action("Next", "CanGoNext")
+        # Next/Previous are idempotent for the user *intent* (skip one
+        # song forward) but plasma-browser-integration's Next on Apple
+        # Music silently no-ops more often than not. We deprioritise
+        # plasma so the browser-native MPRIS gets the call first when
+        # available — and stop on the first success so we don't skip
+        # two songs.
+        return self._dispatch_action("Next", "CanGoNext", deprioritise_plasma=True)
 
     def previous(self) -> bool:
-        return self._dispatch_action("Previous", "CanGoPrevious")
+        return self._dispatch_action("Previous", "CanGoPrevious", deprioritise_plasma=True)
 
-    def _dispatch_action(self, method: str, capability_prop: str) -> bool:
+    def _dispatch_action(
+        self,
+        method: str,
+        capability_prop: str,
+        *,
+        deprioritise_plasma: bool,
+    ) -> bool:
         """Call ``method`` on whichever known player advertises ``capability_prop``.
 
-        Tries the rich-metadata player first, then any browser-native MPRIS
-        players that we tagged as control-capable during the last ``read()``.
-        Without this, Apple Music Web on Chromium can't be skipped — KDE's
-        plasma-browser-integration wins the metadata pick but exposes
-        `CanGoNext=False` / `CanGoPrevious=False`.
+        ``deprioritise_plasma=True`` reorders the try-list so the
+        browser-native MPRIS (chromium, firefox) is tried before
+        plasma-browser-integration. This is the right policy for
+        Next/Previous, where plasma routinely returns success without
+        actually skipping. PlayPause keeps the old "primary first"
+        order so a single click never double-toggles by hitting two
+        players.
         """
         try:
             bus = dbus.SessionBus()
@@ -169,39 +211,38 @@ class MPRISSource:
             log.debug("MPRIS dispatch %s: bus connect failed: %s", method, e)
             return False
 
-        # Build a try-list: primary first (if capable), then known fallbacks.
-        targets: list[str] = []
-        if self._last_player_name and self._player_can(
-            bus, self._last_player_name, capability_prop
-        ):
-            targets.append(self._last_player_name)
+        # Build the try-list: primary first (if capable), then any
+        # known fallbacks.
+        candidates: list[str] = []
+        if self._last_player_name:
+            candidates.append(self._last_player_name)
         for name in self._control_fallback_names:
-            if name not in targets and self._player_can(bus, name, capability_prop):
-                targets.append(name)
-        # Last resort — the primary even if it doesn't advertise the capability;
-        # some players lie about Can* and still respond.
-        if self._last_player_name and self._last_player_name not in targets:
-            targets.append(self._last_player_name)
+            if name not in candidates:
+                candidates.append(name)
 
-        for target in targets:
+        capable: list[str] = [n for n in candidates if self._player_can(bus, n, capability_prop)]
+        if deprioritise_plasma:
+            capable.sort(key=lambda n: 1 if "plasma-browser-integration" in n else 0)
+
+        for target in capable:
             if self._call_method_on(bus, target, method):
                 return True
         return False
 
     def _player_can(self, bus, name: str, prop: str) -> bool:
         try:
-            obj = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            obj = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
-            return bool(props.Get("org.mpris.MediaPlayer2.Player", prop))
+            return bool(props.Get("org.mpris.MediaPlayer2.Player", prop, timeout=0.5))
         except Exception as e:
             log.debug("MPRIS %s.%s probe failed: %s", name, prop, e)
             return False
 
     def _call_method_on(self, bus, name: str, method: str) -> bool:
         try:
-            obj = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            obj = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
-            getattr(iface, method)()
+            getattr(iface, method)(timeout=0.5)
             # INFO (not debug) so users can see in the live log which
             # MPRIS player actually received Next/Previous/PlayPause —
             # critical for diagnosing "Next pauses instead of skipping"
@@ -224,15 +265,54 @@ class MPRISSource:
         rich-metadata player can't dispatch those actions itself.
         """
         try:
-            player = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            # introspect=False so a flaky MPRIS player (we're looking
+            # at you, plasma-browser-integration) can't hang our 1 Hz
+            # poll for 25 s waiting for an Introspect reply that never
+            # comes. We don't need the introspection XML — we already
+            # know the property/method signatures.
+            player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
 
-            identity = _safe_str(props.Get("org.mpris.MediaPlayer2", "Identity"))
-            desktop_entry = _safe_str(props.Get("org.mpris.MediaPlayer2", "DesktopEntry"))
+            # Each Get is wrapped: chromium's MPRIS rejects some optional
+            # properties (DesktopEntry in particular) with a generic
+            # `org.freedesktop.DBus.Error.Failed` instead of returning
+            # an empty string, and one bad property in a shared
+            # try/except dropped the whole player from our candidate
+            # list — including, critically, the chromium player whose
+            # Next/Previous calls actually skip Apple Music tracks.
+            #
+            # 2 s timeout per Get caps total cost: dbus-python's default
+            # 25 s reply timeout would let a single hung player freeze
+            # the 1 Hz poll cycle for half a minute.
+            def _safe_get(iface: str, prop: str, default=""):
+                try:
+                    return props.Get(iface, prop, timeout=0.5)
+                except dbus.DBusException as e:
+                    err = str(e)
+                    # NoReply / Timeout means the player is hung — blacklist
+                    # so the next poll skips it instead of eating another
+                    # 0.5 s here. Other errors (Error.Failed, UnknownProp)
+                    # are normal for optional properties; just default.
+                    if "NoReply" in err or "Timeout" in err:
+                        import time as _time
+
+                        self._timeout_blacklist[name] = _time.monotonic() + self._BLACKLIST_S
+                        log.debug(
+                            "MPRIS %s timed out on %s — blacklisting %.0fs",
+                            name,
+                            prop,
+                            self._BLACKLIST_S,
+                        )
+                    return default
+                except Exception:
+                    return default
+
+            identity = _safe_str(_safe_get("org.mpris.MediaPlayer2", "Identity"))
+            desktop_entry = _safe_str(_safe_get("org.mpris.MediaPlayer2", "DesktopEntry"))
             playback = _safe_str(
-                props.Get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
+                _safe_get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
             ).lower()
-            metadata = props.Get("org.mpris.MediaPlayer2.Player", "Metadata")
+            metadata = _safe_get("org.mpris.MediaPlayer2.Player", "Metadata", default={})
 
             title = _safe_str(metadata.get("xesam:title", ""))
             artists = _to_str_list(metadata.get("xesam:artist", []))
@@ -244,8 +324,9 @@ class MPRISSource:
                 duration_ms = int(metadata.get("mpris:length", 0)) // 1000
             except Exception:
                 duration_ms = 0
+            raw_position = _safe_get("org.mpris.MediaPlayer2.Player", "Position", default=0)
             try:
-                position_ms = int(props.Get("org.mpris.MediaPlayer2.Player", "Position")) // 1000
+                position_ms = int(raw_position) // 1000
             except Exception:
                 position_ms = 0
 

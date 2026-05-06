@@ -303,13 +303,18 @@
         <translation>Alle Einstellungen zurücksetzen</translation>
     </message>
     <message>
+        <location filename="../ui/settings_window.py" line="495"/>
+        <source>Reset</source>
+        <translation>Zurücksetzen</translation>
+    </message>
+    <message>
         <location filename="../ui/settings_window.py" line="487"/>
-        <source>Reset every setting to its default? Your Discord client_id will be preserved — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
+        <source>Reset every setting to its default? All three Discord Application IDs (default + per-source) stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
-Click Apply afterwards to make it permanent.</source>
-        <translation>Alle Einstellungen auf Standardwerte zurücksetzen? Deine Discord-Client-ID bleibt erhalten — alles andere (Quellen, Datenschutz, Autostart, Erweitert) geht auf die Auslieferungswerte zurück.
+After confirming, click Apply at the bottom of the Settings window to save the reset.</source>
+        <translation>Alle Einstellungen auf Standardwerte zurücksetzen? Alle drei Discord-Anwendungs-IDs (Standard + pro Quelle) bleiben erhalten — alles andere (Quellen, Datenschutz, Autostart, Erweitert) geht auf die Auslieferungswerte zurück.
 
-Klicke anschließend auf „Übernehmen“, damit die Änderung dauerhaft wird.</translation>
+Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicken, um das Zurücksetzen zu speichern.</translation>
     </message>
 </context>
 <context>
@@ -400,24 +405,44 @@ Klicke anschließend auf „Übernehmen“, damit die Änderung dauerhaft wird.<
         <translation>Willkommen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="130"/>
-        <source>&lt;h2&gt;Welcome to Refrain&lt;/h2&gt;</source>
-        <translation>&lt;h2&gt;Willkommen bei Refrain&lt;/h2&gt;</translation>
+        <location filename="../ui/welcome_dialog.py" line="141"/>
+        <source>Welcome to Refrain</source>
+        <translation>Willkommen bei Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="135"/>
-        <source>Refrain shows what you&apos;re listening to on Apple Music as your Discord status. It lives in the system tray. Right-click the tray icon for player controls; click the icon to open Settings.</source>
-        <translation>Refrain zeigt deinen aktuellen Apple-Music-Titel als Discord-Status an. Die App lebt im Systemabschnitt der Taskleiste. Rechtsklick auf das Tray-Symbol für die Wiedergabesteuerung; Linksklick öffnet die Einstellungen.</translation>
+        <location filename="../ui/welcome_dialog.py" line="144"/>
+        <source>Discord Rich Presence for Apple Music on Linux.</source>
+        <translation>Discord Rich Presence für Apple Music auf Linux.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="143"/>
-        <source>Running diagnostics…</source>
-        <translation>Diagnose läuft…</translation>
+        <location filename="../ui/welcome_dialog.py" line="155"/>
+        <source>Lives in the tray. &lt;b&gt;Right-click&lt;/b&gt; for player controls; &lt;b&gt;click&lt;/b&gt; to open Settings.</source>
+        <translation>Läuft im Tray. &lt;b&gt;Rechtsklick&lt;/b&gt; für die Wiedergabesteuerung; &lt;b&gt;Linksklick&lt;/b&gt; öffnet die Einstellungen.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="151"/>
-        <source>Paste your &lt;a href=&quot;{url}&quot;&gt;Discord Application ID&lt;/a&gt; below. You can register a free Discord Application in 30 seconds — the name you choose appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your Discord status.</source>
-        <translation>Füge unten deine &lt;a href=&quot;{url}&quot;&gt;Discord-Anwendungs-ID&lt;/a&gt; ein. Du kannst in 30 Sekunden kostenlos eine Discord-Anwendung registrieren — der Name den du wählst erscheint in deinem Discord-Status als „hört &amp;lt;name&amp;gt;“.</translation>
+        <location filename="../ui/welcome_dialog.py" line="172"/>
+        <source>Live diagnostics</source>
+        <translation>Live-Diagnose</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="174"/>
+        <source>⏳ Discord — checking…</source>
+        <translation>⏳ Discord – wird geprüft…</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="175"/>
+        <source>⏳ Cover-art lookup — checking…</source>
+        <translation>⏳ Cover-Suche – wird geprüft…</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="190"/>
+        <source>Discord Application ID</source>
+        <translation>Discord-Anwendungs-ID</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="195"/>
+        <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
+        <translation>Kostenlos eine App im &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; registrieren — der Name den du wählst erscheint als „hört &amp;lt;name&amp;gt;“ in deinem Status.</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="162"/>
@@ -435,9 +460,14 @@ Klicke anschließend auf „Übernehmen“, damit die Änderung dauerhaft wird.<
         <translation>Übernehmen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="195"/>
-        <source>&lt;b&gt;Diagnostics&lt;/b&gt;&lt;br/&gt;{d_mark} &lt;b&gt;Discord&lt;/b&gt;: {d_msg}&lt;br/&gt;{i_mark} &lt;b&gt;Cover-art lookup&lt;/b&gt;: {i_msg}</source>
-        <translation>&lt;b&gt;Diagnose&lt;/b&gt;&lt;br/&gt;{d_mark} &lt;b&gt;Discord&lt;/b&gt;: {d_msg}&lt;br/&gt;{i_mark} &lt;b&gt;Cover-Suche&lt;/b&gt;: {i_msg}</translation>
+        <location filename="../ui/welcome_dialog.py" line="256"/>
+        <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
+        <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="259"/>
+        <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
+        <translation>{mark} &lt;b&gt;Cover-Suche:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="216"/>

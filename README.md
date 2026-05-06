@@ -128,7 +128,9 @@ same file; you almost never need to touch it by hand.
 
 ```toml
 [discord]
-client_id = ""                     # paste your own Application ID here
+client_id = ""                     # default Application ID — paste yours here
+client_id_mpris = ""               # optional per-source override (browser / Apple Music)
+client_id_bluetooth = ""           # optional per-source override (Bluetooth headphones)
 
 [sources]
 mpris_enabled = true
@@ -143,11 +145,27 @@ autostart = false
 notifications = true
 cover_art = true
 show_buttons = true
+notify_delay_ms = 0                # 0 = fire ASAP; the cover-art retry loop still waits up to ~2 s
 
 [advanced]
-poll_interval_ms = 1000
+poll_interval_ms = 500
 log_level = "INFO"
+cover_cache_size = 200             # disk cap for cached covers
+idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
+language = "system"                # "system" follows QLocale; "en" / "de" / … force a translation
 ```
+
+Per-source `client_id_*` fields let Apple Music render under one Discord
+application (with the album-grid as artwork) and Bluetooth headphones under
+another (with a generic Bluetooth glyph). Empty falls back to the default
+`client_id`.
+
+## MPRIS server
+
+Refrain publishes itself as `org.mpris.MediaPlayer2.refrain` on the session
+bus, so KDE Plasma's panel media-controls applet (and KDE Connect, GNOME
+Shell, Mako, …) drive the same Play/Pause/Next/Previous as the tray and
+render the same track Discord renders.
 
 ## Tray
 

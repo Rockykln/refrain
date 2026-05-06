@@ -79,8 +79,12 @@ class BehaviorConfig:
     cover_art: bool = True
     show_buttons: bool = True
     # How long to wait after a track change before firing the desktop
-    # notification, so the cover-art download has time to land on disk.
-    notify_delay_ms: int = 1500
+    # notification. 0 = fire immediately; the retry loop in
+    # `_fire_pending_notify` still polls up to 2 s for the cover image
+    # to land before falling back to the brand fallback. Previously
+    # 1500 ms / 600 ms — both felt sluggish to users; the retry loop
+    # alone is enough to wait for cover art when needed.
+    notify_delay_ms: int = 0
     # Set to True after the first-run wizard runs once. Prevents the
     # welcome dialog from re-appearing on every launch.
     first_run_complete: bool = False
@@ -88,7 +92,7 @@ class BehaviorConfig:
 
 @dataclass
 class AdvancedConfig:
-    poll_interval_ms: int = 1000
+    poll_interval_ms: int = 500
     log_level: str = "INFO"
     # On-disk cover-art cache cap. Older files are pruned at startup when
     # the count exceeds this. ~50-150 KB per cover.

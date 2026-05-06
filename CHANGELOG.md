@@ -7,6 +7,132 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-05-06
+
+Two roadmap features pulled forward from v0.3 plus a substantial batch
+of reliability + UX work driven by live-testing the v0.2.1 build.
+
+### Added
+
+- **Multiple Discord profiles** — per-source `client_id_mpris` and
+  `client_id_bluetooth` fields in `Config.discord` plus matching UI in
+  Settings → General → Discord. Empty falls back to the default
+  Client ID. The daemon reconnects RPC under the source-specific ID
+  the moment the active source flips, so each source can render with
+  its own application name + uploaded artwork in the user's profile.
+- **MPRIS-server mode** — Refrain registers itself as
+  `org.mpris.MediaPlayer2.refrain` on the session bus so KDE Plasma's
+  panel media-controls applet (and KDE Connect, GNOME Shell, Mako
+  notifications, …) drive the same Play/Pause/Next/Previous as the
+  tray, and render the same track Discord renders. Implemented with
+  `dbus-python` + a daemon GLib main loop running in its own thread
+  so it doesn't compete with Qt's event loop. Falls back gracefully
+  when PyGObject isn't installed.
+- **iTunes track duration in the cover-fetcher cache** —
+  `trackTimeMillis` from the iTunes Search API rides along with
+  `cover_url` / `song_url` in the on-disk cache and exposed via
+  `CoverFetcher.get_duration_ms()`. Used as a defensive fallback when
+  MPRIS reports an obviously-wrong preview-clip length.
+- **Per-player MPRIS timeout blacklist** — if a property `Get` times
+  out we banish that bus name for 5 s so a hung player (typically
+  plasma-browser-integration on a frozen Apple Music tab) can't keep
+  eating the daemon's poll cycle one tick at a time.
+
+### Changed
+
+- **Welcome wizard** redesigned: 56×56 icon-badge + title + subtitle
+  header, intro line about tray-driven controls, dedicated diagnostics
+  card with two clearly-labelled rows (Discord / iTunes), Discord
+  Application ID block with helper text + readable italic styling
+  (the previous `palette(mid)` tone went invisible on Plasma Breeze
+  dark themes), Skip ghost-style on the left + Apply primary on the
+  right.
+- **Welcome wizard now opens Settings on confirmation** instead of
+  silently dropping into the tray, and reloads the Settings form so
+  the just-saved Discord Client ID appears in the input field.
+- **`compute_rpc_start_ts` accepts `is_preview_clip=True`** to skip
+  the drift-resync path on tracks whose MPRIS Position field loops
+  0→8s instead of advancing monotonically. Discord's elapsed counter
+  no longer resets every ~8 s on preview-mode playback.
+- **Reset-all-settings preserves every Discord Client ID** (default +
+  per-source mpris + per-source bluetooth) and the dialog text now
+  states this explicitly. Reset-dialog button labels are localised
+  (`Reset` / `Zurücksetzen` / `Cancel` / `Abbrechen`) instead of the
+  generic Yes / No.
+- **Default `notify_delay_ms` lowered from 600 ms to 0 ms** — cover
+  cache hits fire instantly, cache misses still get the existing
+  retry loop up to 2 s for the iTunes download.
+- **Default `poll_interval_ms` lowered from 1 s to 500 ms** — track
+  changes, position updates, and tray controls feel noticeably more
+  responsive without measurable CPU impact.
+- **Idle detection skips preview-clip-length tracks** (duration <
+  30 s) — Apple Music keeps reporting the same metadata while a
+  preview replays, and clearing Discord under those conditions hid
+  the activity mid-listen.
+- **Idle-detection log fires once per dangling-track instance**
+  instead of every poll tick.
+
+### Fixed
+
+- **Discord RPC connect now happens within ~1 s of the first track
+  detection** (was: up to 51 s). Root cause: dbus-python's default
+  25 s reply timeout combined with plasma-browser-integration
+  introspection hangs blocked the daemon's poll. Fix: pass
+  `introspect=False` on every `bus.get_object` and `timeout=0.5` on
+  every property `Get` and method dispatch.
+- **Discord RPC reconnects eagerly when the user changes their
+  Application ID** (welcome wizard or Settings → General). Previously
+  the new pipe wasn't established until the next *playing-state*
+  poll, so paused users sat there waiting forever.
+- **Skip / Previous reach Apple Music reliably**: dispatch tries
+  the browser-native MPRIS player (chromium / firefox) first, then
+  falls back to plasma-browser-integration. Plasma's wrapper claims
+  `CanGoNext=True` on Apple Music but its Next routes through a
+  flaky mediaSession path; the browser-native player reaches the
+  same handler via a more reliable path.
+- **Per-property `_safe_get` inside MPRIS read** — chromium MPRIS
+  rejecting one optional property (notably `DesktopEntry`, with a
+  generic `Error.Failed`) no longer drops the whole player from our
+  candidate list, which previously hid the chromium player entirely
+  from the skip-fallback chain.
+- **All apple-music candidates** beyond the metadata winner join the
+  control-fallback list, so the chromium player is reachable for
+  skip dispatches even when plasma wins the metadata pick.
+- **Notification fires immediately on cover-cache hits** (50 ms vs.
+  the previous unconditional 600-1500 ms `notify_delay_ms` wait).
+- **Discord progress bar dropped entirely on preview-clip mode**
+  (MPRIS duration < 30 s) — no `start`, no `end` in the activity
+  payload — so the elapsed timer doesn't loop nonsensically with
+  the 8-second preview.
+- **`update_config` invocation from the welcome wizard** now goes
+  through `settings.applied.emit(config)` (already QueuedConnection-
+  wired to the worker thread) instead of `QMetaObject.invokeMethod
+  (… Q_ARG(object, …))`, which PySide6 rejects with "Unable to find
+  a QMetaType for 'object'" — that exception was silently breaking
+  the post-wizard handshake on first-run.
+- **Welcome wizard X / Esc** marks `first_run_complete=True` (via
+  `reject()` override) so the wizard doesn't re-appear on the next
+  launch when the user dismisses without confirming.
+- **Welcome wizard Apply with empty ID** asks for confirmation
+  before silently saving "no Discord".
+- **Refrain's own published MPRIS bus name skipped** during the
+  source read loop — reading our own publish path back was
+  circular and added noticeable latency.
+- **`_control` exception handling** — a TypeError in
+  `getattr(src, action)()` no longer kills the entire dispatch
+  before the follow-up polls fire.
+- **Reset preserves per-source Discord IDs** (`client_id_mpris` /
+  `client_id_bluetooth`), not just the default `client_id`.
+- **dbus.proxies / dbus.connection log spam silenced** — their
+  Introspect-error tracebacks against unrelated MPRIS players
+  drowned the live log in noise that has nothing to do with
+  refrain.
+
+### Removed
+
+- **Dead `_diag_label` shim** in `WelcomeDialog` that was only there
+  for a backwards-compat path no longer in use.
+
 ## [0.2.1] - 2026-05-06
 
 Polish release built around the v0.2.0 surface. The Settings window got

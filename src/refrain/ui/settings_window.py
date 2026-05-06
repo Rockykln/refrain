@@ -65,10 +65,16 @@ _INPUT_WIDE_WIDTH = 360
 
 
 def _hint(text: str) -> QLabel:
-    """Italic, wrapped, slightly muted helper text. Used under form rows."""
+    """Italic, wrapped helper text under form rows.
+
+    Uses ``palette(text)`` rather than ``palette(mid)`` because the
+    latter renders almost-invisibly on Plasma Breeze Dark — the user
+    couldn't read hint lines like the "Last checked" timestamp under
+    Updates → Check for updates.
+    """
     lbl = QLabel(text)
     lbl.setWordWrap(True)
-    lbl.setStyleSheet("color: palette(mid); font-style: italic;")
+    lbl.setStyleSheet("color: palette(text); font-style: italic;")
     return lbl
 
 
@@ -176,7 +182,9 @@ class SettingsWindow(QDialog):
         button_row.addWidget(self.apply_btn)
 
         version_label = QLabel(f"Refrain v{__version__}")
-        version_label.setStyleSheet("color: gray;")
+        # palette(text) follows the theme — `gray` was unreadable on
+        # Plasma Breeze Dark.
+        version_label.setStyleSheet("color: palette(text);")
 
         github_btn = QToolButton()
         github_btn.setIcon(QIcon(str(assets_dir() / "icons" / "github-mark.svg")))
@@ -219,6 +227,22 @@ class SettingsWindow(QDialog):
         self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
         self.client_id_input.setFixedWidth(_INPUT_WIDE_WIDTH)
         df.addRow(self.tr("Client ID:"), self.client_id_input)
+
+        # Per-source overrides — leave empty to share the default
+        # Client ID above. Useful for users who want Apple Music to
+        # render under one Discord application (with the Apple Music
+        # album-grid as artwork) and Bluetooth headphones under another
+        # (with a generic Bluetooth glyph). Refrain reconnects RPC
+        # automatically when the active source flips.
+        self.client_id_mpris_input = QLineEdit()
+        self.client_id_mpris_input.setPlaceholderText(self.tr("(uses default Client ID)"))
+        self.client_id_mpris_input.setFixedWidth(_INPUT_WIDE_WIDTH)
+        df.addRow(self.tr("Apple Music Client ID:"), self.client_id_mpris_input)
+
+        self.client_id_bluetooth_input = QLineEdit()
+        self.client_id_bluetooth_input.setPlaceholderText(self.tr("(uses default Client ID)"))
+        self.client_id_bluetooth_input.setFixedWidth(_INPUT_WIDE_WIDTH)
+        df.addRow(self.tr("Bluetooth Client ID:"), self.client_id_bluetooth_input)
 
         self.privacy_combo = QComboBox()
         self.privacy_combo.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -496,23 +520,40 @@ class SettingsWindow(QDialog):
     # ====================================================================
 
     def _on_reset_clicked(self) -> None:
-        reply = QMessageBox.question(
-            self,
-            self.tr("Reset all settings"),
+        # Build the dialog manually so the action button reads "Reset" /
+        # "Zurücksetzen" instead of the generic "Yes" / "Ja". The
+        # standard Yes/No buttons confused the body text — it tells
+        # the user to confirm a *reset* but the button labels said yes.
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Question)
+        msg.setWindowTitle(self.tr("Reset all settings"))
+        msg.setText(
             self.tr(
-                "Reset every setting to its default? Your Discord client_id will "
-                "be preserved — everything else (sources, privacy, autostart, "
-                "advanced) goes back to the shipped defaults.\n\n"
-                "Click Apply afterwards to make it permanent."
-            ),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
+                "Reset every setting to its default? All three Discord "
+                "Application IDs (default + per-source) stay untouched — "
+                "everything else (sources, privacy, autostart, advanced) "
+                "goes back to the shipped defaults.\n\n"
+                "After confirming, click Apply at the bottom of the "
+                "Settings window to save the reset."
+            )
         )
-        if reply != QMessageBox.StandardButton.Yes:
+        reset_btn = msg.addButton(self.tr("Reset"), QMessageBox.AcceptRole)
+        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        msg.setDefaultButton(reset_btn)
+        msg.exec()
+        if msg.clickedButton() is not reset_btn:
             return
-        keep_id = self._config.discord.client_id
+        # Preserve every Discord client_id the user has set — the dialog
+        # promises this explicitly, and per-source overrides
+        # (`client_id_mpris` / `client_id_bluetooth`) count as part of
+        # the user's Discord identity just as much as the default.
+        keep_default = self._config.discord.client_id
+        keep_mpris = self._config.discord.client_id_mpris
+        keep_bt = self._config.discord.client_id_bluetooth
         self._config = Config()
-        self._config.discord.client_id = keep_id
+        self._config.discord.client_id = keep_default
+        self._config.discord.client_id_mpris = keep_mpris
+        self._config.discord.client_id_bluetooth = keep_bt
         self._load_into_form()
 
     # ====================================================================
@@ -522,6 +563,8 @@ class SettingsWindow(QDialog):
     def _load_into_form(self) -> None:
         c = self._config
         self.client_id_input.setText(c.discord.client_id)
+        self.client_id_mpris_input.setText(c.discord.client_id_mpris)
+        self.client_id_bluetooth_input.setText(c.discord.client_id_bluetooth)
         self.autostart_box.setChecked(c.behavior.autostart)
         self.notifications_box.setChecked(c.behavior.notifications)
         self.cover_art_box.setChecked(c.behavior.cover_art)
@@ -585,6 +628,8 @@ class SettingsWindow(QDialog):
         # could never *clear* a Client ID — emptying the field was a
         # no-op, surprising anyone trying to disable the integration.
         c.discord.client_id = self.client_id_input.text().strip()
+        c.discord.client_id_mpris = self.client_id_mpris_input.text().strip()
+        c.discord.client_id_bluetooth = self.client_id_bluetooth_input.text().strip()
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
         c.behavior.cover_art = self.cover_art_box.isChecked()

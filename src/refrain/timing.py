@@ -14,6 +14,7 @@ def compute_rpc_start_ts(
     position_ms: int,
     now: float,
     drift_threshold_s: float = 3.0,
+    is_preview_clip: bool = False,
 ) -> tuple[int, bool]:
     """Decide whether to recompute the Discord RPC ``start`` timestamp.
 
@@ -32,11 +33,21 @@ def compute_rpc_start_ts(
        (position jumps without the song changing).
     3. Otherwise leave ``prev_start_ts`` alone.
 
+    ``is_preview_clip`` skips step 2 entirely. Apple Music's MPRIS
+    Position field loops 0→8 s→0→… while a preview-clip plays, which
+    looks identical to a "user just seeked back" event to the drift
+    check. Without this guard the elapsed counter in Discord would
+    reset every 8 s and never climb past the preview-clip length.
+
     Returns ``(start_ts, recomputed)``.
     """
+    if track_key != prev_track_key:
+        return int(now - max(0, position_ms) / 1000.0), True
+    if is_preview_clip:
+        return prev_start_ts, False
     actual_position_s = max(0, position_ms) / 1000.0
     expected_position_s = max(0.0, now - prev_start_ts)
     drift_s = abs(expected_position_s - actual_position_s)
-    if track_key != prev_track_key or drift_s > drift_threshold_s:
+    if drift_s > drift_threshold_s:
         return int(now - actual_position_s), True
     return prev_start_ts, False

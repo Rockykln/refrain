@@ -26,10 +26,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtCore import QObject, Qt, QThread, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -117,58 +118,123 @@ class WelcomeDialog(QDialog):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Welcome"))
-        self.setMinimumWidth(560)
+        # Compact-but-comfortable: tall enough for the two diagnostics
+        # rows + intro + ID block without scrolling, narrow enough that
+        # it doesn't feel like a settings window. The previous 580 px
+        # height left a wide empty band between the input and the
+        # action buttons.
+        self.setFixedSize(560, 470)
 
         icon_path = assets_dir() / "icons" / "refrain.svg"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(28, 24, 28, 18)
+        layout.setSpacing(12)
 
-        title = QLabel(self.tr("<h2>Welcome to Refrain</h2>"))
-        layout.addWidget(title)
+        # Header — large icon + title block. Subtitle gets explicit
+        # spacing from the title so they don't collide on Plasma's
+        # tighter default line height.
+        header = QHBoxLayout()
+        header.setSpacing(14)
+        if icon_path.exists():
+            badge = QLabel()
+            badge.setPixmap(QIcon(str(icon_path)).pixmap(56, 56))
+            header.addWidget(badge, alignment=Qt.AlignTop)
+        title_block = QVBoxLayout()
+        title_block.setSpacing(4)
+        title = QLabel(self.tr("Welcome to Refrain"))
+        title.setStyleSheet("font-size: 20px; font-weight: 600;")
+        subtitle = QLabel(
+            self.tr("Discord Rich Presence for Apple Music on Linux.")
+        )
+        # palette(mid) renders almost-invisible on Plasma Breeze dark
+        # themes — using palette(text) with a slight opacity reduction
+        # via the alpha channel keeps the visual hierarchy without
+        # making the line unreadable.
+        subtitle.setStyleSheet("color: palette(text); font-size: 13px; font-style: italic;")
+        title_block.addWidget(title)
+        title_block.addWidget(subtitle)
+        title_block.addStretch(1)
+        header.addLayout(title_block, 1)
+        layout.addLayout(header)
 
+        # Intro: short one-liner about how to drive refrain after this.
         intro = QLabel(
             self.tr(
-                "Refrain shows what you're listening to on Apple Music as your "
-                "Discord status. It lives in the system tray. Right-click the tray "
-                "icon for player controls; click the icon to open Settings."
+                "Lives in the tray. <b>Right-click</b> for player controls; "
+                "<b>click</b> to open Settings."
             )
         )
         intro.setWordWrap(True)
+        intro.setStyleSheet("color: palette(text); padding: 2px 0;")
         layout.addWidget(intro)
 
-        self._diag_label = QLabel(self.tr("Running diagnostics…"))
-        self._diag_label.setWordWrap(True)
-        layout.addWidget(self._diag_label)
+        # Diagnostics card. Two pre-built rows so it doesn't render as
+        # an empty box while the probes are running.
+        diag_box = QFrame()
+        diag_box.setObjectName("diagBox")
+        diag_box.setStyleSheet(
+            "QFrame#diagBox { background: palette(alternate-base); "
+            "border: 1px solid palette(mid); border-radius: 8px; }"
+        )
+        diag_layout = QVBoxLayout(diag_box)
+        diag_layout.setContentsMargins(14, 10, 14, 10)
+        diag_layout.setSpacing(6)
+        diag_heading = QLabel(self.tr("Live diagnostics"))
+        diag_heading.setStyleSheet("font-weight: 600; font-size: 12px;")
+        diag_layout.addWidget(diag_heading)
+        self._diag_discord = QLabel(self.tr("⏳ Discord — checking…"))
+        self._diag_itunes = QLabel(self.tr("⏳ Cover-art lookup — checking…"))
+        for lbl in (self._diag_discord, self._diag_itunes):
+            lbl.setWordWrap(True)
+            lbl.setStyleSheet("color: palette(text);")
+            diag_layout.addWidget(lbl)
+        layout.addWidget(diag_box)
 
-        layout.addSpacing(8)
+        # Client-ID block.
+        id_heading = QLabel(self.tr("Discord Application ID"))
+        id_heading.setStyleSheet("font-weight: 600; padding-top: 6px;")
+        layout.addWidget(id_heading)
 
         client_label = QLabel(
             self.tr(
-                'Paste your <a href="{url}">Discord Application ID</a> below. '
-                "You can register a free Discord Application in 30 seconds — "
-                'the name you choose appears as "Listening to &lt;name&gt;" '
-                "in your Discord status."
+                'Register a free app on the <a href="{url}">Discord Developer '
+                "Portal</a> — the name you pick appears as "
+                '"Listening to &lt;name&gt;" in your status.'
             ).format(url=_DISCORD_DEVELOPER_PORTAL)
         )
         client_label.setOpenExternalLinks(True)
         client_label.setWordWrap(True)
+        # Default text color (was palette(mid) — illegible on dark
+        # Breeze). Italic + slightly smaller keeps the helper-text feel
+        # without sacrificing readability.
+        client_label.setStyleSheet("color: palette(text); font-size: 12px; font-style: italic;")
         layout.addWidget(client_label)
 
         self.client_id_edit = QLineEdit()
         self.client_id_edit.setPlaceholderText(self.tr("e.g. 1234567890123456789"))
+        self.client_id_edit.setMinimumHeight(30)
         layout.addWidget(self.client_id_edit)
 
-        layout.addSpacing(8)
+        layout.addStretch(1)
 
+        # Footer row — skip ghost-style on the left, apply primary on
+        # the right. setAutoDefault(False) on Skip so Enter doesn't
+        # accidentally dismiss the wizard without saving the ID.
         buttons = QHBoxLayout()
-        buttons.addStretch(1)
+        buttons.setSpacing(8)
         self._skip_btn = QPushButton(self.tr("Skip for now"))
+        self._skip_btn.setAutoDefault(False)
+        self._skip_btn.setFlat(True)
         self._skip_btn.clicked.connect(self._on_skip)
         buttons.addWidget(self._skip_btn)
+        buttons.addStretch(1)
         self._apply_btn = QPushButton(self.tr("Apply"))
         self._apply_btn.setDefault(True)
+        self._apply_btn.setMinimumWidth(110)
+        self._apply_btn.setMinimumHeight(32)
         self._apply_btn.clicked.connect(self._on_apply)
         buttons.addWidget(self._apply_btn)
         layout.addLayout(buttons)
@@ -188,12 +254,11 @@ class WelcomeDialog(QDialog):
     def _on_diag_finished(self, d_ok: bool, d_msg: str, i_ok: bool, i_msg: str) -> None:
         d_mark = "✅" if d_ok else "⚠️"
         i_mark = "✅" if i_ok else "⚠️"
-        self._diag_label.setText(
-            self.tr(
-                "<b>Diagnostics</b><br/>"
-                "{d_mark} <b>Discord</b>: {d_msg}<br/>"
-                "{i_mark} <b>Cover-art lookup</b>: {i_msg}"
-            ).format(d_mark=d_mark, d_msg=d_msg, i_mark=i_mark, i_msg=i_msg)
+        self._diag_discord.setText(
+            self.tr("{mark} <b>Discord:</b> {msg}").format(mark=d_mark, msg=d_msg)
+        )
+        self._diag_itunes.setText(
+            self.tr("{mark} <b>Cover-art lookup:</b> {msg}").format(mark=i_mark, msg=i_msg)
         )
         if self._diag_thread is not None:
             self._diag_thread.quit()
@@ -206,8 +271,39 @@ class WelcomeDialog(QDialog):
         self.applied.emit("")  # empty = no client_id, but mark first_run_complete anyway
         self.accept()
 
+    def reject(self) -> None:
+        # X / Escape behave the same as "Skip for now" — emit an empty
+        # client_id so `first_run_complete=True` gets persisted and the
+        # wizard doesn't re-appear on every launch. Without this, X
+        # leaked back into the next session as another welcome popup.
+        if self._diag_thread is not None:
+            self._diag_thread.quit()
+            with contextlib.suppress(Exception):
+                self._diag_thread.wait(500)
+            self._diag_thread = None
+            self._diag_worker = None
+        self.applied.emit("")
+        super().reject()
+
     def _on_apply(self) -> None:
         client_id = self.client_id_edit.text().strip()
+        # Empty Apply is suspiciously close to a misclick — confirm before
+        # silently saving "no Discord". The user can also explicitly skip
+        # via the Skip button if they really meant it.
+        if not client_id:
+            reply = QMessageBox.question(
+                self,
+                self.tr("Skip Discord setup?"),
+                self.tr(
+                    "No Application ID entered. Refrain will start without "
+                    "Discord status (you can paste the ID later in "
+                    "Settings → General).\n\nContinue without Discord status?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
         if client_id and not client_id.isdigit():
             QMessageBox.warning(
                 self,
@@ -218,5 +314,6 @@ class WelcomeDialog(QDialog):
                 ),
             )
             return
+        log.info("Welcome wizard: applying client_id (%d chars)", len(client_id))
         self.applied.emit(client_id)
         self.accept()

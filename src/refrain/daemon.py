@@ -25,6 +25,7 @@ from refrain.paths import assets_dir
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
+from refrain.sources.mpris_server import MPRISServer
 from refrain.timing import compute_rpc_start_ts
 
 log = logging.getLogger(__name__)
@@ -63,6 +64,15 @@ def compute_idle_state(
     if grace_s <= 0:
         return track, "", 0.0
     if track.status != PlaybackStatus.PLAYING or not track.has_track or track.duration_ms <= 0:
+        return track, "", 0.0
+    # Preview-clip MPRIS metadata (duration < 30 s) is what Apple Music
+    # hands the browser when the user isn't signed in or the song is
+    # region-locked. Apple Music keeps reporting the same metadata even
+    # after the clip ends — but it's still actually playing the next
+    # song under the hood. Idle detection on those would clear Discord
+    # while the user is mid-listen. Skip idle for them entirely; the
+    # real-track case still gets the dangling-handle protection.
+    if track.duration_ms < 30_000:
         return track, "", 0.0
     track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
     sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
@@ -119,7 +129,12 @@ class DaemonWorker(QObject):
         self._config = config
         self._mpris = MPRISSource(config.sources.browser_hints_list())
         self._bluetooth = BluetoothSource(config.sources.bluetooth_device)
+        # The active RPC client_id is decided per-source (see
+        # `_rpc_client_id_for`). Start with the default; it's swapped in
+        # `_update_rpc` the first time a source-specific override
+        # applies.
         self._rpc = DiscordRPC(config.discord.client_id)
+        self._rpc_active_client_id: str = config.discord.client_id
         self._cover_fetcher = CoverFetcher(max_cached_covers=config.advanced.cover_cache_size)
         self._timer: QTimer | None = None
         self._notify_timer: QTimer | None = None
@@ -146,6 +161,16 @@ class DaemonWorker(QObject):
         # clear playback state in `_poll` once that window expires.
         self._idle_track_key = ""
         self._idle_seen_at: float = 0.0
+        # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
+        # applet drive the same Play/Pause/Next/Previous as our tray.
+        # Constructed eagerly but `start()` is deferred until after the
+        # daemon is on its own thread, so a bus failure on construction
+        # doesn't block the daemon coming up.
+        self._mpris_server = MPRISServer(
+            on_play_pause=lambda: self._control("play_pause"),
+            on_next=lambda: self._control("next"),
+            on_previous=lambda: self._control("previous"),
+        )
 
     # ----------------------------------------------------------------- lifecycle
 
@@ -159,6 +184,11 @@ class DaemonWorker(QObject):
         self._timer = QTimer()
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
+        # Publish ourselves as an MPRIS player so KDE Plasma's panel
+        # media-controls applet shows refrain alongside (or instead of)
+        # the browser's own MPRIS view. Failures are logged but don't
+        # block daemon startup.
+        self._mpris_server.start()
 
     @Slot()
     def cleanup(self) -> None:
@@ -170,6 +200,8 @@ class DaemonWorker(QObject):
             self._notify_timer.stop()
             self._notify_timer = None
         with contextlib.suppress(Exception):
+            self._mpris_server.stop()
+        with contextlib.suppress(Exception):
             self._rpc.clear()
         with contextlib.suppress(Exception):
             self._rpc.close()
@@ -178,16 +210,39 @@ class DaemonWorker(QObject):
 
     @Slot(object)
     def update_config(self, config: Config) -> None:
-        old_client_id = self._config.discord.client_id
+        old_default = self._config.discord.client_id
+        old_mpris = self._config.discord.client_id_mpris
+        old_bt = self._config.discord.client_id_bluetooth
         old_interval = self._config.advanced.poll_interval_ms
         old_cover_cache = self._config.advanced.cover_cache_size
         self._config = config
         self._bluetooth.set_device(config.sources.bluetooth_device)
         self._mpris.set_browser_hints(config.sources.browser_hints_list())
-        if config.discord.client_id != old_client_id:
-            log.info("Discord client_id changed, reconnecting RPC")
-            self._rpc.close()
+        # Drop the active RPC if any of the relevant client_ids changed —
+        # `_update_rpc` reconnects under the right per-source ID on the
+        # next tick. Just nilling `_rpc_active_client_id` triggers the
+        # source-swap branch.
+        if (
+            config.discord.client_id != old_default
+            or config.discord.client_id_mpris != old_mpris
+            or config.discord.client_id_bluetooth != old_bt
+        ):
+            log.info("Discord client_id config changed, reconnecting RPC")
+            with contextlib.suppress(Exception):
+                self._rpc.close()
             self._rpc = DiscordRPC(config.discord.client_id)
+            self._rpc_active_client_id = config.discord.client_id
+            # Eagerly establish the IPC pipe instead of waiting for the
+            # next playing-state tick to do it. `_update_rpc` only
+            # touches `_rpc` when a track is actually playing, so a
+            # user who entered their Application ID with Apple Music
+            # paused would otherwise sit there waiting for Discord to
+            # connect until they pressed Play.
+            with contextlib.suppress(Exception):
+                self._rpc._ensure_connected()
+            # Trigger an immediate poll so any currently-playing track
+            # shows up in Discord without waiting for the next tick.
+            QTimer.singleShot(0, self._tick)
         if self._timer is not None and config.advanced.poll_interval_ms != old_interval:
             self._timer.setInterval(max(config.advanced.poll_interval_ms, 250))
         if config.advanced.cover_cache_size != old_cover_cache:
@@ -215,26 +270,53 @@ class DaemonWorker(QObject):
     def _control(self, action: str) -> None:
         active = self._active_source
         log.debug("control %s → active=%s", action, active)
+
+        def _try(src, label: str) -> bool:
+            # Belt-and-braces: a bare `getattr(src, action)()` would
+            # raise on bus disconnect / typo, killing the whole
+            # _control before the follow-up polls fire. Each source
+            # already swallows its own dbus errors, but reflection
+            # itself can still TypeError if action ever drifts from
+            # the source ABI.
+            try:
+                return bool(getattr(src, action)())
+            except Exception as e:
+                log.debug("control %s on %s failed: %s", action, label, e)
+                return False
+
+        dispatched = False
         if (
             active == "mpris"
             and self._config.sources.mpris_enabled
-            and getattr(self._mpris, action)()
+            and _try(self._mpris, "mpris")
         ):
-            return
-        if (
+            dispatched = True
+        elif (
             active == "bluetooth"
             and self._config.sources.bluetooth_enabled
-            and getattr(self._bluetooth, action)()
+            and _try(self._bluetooth, "bluetooth")
         ):
-            return
-        # Fallback: try whichever is enabled.
-        if self._config.sources.mpris_enabled and getattr(self._mpris, action)():
+            dispatched = True
+        elif self._config.sources.mpris_enabled and _try(self._mpris, "mpris"):
             self._active_source = "mpris"
-            return
-        if self._config.sources.bluetooth_enabled and getattr(self._bluetooth, action)():
+            dispatched = True
+        elif self._config.sources.bluetooth_enabled and _try(self._bluetooth, "bluetooth"):
             self._active_source = "bluetooth"
-            return
-        log.debug("control %s: no source dispatched", action)
+            dispatched = True
+
+        if dispatched:
+            # Fast follow-up polls so we surface the new state (track
+            # swap on Next/Previous, paused/playing flip on PlayPause)
+            # in Discord, the tray, and the published MPRIS server as
+            # close to real-time as the browser's mediaSession handler
+            # allows. Cascade: 0 ms (immediate next event-loop tick),
+            # then 50/150/350/750 ms — each retry catches a slightly
+            # slower mediaSession ack while keeping the worst case
+            # under one second.
+            for delay_ms in (0, 50, 150, 350, 750):
+                QTimer.singleShot(delay_ms, self._tick)
+        else:
+            log.debug("control %s: no source dispatched", action)
 
     # -------------------------------------------------------------------- core
 
@@ -312,6 +394,17 @@ class DaemonWorker(QObject):
 
         self._update_rpc(track)
 
+        # Push the same track + cover URL to the published MPRIS server
+        # so KDE Plasma's panel media-controls applet (and any other
+        # MPRIS-aware client) renders what Discord renders.
+        with contextlib.suppress(Exception):
+            cover_for_mpris = (
+                self._cover_fetcher.get(track.artist, track.title, track.album)
+                if self._config.behavior.cover_art
+                else None
+            )
+            self._mpris_server.update(track, cover_for_mpris)
+
         # Surface RPC connect/disconnect transitions so the tray can show
         # an at-a-glance "● Discord connected" indicator.
         rpc_connected = self._rpc.is_connected()
@@ -330,14 +423,26 @@ class DaemonWorker(QObject):
         """Stash the track and start a single-shot timer; on fire, the
         notification reads the freshest cover from disk. If the track
         changes again before the timer fires, the stale notification is
-        suppressed."""
+        suppressed.
+
+        If cover-art is already cached for this track, fire after only
+        50 ms — the configured `notify_delay_ms` exists purely to give
+        the iTunes search + download time to land before notify-send
+        reads the cover off disk, so for cache hits it's just dead
+        latency the user feels as "the popup is way too late".
+        """
         if self._notify_timer is None:
             self._notify_timer = QTimer()
             self._notify_timer.setSingleShot(True)
             self._notify_timer.timeout.connect(self._fire_pending_notify)
         self._pending_notify_track = track
         self._notify_retry_count = 0
-        self._notify_timer.start(max(0, self._config.behavior.notify_delay_ms))
+        delay_ms = max(0, self._config.behavior.notify_delay_ms)
+        if self._config.behavior.cover_art:
+            cached = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
+            if cached is not None:
+                delay_ms = 50
+        self._notify_timer.start(delay_ms)
 
     def _fire_pending_notify(self) -> None:
         track = self._pending_notify_track
@@ -379,6 +484,28 @@ class DaemonWorker(QObject):
             )
             return
 
+        # Per-source Discord application: the active source picks which
+        # client_id RPC connects under. Switching sources reconnects so
+        # each source can render with its own application name + uploaded
+        # artwork in the user's profile (Apple Music album-grid vs a
+        # generic Bluetooth glyph, etc.). When source-specific overrides
+        # are empty, both sources share the default client_id and no
+        # reconnect is needed.
+        target_client_id = self._config.discord.client_id_for(track.source)
+        if target_client_id != self._rpc_active_client_id:
+            log.info(
+                "Discord RPC source-swap: %s → client_id=%s",
+                track.source,
+                target_client_id[:6] + "…" if target_client_id else "(none)",
+            )
+            with contextlib.suppress(Exception):
+                self._rpc.close()
+            self._rpc = DiscordRPC(target_client_id)
+            self._rpc_active_client_id = target_client_id
+            # Force a fresh start_ts on next compute, since pypresence
+            # no longer has any state for the old activity.
+            self._rpc_track_key = ""
+
         track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
         is_new_track = track_key != self._rpc_track_key
 
@@ -394,8 +521,14 @@ class DaemonWorker(QObject):
             is_new_track
             and self._config.behavior.cover_art
             and cover_url is None
-            and self._rpc_cover_wait_count < 3
+            and self._rpc_cover_wait_count < 1
         ):
+            # Defer at most one poll for the cover URL — the previous 3-poll
+            # cap added up to 3 s of perceived "Discord didn't update yet"
+            # latency and felt non-live. With 500 ms default polling, one
+            # defer is ~500 ms; on the second tick we update with whatever
+            # cover-fetcher has, even if still None (Discord falls back to
+            # the brand image and swaps to the real cover on the next tick).
             self._rpc_cover_wait_count += 1
             return
         self._rpc_cover_wait_count = 0
@@ -403,13 +536,16 @@ class DaemonWorker(QObject):
         # Discord elapsed-timer correctness — see refrain.timing for the
         # full rationale. Recomputes on track change, pause/resume, or seek;
         # otherwise leaves the start_ts stable so the progress bar doesn't
-        # twitch every poll.
+        # twitch every poll. Preview-clip mode disables drift-resync: the
+        # MPRIS Position field loops 0→8s while the preview replays,
+        # which would otherwise reset the elapsed counter every loop.
         new_start_ts, recomputed = compute_rpc_start_ts(
             prev_start_ts=self._rpc_start_ts,
             prev_track_key=self._rpc_track_key,
             track_key=track_key,
             position_ms=track.position_ms,
             now=time.time(),
+            is_preview_clip=(0 < track.duration_ms < 30_000),
         )
         if recomputed:
             if is_new_track:
@@ -448,40 +584,31 @@ class DaemonWorker(QObject):
 
         album_for_display = _format_album_for_display(track.album, track.artist, track.title)
 
+        # Preview-clip mode: Apple Music's MPRIS reports an 8-15 s
+        # `mpris:length` while looping the preview, and the position
+        # field cycles 0→8→0 over and over. Even with iTunes giving us
+        # the real song length, Discord's elapsed counter resets every
+        # time Apple Music auto-advances to the next preview (which it
+        # does at the 8 s mark). The honest UI is to drop `start` AND
+        # `end` entirely — Discord then shows just the song name with
+        # no misleading progress bar.
+        is_preview_clip = 0 < track.duration_ms < 30_000
+
         payload: dict = {
             "details": details[:128],
             "state": state[:128],
-            "start": self._rpc_start_ts,
             "large_image": large_image,
         }
+        if not is_preview_clip:
+            payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it
         # as a third visible line for LISTENING activity, and an
         # echo of `state` looks broken to viewers.
         if album_for_display and album_for_display.lower() != state.lower():
             payload["large_text"] = album_for_display[:128]
 
-        # Pick a duration for Discord's "elapsed / total" display.
-        #
-        # MPRIS is usually correct — and critically, it knows the *actual*
-        # playing track length, which iTunes doesn't: a "(Techno Remix)"
-        # MPRIS reports 5:02 while iTunes returns the original 2:26, and
-        # picking iTunes there cuts Discord's progress bar in half mid-song.
-        #
-        # The one MPRIS failure mode worth correcting is preview-clip
-        # reporting: when the user isn't signed in (or for a region-locked
-        # song), Apple Music in the browser hands MPRIS the 15-30 s
-        # preview duration instead of the full track. We catch that by
-        # falling back to iTunes when the MPRIS duration is suspiciously
-        # short (< 30 s) and iTunes has a real value.
-        itunes_dur = self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
-        if 0 < track.duration_ms < 30_000 and itunes_dur > 30_000:
-            effective_duration_ms = itunes_dur
-        elif track.duration_ms > 0:
-            effective_duration_ms = track.duration_ms
-        else:
-            effective_duration_ms = itunes_dur
-        if effective_duration_ms > 0:
-            payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
+        if not is_preview_clip and track.duration_ms > 0:
+            payload["end"] = self._rpc_start_ts + (track.duration_ms // 1000)
 
         # Prefer the iTunes-resolved song URL (links to the *specific* track)
         # over xesam:url from the browser tab (often the album / playlist page).

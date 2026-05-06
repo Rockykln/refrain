@@ -37,7 +37,7 @@ class BluetoothSource:
             return TrackInfo.empty()
 
         try:
-            player = bus.get_object("org.bluez", player_path)
+            player = bus.get_object("org.bluez", player_path, introspect=False)
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
             track = props.Get("org.bluez.MediaPlayer1", "Track")
 
@@ -88,7 +88,7 @@ class BluetoothSource:
         # BlueZ exposes Play/Pause as separate methods, not a toggle.
         try:
             bus = dbus.SystemBus()
-            obj = bus.get_object("org.bluez", path)
+            obj = bus.get_object("org.bluez", path, introspect=False)
             props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
             status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
         except Exception as e:
@@ -109,7 +109,7 @@ class BluetoothSource:
             return False
         try:
             bus = dbus.SystemBus()
-            obj = bus.get_object("org.bluez", path)
+            obj = bus.get_object("org.bluez", path, introspect=False)
             iface = dbus.Interface(obj, "org.bluez.MediaPlayer1")
             getattr(iface, method)()
             return True
@@ -129,7 +129,7 @@ class BluetoothSource:
 
     def _find_player(self, bus) -> str | None:
         try:
-            obj = bus.get_object("org.bluez", "/")
+            obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
         except Exception as e:
@@ -152,7 +152,7 @@ class BluetoothSource:
         """Enumerate paired devices (for the settings-window picker)."""
         try:
             bus = dbus.SystemBus()
-            obj = bus.get_object("org.bluez", "/")
+            obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
         except Exception as e:

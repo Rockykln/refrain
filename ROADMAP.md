@@ -180,6 +180,48 @@ What's done, what's next, what's deliberately not in scope.
   signed tag, so AUR users get the exact same commit the release
   workflow ships.
 
+## Done — v0.2.2
+
+- **Multiple Discord profiles** — per-source `client_id_mpris` and
+  `client_id_bluetooth` overrides on top of the default `client_id`,
+  so Apple Music can render under one Discord application (with the
+  album-grid as artwork) and Bluetooth headphones under another (with
+  a generic Bluetooth glyph). Daemon reconnects RPC the moment the
+  active source flips.
+- **MPRIS-server mode** — Refrain publishes itself as
+  `org.mpris.MediaPlayer2.refrain` so KDE Plasma's panel media-controls
+  applet, KDE Connect, GNOME Shell, etc. drive the same Play/Pause/
+  Next/Previous as the tray and render the same track. Built on
+  `dbus-python` with a GLib main loop in its own thread so it
+  doesn't conflict with Qt's event loop.
+- **Welcome wizard redesign** — icon-badge header, subtitle, dedicated
+  diagnostics card with two clearly-labelled probe rows, readable
+  helper text on Plasma Breeze Dark (was invisible with `palette(mid)`).
+  Apply now opens Settings automatically with the just-saved Discord
+  ID pre-filled.
+- **Live-tier responsiveness** — default `poll_interval_ms` 1 s → 500 ms,
+  `notify_delay_ms` 600 ms → 0 ms (cache hits fire instantly), Discord
+  RPC connect happens within ~1 s of first track detection (was up to
+  51 s due to dbus-python's 25 s default reply timeout combined with
+  plasma-browser-integration introspection hangs — fixed via
+  `introspect=False` + per-property `timeout=0.5` + per-player
+  blacklist when a player times out).
+- **iTunes `trackTimeMillis` fallback** for Apple Music preview-clip
+  durations (< 30 s). Discord drops `start`/`end` entirely on preview
+  mode so the elapsed counter doesn't reset every 8 s.
+- **Skip / Previous reach Apple Music reliably** — chromium-native
+  MPRIS dispatched first, plasma-browser-integration as fallback,
+  cascade follow-up polls (0/50/150/350/750 ms) so the track-change
+  reflects in Discord + tray within ~250 ms of detection.
+- **Reset preserves all three Discord IDs**, dialog button labels
+  localised (`Reset` / `Zurücksetzen`), text states what's preserved
+  explicitly.
+- **Welcome wizard X / Esc** marks `first_run_complete=True` so the
+  wizard doesn't re-appear; Apply with empty ID asks for confirmation.
+- **Theme-aware text colors** — every helper-text label switched from
+  `palette(mid)` to `palette(text)` after Plasma Breeze Dark
+  rendered them invisible.
+
 ## Maybe — v0.3+
 
 - **Flathub submission**, second attempt. The manifest under
@@ -191,11 +233,6 @@ What's done, what's next, what's deliberately not in scope.
 - **Cover-art replacement notifications**: re-send the desktop notification
   via `--replace-id` once the cover finishes downloading, so the embed
   swaps in even when the initial retry window times out.
-- **Multiple Discord profiles**: per-source client IDs so Bluetooth and
-  Apple Music Web can render with different artwork in the user's profile.
-- **MPRIS-server mode**: expose Refrain as an MPRIS player itself, so KDE
-  Plasma's media controls in the panel show the same track Refrain shows
-  in Discord.
 
 ## Deliberately not in scope
 

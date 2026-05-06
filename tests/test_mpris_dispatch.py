@@ -73,7 +73,7 @@ def _wire_bus(players: dict[str, _FakePlayer]):
     def fake_session_bus():
         bus = MagicMock()
 
-        def get_object(name, _path):
+        def get_object(name, _path, **_kw):
             obj = MagicMock()
             obj._name = name
             return obj
@@ -86,11 +86,11 @@ def _wire_bus(players: dict[str, _FakePlayer]):
         player = players[name]
         proxy = MagicMock()
         if iface_name == "org.freedesktop.DBus.Properties":
-            proxy.Get.side_effect = lambda _ifc, prop: player.get_prop(prop)
+            proxy.Get.side_effect = lambda _ifc, prop, **_kw: player.get_prop(prop)
         elif iface_name == "org.mpris.MediaPlayer2.Player":
-            proxy.PlayPause.side_effect = lambda: player.call("PlayPause")
-            proxy.Next.side_effect = lambda: player.call("Next")
-            proxy.Previous.side_effect = lambda: player.call("Previous")
+            proxy.PlayPause.side_effect = lambda **_kw: player.call("PlayPause")
+            proxy.Next.side_effect = lambda **_kw: player.call("Next")
+            proxy.Previous.side_effect = lambda **_kw: player.call("Previous")
         return proxy
 
     _fake_dbus.SessionBus.side_effect = fake_session_bus

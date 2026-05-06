@@ -32,7 +32,7 @@ env/
 .DS_Store
 
 # AI assistants
-.claude/
+.claude*/
 .cursor/
 .aider*
 
