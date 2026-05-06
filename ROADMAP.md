@@ -73,25 +73,39 @@ What's done, what's next, what's deliberately not in scope.
   rewrites `version:` in `AppImageBuilder.yml` from `${GITHUB_REF}`,
   so `Refrain-<version>-x86_64.AppImage` always matches the release.
 
-## Up next — v0.1.3 (still requires a human)
+## Done — v0.1.4
 
-These items are wired up in code / CI but cannot be completed without
-out-of-band credentials and one-time external account setup:
+- **AppImage filename fix.** v0.1.3 shipped as
+  `Refrain-.version.-x86_64.AppImage` because appimage-builder's
+  `{version}` placeholder is rendered as the literal string. Dropped
+  the custom `file_name` override and let appimage-builder default to
+  `<app_info.name>-<app_info.version>-<arch>.AppImage`, which resolves
+  at recipe-parse time.
+- **AppImage icon path fix.** The icon_bundler walks XDG icon paths
+  (`AppDir/usr/share/icons/...`); the v0.1.3 recipe used `files.include`
+  which writes to a path the bundler never inspects. Now installs to
+  `AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg` directly.
+- **AUR `refrain` and `refrain-git` published.** Both PKGBUILDs pushed
+  to AUR with SSH key + signed git tags. `refrain` pinned to the v0.1.3
+  source tarball SHA; `refrain-git` auto-bumps via `pkgver()`.
+- **Flatpak manifest tested locally.** Builds and runs cleanly via
+  `flatpak-builder` against `org.kde.Platform//6.10` + the
+  `io.qt.PySide.BaseApp//6.10` BaseApp + an inline patchelf 0.18.0
+  module + vendored `python-deps.json`. Flathub PR is the next manual
+  step.
+- **Markdown refresh.** README install table now leads with PyPI and
+  marks AUR/AppImage as live; `packaging/README.md` rewritten with
+  per-channel runbooks (PyPI Trusted Publisher gotcha, Flathub
+  refresh recipe, AUR push checklist).
+- **Bug-report template** placeholder bumped from `0.1.0` to `0.1.4`
+  so users see a current example.
 
-- **Pending publisher on pypi.org** must be created once before the
-  next tag push, otherwise the upload step will fail (the rest of the
-  release continues thanks to `continue-on-error: true`).
-- **Submit `refrain-git` to AUR.** PKGBUILD is in
-  `packaging/aur/refrain-git/PKGBUILD`; needs an SSH-keyed AUR
-  account + initial `git push aur:refrain-git`.
-- **Submit to Flathub** under `io.github.Rockykln.Refrain`. Manifest
-  is in `packaging/flatpak/`; the missing piece is running
-  `flatpak-pip-generator --requirements-file=requirements.txt
-  -o python-deps` and including `python-deps.json` so the build can
-  run offline on Flathub infra.
-- **Verify the AppImage build end-to-end** on the next tag — the
-  recipe was patched in v0.1.2 and the version-sync step was added in
-  v0.1.3, but neither has been run through CI for a real release yet.
+## Up next — v0.1.4+ (still requires a human)
+
+- **Submit to Flathub** under `io.github.Rockykln.Refrain`. Fork
+  flathub/flathub, copy the four files from `packaging/flatpak/` into
+  a `new-pr` branch, open the PR. Wait for `flathubbot` test build +
+  maintainer review. Manifest + python-deps are validated locally.
 
 ## Up next — v0.2
 

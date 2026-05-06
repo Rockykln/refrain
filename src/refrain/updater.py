@@ -94,7 +94,7 @@ def detect_install_type() -> str:
     if exe_str.startswith(("/usr/", "/opt/")):
         # Distro-managed Python interpreter; check pacman for AUR ownership
         if shutil.which("pacman"):
-            try:
+            with contextlib.suppress(Exception):
                 result = subprocess.run(
                     ["pacman", "-Qo", "/usr/bin/refrain"],
                     capture_output=True,
@@ -103,8 +103,6 @@ def detect_install_type() -> str:
                 )
                 if result.returncode == 0 and "refrain" in result.stdout:
                     return "aur"
-            except Exception:
-                pass
         return "system"
 
     # Fallback: source checkout (editable install) or unknown

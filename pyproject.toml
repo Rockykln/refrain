@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refrain"
-version = "0.1.3"
+version = "0.1.4"
 description = "Discord Rich Presence for Apple Music on Linux"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -126,5 +126,7 @@ exclude_dirs = ["tests", ".venv", "reference"]
 # B404 (subprocess imp) — used only for notify-send, list-form, no shell=True
 # B603 (subprocess no-shell) — same as above
 # B607 (partial path) — notify-send is intentionally invoked by name (PATH lookup)
+# B606 (start_process_with_no_shell) — os.execvp in app.py is the intended
+#                                       Restart implementation, no shell wanted
 # B101 (assert) — used in tests, not in src/
-skips = ["B101", "B404", "B603", "B607"]
+skips = ["B101", "B404", "B603", "B606", "B607"]

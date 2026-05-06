@@ -53,14 +53,15 @@ streaming from your iPhone over Bluetooth.
 
 ## Install
 
-| Distro | Install |
-|--------|---------|
-| **Arch / CachyOS / Manjaro** | `yay -S refrain-git` (until first tag, then `yay -S refrain`) |
-| **Any distro with Flatpak** | `flatpak install flathub io.github.Rockykln.Refrain` *(after Flathub submission)* |
-| **Portable single-file** | Download the `.AppImage` from the [Releases page](https://github.com/Rockykln/refrain/releases) |
+| Channel | Install |
+|---------|---------|
+| **PyPI** *(any distro with Python ≥ 3.11)* | `pip install refrain` |
+| **AUR** *(Arch / CachyOS / Manjaro / EndeavourOS)* | `yay -S refrain` *(stable)* or `yay -S refrain-git` *(latest main)* |
+| **AppImage** *(portable single-file, any glibc-based distro)* | Download from the [Releases page](https://github.com/Rockykln/refrain/releases/latest) |
+| **Flatpak** | `flatpak install flathub io.github.Rockykln.Refrain` *(submission pending review)* |
 | **From source** | See below |
 
-Build files for all three channels live under [`packaging/`](packaging/).
+Build files for all four channels live under [`packaging/`](packaging/).
 See [`packaging/README.md`](packaging/README.md) for build instructions.
 
 ### From source (development)

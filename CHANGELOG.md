@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-05-06
+
+A same-day follow-up to v0.1.3 that fixes the two issues v0.1.3 shipped
+with (broken AppImage filename + broken icon bundling), plus the
+distribution-side bookkeeping that v0.1.3 enabled but didn't complete.
+
+### Fixed
+
+- **AppImage filename** — v0.1.3 shipped as
+  `Refrain-.version.-x86_64.AppImage` because appimage-builder rendered
+  the `{version}` placeholder as the literal string `.version.`.
+  Dropped the custom `file_name:` override; appimage-builder's default
+  filename template uses `app_info.version` directly and resolves
+  correctly.
+- **AppImage icon bundling** — v0.1.3's release CI crashed on
+  `IconBundler.Error: Unable to find any app icon named: refrain`
+  because `files.include:` copies into AppDir but to a path the
+  icon_bundler never inspects. The icon now ships at
+  `AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg`, the
+  canonical XDG icon-theme path.
+
+### Added
+
+- **AUR `refrain` and `refrain-git` published.** Both PKGBUILDs are
+  live on aur.archlinux.org under maintainer `Rockykln`. The stable
+  `refrain` package pins the v0.1.3 source tarball's SHA-256;
+  `refrain-git` auto-bumps via `pkgver()`.
+- **Flatpak manifest validated locally.** Builds + runs cleanly with
+  `flatpak-builder` against KDE Platform 6.10 + the
+  `io.qt.PySide.BaseApp//6.10` BaseApp. Includes an inline patchelf
+  0.18.0 module (KDE SDK doesn't ship it; meson-python needs it for
+  dbus-python's build) and a `python-deps.json` generated via
+  `flatpak-pip-generator` so Flathub's offline build can resolve every
+  transitive dep.
+
+### Changed
+
+- **README install table** now leads with `pip install refrain` and
+  marks AUR + AppImage as live (no longer "until first tag" caveats).
+- **`packaging/README.md`** rewritten with per-channel runbooks: PyPI
+  Trusted Publisher setup gotcha (`environment: pypi`, not `phpi`),
+  step-by-step AUR push, Flathub manifest refresh recipe.
+- **Bug-report issue template** version placeholder bumped from
+  `0.1.0` to `0.1.4`.
+- **AppImageBuilder.yml** drops the broken `file_name:` line and
+  documents why in a comment.
+
 ## [0.1.3] - 2026-05-06
 
 The "you should not need a clone to install Refrain" pass. Wires up
