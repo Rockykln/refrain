@@ -42,8 +42,27 @@ def test_clears_after_duration_plus_grace():
     out, key, seen = compute_idle_state(track, key0, 1000.0, grace_s=30, now=1240.0)
     assert not out.has_track
     assert out.source == "none"
-    assert key == key0
+    # New key carries the sentinel so the next poll's call doesn't
+    # re-log "Idle source detected" every tick while the track stays
+    # stuck on the broken MPRIS handle.
+    assert key.endswith(key0)
+    assert "__refrain_idle_logged__" in key
     assert seen == 1000.0  # seen-at is preserved on idle so we stay idle
+
+
+def test_idle_log_only_once_per_dangling_track():
+    """Subsequent polls for the same idle track keep returning empty
+    without re-emitting the log, until the track key actually changes."""
+    track = _playing(duration_ms=180_000)
+    key0 = f"mpris|{track.title}|{track.artist}|{track.album}"
+
+    # First trip past the deadline → logs + sets sentinel key.
+    _, sentinel_key, _ = compute_idle_state(track, key0, 1000.0, grace_s=30, now=1240.0)
+
+    # Second poll, same stuck track — re-uses the sentinel without growing it.
+    out2, key2, _ = compute_idle_state(track, sentinel_key, 1000.0, grace_s=30, now=1241.0)
+    assert not out2.has_track
+    assert key2 == sentinel_key
 
 
 def test_does_not_clear_within_window():
@@ -84,8 +103,12 @@ def test_passes_through_when_no_duration():
 def test_paused_track_is_never_idle():
     """User-initiated pauses are legitimate — only PLAYING-but-frozen counts."""
     track = TrackInfo(
-        source="mpris", title="A", artist="B", album="C",
-        duration_ms=10_000, status=PlaybackStatus.PAUSED,
+        source="mpris",
+        title="A",
+        artist="B",
+        album="C",
+        duration_ms=10_000,
+        status=PlaybackStatus.PAUSED,
     )
     out, key, seen = compute_idle_state(track, "stale", 1000.0, grace_s=30, now=999_999.0)
     assert out is track

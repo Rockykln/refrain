@@ -77,7 +77,13 @@ def _clean_album(album: str, title: str) -> str:
     # Strip ASCII hyphen, en-dash, em-dash — three different glyphs the
     # iTunes catalog likes to use interchangeably in album titles.
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—")  # noqa: RUF001
-    if _normalize(album) and _normalize(title) and _normalize(album) in _normalize(title):
+    # Drop the album only when, *after* cleanup, it's the same as the
+    # track title — the iTunes catalog often duplicates the title in
+    # the album field for singles ("Sun Rise" / "Sun Rise (Single)").
+    # Substring-style matching was overly aggressive: a short album
+    # name that happens to be a prefix of the title (Album="Sun",
+    # Title="Sun Rise (Extended Mix)") would falsely drop.
+    if _normalize(cleaned) and _normalize(title) and _normalize(cleaned) == _normalize(title):
         return ""
     return cleaned
 
@@ -165,7 +171,9 @@ class MPRISSource:
 
         # Build a try-list: primary first (if capable), then known fallbacks.
         targets: list[str] = []
-        if self._last_player_name and self._player_can(bus, self._last_player_name, capability_prop):
+        if self._last_player_name and self._player_can(
+            bus, self._last_player_name, capability_prop
+        ):
             targets.append(self._last_player_name)
         for name in self._control_fallback_names:
             if name not in targets and self._player_can(bus, name, capability_prop):
@@ -194,7 +202,11 @@ class MPRISSource:
             obj = bus.get_object(name, "/org/mpris/MediaPlayer2")
             iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
             getattr(iface, method)()
-            log.debug("MPRIS %s dispatched on %s", method, name)
+            # INFO (not debug) so users can see in the live log which
+            # MPRIS player actually received Next/Previous/PlayPause —
+            # critical for diagnosing "Next pauses instead of skipping"
+            # type bugs where a fallback player handles the action wrong.
+            log.info("MPRIS %s dispatched on %s", method, name)
             return True
         except dbus.DBusException as e:
             log.debug("MPRIS %s on %s failed: %s", method, name, e)
@@ -268,16 +280,20 @@ class MPRISSource:
             if artist:
                 score += 5
 
-            return TrackInfo(
-                source="mpris",
-                title=title,
-                artist=artist,
-                album=_clean_album(album, title),
-                duration_ms=duration_ms,
-                position_ms=position_ms,
-                status=status,
-                url=url,
-            ), score, False
+            return (
+                TrackInfo(
+                    source="mpris",
+                    title=title,
+                    artist=artist,
+                    album=_clean_album(album, title),
+                    duration_ms=duration_ms,
+                    position_ms=position_ms,
+                    status=status,
+                    url=url,
+                ),
+                score,
+                False,
+            )
 
         except dbus.DBusException as e:
             log.debug("MPRIS player %s gone or unreadable: %s", name, e)

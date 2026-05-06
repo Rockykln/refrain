@@ -95,7 +95,9 @@ def test_save_and_load_roundtrip(xdg_tmp):
 
 def test_dataclasses_have_expected_fields():
     """Schema contract for downstream serialization helpers."""
-    assert {"client_id"} == set(DiscordConfig.__dataclass_fields__)
+    assert {"client_id", "client_id_mpris", "client_id_bluetooth"} == set(
+        DiscordConfig.__dataclass_fields__
+    )
     assert {"mpris_enabled", "bluetooth_enabled", "bluetooth_device", "browser_hints"} == set(
         SourcesConfig.__dataclass_fields__
     )
@@ -108,9 +110,13 @@ def test_dataclasses_have_expected_fields():
         "notify_delay_ms",
         "first_run_complete",
     } == set(BehaviorConfig.__dataclass_fields__)
-    assert {"poll_interval_ms", "log_level", "cover_cache_size", "idle_grace_s"} == set(
-        AdvancedConfig.__dataclass_fields__
-    )
+    assert {
+        "poll_interval_ms",
+        "log_level",
+        "cover_cache_size",
+        "idle_grace_s",
+        "language",
+    } == set(AdvancedConfig.__dataclass_fields__)
 
 
 def test_browser_hints_list_parses_csv():

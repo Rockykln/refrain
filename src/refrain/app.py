@@ -127,28 +127,55 @@ def uninstall_desktop_files() -> int:
     return 0
 
 
-def _install_translators(app: QApplication) -> list[QTranslator]:
+def _install_translators(app: QApplication, language_override: str = "system") -> list[QTranslator]:
     """Load Refrain's own .qm files plus Qt's built-in translations.
 
-    Picks the system locale (`QLocale.system()`) and falls back to
-    English source strings whenever a translation is missing or
-    unfinished. Translators are kept alive via the returned list — Qt
-    drops them silently if they're garbage-collected.
+    ``language_override`` is the value of ``advanced.language`` from
+    config — ``"system"`` (default) follows ``QLocale.system()``,
+    explicit codes (``"en"``, ``"de"``, …) force that translation
+    instead. English source strings are the fallback whenever a
+    translation is missing or unfinished. Translators are kept alive
+    via the returned list — Qt drops them silently if they're
+    garbage-collected.
     """
     keep_alive: list[QTranslator] = []
-    locale = QLocale.system()
-    # Refrain's own translations (i18n/refrain_<lang>.qm), shipped with
-    # the wheel under refrain/i18n/.
     package_i18n = Path(__file__).parent / "i18n"
-    refrain_t = QTranslator(app)
-    if refrain_t.load(locale, "refrain", "_", str(package_i18n), ".qm"):
-        app.installTranslator(refrain_t)
-        keep_alive.append(refrain_t)
-        log.info("Loaded Refrain translation for %s", locale.name())
+
+    # Only the languages we ship a real (non-stub) `.qm` for are
+    # candidates. QTranslator.load() walks `locale.uiLanguages()` looking
+    # for ANY matching .qm, which on systems with weird $LANGUAGE
+    # fallbacks would happily load an empty stub and "translate"
+    # everything to nothing. Restricting the candidate list prevents that.
+    available = {
+        p.stem.split("_", 1)[1]
+        for p in package_i18n.glob("refrain_*.qm")
+        if p.stat().st_size > 100  # skip header-only stubs
+    }
+    log.debug("Available Refrain translations: %s", sorted(available))
+
+    if language_override and language_override != "system":
+        target = language_override
+    else:
+        sys_locale = QLocale.system()
+        target = sys_locale.name()  # e.g. "de_DE"
+
+    # Try the exact code first, then the language-only prefix
+    # ("de_DE" → "de"), then give up cleanly (English source strings).
+    candidates = [target, target.split("_", 1)[0]]
+    chosen = next((c for c in candidates if c in available), None)
+    if chosen is not None:
+        refrain_t = QTranslator(app)
+        if refrain_t.load(QLocale(chosen), "refrain", "_", str(package_i18n), ".qm"):
+            app.installTranslator(refrain_t)
+            keep_alive.append(refrain_t)
+            log.info("Loaded Refrain translation: %s", chosen)
+    else:
+        log.info("No translation for %r — using English source strings", target)
+
     # Qt's own translations for stock widgets (button labels, menus).
     qt_t = QTranslator(app)
     qt_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
-    if qt_t.load(locale, "qtbase", "_", qt_path, ".qm"):
+    if qt_t.load(QLocale.system(), "qtbase", "_", qt_path, ".qm"):
         app.installTranslator(qt_t)
         keep_alive.append(qt_t)
     return keep_alive
@@ -315,7 +342,7 @@ def main() -> int:
 
     # Translators must be installed BEFORE any user-visible widget is
     # created — strings are looked up at construction time.
-    app._refrain_translators = _install_translators(app)
+    app._refrain_translators = _install_translators(app, config.advanced.language)
 
     try:
         bus_lock = acquire_lock()
@@ -445,9 +472,13 @@ def main() -> int:
         #   - Otherwise, sys.argv[0] is the entry-point script the user
         #     actually launched (venv shim, system /usr/bin/refrain, etc.).
         binary = os.environ.get("APPIMAGE") or sys.argv[0]
-        # Release the bus name explicitly before exec so the new process
-        # never races with the dying old one for the single-instance lock.
+        # Drop our reference to the bus connection. Note that
+        # `dbus.SessionBus()` is a process-singleton wrapper, so this
+        # alone doesn't trigger ReleaseName — we rely on os.execvp
+        # replacing the process image, which closes the underlying
+        # socket via CLOEXEC and lets the bus daemon reclaim the name.
         app._refrain_bus_lock = None
+        log.info("Re-executing %s for restart", binary)
         os.execvp(binary, [binary, *new_argv])
 
     log.info("Refrain shutting down with rc=%d", rc)

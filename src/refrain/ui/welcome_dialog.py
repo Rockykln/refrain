@@ -45,9 +45,7 @@ log = logging.getLogger(__name__)
 
 
 _DISCORD_DEVELOPER_PORTAL = "https://discord.com/developers/applications"
-_ITUNES_TEST_URL = (
-    "https://itunes.apple.com/search?term=test&entity=song&limit=1&country=us"
-)
+_ITUNES_TEST_URL = "https://itunes.apple.com/search?term=test&entity=song&limit=1&country=us"
 
 
 class _DiagnosticsWorker(QObject):
@@ -59,8 +57,11 @@ class _DiagnosticsWorker(QObject):
     finished = Signal(bool, str, bool, str)
 
     def run(self) -> None:
+        log.info("First-run wizard: starting diagnostics")
         discord_ok, discord_msg = _probe_discord_ipc()
+        log.info("First-run wizard: Discord IPC probe → ok=%s (%s)", discord_ok, discord_msg)
         itunes_ok, itunes_msg = _probe_itunes()
+        log.info("First-run wizard: iTunes probe → ok=%s (%s)", itunes_ok, itunes_msg)
         self.finished.emit(discord_ok, discord_msg, itunes_ok, itunes_msg)
 
 

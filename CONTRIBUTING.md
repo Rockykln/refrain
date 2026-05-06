@@ -122,31 +122,34 @@ descriptions instead.
 
 ## Translations
 
-User-visible strings live wrapped in `tr()` calls; the source list is
-maintained in `src/refrain/i18n/refrain_<lang>.ts` (Qt Linguist format).
-German is shipped complete. French, Spanish, Italian, Portuguese, Dutch,
-Polish, Japanese, and Simplified Chinese have stub `.ts` files with all
-source strings already extracted, marked
-`<translation type="unfinished"></translation>` — those are the ones we'd
-love community PRs for.
+User-visible strings live wrapped in `tr()` calls; translations are
+kept in `src/refrain/i18n/refrain_<lang>.ts` (Qt Linguist format).
+English is the source language. German is the only translation we
+ship complete right now.
 
-To translate one of the stub languages end-to-end:
+To add a new language end-to-end:
 
 ```sh
-# 1. Pick a language file. Linguist (the GUI) is friendlier than
-#    editing XML by hand.
+# 1. Copy the German translation as a starting point (gives you all
+#    the strings already extracted).
+cp src/refrain/i18n/refrain_de.ts src/refrain/i18n/refrain_fr.ts
+
+# 2. Open it in Qt Linguist (friendlier than editing XML by hand) and
+#    replace each German line with your translation.
 pyside6-linguist src/refrain/i18n/refrain_fr.ts
 
-# 2. Replace each "unfinished" translation with the real string.
-
-# 3. Compile to .qm and run the result locally.
+# 3. Compile to .qm.
 make i18n
+
+# 4. Add your code to settings_window.py's language combo so users can
+#    pick it from the Localization group, then run Refrain locally to
+#    smoke-test.
 LANG=fr_FR.UTF-8 refrain
 ```
 
-If you've wrapped any new strings on the source side, run
-`make i18n-update` first — it refreshes every `.ts` file's
-source-string list while preserving existing translations.
+If you've wrapped any new English strings on the source side, run
+`make i18n-update` first — it refreshes the `.ts` file's source-string
+list while preserving existing translations.
 
-PRs that just translate a `.ts` (no source changes) are very welcome.
-So is native-speaker review of an existing translation.
+PRs that add a new language (or fix typos in an existing one) are
+very welcome.

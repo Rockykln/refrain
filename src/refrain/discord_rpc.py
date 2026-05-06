@@ -24,7 +24,13 @@ class DiscordRPC:
         self._presence: Presence | None = None
         self._next_retry_ts: float = 0.0
         self._backoff_s: float = 2.0
-        self._max_backoff_s: float = 60.0
+        # Cap retry backoff at 15 s instead of 60 s — autostart launches
+        # refrain before Discord is ready, and a 60 s ceiling means the
+        # user can sit there for almost a minute after Discord finishes
+        # loading before refrain notices and connects. 15 s keeps the
+        # exponential ramp short enough to feel responsive while still
+        # avoiding tight retry loops when Discord isn't installed.
+        self._max_backoff_s: float = 15.0
         if not self.client_id:
             log.info(
                 "Discord RPC disabled — no client_id configured. "

@@ -29,13 +29,22 @@ def _detect_color_scheme() -> str:
         with contextlib.suppress(Exception):
             value = scheme()
             if value == Qt.ColorScheme.Dark:
+                log.debug("Theme detected via styleHints.colorScheme: dark")
                 return "dark"
             if value == Qt.ColorScheme.Light:
+                log.debug("Theme detected via styleHints.colorScheme: light")
                 return "light"
     palette = QGuiApplication.palette()
     text = palette.color(palette.ColorRole.WindowText)
     luminance = 0.299 * text.red() + 0.587 * text.green() + 0.114 * text.blue()
-    return "dark" if luminance > 128 else "light"
+    result = "dark" if luminance > 128 else "light"
+    log.debug(
+        "Theme detected via palette luminance: WindowText=%s lum=%.0f → %s",
+        text.name(),
+        luminance,
+        result,
+    )
+    return result
 
 
 class TrayIcon(QObject):
@@ -61,34 +70,6 @@ class TrayIcon(QObject):
         # because tooltips DO refresh in real time.
         self._current_track_line = ""
         self._current_progress_line = ""
-        # Re-render tray glyphs when the system flips between dark and
-        # light theme — Qt 6.5+ exposes this signal on styleHints().
-        hints = QGuiApplication.styleHints()
-        signal = getattr(hints, "colorSchemeChanged", None)
-        if signal is not None:
-            try:
-                signal.connect(self._on_color_scheme_changed)
-            except Exception as e:
-                log.debug("colorSchemeChanged connect failed: %s", e)
-
-    def _build_icons_for_current_theme(self) -> dict[PlaybackStatus, QIcon]:
-        # On a dark system theme the tray panel is dark, so the glyph has
-        # to be bright (the existing `tray-<state>.svg` set). On a light
-        # theme it has to be dark — that's the `*-dark.svg` variants.
-        scheme = _detect_color_scheme()
-        suffix = "-dark" if scheme == "light" else ""
-        return {
-            PlaybackStatus.PLAYING: QIcon(str(self._icons_dir / f"tray-playing{suffix}.svg")),
-            PlaybackStatus.PAUSED: QIcon(str(self._icons_dir / f"tray-paused{suffix}.svg")),
-            PlaybackStatus.STOPPED: QIcon(str(self._icons_dir / f"tray-stopped{suffix}.svg")),
-        }
-
-    def _on_color_scheme_changed(self, *_args) -> None:
-        log.debug("System color scheme changed; refreshing tray icons")
-        self._icons = self._build_icons_for_current_theme()
-        icon = self._icons.get(self._current_status)
-        if icon is not None:
-            self._tray.setIcon(icon)
 
         self._title_action = QAction(self.tr("(nothing playing)"))
         self._title_action.setEnabled(False)
@@ -136,6 +117,33 @@ class TrayIcon(QObject):
         self._tray.activated.connect(self._on_activated)
         self._tray.show()
 
+        # Re-render tray glyphs when the system flips between dark and
+        # light theme — Qt 6.5+ exposes this signal on styleHints().
+        hints = QGuiApplication.styleHints()
+        signal = getattr(hints, "colorSchemeChanged", None)
+        if signal is not None:
+            with contextlib.suppress(Exception):
+                signal.connect(self._on_color_scheme_changed)
+
+    def _build_icons_for_current_theme(self) -> dict[PlaybackStatus, QIcon]:
+        # On a dark system theme the tray panel is dark, so the glyph has
+        # to be bright (the existing `tray-<state>.svg` set). On a light
+        # theme it has to be dark — that's the `*-dark.svg` variants.
+        scheme = _detect_color_scheme()
+        suffix = "-dark" if scheme == "light" else ""
+        return {
+            PlaybackStatus.PLAYING: QIcon(str(self._icons_dir / f"tray-playing{suffix}.svg")),
+            PlaybackStatus.PAUSED: QIcon(str(self._icons_dir / f"tray-paused{suffix}.svg")),
+            PlaybackStatus.STOPPED: QIcon(str(self._icons_dir / f"tray-stopped{suffix}.svg")),
+        }
+
+    def _on_color_scheme_changed(self, *_args) -> None:
+        log.debug("System color scheme changed; refreshing tray icons")
+        self._icons = self._build_icons_for_current_theme()
+        icon = self._icons.get(self._current_status)
+        if icon is not None:
+            self._tray.setIcon(icon)
+
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.Trigger:
             self.settingsRequested.emit()
@@ -152,7 +160,9 @@ class TrayIcon(QObject):
 
     def set_update_available(self, available: bool, version: str = "") -> None:
         if available and version:
-            self._update_action.setText(self.tr("⬆  Update available — v{version}").format(version=version))
+            self._update_action.setText(
+                self.tr("⬆  Update available — v{version}").format(version=version)
+            )
         else:
             self._update_action.setText(self.tr("⬆  Update available"))
         self._update_action.setVisible(available)

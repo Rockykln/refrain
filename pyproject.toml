@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refrain"
-version = "0.2.0"
+version = "0.2.1"
 description = "Discord Rich Presence for Apple Music on Linux"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -50,12 +50,11 @@ Changelog = "https://github.com/Rockykln/refrain/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/refrain"]
-# Include compiled translations + bundled assets in the wheel.
-# .qm files are pre-compiled (via `make i18n`) and committed; .ts files
-# are the editable Linguist sources for translators.
+# Include compiled translations + bundled assets in the wheel. Only the
+# pre-compiled .qm files ship — .ts (Linguist source) files belong in
+# the source tree for translators to edit, not in the runtime wheel.
 artifacts = [
     "src/refrain/i18n/*.qm",
-    "src/refrain/i18n/*.ts",
     "src/refrain/assets/**/*",
 ]
 

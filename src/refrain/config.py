@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -18,8 +19,24 @@ class DiscordConfig:
     # Empty by default — every user registers their own Discord app at
     # https://discord.com/developers/applications and pastes the
     # Application ID into Settings → General. The status won't appear in
-    # Discord until this is filled in.
+    # Discord until this is filled in. This is also the fallback ID used
+    # when a per-source override is empty.
     client_id: str = ""
+    # Optional per-source override Application IDs. When the active
+    # source flips (Apple Music ↔ Bluetooth) the daemon reconnects RPC
+    # under the source-specific ID so each source can render with its
+    # own application name + uploaded artwork in the user's profile.
+    # Empty falls back to the default `client_id` above.
+    client_id_mpris: str = ""
+    client_id_bluetooth: str = ""
+
+    def client_id_for(self, source: str) -> str:
+        """Return the per-source client_id, falling back to the default."""
+        if source == "mpris" and self.client_id_mpris:
+            return self.client_id_mpris
+        if source == "bluetooth" and self.client_id_bluetooth:
+            return self.client_id_bluetooth
+        return self.client_id
 
 
 DEFAULT_BROWSER_HINTS = (
@@ -82,6 +99,11 @@ class AdvancedConfig:
     # without releasing the MPRIS handle) and clears the Discord status.
     # Set to 0 to disable idle detection entirely.
     idle_grace_s: int = 30
+    # Override UI language. "system" follows QLocale.system(); explicit
+    # codes ("en", "de", "fr", …) force a specific translation. Takes
+    # effect after restarting Refrain — the QTranslator is installed
+    # once at app startup.
+    language: str = "system"
 
 
 @dataclass
@@ -139,7 +161,13 @@ class Config:
     def save(self, path: Path | None = None) -> None:
         path = path or config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(_serialize(self.to_dict()), encoding="utf-8")
+        # Atomic write: tmp file + os.replace. Without this, a crash or
+        # power-cut between truncate-and-write would leave an empty or
+        # half-written config — and refrain falls back to defaults on
+        # malformed TOML, silently losing every setting the user picked.
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(_serialize(self.to_dict()), encoding="utf-8")
+        os.replace(tmp, path)
         log.info("Config saved to %s", path)
 
 

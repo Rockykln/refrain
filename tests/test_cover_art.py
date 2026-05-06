@@ -114,13 +114,15 @@ def test_cache_key_is_stable_and_lowercase(cover_art):
     assert a == b
 
 
-def test_cache_file_format_is_two_lines(monkeypatch, cover_art):
-    """The on-disk cache stores both URLs; legacy single-line files still load."""
+def test_cache_file_format_is_three_lines(monkeypatch, cover_art):
+    """The on-disk cache stores cover URL + song URL + iTunes duration.
+    Legacy two-line files still load (duration defaults to 0)."""
     payload = {
         "results": [
             {
                 "artworkUrl100": "https://is1.example/100x100bb.jpg",
                 "trackViewUrl": "https://music.apple.com/us/album/x/1?i=2",
+                "trackTimeMillis": 215000,
             }
         ]
     }
@@ -133,9 +135,10 @@ def test_cache_file_format_is_two_lines(monkeypatch, cover_art):
     cache_file = cover_art.cover_cache_dir() / f"{key}.txt"
     assert cache_file.exists()
     lines = cache_file.read_text().strip().splitlines()
-    assert len(lines) == 2
+    assert len(lines) == 3
     assert lines[0].endswith(".jpg")
     assert lines[1].startswith("https://music.apple.com/")
+    assert lines[2] == "215000"
 
 
 def test_legacy_single_line_cache_still_loads(cover_art):

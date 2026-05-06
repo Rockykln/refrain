@@ -70,6 +70,7 @@ class CoverFetcher:
         self._url_cache: dict[str, str] = {}  # key → cover URL ("" = negative)
         self._song_url_cache: dict[str, str] = {}  # key → song page URL
         self._local_cache: dict[str, str] = {}  # key → local path ("" = no image)
+        self._duration_cache: dict[str, int] = {}  # key → trackTimeMillis (0 = unknown)
         self._inflight: set[str] = set()
 
     def get(self, artist: str, title: str, album: str = "") -> str | None:
@@ -90,6 +91,21 @@ class CoverFetcher:
         future = self._executor.submit(self._fetch_all, artist, title, album)
         future.add_done_callback(lambda f, k=key: self._on_done(k, f))
         return None
+
+    def get_duration_ms(self, artist: str, title: str, album: str = "") -> int:
+        """Returns the iTunes-catalog track length in ms, or 0 if unknown.
+
+        Used by the daemon's RPC builder to override MPRIS-reported
+        durations that are obviously wrong (browser MPRIS sometimes
+        reports a 15 s preview-clip length, or the playlist total
+        instead of the current track). Returns 0 until the background
+        lookup has populated the cache.
+        """
+        if not artist or not title:
+            return 0
+        key = self._key(artist, title, album)
+        with self._lock:
+            return self._duration_cache.get(key, 0)
 
     def get_song_url(self, artist: str, title: str, album: str = "") -> str | None:
         """Returns the Apple Music page URL for this specific song, or None.
@@ -140,23 +156,24 @@ class CoverFetcher:
     def _key(artist: str, title: str, album: str = "") -> str:
         return f"{artist}|{title}|{album}".lower()
 
-    def _fetch_all(self, artist: str, title: str, album: str) -> tuple[str, str, str]:
+    def _fetch_all(self, artist: str, title: str, album: str) -> tuple[str, str, str, int]:
         info: TrackLookup = lookup_track_info(artist, title, album)
         local = ""
         if info.cover_url:
             p = download_cover_image(info.cover_url)
             if p:
                 local = str(p)
-        return info.cover_url, info.song_url, local
+        return info.cover_url, info.song_url, local, info.duration_ms
 
     def _on_done(self, key: str, future: Future) -> None:
         try:
-            cover_url, song_url, local = future.result()
+            cover_url, song_url, local, duration_ms = future.result()
         except Exception as e:
             log.debug("CoverFetcher background lookup failed: %s", e)
-            cover_url, song_url, local = "", "", ""
+            cover_url, song_url, local, duration_ms = "", "", "", 0
         with self._lock:
             self._url_cache[key] = cover_url
             self._song_url_cache[key] = song_url
             self._local_cache[key] = local
+            self._duration_cache[key] = duration_ms
             self._inflight.discard(key)

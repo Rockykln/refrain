@@ -11,11 +11,14 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
+    QGridLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
     QTabWidget,
     QToolButton,
@@ -33,6 +36,106 @@ GITHUB_URL = "https://github.com/Rockykln/refrain"
 log = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# Layout helpers — keep every tab visually consistent.
+# ---------------------------------------------------------------------------
+
+# Outer padding inside each tab page.
+_TAB_MARGINS = (16, 16, 16, 16)
+# Vertical gap between QGroupBox sections.
+_TAB_SPACING = 14
+# Padding inside each QGroupBox content area.
+_GROUP_MARGINS = (14, 18, 14, 12)
+# Horizontal / vertical gap between form rows inside a group.
+_FORM_HSPACING = 12
+_FORM_VSPACING = 8
+# Fixed width for inputs (combos, line edits, spinboxes). Combined with
+# FieldsStayAtSizeHint the form layout will not grow them past this — on
+# Plasma Breeze, AllNonFixedFieldsGrow ignored maxWidth caps and stretched
+# widgets to ~440 px even with setFixedWidth set. FieldsStayAtSizeHint +
+# explicit per-widget setFixedWidth is the only combo that holds across
+# Fusion (offscreen tests) and Breeze (Plasma).
+_INPUT_MAX_WIDTH = 220
+# Wider variant for inputs whose placeholder / longest item text doesn't
+# fit in 220 — used for the Discord group (Client ID placeholder + the
+# longest privacy-mode label "Full — title, artist, album, cover" both
+# need ~340 px to render without truncation). Keep both inputs in a
+# group at the same width so they line up vertically.
+_INPUT_WIDE_WIDTH = 360
+
+
+def _hint(text: str) -> QLabel:
+    """Italic, wrapped, slightly muted helper text. Used under form rows."""
+    lbl = QLabel(text)
+    lbl.setWordWrap(True)
+    lbl.setStyleSheet("color: palette(mid); font-style: italic;")
+    return lbl
+
+
+def _row_with_buttons(*buttons: QPushButton) -> QHBoxLayout:
+    """A horizontal layout that keeps buttons at their natural width
+    and pushes them all to the left with a trailing stretch."""
+    row = QHBoxLayout()
+    row.setContentsMargins(0, 0, 0, 0)
+    row.setSpacing(8)
+    for b in buttons:
+        b.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        row.addWidget(b)
+    row.addStretch(1)
+    return row
+
+
+def _tab_layout(parent: QWidget) -> QVBoxLayout:
+    """Common chrome for every tab — vertical stack with consistent
+    margins and a trailing stretch so groups anchor at the top."""
+    v = QVBoxLayout(parent)
+    v.setContentsMargins(*_TAB_MARGINS)
+    v.setSpacing(_TAB_SPACING)
+    return v
+
+
+# Stylesheet applied to every QGroupBox so the title sits flush left
+# instead of centered. Plasma Breeze centers QGroupBox titles by default;
+# left alignment matches the label/input rows below and reads better.
+_GROUPBOX_STYLE = """
+QGroupBox {
+    font-weight: 600;
+    margin-top: 14px;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+    left: 8px;
+}
+"""
+
+
+def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
+    """Create a QGroupBox + a QFormLayout configured to match every
+    other group on the page (margins, spacing, label alignment, field
+    growth policy). Returns the box + the form so callers populate it."""
+    box = QGroupBox(title)
+    box.setStyleSheet(_GROUPBOX_STYLE)
+    form = QFormLayout(box)
+    form.setContentsMargins(*_GROUP_MARGINS)
+    form.setHorizontalSpacing(_FORM_HSPACING)
+    form.setVerticalSpacing(_FORM_VSPACING)
+    # Left-aligned labels read better with German text — right-aligned
+    # detaches long labels from their inputs and feels off-balance.
+    form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    # FieldsStayAtSizeHint keeps every input at its sizeHint (or
+    # explicit setFixedWidth) and refuses to grow it. This is critical
+    # on Plasma Breeze: AllNonFixedFieldsGrow ignored fixed-width caps
+    # there and stretched spinboxes/combos to ~440 px, leaving huge
+    # empty space between the value and the chevron chrome. With
+    # FieldsStayAtSizeHint + per-widget setFixedWidth(_INPUT_MAX_WIDTH),
+    # every input renders at exactly 220 logical px on every Qt style.
+    form.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
+    form.setRowWrapPolicy(QFormLayout.DontWrapRows)
+    return box, form
+
+
 class SettingsWindow(QDialog):
     """Tabbed settings dialog. Emits `applied(Config)` when the user hits Apply."""
 
@@ -47,10 +150,15 @@ class SettingsWindow(QDialog):
         # this title by the window manager. Setting the manual prefix
         # too would duplicate it as "Refrain — Settings — Refrain".
         self.setWindowTitle(self.tr("Settings"))
-        self.setMinimumSize(560, 480)
+        # Bigger default size: German labels run ~30% longer than English,
+        # and the new GroupBox layout adds vertical chrome. Anything
+        # smaller squeezes either the labels or the spinbox suffixes.
+        self.setMinimumSize(680, 620)
+        self.resize(720, 660)
         self._config = config
 
         self.tabs = QTabWidget()
+        self.tabs.setDocumentMode(True)
         self.tabs.addTab(self._build_general_tab(), self.tr("General"))
         self.tabs.addTab(self._build_sources_tab(), self.tr("Sources"))
         self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
@@ -75,7 +183,7 @@ class SettingsWindow(QDialog):
         github_btn.setIconSize(QSize(16, 16))
         github_btn.setAutoRaise(True)
         github_btn.setCursor(Qt.PointingHandCursor)
-        github_btn.setToolTip("View Refrain on GitHub")
+        github_btn.setToolTip(self.tr("View Refrain on GitHub"))
         github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(GITHUB_URL)))
 
         version_row = QHBoxLayout()
@@ -91,75 +199,169 @@ class SettingsWindow(QDialog):
 
         self._load_into_form()
 
-    # ------------------------------------------------------------------ tabs
+    # ====================================================================
+    # General tab
+    # ====================================================================
 
     def _build_general_tab(self) -> QWidget:
         w = QWidget()
-        f = QFormLayout(w)
+        v = _tab_layout(w)
+
+        # ---- Discord group ------------------------------------------------
+        # Discord inputs use the wider variant: the Client ID placeholder
+        # ("Discord Application Client ID") and the longest privacy label
+        # ("Full — title, artist, album, cover") both need ~340 px to
+        # render without truncation. Both at the same width so they
+        # line up vertically.
+        discord_group, df = _new_group(self.tr("Discord"))
+
         self.client_id_input = QLineEdit()
         self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
-        f.addRow(self.tr("Discord Client ID:"), self.client_id_input)
+        self.client_id_input.setFixedWidth(_INPUT_WIDE_WIDTH)
+        df.addRow(self.tr("Client ID:"), self.client_id_input)
 
         self.privacy_combo = QComboBox()
+        self.privacy_combo.setFixedWidth(_INPUT_WIDE_WIDTH)
         self.privacy_combo.addItem(self.tr("Full — title, artist, album, cover"), "full")
         self.privacy_combo.addItem(self.tr("Minimal — only 'Listening to music'"), "minimal")
         self.privacy_combo.addItem(self.tr("Off — disable Discord status entirely"), "off")
-        f.addRow(self.tr("Privacy:"), self.privacy_combo)
-
-        self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
-        f.addRow(self.autostart_box)
-
-        self.notifications_box = QCheckBox(self.tr("Show desktop notifications on track change"))
-        f.addRow(self.notifications_box)
-
-        self.cover_art_box = QCheckBox(self.tr("Fetch album cover art from iTunes"))
-        f.addRow(self.cover_art_box)
+        df.addRow(self.tr("Privacy:"), self.privacy_combo)
 
         self.buttons_box = QCheckBox(self.tr("Show 'Listen on Apple Music' button in Discord"))
-        f.addRow(self.buttons_box)
+        df.addRow(self.buttons_box)
+
+        # Portal button right under the checkbox — keeps "open the
+        # external page where you'd register an application" close to
+        # the Client ID field it feeds. Hint sits below as helper text.
+        portal_btn = QPushButton(self.tr("Open Discord Developer Portal"))
+        portal_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl("https://discord.com/developers/applications"))
+        )
+        df.addRow(_row_with_buttons(portal_btn))
+
+        client_hint = _hint(
+            self.tr(
+                "Register a free Discord Application to get a Client ID. "
+                "The application's name is what shows up next to "
+                '"Listening to" in your Discord status.'
+            )
+        )
+        df.addRow(client_hint)
+
+        v.addWidget(discord_group)
+
+        # ---- Notifications group -----------------------------------------
+        notif_group, nf = _new_group(self.tr("Notifications"))
+        self.notifications_box = QCheckBox(self.tr("Show desktop notification on track change"))
+        nf.addRow(self.notifications_box)
+        self.cover_art_box = QCheckBox(self.tr("Fetch album cover art from iTunes"))
+        nf.addRow(self.cover_art_box)
+        v.addWidget(notif_group)
+
+        # ---- Behavior group ----------------------------------------------
+        behavior_group, bf = _new_group(self.tr("Behavior"))
+        self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
+        bf.addRow(self.autostart_box)
+        v.addWidget(behavior_group)
+
+        v.addStretch(1)
         return w
+
+    # ====================================================================
+    # Sources tab
+    # ====================================================================
 
     def _build_sources_tab(self) -> QWidget:
         w = QWidget()
-        f = QFormLayout(w)
+        v = _tab_layout(w)
 
-        self.mpris_box = QCheckBox(self.tr("Apple Music Web (browser)"))
-        f.addRow(self.mpris_box)
+        # ---- Apple Music Web group ---------------------------------------
+        mpris_group, mf = _new_group(self.tr("Apple Music Web (browser)"))
+        self.mpris_box = QCheckBox(self.tr("Enable browser source"))
+        mf.addRow(self.mpris_box)
 
-        self.bluetooth_box = QCheckBox(self.tr("Bluetooth (AVRCP)"))
-        f.addRow(self.bluetooth_box)
+        # User-friendly browser picker: a checkbox per known browser in
+        # a 2-column grid + a free-text field below for less-common ones.
+        # Replaces the old comma-separated text input which was opaque.
+        browsers_label = QLabel(self.tr("Detected browsers:"))
+        mf.addRow(browsers_label)
+
+        self._browser_checkboxes: dict[str, QCheckBox] = {}
+        browser_grid = QGridLayout()
+        browser_grid.setHorizontalSpacing(18)
+        browser_grid.setVerticalSpacing(4)
+        browser_grid.setContentsMargins(0, 0, 0, 0)
+        # Two-column grid; labels first, then code in alphabetical-ish
+        # order grouped by family (Firefox, Chrome, KDE).
+        known = [
+            ("firefox", "Firefox"),
+            ("zen", "Zen Browser"),
+            ("librewolf", "LibreWolf"),
+            ("chromium", "Chromium"),
+            ("chrome", "Google Chrome"),
+            ("brave", "Brave"),
+            ("edge", "Microsoft Edge"),
+            ("vivaldi", "Vivaldi"),
+            ("opera", "Opera"),
+            ("plasma-browser-integration", "Plasma Browser Integration"),
+        ]
+        for idx, (token, label) in enumerate(known):
+            cb = QCheckBox(label)
+            self._browser_checkboxes[token] = cb
+            browser_grid.addWidget(cb, idx // 2, idx % 2)
+        browser_wrap = QWidget()
+        browser_wrap.setLayout(browser_grid)
+        mf.addRow(browser_wrap)
+
+        self.browser_extra_input = QLineEdit()
+        self.browser_extra_input.setFixedWidth(_INPUT_MAX_WIDTH)
+        self.browser_extra_input.setPlaceholderText(self.tr("e.g. waterfox, palemoon"))
+        mf.addRow(self.tr("Other (comma-separated):"), self.browser_extra_input)
+        mf.addRow(
+            _hint(
+                self.tr(
+                    "Refrain only picks up browsers whose process name or desktop "
+                    "entry contains one of these substrings. Tick what you use."
+                )
+            )
+        )
+        v.addWidget(mpris_group)
+
+        # ---- Bluetooth group ---------------------------------------------
+        bt_group, bf = _new_group(self.tr("Bluetooth (AVRCP)"))
+        self.bluetooth_box = QCheckBox(self.tr("Enable Bluetooth source"))
+        bf.addRow(self.bluetooth_box)
 
         self.bluetooth_device = QComboBox()
         self.bluetooth_device.setEditable(True)
-
-        refresh_row = QHBoxLayout()
-        refresh_row.addWidget(self.bluetooth_device, 1)
+        self.bluetooth_device.setFixedWidth(_INPUT_MAX_WIDTH)
         refresh_btn = QPushButton(self.tr("Refresh"))
         refresh_btn.clicked.connect(self._populate_bluetooth_devices)
-        refresh_row.addWidget(refresh_btn)
-        f.addRow(self.tr("Bluetooth Device:"), refresh_row)
-
+        refresh_btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        device_row = QHBoxLayout()
+        device_row.setContentsMargins(0, 0, 0, 0)
+        device_row.setSpacing(8)
+        device_row.addWidget(self.bluetooth_device, 1)
+        device_row.addWidget(refresh_btn)
+        bf.addRow(self.tr("Device:"), device_row)
+        bf.addRow(
+            _hint(
+                self.tr(
+                    "Pick a paired device, or leave on auto-detect to read whichever "
+                    "AVRCP-capable source is currently connected."
+                )
+            )
+        )
         self._populate_bluetooth_devices()
+        v.addWidget(bt_group)
 
-        self.browser_hints_input = QLineEdit()
-        self.browser_hints_input.setPlaceholderText(
-            "firefox,zen,chromium,chrome,brave,edge,vivaldi,opera,…"
-        )
-        f.addRow(self.tr("Browser hints:"), self.browser_hints_input)
-
-        hint = QLabel(
-            "<i>Comma-separated substrings to identify browsers playing Apple Music. "
-            "Edit only if your browser isn't detected.</i>"
-        )
-        hint.setWordWrap(True)
-        f.addRow(hint)
-
+        v.addStretch(1)
         return w
 
     def _populate_bluetooth_devices(self) -> None:
         previous = self.bluetooth_device.currentData() if self.bluetooth_device.count() else None
         self.bluetooth_device.clear()
-        self.bluetooth_device.addItem("(auto-detect)", userData="")
+        self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
         for d in BluetoothSource.list_paired_devices():
             label = f"{d.get('name') or '?'} — {d.get('address', '')}"
             if d.get("connected"):
@@ -171,19 +373,25 @@ class SettingsWindow(QDialog):
                     self.bluetooth_device.setCurrentIndex(i)
                     return
 
+    # ====================================================================
+    # Updates tab
+    # ====================================================================
+
     def _build_updates_tab(self) -> QWidget:
         from datetime import datetime
 
         w = QWidget()
-        f = QFormLayout(w)
+        v = _tab_layout(w)
+
+        update_group, uf = _new_group(self.tr("Update checking"))
 
         self.auto_check_box = QCheckBox(
-            self.tr("Automatically check for updates on startup (max once per day)")
+            self.tr("Automatically check on startup (max once per day)")
         )
-        f.addRow(self.auto_check_box)
+        uf.addRow(self.auto_check_box)
 
         self.last_check_label = QLabel("—")
-        f.addRow(self.tr("Last checked:"), self.last_check_label)
+        uf.addRow(self.tr("Last checked:"), self.last_check_label)
 
         self._last_check_dt_format = lambda ts: (
             self.tr("never") if not ts else datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
@@ -191,62 +399,101 @@ class SettingsWindow(QDialog):
 
         check_btn = QPushButton(self.tr("Check for updates now"))
         check_btn.clicked.connect(self.checkUpdatesRequested.emit)
-        f.addRow(check_btn)
+        uf.addRow(_row_with_buttons(check_btn))
 
-        hint = QLabel(
-            "<i>Refrain queries the GitHub Releases API. Update behavior depends "
-            "on how Refrain was installed (AppImage / pip / Flatpak / AUR).</i>"
+        uf.addRow(
+            _hint(
+                self.tr(
+                    "Refrain queries the GitHub Releases API. Update behavior "
+                    "depends on how Refrain was installed (AppImage / pip / "
+                    "Flatpak / AUR)."
+                )
+            )
         )
-        hint.setWordWrap(True)
-        f.addRow(hint)
+        v.addWidget(update_group)
 
+        v.addStretch(1)
         return w
+
+    # ====================================================================
+    # Advanced tab
+    # ====================================================================
 
     def _build_advanced_tab(self) -> QWidget:
         w = QWidget()
-        f = QFormLayout(w)
+        v = _tab_layout(w)
+
+        # ---- Performance group -------------------------------------------
+        perf_group, pf = _new_group(self.tr("Performance"))
         self.poll_spin = QSpinBox()
         self.poll_spin.setRange(250, 10000)
         self.poll_spin.setSingleStep(250)
         self.poll_spin.setSuffix(" ms")
-        f.addRow(self.tr("Poll interval:"), self.poll_spin)
+        self.poll_spin.setFixedWidth(_INPUT_MAX_WIDTH)
+        pf.addRow(self.tr("Poll interval:"), self.poll_spin)
 
         self.notify_delay_spin = QSpinBox()
         self.notify_delay_spin.setRange(0, 10000)
         self.notify_delay_spin.setSingleStep(250)
         self.notify_delay_spin.setSuffix(" ms")
-        f.addRow(self.tr("Notification delay:"), self.notify_delay_spin)
+        self.notify_delay_spin.setFixedWidth(_INPUT_MAX_WIDTH)
+        pf.addRow(self.tr("Notification delay:"), self.notify_delay_spin)
 
         self.cover_cache_spin = QSpinBox()
         self.cover_cache_spin.setRange(10, 5000)
         self.cover_cache_spin.setSingleStep(50)
         self.cover_cache_spin.setSuffix(self.tr(" covers"))
-        f.addRow(self.tr("Cover cache size:"), self.cover_cache_spin)
+        self.cover_cache_spin.setFixedWidth(_INPUT_MAX_WIDTH)
+        pf.addRow(self.tr("Cover cache size:"), self.cover_cache_spin)
+        v.addWidget(perf_group)
 
+        # ---- Localization group ------------------------------------------
+        # Only languages with a complete translation ship in the dropdown —
+        # picking a stub language would silently fall back to English source
+        # strings. New languages get added here as their .ts files reach
+        # full coverage; the .ts stubs live in i18n/ for translator PRs.
+        lang_group, lf = _new_group(self.tr("Localization"))
+        self.language_combo = QComboBox()
+        self.language_combo.setFixedWidth(_INPUT_MAX_WIDTH)
+        self.language_combo.addItem(self.tr("System default"), "system")
+        self.language_combo.addItem("English", "en")
+        self.language_combo.addItem("Deutsch", "de")
+        lf.addRow(self.tr("Language:"), self.language_combo)
+        lf.addRow(_hint(self.tr("Refrain restarts automatically after changing the language.")))
+        v.addWidget(lang_group)
+
+        # ---- Logging group -----------------------------------------------
+        log_group, lgf = _new_group(self.tr("Logging"))
         self.log_level_combo = QComboBox()
+        self.log_level_combo.setFixedWidth(_INPUT_MAX_WIDTH)
         for lvl in ("DEBUG", "INFO", "WARNING", "ERROR"):
             self.log_level_combo.addItem(lvl, lvl)
-        f.addRow(self.tr("Log level:"), self.log_level_combo)
+        lgf.addRow(self.tr("Log level:"), self.log_level_combo)
 
-        log_btn = QPushButton(self.tr("Open live-log window"))
-        log_btn.clicked.connect(self.showLogRequested.emit)
-        f.addRow(log_btn)
-
+        live_log_btn = QPushButton(self.tr("Open live-log window"))
+        live_log_btn.clicked.connect(self.showLogRequested.emit)
         log_folder_btn = QPushButton(self.tr("Open log folder"))
         log_folder_btn.clicked.connect(
             lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(state_dir())))
         )
-        f.addRow(log_folder_btn)
+        lgf.addRow(_row_with_buttons(live_log_btn, log_folder_btn))
+        v.addWidget(log_group)
 
+        # ---- Maintenance group -------------------------------------------
+        maint_group, mf = _new_group(self.tr("Maintenance"))
         restart_btn = QPushButton(self.tr("Restart Refrain"))
         restart_btn.clicked.connect(self.restartRequested.emit)
-        f.addRow(restart_btn)
-
         reset_btn = QPushButton(self.tr("Reset all settings to defaults"))
         reset_btn.clicked.connect(self._on_reset_clicked)
-        f.addRow(reset_btn)
+        mf.addRow(_row_with_buttons(restart_btn, reset_btn))
+        v.addWidget(maint_group)
 
+        v.addStretch(1)
         return w
+
+    # ====================================================================
+    # Reset
+    # ====================================================================
 
     def _on_reset_clicked(self) -> None:
         reply = QMessageBox.question(
@@ -268,7 +515,9 @@ class SettingsWindow(QDialog):
         self._config.discord.client_id = keep_id
         self._load_into_form()
 
-    # ----------------------------------------------------------------- form
+    # ====================================================================
+    # Form load + save
+    # ====================================================================
 
     def _load_into_form(self) -> None:
         c = self._config
@@ -283,7 +532,13 @@ class SettingsWindow(QDialog):
 
         self.mpris_box.setChecked(c.sources.mpris_enabled)
         self.bluetooth_box.setChecked(c.sources.bluetooth_enabled)
-        self.browser_hints_input.setText(c.sources.browser_hints)
+        # Split persisted browser_hints (comma-sep string) into known
+        # checkboxes + everything-else into the extra free-text field.
+        existing = {h.strip().lower() for h in c.sources.browser_hints.split(",") if h.strip()}
+        for token, cb in self._browser_checkboxes.items():
+            cb.setChecked(token in existing)
+        extras = sorted(existing - set(self._browser_checkboxes))
+        self.browser_extra_input.setText(",".join(extras))
 
         if c.sources.bluetooth_device:
             matched = False
@@ -310,9 +565,26 @@ class SettingsWindow(QDialog):
                 self.log_level_combo.setCurrentIndex(i)
                 break
 
+        for i in range(self.language_combo.count()):
+            if self.language_combo.itemData(i) == c.advanced.language:
+                self.language_combo.setCurrentIndex(i)
+                break
+
     def _on_apply_clicked(self) -> None:
         c = self._config
-        c.discord.client_id = self.client_id_input.text().strip() or c.discord.client_id
+        # Snapshot the language + client_id *before* we overwrite them so
+        # we can detect a change and trigger an automatic restart. Both
+        # require restart to take effect: the QTranslator is installed
+        # once at app startup, and pypresence is bound to the original
+        # client_id at connect time — a fresh process is the simplest
+        # way to re-init both cleanly.
+        previous_language = c.advanced.language
+        previous_client_id = c.discord.client_id
+        # Empty input is meaningful: it disables Discord RPC entirely.
+        # The previous `or c.discord.client_id` fallback meant the user
+        # could never *clear* a Client ID — emptying the field was a
+        # no-op, surprising anyone trying to disable the integration.
+        c.discord.client_id = self.client_id_input.text().strip()
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
         c.behavior.cover_art = self.cover_art_box.isChecked()
@@ -323,20 +595,44 @@ class SettingsWindow(QDialog):
 
         c.sources.mpris_enabled = self.mpris_box.isChecked()
         c.sources.bluetooth_enabled = self.bluetooth_box.isChecked()
-        hints_text = self.browser_hints_input.text().strip()
-        c.sources.browser_hints = hints_text if hints_text else c.sources.browser_hints
+        # Recombine the checkbox-picks + the extras field into the
+        # persisted comma-separated string. Order: known browsers in the
+        # display order first, then any extras the user typed.
+        picked = [t for t, cb in self._browser_checkboxes.items() if cb.isChecked()]
+        extra_text = self.browser_extra_input.text().strip()
+        if extra_text:
+            extras = [e.strip().lower() for e in extra_text.split(",") if e.strip()]
+            picked.extend(e for e in extras if e not in picked)
+        c.sources.browser_hints = ",".join(picked) if picked else c.sources.browser_hints
 
         bt_data = self.bluetooth_device.currentData()
         if bt_data is None:
             text = self.bluetooth_device.currentText().strip()
-            bt_data = "" if text in ("", "(auto-detect)") else text
+            bt_data = "" if text in ("", "(auto-detect)", self.tr("(auto-detect)")) else text
         c.sources.bluetooth_device = bt_data
 
         c.privacy.mode = self.privacy_combo.currentData() or "full"
         c.advanced.poll_interval_ms = self.poll_spin.value()
         c.advanced.cover_cache_size = self.cover_cache_spin.value()
         c.advanced.log_level = self.log_level_combo.currentData() or "INFO"
+        c.advanced.language = self.language_combo.currentData() or "system"
 
         c.save()
         self.applied.emit(c)
+        # Apply triggers a restart automatically when the user changed
+        # the UI language or the Discord client_id. Both need a fresh
+        # process to re-init cleanly (QTranslator is installed once at
+        # startup; pypresence binds to the client_id at connect time).
+        if c.advanced.language != previous_language:
+            log.info(
+                "Language changed (%s → %s); requesting restart",
+                previous_language,
+                c.advanced.language,
+            )
+            self.restartRequested.emit()
+            return
+        if c.discord.client_id != previous_client_id:
+            log.info("Discord client_id changed; requesting restart")
+            self.restartRequested.emit()
+            return
         self.hide()

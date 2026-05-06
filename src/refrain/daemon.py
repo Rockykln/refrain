@@ -24,13 +24,18 @@ from refrain.discord_rpc import DiscordRPC
 from refrain.paths import assets_dir
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
-from refrain.sources.dbus_watcher import BluetoothWatcher, MPRISWatcher
 from refrain.sources.mpris import MPRISSource
 from refrain.timing import compute_rpc_start_ts
 
 log = logging.getLogger(__name__)
 
-_NOTIFY_BIN = shutil.which("notify-send")
+# Resolved at module import. Re-resolved at call time inside `_notify`
+# so a notify-send installed AFTER refrain starts (e.g. user installs
+# libnotify mid-session) becomes available without a restart.
+_NOTIFY_BIN: str | None = shutil.which("notify-send")
+
+
+_IDLE_LOG_KEY_SENTINEL = "__refrain_idle_logged__:"
 
 
 def compute_idle_state(
@@ -47,27 +52,32 @@ def compute_idle_state(
     — the source is dangling (typical: closed browser tab whose MPRIS
     handle never released). Caller treats the empty result as "nothing
     is playing", which clears Discord and the tray.
+
+    Logs the detection exactly once per dangling-track instance: the
+    returned ``new_key`` is prefixed with a sentinel so subsequent
+    polls of the same stuck track skip the log line. Without that
+    suppression, every 1 Hz tick re-logged the idle state and drowned
+    the live log in identical messages while the user was looking at
+    a stuck Apple Music tab.
     """
     if grace_s <= 0:
         return track, "", 0.0
-    if (
-        track.status != PlaybackStatus.PLAYING
-        or not track.has_track
-        or track.duration_ms <= 0
-    ):
+    if track.status != PlaybackStatus.PLAYING or not track.has_track or track.duration_ms <= 0:
         return track, "", 0.0
     track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
-    if track_key != prev_track_key:
+    sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
+    if track_key != prev_track_key and prev_track_key != sentinel_key:
         return track, track_key, now
     deadline_s = (track.duration_ms / 1000.0) + grace_s
     if (now - prev_seen_at) > deadline_s:
-        log.info(
-            "Idle source detected: same track for %.0fs > duration+grace (%.0fs); "
-            "clearing playback state",
-            now - prev_seen_at,
-            deadline_s,
-        )
-        return TrackInfo.empty(), track_key, prev_seen_at
+        if prev_track_key != sentinel_key:
+            log.info(
+                "Idle source detected: same track for %.0fs > duration+grace (%.0fs); "
+                "clearing playback state",
+                now - prev_seen_at,
+                deadline_s,
+            )
+        return TrackInfo.empty(), sentinel_key, prev_seen_at
     return track, track_key, prev_seen_at
 
 
@@ -124,6 +134,11 @@ class DaemonWorker(QObject):
         # not every tick — otherwise Discord's elapsed timer jitters.
         self._rpc_track_key = ""
         self._rpc_start_ts = 0
+        # Defer the first RPC update for a new track when the cover URL
+        # isn't in cache yet — without this, Discord briefly shows the
+        # `refrain` brand fallback for ~1-3 s while iTunes search
+        # resolves. Capped so we don't block forever on iTunes misses.
+        self._rpc_cover_wait_count = 0
         # Idle detection: when the same track-content key has been
         # reported as "playing" for longer than its own duration + a
         # grace window, the source is dangling (typical: browser tab
@@ -131,12 +146,6 @@ class DaemonWorker(QObject):
         # clear playback state in `_poll` once that window expires.
         self._idle_track_key = ""
         self._idle_seen_at: float = 0.0
-        # PropertiesChanged listeners — emit `changed` when the active
-        # MPRIS player or any BlueZ MediaPlayer1 publishes an update.
-        # Connected to `_on_external_change` so a track switch / pause /
-        # seek shows up immediately instead of waiting for the next tick.
-        self._mpris_watcher: MPRISWatcher | None = None
-        self._bt_watcher: BluetoothWatcher | None = None
 
     # ----------------------------------------------------------------- lifecycle
 
@@ -144,12 +153,9 @@ class DaemonWorker(QObject):
     def start_polling(self) -> None:
         """Called on the worker thread once the QThread's event loop is up."""
         log.info("Daemon started")
-        # Watchers must be created on the worker thread so their D-Bus
-        # signal slots are delivered into this thread's event loop.
-        self._mpris_watcher = MPRISWatcher()
-        self._mpris_watcher.changed.connect(self._on_external_change)
-        self._bt_watcher = BluetoothWatcher()
-        self._bt_watcher.changed.connect(self._on_external_change)
+        # Pure 1 Hz polling. A signal-driven path via QDBusConnection
+        # was prototyped but PySide6's connect-signature handling proved
+        # too brittle to ship; revisiting it is a v0.3 task.
         self._timer = QTimer()
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
@@ -163,12 +169,6 @@ class DaemonWorker(QObject):
         if self._notify_timer is not None:
             self._notify_timer.stop()
             self._notify_timer = None
-        if self._mpris_watcher is not None:
-            self._mpris_watcher.set_target(None)
-            self._mpris_watcher = None
-        if self._bt_watcher is not None:
-            self._bt_watcher.set_targets([])
-            self._bt_watcher = None
         with contextlib.suppress(Exception):
             self._rpc.clear()
         with contextlib.suppress(Exception):
@@ -180,6 +180,7 @@ class DaemonWorker(QObject):
     def update_config(self, config: Config) -> None:
         old_client_id = self._config.discord.client_id
         old_interval = self._config.advanced.poll_interval_ms
+        old_cover_cache = self._config.advanced.cover_cache_size
         self._config = config
         self._bluetooth.set_device(config.sources.bluetooth_device)
         self._mpris.set_browser_hints(config.sources.browser_hints_list())
@@ -189,6 +190,13 @@ class DaemonWorker(QObject):
             self._rpc = DiscordRPC(config.discord.client_id)
         if self._timer is not None and config.advanced.poll_interval_ms != old_interval:
             self._timer.setInterval(max(config.advanced.poll_interval_ms, 250))
+        if config.advanced.cover_cache_size != old_cover_cache:
+            # Re-prune to the new cap immediately so the user sees their
+            # quota take effect without waiting for the next refrain
+            # restart. Existing in-memory cache stays intact.
+            from refrain.cover_fetcher import _prune_cover_cache
+
+            _prune_cover_cache(config.advanced.cover_cache_size)
 
     # --------------------------------------------------------------- controls
 
@@ -234,33 +242,8 @@ class DaemonWorker(QObject):
         try:
             track = self._poll()
             self._dispatch(track)
-            self._refresh_watchers()
         except Exception:
             log.exception("Daemon tick failed")
-
-    @Slot()
-    def _on_external_change(self) -> None:
-        """A subscribed PropertiesChanged signal fired — re-read + dispatch
-        right away so the user sees the track switch without waiting for
-        the next 1 Hz tick."""
-        try:
-            track = self._poll()
-            self._dispatch(track)
-        except Exception:
-            log.exception("Signal-driven dispatch failed")
-
-    def _refresh_watchers(self) -> None:
-        """Point the PropertiesChanged listeners at whatever player set
-        the last poll picked. Re-subscriptions are no-ops when nothing
-        changed (handled inside the watchers)."""
-        if self._mpris_watcher is not None:
-            target = self._mpris._last_player_name if self._config.sources.mpris_enabled else None
-            self._mpris_watcher.set_target(target)
-        if self._bt_watcher is not None:
-            paths: list[str] = []
-            if self._config.sources.bluetooth_enabled and self._bluetooth._last_player_path:
-                paths.append(self._bluetooth._last_player_path)
-            self._bt_watcher.set_targets(paths)
 
     def _poll(self) -> TrackInfo:
         track = self._poll_sources()
@@ -294,6 +277,13 @@ class DaemonWorker(QObject):
     def _dispatch(self, track: TrackInfo) -> None:
         fp = track.fingerprint()
         if fp != self._last_track_fp:
+            log.info(
+                "Track change [%s]: %s — %s (%s)",
+                track.source,
+                track.title or "—",
+                track.artist or "—",
+                track.status.value,
+            )
             self.trackChanged.emit(track)
             self._last_track_fp = fp
             if (
@@ -389,11 +379,31 @@ class DaemonWorker(QObject):
             )
             return
 
+        track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
+        is_new_track = track_key != self._rpc_track_key
+
+        # Defer the first RPC update for a new track until the cover URL
+        # is in cache — without this, Discord briefly shows the `refrain`
+        # brand fallback for ~1-3 s while iTunes search resolves, then
+        # flips to the real cover. Capped at ~3 polls (~3 s) so a song
+        # that has no iTunes match still updates eventually.
+        cover_url: str | None = None
+        if self._config.behavior.cover_art:
+            cover_url = self._cover_fetcher.get(track.artist, track.title, track.album)
+        if (
+            is_new_track
+            and self._config.behavior.cover_art
+            and cover_url is None
+            and self._rpc_cover_wait_count < 3
+        ):
+            self._rpc_cover_wait_count += 1
+            return
+        self._rpc_cover_wait_count = 0
+
         # Discord elapsed-timer correctness — see refrain.timing for the
         # full rationale. Recomputes on track change, pause/resume, or seek;
         # otherwise leaves the start_ts stable so the progress bar doesn't
         # twitch every poll.
-        track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
         new_start_ts, recomputed = compute_rpc_start_ts(
             prev_start_ts=self._rpc_start_ts,
             prev_track_key=self._rpc_track_key,
@@ -401,8 +411,24 @@ class DaemonWorker(QObject):
             position_ms=track.position_ms,
             now=time.time(),
         )
-        if recomputed and track_key == self._rpc_track_key:
-            log.debug("RPC start resync — likely pause/resume or seek")
+        if recomputed:
+            if is_new_track:
+                # New track — log raw values plus the iTunes-catalog
+                # duration (if cached) so duration mismatches are
+                # visible: e.g. MPRIS dur=673861 vs iTunes dur=278000
+                # tells us the browser integration is wrong about
+                # this song.
+                itunes_dur_dbg = self._cover_fetcher.get_duration_ms(
+                    track.artist, track.title, track.album
+                )
+                log.info(
+                    "RPC reset for new track: pos=%dms mpris_dur=%dms itunes_dur=%dms",
+                    track.position_ms,
+                    track.duration_ms,
+                    itunes_dur_dbg,
+                )
+            else:
+                log.debug("RPC start resync — likely pause/resume or seek")
         self._rpc_track_key = track_key
         self._rpc_start_ts = new_start_ts
 
@@ -418,11 +444,7 @@ class DaemonWorker(QObject):
         else:
             state = "Apple Music"
 
-        large_image = "refrain"
-        if self._config.behavior.cover_art:
-            url = self._cover_fetcher.get(track.artist, track.title, track.album)
-            if url:
-                large_image = url
+        large_image = cover_url or "refrain"
 
         album_for_display = _format_album_for_display(track.album, track.artist, track.title)
 
@@ -438,11 +460,28 @@ class DaemonWorker(QObject):
         if album_for_display and album_for_display.lower() != state.lower():
             payload["large_text"] = album_for_display[:128]
 
-        # Setting `end` makes Discord show "elapsed / total" (e.g. "1:23 / 3:45")
-        # — the user-visible timer is bounded by the actual track length instead
-        # of running open-ended. Only set when the source reported a duration.
-        if track.duration_ms > 0:
-            payload["end"] = self._rpc_start_ts + (track.duration_ms // 1000)
+        # Pick a duration for Discord's "elapsed / total" display.
+        #
+        # MPRIS is usually correct — and critically, it knows the *actual*
+        # playing track length, which iTunes doesn't: a "(Techno Remix)"
+        # MPRIS reports 5:02 while iTunes returns the original 2:26, and
+        # picking iTunes there cuts Discord's progress bar in half mid-song.
+        #
+        # The one MPRIS failure mode worth correcting is preview-clip
+        # reporting: when the user isn't signed in (or for a region-locked
+        # song), Apple Music in the browser hands MPRIS the 15-30 s
+        # preview duration instead of the full track. We catch that by
+        # falling back to iTunes when the MPRIS duration is suspiciously
+        # short (< 30 s) and iTunes has a real value.
+        itunes_dur = self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
+        if 0 < track.duration_ms < 30_000 and itunes_dur > 30_000:
+            effective_duration_ms = itunes_dur
+        elif track.duration_ms > 0:
+            effective_duration_ms = track.duration_ms
+        else:
+            effective_duration_ms = itunes_dur
+        if effective_duration_ms > 0:
+            payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
 
         # Prefer the iTunes-resolved song URL (links to the *specific* track)
         # over xesam:url from the browser tab (often the album / playlist page).
@@ -455,45 +494,47 @@ class DaemonWorker(QObject):
         self._rpc.update(**payload)
 
     def _notify(self, track: TrackInfo) -> None:
+        # Re-resolve so a notify-send installed after refrain started
+        # picks up immediately. shutil.which is cheap and only runs on
+        # actual track-change ticks.
+        global _NOTIFY_BIN
+        if _NOTIFY_BIN is None:
+            _NOTIFY_BIN = shutil.which("notify-send")
         if not _NOTIFY_BIN:
             return
         body = track.artist
         if track.album:
             body = f"{track.artist} — {track.album}" if track.artist else track.album
 
-        # `-i refrain` points at the themed app icon (small badge in the
-        # corner of the notification). The album cover goes via the
-        # `image-path` hint, which is what every spec-compliant
-        # notification daemon (KDE, GNOME, Mako, Dunst, …) actually
-        # consults to render an inline image. `-i <abs path>` works on
-        # some daemons but not all — using both is reliable.
-        cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", "refrain"]
-
-        # Pick the image to embed. Only opt in to a "big image" when the
-        # user has cover-art lookups enabled — if they've turned it off,
-        # we respect that and let the notification render with just the
-        # `-i refrain` app-icon badge.
+        # Pick the image to embed. Only opt in to cover lookup when the
+        # user has cover-art enabled — if they've turned it off, we fall
+        # back to the bundled brand icon so the notification still has a
+        # consistent visual identity.
         image_path: str | None = None
         if self._config.behavior.cover_art:
             local = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
             if local is not None:
                 image_path = str(local)
-            else:
-                # iTunes had no match — use the brand SVG as a stand-in
-                # so the notification still has a visual.
-                fallback = assets_dir() / "icons" / "refrain.svg"
-                if fallback.exists():
-                    image_path = str(fallback)
+        if image_path is None:
+            fallback = assets_dir() / "icons" / "refrain.png"
+            if fallback.exists():
+                image_path = str(fallback)
 
+        # IMPORTANT: pass the SAME image as `-i` AND as the image-path
+        # hint. KDE Plasma briefly renders `-i` first while it loads the
+        # image-path file from disk; if `-i` is the themed app icon
+        # (`refrain`) and image-path is the cover, the user sees a
+        # ~50–100 ms flash of the brand badge before the cover paints.
+        # Using the same file for both makes the transition invisible.
+        # Falls back to the themed `refrain` name only when we have no
+        # image at all (cover-art off + bundled fallback missing).
+        cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", image_path or "refrain"]
         if image_path:
-            cmd.extend(
-                [
-                    "--hint",
-                    f"string:image-path:{image_path}",
-                    "--hint",
-                    f"string:x-kde-iconName:{image_path}",
-                ]
-            )
+            # `string:image-path:` is the freedesktop-standard hint that
+            # every modern notification daemon honors. file:// URI form
+            # works more reliably across compositors than a bare path —
+            # older libnotify versions rejected paths without the scheme.
+            cmd.extend(["--hint", f"string:image-path:file://{image_path}"])
 
         cmd.extend([track.title, body or ""])
 

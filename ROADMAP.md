@@ -145,6 +145,30 @@ What's done, what's next, what's deliberately not in scope.
 - **Window-title cleanup** — no more "Refrain — Settings — Refrain"
   triple; Qt's auto-suffix is the only place "Refrain" appears.
 
+## Done — v0.2.1
+
+- **Settings UI overhaul** — consistent `QGroupBox` + form-layout
+  across every tab, left-aligned group titles via stylesheet
+  (Plasma Breeze centers them by default), fixed-width inputs
+  (220 px default, 360 px in the Discord group). Switched from
+  `AllNonFixedFieldsGrow` to `FieldsStayAtSizeHint` because the
+  former silently ignored fixed-width caps on Plasma Breeze.
+- **Notification cover-flicker fix** — `notify-send -i` now
+  carries the same image as the `--hint string:image-path:`
+  payload so KDE Plasma can't briefly render the brand badge.
+- **Discord RPC cover flicker fix** — defer the first activity
+  update for a new track until the iTunes cover URL is in cache,
+  capped at ~3 polls so cover-less songs still update.
+- **Auto-restart on Discord client_id Apply** — same pattern as
+  the language switch, since pypresence binds to the client_id
+  at connect time.
+- **AppImage update size validation** + tmp cleanup, **atomic
+  config writes** (tmp + os.replace), **dead `dbus_watcher`
+  module removed** (155 lines), **RPC reconnect backoff capped
+  at 15 s** instead of 60 s, **`.ts` source files no longer ship
+  in the wheel**, **MPRIS dispatch logging at INFO** so
+  Next/Previous routing is visible in the live log.
+
 ## Up next — v0.3
 
 - **Polishing the wrapped i18n surface** — wrap the remaining

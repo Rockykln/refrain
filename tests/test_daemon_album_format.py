@@ -11,15 +11,26 @@ from refrain.daemon import _format_album_for_display
 
 
 def test_strips_artist_prefix_with_dash():
-    assert _format_album_for_display("W&W & Scooter - Sun Rise", "W&W & Scooter", "Sun Rise (Dauner Remix)") == "Sun Rise"
+    assert (
+        _format_album_for_display(
+            "W&W & Scooter - Sun Rise", "W&W & Scooter", "Sun Rise (Dauner Remix)"
+        )
+        == "Sun Rise"
+    )
 
 
 def test_strips_artist_prefix_with_em_dash():
-    assert _format_album_for_display("Daft Punk — Random Access Memories", "Daft Punk", "Get Lucky") == "Random Access Memories"
+    assert (
+        _format_album_for_display("Daft Punk — Random Access Memories", "Daft Punk", "Get Lucky")
+        == "Random Access Memories"
+    )
 
 
 def test_strips_artist_suffix():
-    assert _format_album_for_display("Random Access Memories - Daft Punk", "Daft Punk", "Get Lucky") == "Random Access Memories"
+    assert (
+        _format_album_for_display("Random Access Memories - Daft Punk", "Daft Punk", "Get Lucky")
+        == "Random Access Memories"
+    )
 
 
 def test_returns_empty_when_album_equals_title():
@@ -31,7 +42,10 @@ def test_case_insensitive_dedup_against_title():
 
 
 def test_returns_album_unchanged_when_no_artist_prefix():
-    assert _format_album_for_display("Random Access Memories", "Daft Punk", "Get Lucky") == "Random Access Memories"
+    assert (
+        _format_album_for_display("Random Access Memories", "Daft Punk", "Get Lucky")
+        == "Random Access Memories"
+    )
 
 
 def test_handles_no_artist():
@@ -45,4 +59,7 @@ def test_handles_empty_album():
 
 def test_keeps_album_when_only_partial_artist_match():
     """Don't strip when the artist appears mid-album (not as a prefix/suffix)."""
-    assert _format_album_for_display("Hits with Daft Punk", "Daft Punk", "Get Lucky") == "Hits with Daft Punk"
+    assert (
+        _format_album_for_display("Hits with Daft Punk", "Daft Punk", "Get Lucky")
+        == "Hits with Daft Punk"
+    )

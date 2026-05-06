@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-06
+
+Polish release built around the v0.2.0 surface. The Settings window got
+a UI overhaul, two notification cover-art races are gone, and the
+external code-review punch list landed in full (atomic config writes,
+AppImage size validation, `.ts` source files no longer ship in the
+wheel, dead D-Bus watcher module deleted).
+
+### Added
+
+- **Auto-restart on Discord client_id change** — Apply now triggers an
+  in-process re-exec when the client_id field has changed, same
+  pattern as the language switch. pypresence binds to the client_id
+  at connect time, so a fresh process is the simplest way to re-init
+  cleanly.
+- **AppImage update size validation** — `_apply_appimage` now compares
+  the downloaded file against the GitHub Releases manifest's
+  `appimage_size` before replacing the live binary. A truncated
+  download is rejected and the tmp file cleaned up instead of
+  bricking the next launch.
+- **MPRIS dispatch logging** — `Next` / `Previous` / `PlayPause` log
+  which player actually received the call (INFO level). Diagnoses
+  "Next pauses instead of skipping" type bugs where a fallback
+  player handles the action wrong.
+- **RPC track-change diagnostics** — log raw `pos`, `dur`, `start_ts`
+  on every recompute so duration mismatches (browser MPRIS reporting
+  preview-clip lengths, etc.) are visible in the live log.
+
+### Changed
+
+- **Settings window UI overhaul** — every tab uses a consistent
+  `QGroupBox` + form-layout with left-aligned titles via stylesheet
+  (overrides Plasma Breeze's centered default). Inputs are
+  fixed-width: 220 px default, 360 px for the Discord group whose
+  Client ID placeholder + privacy-mode labels need more room.
+  `FieldsStayAtSizeHint` + per-widget `setFixedWidth` is the only
+  combo that holds across both Fusion (offscreen tests) and Breeze
+  (Plasma) — `AllNonFixedFieldsGrow` was ignoring fixed-width caps.
+- **Discord RPC reconnect cap lowered to 15 s** — autostart launches
+  refrain before Discord is ready; the previous 60 s ceiling meant
+  the user could sit there for almost a minute after Discord
+  finished loading before refrain noticed and connected.
+- **Atomic config writes** — `Config.save` now writes to a `.tmp`
+  sibling and `os.replace`s into place. A crash mid-write would
+  otherwise leave an empty / half-written TOML and refrain
+  silently falls back to defaults on parse error, losing every
+  setting the user picked.
+- **Discord client_id Apply re-init** — wired `restartRequested`
+  emission so picking up a new client_id no longer requires a
+  manual restart.
+
+### Fixed
+
+- **Notification cover flicker** — `notify-send -i` now carries the
+  same image as the `--hint string:image-path:...` payload. KDE
+  Plasma briefly rendered the `-i refrain` brand badge (~50–100 ms)
+  while it loaded the image-path file from disk; using the same
+  file for both makes the transition invisible.
+- **Discord activity-card cover flicker** — defer the first RPC
+  update for a new track until the iTunes-search cover URL is in
+  cache, capped at 3 polls (~3 s). Without this, Discord briefly
+  rendered the `refrain` brand fallback before the real cover
+  paint, exactly the issue cover-fetcher was supposed to fix.
+- **Group titles centered on Plasma Breeze** — explicit stylesheet
+  overrides Breeze's default centered `QGroupBox::title`.
+
+### Removed
+
+- **Dead `dbus_watcher` module** — 155 lines of `MPRISWatcher` /
+  `BluetoothWatcher` machinery that was never wired up after the
+  signal-driven path was abandoned for v0.2.x. The companion
+  `_refresh_watchers` and `_on_external_change` slots in
+  `Daemon` went with it.
+- **`.ts` translation sources from the wheel** — only the compiled
+  `.qm` files ship now. Linguist sources stay in the source tree
+  for translator PRs.
+
 ## [0.2.0] - 2026-05-06
 
 First minor-version bump. Five planned v0.2 features land together

@@ -40,18 +40,20 @@ _BARE_URL_RE = re.compile(
 
 
 def prepare_release_notes(body: str | None) -> str:
-    """Wrap bare http(s) URLs in Markdown autolink syntax.
+    """Wrap bare http(s) URLs in Markdown inline-link syntax.
 
     Several Markdown renderers (Qt's QTextBrowser among them) break bare
     URLs at sequences like ``...``, which is exactly what GitHub compare
-    links contain (``/compare/v0.1.0...v0.1.1``). Wrapping in ``<…>`` is
-    the Markdown-spec-compliant way to mark a URL as one indivisible
-    token, so the rendered link works regardless of any punctuation
-    inside it.
+    links contain (``/compare/v0.1.0...v0.1.1``). v0.1.2 wrapped them in
+    ``<URL>`` autolink syntax, which works in QTextBrowser today but is
+    more sensitive to renderer quirks. ``[URL](URL)`` (CommonMark inline
+    link with the URL as both text and target) is universally
+    interpreted as one indivisible token across every renderer we've
+    checked — Qt, GitHub, KDialog, mdcat, glow.
     """
     if not body:
         return "_No release notes provided._"
-    return _BARE_URL_RE.sub(r"<\1>", body)
+    return _BARE_URL_RE.sub(r"[\1](\1)", body)
 
 
 log = logging.getLogger(__name__)
@@ -159,7 +161,9 @@ class ReleaseInfo:
 def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
     """Hit GitHub's Releases API once. Returns None on any error."""
     if not RELEASES_API.startswith("https://"):
+        log.warning("RELEASES_API is not https — refusing to fetch: %s", RELEASES_API)
         return None
+    log.debug("Querying GitHub Releases API: %s (timeout=%ss)", RELEASES_API, timeout_s)
     try:
         req = urllib.request.Request(
             RELEASES_API,
@@ -171,11 +175,12 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
         with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
             data = json.load(r)
     except Exception as e:
-        log.debug("Update check failed: %s", e)
+        log.info("Update check failed: %s", e)
         return None
 
     tag = str(data.get("tag_name", "")).strip()
     if not tag:
+        log.debug("Release JSON had no tag_name; payload keys: %s", list(data)[:10])
         return None
     version = tag.lstrip("v")
 
@@ -187,8 +192,15 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
         if name.lower().endswith(".appimage"):
             appimage_url = str(asset.get("browser_download_url", ""))
             appimage_size = int(asset.get("size", 0) or 0)
+            log.debug("Release %s carries AppImage: %s (%d bytes)", tag, name, appimage_size)
             break
 
+    log.debug(
+        "Latest release: tag=%s asset_count=%d appimage_present=%s",
+        tag,
+        len(assets),
+        bool(appimage_url),
+    )
     return ReleaseInfo(
         tag=tag,
         version=version,
@@ -216,6 +228,7 @@ class UpdateResult:
 def apply_update(release: ReleaseInfo, install_type: str | None = None) -> UpdateResult:
     """Type-aware update. Never modifies system files."""
     install_type = install_type or detect_install_type()
+    log.info("apply_update: target=%s install_type=%s", release.version, install_type)
 
     if install_type == "appimage":
         return _apply_appimage(release)
@@ -261,6 +274,13 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
 
     target = Path(appimage_path)
     tmp = target.with_suffix(target.suffix + ".new")
+    log.info(
+        "AppImage update: %s → %s (%d bytes from %s)",
+        target,
+        tmp,
+        release.appimage_size,
+        release.appimage_url,
+    )
 
     try:
         req = urllib.request.Request(
@@ -269,12 +289,27 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
         )
         with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as out:  # nosec B310
             shutil.copyfileobj(r, out)
+        # Validate downloaded size matches the release manifest before we
+        # replace the running binary. A truncated download (network drop,
+        # mid-transfer disconnect) would otherwise overwrite the working
+        # AppImage with a corrupt one and brick the next launch. The
+        # GitHub Releases API surfaces the exact byte count per asset; a
+        # 0 means we couldn't read it from the API and we skip the check
+        # rather than refuse to update.
+        if release.appimage_size > 0:
+            actual = tmp.stat().st_size
+            if actual != release.appimage_size:
+                raise OSError(
+                    f"size mismatch — downloaded {actual} bytes, expected {release.appimage_size}"
+                )
         # AppImages must be executable to run; 0o755 matches what `chmod +x`
         # produces and what `linuxdeploy --output appimage` writes. Atomic
         # in-place replacement on Linux even while the old file is mmap'd.
         os.chmod(tmp, 0o755)  # nosec B103  lgtm[py/overly-permissive-file]
         os.replace(tmp, target)
+        log.info("AppImage update complete: %s now at v%s", target, release.version)
     except Exception as e:
+        log.warning("AppImage update aborted: %s", e)
         if tmp.exists():
             with contextlib.suppress(Exception):
                 tmp.unlink()
@@ -289,6 +324,7 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
 
 def _apply_pip() -> UpdateResult:
     cmd = [sys.executable, "-m", "pip", "install", "--upgrade", "refrain"]
+    log.info("pip update: invoking %s", " ".join(cmd))
     try:
         result = subprocess.run(
             cmd,
@@ -297,9 +333,12 @@ def _apply_pip() -> UpdateResult:
             timeout=300,
         )
     except Exception as e:
+        log.warning("pip update invocation failed: %s", e)
         return UpdateResult(success=False, message=f"pip invocation failed: {e}")
 
+    log.info("pip exit=%d stdout_len=%d", result.returncode, len(result.stdout))
     if result.returncode != 0:
+        log.warning("pip stderr: %s", result.stderr.strip()[:400])
         return UpdateResult(
             success=False,
             message=f"pip exited with code {result.returncode}:\n{result.stderr.strip()}",

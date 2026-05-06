@@ -51,6 +51,27 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.1" date="2026-05-06">
+      <description>
+        <p>
+          Settings UI overhaul: every tab now uses a consistent
+          GroupBox + form-layout with left-aligned titles, fixed-width
+          inputs that hold across Plasma Breeze and other Qt styles,
+          and a compact 220 px field default (360 px for the Discord
+          group whose values need more room). Notification cover-art
+          flicker is gone — `notify-send -i` and `image-path` now
+          carry the same image so KDE Plasma can't briefly render
+          the brand badge. Discord RPC defers the first update for
+          a new track until the cover URL is in cache so the brand
+          fallback never flashes in the activity card. Apply now
+          auto-restarts when the Discord client_id changes (same
+          pattern as the language switch). Dead D-Bus watcher code
+          removed (155 lines), atomic config writes, AppImage
+          updater validates downloaded size, RPC reconnect backoff
+          capped at 15 s instead of 60 s.
+        </p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-05-06">
       <description>
         <p>
