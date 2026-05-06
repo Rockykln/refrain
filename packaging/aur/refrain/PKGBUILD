@@ -20,7 +20,7 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')  # set after release tag is pushed: updpkgsums
+sha256sums=('db07e0783b3f44a7c54d4b8ee2ebe33f3dc577707a03bd42f5958ddae3d5ac12')
 
 build() {
     cd "$pkgname-$pkgver"
