@@ -88,11 +88,11 @@ What's done, what's next, what's deliberately not in scope.
 - **AUR `refrain` and `refrain-git` published.** Both PKGBUILDs pushed
   to AUR with SSH key + signed git tags. `refrain` pinned to the v0.1.3
   source tarball SHA; `refrain-git` auto-bumps via `pkgver()`.
-- **Flatpak manifest validated + Flathub PR open.** Builds and runs
-  cleanly via `flatpak-builder` against `org.kde.Platform//6.10` +
-  the `io.qt.PySide.BaseApp//6.10` BaseApp + an inline patchelf
-  0.18.0 module + vendored `python-deps.json`. PR submitted to
-  flathub/flathub, awaiting maintainer review.
+- **Flatpak manifest validated locally.** Builds and runs cleanly via
+  `flatpak-builder` against `org.kde.Platform//6.10` + the
+  `io.qt.PySide.BaseApp//6.10` BaseApp + an inline patchelf 0.18.0
+  module + vendored `python-deps.json`. Lives under
+  `packaging/flatpak/` for users who want to build it themselves.
 - **Markdown refresh.** README install table now leads with PyPI and
   marks AUR/AppImage as live; `packaging/README.md` rewritten with
   per-channel runbooks (PyPI Trusted Publisher gotcha, Flathub
@@ -117,14 +117,6 @@ What's done, what's next, what's deliberately not in scope.
   now gives a working ticker; the menu line stays as a snapshot
   that's accurate at the moment it's opened.
 
-## In flight
-
-- **Flathub submission** — PR open against flathub/flathub
-  (`io.github.Rockykln.Refrain`). `flathubbot` runs the offline test
-  build; once it goes green and a maintainer signs off, the PR merges
-  and Flathub auto-creates the dedicated repo. Future updates are
-  pushed there directly, no `flathub/flathub` PR needed.
-
 ## Up next — v0.2
 
 - **D-Bus PropertiesChanged signals** for MPRIS and BlueZ instead of the
@@ -142,6 +134,10 @@ What's done, what's next, what's deliberately not in scope.
 
 ## Maybe — v0.3+
 
+- **Flathub submission**, second attempt. The manifest under
+  `packaging/flatpak/` is fully validated locally and ready to ship —
+  what's missing is a clean re-submission later when the time is
+  right. No fixed timeline.
 - **Last.fm scrobbling** as an opt-in alongside the Discord Rich Presence
   (no replacement, just an extra channel).
 - **Cover-art replacement notifications**: re-send the desktop notification
