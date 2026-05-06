@@ -100,6 +100,23 @@ What's done, what's next, what's deliberately not in scope.
 - **Bug-report template** placeholder bumped from `0.1.0` to `0.1.4`
   so users see a current example.
 
+## Done — v0.1.5
+
+- **Skip Next / Previous works on Apple Music in Chromium.** MPRIS
+  source now keeps a control-fallback list of capable browser-native
+  players, so skip dispatches onto whichever player advertises
+  `CanGoNext` / `CanGoPrevious` even when KDE's
+  `plasma-browser-integration` (the rich-metadata player) reports
+  `False` for both.
+- **Discord status renders as "Listening to &lt;song&gt;"** instead
+  of "Playing Refrain" — the activity_type was defaulting to
+  PLAYING which made the RPC look broken even though it was
+  delivering correctly.
+- **Tray-icon tooltip mirrors live progress** because DBusMenu
+  doesn't refresh open menus' action text. Hovering the tray icon
+  now gives a working ticker; the menu line stays as a snapshot
+  that's accurate at the moment it's opened.
+
 ## In flight
 
 - **Flathub submission** — PR open against flathub/flathub

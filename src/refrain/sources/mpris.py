@@ -92,6 +92,13 @@ class MPRISSource:
 
     def __init__(self, browser_hints: list[str] | None = None) -> None:
         self._last_player_name: str | None = None
+        # Browser-MPRIS players that are *capable* of the action but lack the
+        # rich metadata. Apple Music in Chromium typically exposes two
+        # players: KDE's `plasma-browser-integration` (good metadata, but
+        # CanGoNext=False) and the browser's own MPRIS (CanGoNext=True but
+        # only the tab title as metadata). We pick plasma for `read()`,
+        # then fall back to the browser-native player for skip controls.
+        self._control_fallback_names: list[str] = []
         self._browser_hints = list(browser_hints) if browser_hints else list(BROWSER_HINTS)
 
     def set_browser_hints(self, hints: list[str]) -> None:
@@ -109,13 +116,21 @@ class MPRISSource:
             return TrackInfo.empty()
 
         candidates: list[tuple[int, TrackInfo, str]] = []
+        # Browser-looking players that *can* control playback but failed the
+        # apple-music URL filter — kept around so skip/next/prev fall back
+        # onto them when the metadata player can't dispatch the action.
+        fallbacks: list[str] = []
         for raw in names:
             name = str(raw)
             if not name.startswith("org.mpris.MediaPlayer2."):
                 continue
-            ti, score = self._read_player(bus, name)
+            ti, score, control_capable = self._read_player(bus, name)
             if ti is not None:
                 candidates.append((score, ti, name))
+            elif control_capable:
+                fallbacks.append(name)
+
+        self._control_fallback_names = fallbacks
 
         if not candidates:
             return TrackInfo.empty()
@@ -125,32 +140,77 @@ class MPRISSource:
         return best[1]
 
     def play_pause(self) -> bool:
-        return self._call_method("PlayPause")
+        return self._dispatch_action("PlayPause", "CanPause")
 
     def next(self) -> bool:
-        return self._call_method("Next")
+        return self._dispatch_action("Next", "CanGoNext")
 
     def previous(self) -> bool:
-        return self._call_method("Previous")
+        return self._dispatch_action("Previous", "CanGoPrevious")
 
-    def _call_method(self, method: str) -> bool:
-        if not self._last_player_name:
-            return False
+    def _dispatch_action(self, method: str, capability_prop: str) -> bool:
+        """Call ``method`` on whichever known player advertises ``capability_prop``.
+
+        Tries the rich-metadata player first, then any browser-native MPRIS
+        players that we tagged as control-capable during the last ``read()``.
+        Without this, Apple Music Web on Chromium can't be skipped — KDE's
+        plasma-browser-integration wins the metadata pick but exposes
+        `CanGoNext=False` / `CanGoPrevious=False`.
+        """
         try:
             bus = dbus.SessionBus()
-            obj = bus.get_object(self._last_player_name, "/org/mpris/MediaPlayer2")
-            iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
-            getattr(iface, method)()
-            return True
-        except dbus.DBusException as e:
-            log.debug("MPRIS %s on %s failed: %s", method, self._last_player_name, e)
-            self._last_player_name = None
-            return False
         except Exception as e:
-            log.warning("MPRIS %s unexpected error: %s", method, e)
+            log.debug("MPRIS dispatch %s: bus connect failed: %s", method, e)
             return False
 
-    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int]:
+        # Build a try-list: primary first (if capable), then known fallbacks.
+        targets: list[str] = []
+        if self._last_player_name and self._player_can(bus, self._last_player_name, capability_prop):
+            targets.append(self._last_player_name)
+        for name in self._control_fallback_names:
+            if name not in targets and self._player_can(bus, name, capability_prop):
+                targets.append(name)
+        # Last resort — the primary even if it doesn't advertise the capability;
+        # some players lie about Can* and still respond.
+        if self._last_player_name and self._last_player_name not in targets:
+            targets.append(self._last_player_name)
+
+        for target in targets:
+            if self._call_method_on(bus, target, method):
+                return True
+        return False
+
+    def _player_can(self, bus, name: str, prop: str) -> bool:
+        try:
+            obj = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
+            return bool(props.Get("org.mpris.MediaPlayer2.Player", prop))
+        except Exception as e:
+            log.debug("MPRIS %s.%s probe failed: %s", name, prop, e)
+            return False
+
+    def _call_method_on(self, bus, name: str, method: str) -> bool:
+        try:
+            obj = bus.get_object(name, "/org/mpris/MediaPlayer2")
+            iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
+            getattr(iface, method)()
+            log.debug("MPRIS %s dispatched on %s", method, name)
+            return True
+        except dbus.DBusException as e:
+            log.debug("MPRIS %s on %s failed: %s", method, name, e)
+            return False
+        except Exception as e:
+            log.warning("MPRIS %s on %s unexpected error: %s", method, name, e)
+            return False
+
+    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, bool]:
+        """Returns (track_info_or_None, score, is_browser_control_fallback).
+
+        The third element is True iff this player looks like a browser
+        playing media but failed the apple-music URL filter — meaning
+        we can use it as a control fallback for skip/play/pause when the
+        rich-metadata player can't dispatch those actions itself.
+        """
         try:
             player = bus.get_object(name, "/org/mpris/MediaPlayer2")
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
@@ -177,10 +237,18 @@ class MPRISSource:
             except Exception:
                 position_ms = 0
 
-            if not _looks_browser(name, identity, desktop_entry, self._browser_hints):
-                return None, 0
+            is_browser = _looks_browser(name, identity, desktop_entry, self._browser_hints)
+            if not is_browser:
+                return None, 0, False
+
             if not _looks_apple_music(url):
-                return None, 0
+                # Browser is playing *something* — it might be the same Apple
+                # Music tab seen from the browser's native MPRIS view, while
+                # KDE's plasma-browser-integration owns the rich URL/metadata.
+                # Tag it as a control fallback so skip/play/pause have a
+                # capable player to dispatch onto.
+                control_capable = playback in ("playing", "paused")
+                return None, 0, control_capable
 
             status = (
                 PlaybackStatus.PLAYING
@@ -209,11 +277,11 @@ class MPRISSource:
                 position_ms=position_ms,
                 status=status,
                 url=url,
-            ), score
+            ), score, False
 
         except dbus.DBusException as e:
             log.debug("MPRIS player %s gone or unreadable: %s", name, e)
-            return None, 0
+            return None, 0, False
         except Exception as e:
             log.debug("MPRIS player %s read error: %s", name, e)
-            return None, 0
+            return None, 0, False

@@ -12,7 +12,7 @@ import contextlib
 import logging
 import time
 
-from pypresence import Presence
+from pypresence import ActivityType, Presence
 from pypresence import exceptions as ppx
 
 log = logging.getLogger(__name__)
@@ -65,6 +65,13 @@ class DiscordRPC:
     def update(self, **payload) -> None:
         if not self._ensure_connected():
             return
+        # Default to Discord's "Listening" activity type so the status renders
+        # as "Listening to <song>" — matching what users expect from a music
+        # RPC and what Spotify / other Discord music apps show. Without this,
+        # Discord defaults to type=PLAYING ("Playing Refrain"), which looks
+        # wrong for a music status and is what made early v0.1.x feel like
+        # "Discord status missing" even though the RPC was sending data.
+        payload.setdefault("activity_type", ActivityType.LISTENING)
         try:
             self._presence.update(**payload)
         except Exception as e:

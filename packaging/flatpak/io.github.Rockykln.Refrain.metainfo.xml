@@ -51,6 +51,22 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.1.5" date="2026-05-06">
+      <description>
+        <p>
+          Three real bugs caught during the Flathub demo recording.
+          Skip Next/Previous now works on Apple Music in Chromium —
+          when KDE's plasma-browser-integration owns the rich
+          metadata but reports CanGoNext=False, controls fall back
+          onto the browser's own MPRIS player. Discord status now
+          renders as "Listening to &lt;song&gt;" instead of "Playing
+          Refrain" (was wrong activity_type). The tray-icon tooltip
+          mirrors the live progress so users get a real timer
+          (DBusMenu doesn't refresh the menu's text while open, so
+          the menu's own progress line was visibly frozen mid-song).
+        </p>
+      </description>
+    </release>
     <release version="0.1.4" date="2026-05-06">
       <description>
         <p>

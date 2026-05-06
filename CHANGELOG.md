@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-05-06
+
+Three real bugs surfaced during the Flathub demo recording. All
+fixed, all covered by new regression tests.
+
+### Fixed
+
+- **Skip Next / Previous now works on Apple Music in Chromium.**
+  The browser exposes two MPRIS players: KDE's
+  `plasma-browser-integration` (rich metadata, but `CanGoNext=False`
+  / `CanGoPrevious=False`) and the browser's own MPRIS (capable of
+  skip but with a tab-title-only `xesam:title` and no `xesam:url`).
+  v0.1.4 picked the plasma player for both metadata AND control,
+  which made skip silently no-op. v0.1.5 keeps plasma for metadata
+  but tracks the control-capable browser MPRIS as a fallback target,
+  so skip dispatches onto whichever player can actually do the
+  action. 5 dedicated unit tests in `test_mpris_dispatch.py`.
+- **Discord status now renders as "Listening to &lt;song&gt;"
+  instead of "Playing Refrain".** v0.1.4 sent activity payloads
+  without an `activity_type`, defaulting to `PLAYING`, which made
+  the status look wrong for a music app — easy to mistake for
+  "Discord status missing" entirely. Now defaults to
+  `ActivityType.LISTENING`. 2 unit tests in
+  `test_discord_listening.py`.
+- **Tray-icon tooltip mirrors live progress.** The progress line
+  in the tray menu visibly froze mid-song because KDE's DBusMenu
+  doesn't propagate action-text changes while the menu is open.
+  The tooltip DOES refresh in real time, so hovering the tray icon
+  now gives users a working "0:42 / 3:45 (–3:03)" ticker. The menu
+  line stays as a "near-current" indicator that's accurate at the
+  moment the menu is opened.
+
 ## [0.1.4] - 2026-05-06
 
 A same-day follow-up to v0.1.3 that fixes the two issues v0.1.3 shipped

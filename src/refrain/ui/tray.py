@@ -34,6 +34,12 @@ class TrayIcon(QObject):
         }
         self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
         self._tray.setToolTip("Refrain")
+        # Tray menu actions are rendered via DBusMenu by the system shell;
+        # action text changes do NOT propagate while the menu is open. We
+        # mirror the live track + progress info into the tray *tooltip* too
+        # because tooltips DO refresh in real time.
+        self._current_track_line = ""
+        self._current_progress_line = ""
 
         self._title_action = QAction("(nothing playing)")
         self._title_action.setEnabled(False)
@@ -111,21 +117,28 @@ class TrayIcon(QObject):
         if duration_ms <= 0:
             self._progress_action.setText("")
             self._progress_action.setVisible(False)
+            self._current_progress_line = ""
+            self._refresh_tooltip()
             return
         pos = max(0, position_ms) // 1000
         dur = max(0, duration_ms) // 1000
         rem = max(0, dur - pos)
-        self._progress_action.setText(
+        progress = (
             f"⏱  {pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
             f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
         )
+        self._progress_action.setText(progress)
         self._progress_action.setVisible(True)
+        self._current_progress_line = progress
+        self._refresh_tooltip()
 
     def set_track(self, track: TrackInfo) -> None:
         if not track.has_track:
             self._title_action.setText("(nothing playing)")
             self._artist_action.setText("")
             self._progress_action.setVisible(False)
+            self._current_track_line = ""
+            self._current_progress_line = ""
             self._tray.setToolTip("Refrain")
             return
         self._title_action.setText(f"♪ {track.title}")
@@ -136,4 +149,21 @@ class TrayIcon(QObject):
         else:
             line = track.album or "—"
         self._artist_action.setText(line)
-        self._tray.setToolTip(f"{track.title}\n{line}")
+        self._current_track_line = f"{track.title}\n{line}"
+        self._refresh_tooltip()
+
+    def _refresh_tooltip(self) -> None:
+        """Rebuild the tray-icon tooltip from current track + progress.
+
+        Tooltip is the only menu surface that refreshes live on KDE / GNOME
+        — DBusMenu holds the popup menu's text static once it's open, so a
+        progress timer in the menu visibly freezes mid-song. The tooltip
+        gives users a real ticker by hovering the tray icon.
+        """
+        if not self._current_track_line:
+            self._tray.setToolTip("Refrain")
+            return
+        if self._current_progress_line:
+            self._tray.setToolTip(f"{self._current_track_line}\n{self._current_progress_line}")
+        else:
+            self._tray.setToolTip(self._current_track_line)
