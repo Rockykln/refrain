@@ -90,5 +90,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/Rockykln/refrain.git
-        tag: v0.1.3
-        commit: 2fa2387806fb32f776f4d5c5cb4c6fdbe33c1ff2
+        tag: v0.1.4
+        commit: cd8665333ce223d875bd6cd1cc7be91ea1cea779
