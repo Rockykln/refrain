@@ -31,9 +31,13 @@ jobs:
       - name: Install + run tests (gate the release)
         run: |
           python -m pip install --upgrade pip
-          # System libs that dbus-python links against during build.
+          # System libs: dbus-python needs the *-dev headers at build
+          # time; PySide6.QtWidgets needs the EGL/xkbcommon/GL/fontconfig
+          # runtime libs to import (even under QT_QPA_PLATFORM=offscreen).
           sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
+          sudo apt-get install -y \
+            libdbus-1-dev libglib2.0-dev pkg-config \
+            libegl1 libxkbcommon0 libfontconfig1 libgl1
           # Install the package itself so the test imports get every
           # runtime dep (PySide6, pypresence, dbus-python) — without
           # this the new test_daemon_*.py files fail at collection.

@@ -26,11 +26,16 @@ jobs:
       - name: Install runtime + test dependencies
         # The newer tests import refrain modules that pull PySide6 /
         # pypresence / dbus-python at module load, so the runtime deps
-        # have to be present in CI too.
+        # have to be present in CI too. PySide6.QtWidgets requires the
+        # EGL / xkbcommon / GL / fontconfig system libs even when run
+        # under QT_QPA_PLATFORM=offscreen — without them the import
+        # itself fails before the test can opt out.
         run: |
           python -m pip install --upgrade pip
           sudo apt-get update
-          sudo apt-get install -y libdbus-1-dev libglib2.0-dev pkg-config
+          sudo apt-get install -y \
+            libdbus-1-dev libglib2.0-dev pkg-config \
+            libegl1 libxkbcommon0 libfontconfig1 libgl1
           pip install -e ".[dev]"
 
       - name: Compile-check every module
