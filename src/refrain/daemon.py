@@ -45,6 +45,7 @@ def compute_idle_state(
     prev_seen_at: float,
     grace_s: int,
     now: float,
+    effective_duration_ms: int | None = None,
 ) -> tuple[TrackInfo, str, float]:
     """Pure-logic idle detection. Returns ``(track_or_empty, new_key, new_seen_at)``.
 
@@ -53,6 +54,12 @@ def compute_idle_state(
     — the source is dangling (typical: closed browser tab whose MPRIS
     handle never released). Caller treats the empty result as "nothing
     is playing", which clears Discord and the tray.
+
+    ``effective_duration_ms`` overrides ``track.duration_ms`` for the
+    deadline calculation. Pass the iTunes-catalog value when MPRIS is
+    obviously wrong so a 2:11 song doesn't get a 7:21 idle deadline
+    just because Apple Music briefly reported a playlist total. None
+    means "trust track.duration_ms as-is".
 
     Logs the detection exactly once per dangling-track instance: the
     returned ``new_key`` is prefixed with a sentinel so subsequent
@@ -63,22 +70,24 @@ def compute_idle_state(
     """
     if grace_s <= 0:
         return track, "", 0.0
-    if track.status != PlaybackStatus.PLAYING or not track.has_track or track.duration_ms <= 0:
+    duration_ms = effective_duration_ms if effective_duration_ms is not None else track.duration_ms
+    if track.status != PlaybackStatus.PLAYING or not track.has_track or duration_ms <= 0:
         return track, "", 0.0
-    # Preview-clip MPRIS metadata (duration < 30 s) is what Apple Music
-    # hands the browser when the user isn't signed in or the song is
-    # region-locked. Apple Music keeps reporting the same metadata even
-    # after the clip ends — but it's still actually playing the next
-    # song under the hood. Idle detection on those would clear Discord
-    # while the user is mid-listen. Skip idle for them entirely; the
-    # real-track case still gets the dangling-handle protection.
-    if track.duration_ms < 30_000:
+    # Preview-clip metadata (effective duration < 30 s) is what Apple
+    # Music hands the browser when the user isn't signed in or the
+    # song is region-locked. Apple Music keeps reporting the same
+    # metadata even after the clip ends — but it's still actually
+    # playing the next song under the hood. Idle detection on those
+    # would clear Discord while the user is mid-listen. Skip idle for
+    # them entirely; the real-track case still gets the dangling-
+    # handle protection.
+    if duration_ms < 30_000:
         return track, "", 0.0
     track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
     sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
     if track_key != prev_track_key and prev_track_key != sentinel_key:
         return track, track_key, now
-    deadline_s = (track.duration_ms / 1000.0) + grace_s
+    deadline_s = (duration_ms / 1000.0) + grace_s
     if (now - prev_seen_at) > deadline_s:
         if prev_track_key != sentinel_key:
             log.info(
@@ -345,12 +354,23 @@ class DaemonWorker(QObject):
         return TrackInfo.empty()
 
     def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
+        # Idle detection's deadline keys off the track's *real* duration.
+        # When MPRIS reports a wonky value (preview-clip 14 s, playlist
+        # total 7:21 on a 2:11 song), the iTunes-catalog duration we
+        # already cached for cover-art lookup is closer to truth.
+        itunes_dur_ms = (
+            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
+            if self._config.behavior.cover_art
+            else 0
+        )
+        effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
         result, new_key, new_seen = compute_idle_state(
             track,
             self._idle_track_key,
             self._idle_seen_at,
             int(self._config.advanced.idle_grace_s),
             time.monotonic(),
+            effective_duration_ms=effective_dur_ms,
         )
         self._idle_track_key = new_key
         self._idle_seen_at = new_seen

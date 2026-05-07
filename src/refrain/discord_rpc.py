@@ -40,8 +40,19 @@ def _bridge_sandboxed_ipc_socket() -> None:
     runtime_dir = Path(xdg_runtime)
     if not runtime_dir.is_dir():
         return
-    # If the standard path already has any discord-ipc-N socket, leave
-    # things alone — pypresence will find it on its own.
+    # Sweep stale symlinks from a previous bridge run whose target has
+    # since vanished (Discord uninstalled, Flatpak removed, host
+    # reboot). Path.exists() returns False on a broken symlink, so
+    # without this we'd never replace it and pypresence would keep
+    # failing on connect.
+    for n in range(10):
+        link = runtime_dir / f"discord-ipc-{n}"
+        if link.is_symlink() and not link.exists():
+            with contextlib.suppress(OSError):
+                link.unlink()
+                log.debug("Removed stale Discord IPC symlink: %s", link)
+    # If the standard path already has any working discord-ipc-N socket,
+    # leave things alone — pypresence will find it on its own.
     for n in range(10):
         if (runtime_dir / f"discord-ipc-{n}").exists():
             return
@@ -70,7 +81,9 @@ def _bridge_sandboxed_ipc_socket() -> None:
                 target.symlink_to(entry)
                 log.info("Bridged sandboxed Discord IPC socket: %s → %s", target, entry)
             except FileExistsError:
-                # Race with Discord creating the standard socket itself.
+                # Race with Discord creating the standard socket itself,
+                # or with a stale symlink we just couldn't unlink — give
+                # up on this one rather than risk clobbering a real file.
                 pass
             except OSError as e:
                 log.debug("Could not symlink Discord IPC socket %s: %s", target, e)
