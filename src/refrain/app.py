@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
 import shutil
 import signal
 import sys
@@ -35,6 +36,7 @@ from refrain import __version__
 from refrain.autostart import disable as autostart_disable
 from refrain.autostart import enable as autostart_enable
 from refrain.autostart import is_enabled as autostart_is_enabled
+from refrain.autostart import resolve_exec_line
 from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
@@ -196,12 +198,23 @@ def install_desktop_files() -> int:
     dst_desktop = apps / "refrain.desktop"
     dst_icon = icons / "refrain.svg"
 
-    shutil.copy2(src_desktop, dst_desktop)
+    # Rewrite Exec= to point at the actual launcher we're running
+    # under. The bundled refrain.desktop has Exec=refrain which only
+    # works when refrain is on $PATH (distro packages, pipx). For
+    # AppImage / source-checkout users, the bare name is unresolvable
+    # at session-startup time and clicking the menu entry would do
+    # nothing.
+    desktop_text = src_desktop.read_text(encoding="utf-8")
+    new_exec = resolve_exec_line()
+    desktop_text = re.sub(r"^Exec=.*$", f"Exec={new_exec}", desktop_text, flags=re.MULTILINE)
+    dst_desktop.write_text(desktop_text, encoding="utf-8")
+
     shutil.copy2(src_icon, dst_icon)
 
     print("Installed:")
     print(f"  {dst_desktop}")
     print(f"  {dst_icon}")
+    print(f"  Exec={new_exec}")
     print()
     print("Refrain should now appear in your application menu.")
     print("Run with --uninstall-desktop to remove these files.")

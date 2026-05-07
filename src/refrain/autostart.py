@@ -47,26 +47,36 @@ def _quote(path: str) -> str:
     return path
 
 
-def _exec_line() -> str:
+def resolve_exec_line(extra_args: str = "") -> str:
+    """Return the Desktop Entry ``Exec=`` line for the running install.
+
+    Picks the first viable launcher in this order: ``$APPIMAGE`` →
+    ``which refrain`` → ``argv[0]`` resolved to an absolute path →
+    ``<python> -m refrain`` as a last resort. Properly quotes paths
+    that need it.
+
+    ``extra_args`` is appended after the launcher (e.g. ``"--silent"``
+    for autostart, empty for the menu entry).
+    """
     appimage = os.environ.get("APPIMAGE")
     if appimage and Path(appimage).is_file():
-        return f"{_quote(appimage)} --silent"
-
-    on_path = shutil.which("refrain")
-    if on_path:
-        return f"{_quote(on_path)} --silent"
-
-    argv0 = sys.argv[0] if sys.argv else ""
-    if argv0:
-        argv0_abs = str(Path(argv0).resolve())
-        if Path(argv0_abs).is_file():
-            return f"{_quote(argv0_abs)} --silent"
-
-    return f"{_quote(sys.executable)} -m refrain --silent"
+        base = _quote(appimage)
+    else:
+        on_path = shutil.which("refrain")
+        if on_path:
+            base = _quote(on_path)
+        else:
+            argv0 = sys.argv[0] if sys.argv else ""
+            argv0_abs = str(Path(argv0).resolve()) if argv0 else ""
+            if argv0_abs and Path(argv0_abs).is_file():
+                base = _quote(argv0_abs)
+            else:
+                base = f"{_quote(sys.executable)} -m refrain"
+    return f"{base} {extra_args}".rstrip()
 
 
 def _desktop_entry() -> str:
-    return _DESKTOP_ENTRY_TEMPLATE.format(exec_line=_exec_line())
+    return _DESKTOP_ENTRY_TEMPLATE.format(exec_line=resolve_exec_line("--silent"))
 
 
 def is_enabled() -> bool:
