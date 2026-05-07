@@ -10,12 +10,71 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 import time
+from pathlib import Path
 
 from pypresence import ActivityType, Presence
 from pypresence import exceptions as ppx
 
 log = logging.getLogger(__name__)
+
+
+def _bridge_sandboxed_ipc_socket() -> None:
+    """Symlink Snap/Flatpak Discord's IPC socket into ``$XDG_RUNTIME_DIR``.
+
+    pypresence (and the Discord RPC docs) require the socket at
+    ``$XDG_RUNTIME_DIR/discord-ipc-N``. Snap and Flatpak Discord builds
+    place the socket inside their sandbox tree instead, so a stock
+    Refrain → pypresence connection fails on those installs even
+    though Discord is running. We probe a handful of known sandbox
+    locations and symlink the first match.
+
+    No-op when ``$XDG_RUNTIME_DIR`` isn't set, when a standard socket
+    already exists (Discord installed via .deb or pacman), or when
+    nothing matches.
+    """
+    xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
+    if not xdg_runtime:
+        return
+    runtime_dir = Path(xdg_runtime)
+    if not runtime_dir.is_dir():
+        return
+    # If the standard path already has any discord-ipc-N socket, leave
+    # things alone — pypresence will find it on its own.
+    for n in range(10):
+        if (runtime_dir / f"discord-ipc-{n}").exists():
+            return
+    candidates = [
+        # Flatpak (newer): per-app instance dir under XDG_RUNTIME_DIR
+        runtime_dir / "app" / "com.discordapp.Discord",
+        # Flatpak (older / config-dir layout)
+        Path.home() / ".var" / "app" / "com.discordapp.Discord" / "config" / "discord",
+        # Snap
+        Path.home() / "snap" / "discord" / "current" / ".config" / "discord",
+    ]
+    for root in candidates:
+        if not root.is_dir():
+            continue
+        for entry in root.iterdir():
+            name = entry.name
+            if not name.startswith("discord-ipc-"):
+                continue
+            try:
+                if not entry.is_socket():
+                    continue
+            except OSError:
+                continue
+            target = runtime_dir / name
+            try:
+                target.symlink_to(entry)
+                log.info("Bridged sandboxed Discord IPC socket: %s → %s", target, entry)
+            except FileExistsError:
+                # Race with Discord creating the standard socket itself.
+                pass
+            except OSError as e:
+                log.debug("Could not symlink Discord IPC socket %s: %s", target, e)
+            return
 
 
 class DiscordRPC:
@@ -47,6 +106,10 @@ class DiscordRPC:
             return False
         if time.monotonic() < self._next_retry_ts:
             return False
+        # Sandbox-aware socket bridging — cheap (a few stat calls when
+        # the standard path already works) and handles the
+        # Snap/Flatpak Discord case without per-user manual symlinks.
+        _bridge_sandboxed_ipc_socket()
         try:
             p = Presence(self.client_id)
             p.connect()

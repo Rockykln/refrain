@@ -327,15 +327,23 @@ class SettingsWindow(QDialog):
         # Two-column grid; labels first, then code in alphabetical-ish
         # order grouped by family (Firefox, Chrome, KDE).
         known = [
+            # Firefox family
             ("firefox", "Firefox"),
             ("zen", "Zen Browser"),
             ("librewolf", "LibreWolf"),
+            ("floorp", "Floorp"),
+            ("waterfox", "Waterfox"),
+            ("mullvad-browser", "Mullvad Browser"),
+            ("tor-browser", "Tor Browser"),
+            # Chromium family
             ("chromium", "Chromium"),
             ("chrome", "Google Chrome"),
             ("brave", "Brave"),
             ("edge", "Microsoft Edge"),
             ("vivaldi", "Vivaldi"),
             ("opera", "Opera"),
+            ("ungoogled-chromium", "ungoogled-chromium"),
+            # Per-DE bridge
             ("plasma-browser-integration", "Plasma Browser Integration"),
         ]
         for idx, (token, label) in enumerate(known):

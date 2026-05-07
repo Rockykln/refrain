@@ -496,9 +496,18 @@ def main() -> int:
         QMessageBox.critical(
             None,
             "No system tray",
-            "No system tray available.\n\n"
-            "On GNOME, install the 'AppIndicator and KStatusNotifierItem' "
-            "extension and re-run Refrain.",
+            "No system tray available. Refrain lives in the tray, so it "
+            "needs a StatusNotifierItem-aware host. Common fixes:\n\n"
+            "• GNOME — install the 'AppIndicator and KStatusNotifierItem "
+            "Support' extension, then re-run Refrain.\n"
+            "• MATE — install 'mate-applet-statusnotifier'.\n"
+            "• XFCE — add 'xfce4-statusnotifier-plugin' to your panel.\n"
+            "• Hyprland / Sway / i3 / river — use a status bar with "
+            "StatusNotifierItem support (waybar's 'tray' module, polybar, "
+            "i3status-rust 'tray', …).\n"
+            "• KDE Plasma / Cinnamon / LXQt / Budgie — should work out "
+            "of the box; if not, your panel/bar may have crashed — try "
+            "logging out and back in.",
         )
         return 1
 

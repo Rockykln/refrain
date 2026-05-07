@@ -19,15 +19,23 @@ log = logging.getLogger(__name__)
 
 APPLE_MUSIC_HOSTS = ("music.apple.com",)
 BROWSER_HINTS = (
+    # Firefox family
     "firefox",
     "zen",
     "librewolf",
+    "floorp",
+    "waterfox",
+    "mullvad-browser",
+    "tor-browser",
+    # Chromium family
     "chromium",
     "chrome",
     "brave",
     "edge",
     "vivaldi",
     "opera",
+    "ungoogled-chromium",
+    # Per-DE bridge
     "plasma-browser-integration",
 )
 

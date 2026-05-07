@@ -71,15 +71,23 @@ def _probe_discord_ipc() -> tuple[bool, str]:
     a half-open connection that would race with the daemon).
 
     Discord publishes its IPC socket under ``$XDG_RUNTIME_DIR`` on
-    properly-configured Linux desktops. Fallback search paths cover
-    legacy installs where the env var isn't set.
+    properly-configured Linux desktops. We also probe the Snap and
+    Flatpak sandbox locations so users on those builds get a green
+    diagnostic line — DiscordRPC._ensure_connected bridges those into
+    ``$XDG_RUNTIME_DIR`` at connect time.
     """
     candidate_roots: list[Path] = []
     xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
     if xdg_runtime:
         candidate_roots.append(Path(xdg_runtime))
-    # Some Flatpak'd Discord builds expose the socket under the user
-    # cache directory instead.
+        candidate_roots.append(Path(xdg_runtime) / "app" / "com.discordapp.Discord")
+    # Flatpak (older / config-dir layout)
+    candidate_roots.append(
+        Path.home() / ".var" / "app" / "com.discordapp.Discord" / "config" / "discord"
+    )
+    # Snap
+    candidate_roots.append(Path.home() / "snap" / "discord" / "current" / ".config" / "discord")
+    # Legacy fallback — some early Flatpak'd Discord builds put the socket here.
     candidate_roots.append(Path.home() / ".cache")
     for candidate_root in candidate_roots:
         for n in range(10):
