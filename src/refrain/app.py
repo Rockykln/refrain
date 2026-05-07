@@ -587,6 +587,19 @@ def main() -> int:
     )
     updater.releaseInfoFetched.connect(settings.set_latest_release)
 
+    # Auto-fetch on first visit to Settings → Updates so the inline
+    # release-notes pane populates without the user needing to click
+    # "Check for updates now". Skipped when we already have a cached
+    # release this session — re-fetching every tab open is wasteful
+    # and can hit GitHub's unauthenticated rate limit on multi-restart
+    # debug sessions. The 24-hour startup cooldown stays in place for
+    # actual auto-checks; this is opt-in via tab activation.
+    def _maybe_fetch_for_tab() -> None:
+        if updater.latest is None and updater._thread is None:
+            updater.check_now(manual=True)
+
+    settings.updatesTabRequested.connect(_maybe_fetch_for_tab)
+
     # Log-window wireup
     def _show_log() -> None:
         log_window.show()
