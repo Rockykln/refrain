@@ -49,7 +49,7 @@ class LogWindow(QDialog):
         # ---- toolbar -------------------------------------------------------
         bar = QHBoxLayout()
 
-        bar.addWidget(QLabel("Level:"))
+        bar.addWidget(QLabel(self.tr("Level:")))
         self.level_combo = QComboBox()
         for label, value in (
             ("ALL", 0),
@@ -62,21 +62,21 @@ class LogWindow(QDialog):
         self.level_combo.setCurrentIndex(2)  # INFO is the useful default
         bar.addWidget(self.level_combo)
 
-        self.autoscroll_box = QCheckBox("Auto-scroll")
+        self.autoscroll_box = QCheckBox(self.tr("Auto-scroll"))
         self.autoscroll_box.setChecked(True)
         bar.addWidget(self.autoscroll_box)
 
         bar.addStretch()
 
-        copy_btn = QPushButton("Copy all")
+        copy_btn = QPushButton(self.tr("Copy all"))
         copy_btn.clicked.connect(self._copy_all)
         bar.addWidget(copy_btn)
 
-        clear_btn = QPushButton("Clear")
+        clear_btn = QPushButton(self.tr("Clear"))
         clear_btn.clicked.connect(self._clear)
         bar.addWidget(clear_btn)
 
-        close_btn = QPushButton("Close")
+        close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.hide)
         bar.addWidget(close_btn)
 

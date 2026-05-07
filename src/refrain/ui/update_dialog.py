@@ -75,15 +75,16 @@ class UpdateDialog(QDialog):
 
         layout = QVBoxLayout(self)
 
-        header = QLabel(
-            f"<h2>Refrain {release.version} is available</h2>"
-            f"<p>You're running <b>v{__version__}</b>. "
-            f"Detected install type: <b>{self._install_type}</b>.</p>"
-        )
+        header_text = self.tr(
+            "<h2>Refrain {version} is available</h2>"
+            "<p>You're running <b>v{current}</b>. "
+            "Detected install type: <b>{install_type}</b>.</p>"
+        ).format(version=release.version, current=__version__, install_type=self._install_type)
+        header = QLabel(header_text)
         header.setTextFormat(Qt.RichText)
         layout.addWidget(header)
 
-        notes_label = QLabel("<b>Release notes</b>")
+        notes_label = QLabel(self.tr("<b>Release notes</b>"))
         layout.addWidget(notes_label)
 
         self.notes = QTextBrowser()
@@ -104,7 +105,7 @@ class UpdateDialog(QDialog):
         button_row = QHBoxLayout()
         button_row.addStretch()
 
-        self.open_release_btn = QPushButton("Open release page")
+        self.open_release_btn = QPushButton(self.tr("Open release page"))
         self.open_release_btn.clicked.connect(self._open_release_page)
         button_row.addWidget(self.open_release_btn)
 
@@ -113,7 +114,7 @@ class UpdateDialog(QDialog):
         self.update_btn.clicked.connect(self._on_update_clicked)
         button_row.addWidget(self.update_btn)
 
-        self.close_btn = QPushButton("Later")
+        self.close_btn = QPushButton(self.tr("Later"))
         self.close_btn.clicked.connect(self.reject)
         button_row.addWidget(self.close_btn)
 
@@ -123,10 +124,10 @@ class UpdateDialog(QDialog):
 
     def _update_button_label(self) -> str:
         if self._install_type == "appimage":
-            return "Download && replace"
+            return self.tr("Download && replace")
         if self._install_type == "pip":
-            return "Run pip upgrade"
-        return "Show update command"
+            return self.tr("Run pip upgrade")
+        return self.tr("Show update command")
 
     def _open_release_page(self) -> None:
         if self._release.html_url:
@@ -145,13 +146,13 @@ class UpdateDialog(QDialog):
         self.update_btn.setEnabled(False)
         self.progress.setVisible(True)
         self.status_label.setText(
-            "Downloading…" if self._install_type == "appimage" else "Running pip…"
+            self.tr("Downloading…") if self._install_type == "appimage" else self.tr("Running pip…")
         )
         # Repurpose the "Later" button as Cancel while the runner is alive.
         # Only the AppImage path actually polls the cancel flag — pip is a
         # subprocess we don't try to interrupt mid-flight.
         if self._install_type == "appimage":
-            self.close_btn.setText("Cancel")
+            self.close_btn.setText(self.tr("Cancel"))
             self.close_btn.clicked.disconnect()
             self.close_btn.clicked.connect(self._on_cancel_clicked)
         else:
@@ -165,7 +166,7 @@ class UpdateDialog(QDialog):
         if self._runner is None or not self._runner.isRunning():
             return
         log.info("User requested update cancel")
-        self.status_label.setText("Cancelling…")
+        self.status_label.setText(self.tr("Cancelling…"))
         self.close_btn.setEnabled(False)
         self._runner.requestInterruption()
 
@@ -174,7 +175,7 @@ class UpdateDialog(QDialog):
         self.update_btn.setEnabled(True)
         # Restore the original "Later" wiring whether or not we showed Cancel.
         self.close_btn.setEnabled(True)
-        self.close_btn.setText("Later")
+        self.close_btn.setText(self.tr("Later"))
         with contextlib.suppress(TypeError):
             self.close_btn.clicked.disconnect()
         self.close_btn.clicked.connect(self.reject)
@@ -182,14 +183,14 @@ class UpdateDialog(QDialog):
 
     def _show_result(self, result: UpdateResult) -> None:
         if result.cancelled:
-            self.status_label.setText("Update cancelled.")
+            self.status_label.setText(self.tr("Update cancelled."))
             return
         if result.success:
-            QMessageBox.information(self, "Update complete", result.message)
+            QMessageBox.information(self, self.tr("Update complete"), result.message)
             if result.needs_restart:
                 self.accept()
         else:
-            QMessageBox.warning(self, "Update", result.message)
+            QMessageBox.warning(self, self.tr("Update"), result.message)
 
     def closeEvent(self, event) -> None:
         # If the user closes the window while a download is running, treat
