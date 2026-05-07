@@ -219,6 +219,70 @@ What's done, what's next, what's deliberately not in scope.
   out-of-scope reasons for the floor of unsupported distros (RHEL 9
   / Rocky 9 / Alma 9 / Debian 11 / Ubuntu 22.04 / Alpine).
 
+## Done — v0.2.4
+
+- **Time-display consistency across tray + Plasma panel + Discord**.
+  v0.2.3 already fixed Discord; the tray's progress label and the
+  published MPRIS Metadata still keyed off the raw `mpris:length`
+  and showed inconsistent numbers when MPRIS briefly lied about a
+  song's duration. `pick_effective_duration_ms` is now hoisted into
+  `_dispatch` so all three surfaces see the same iTunes-corrected
+  value every tick. Plus position is clamped to duration so a
+  "2:30 / 0:14 (-0:00)" line can't render during a brief MPRIS
+  preview-clip glitch.
+- **Snap and Flatpak Discord builds reachable out of the box**.
+  Their IPC socket lives inside the sandbox tree
+  (`xdg-run/app/com.discordapp.Discord/`,
+  `~/.var/app/com.discordapp.Discord/.../`,
+  `~/snap/discord/current/.config/discord/`) which pypresence
+  doesn't probe. `_bridge_sandboxed_ipc_socket` symlinks the first
+  sandbox socket it finds into `$XDG_RUNTIME_DIR` before each
+  connect attempt + sweeps stale symlinks left behind when the
+  Discord install is removed.
+- **Inline release notes in Settings → Updates tab**. The tab
+  carries a QTextBrowser that renders the same Markdown as the
+  popup, plus "Current version" + "Latest known" labels.
+  `releaseInfoFetched(release | None)` signal fires after every
+  check (auto / manual, success / failure) so the tab refreshes
+  regardless of the result.
+- **Discord activity card always shows the Refrain brand badge as
+  small_image**. Previously the badge was only in `large_image` as
+  a fallback when cover-art lookup failed; now it's the small-icon
+  corner of every payload, so the cover gets the visual focus and
+  hovering reveals "Refrain" as the source app. Plus the
+  cover-wait defer is back to 3 polls (~1.5 s at 500 ms tick) so
+  Discord usually goes straight from "no activity" to "cover" with
+  no brand flash on the way.
+- **Config drops unknown TOML keys** instead of nuking the whole
+  file. A typo or a key written by a newer Refrain that the user
+  has since downgraded from used to make `Config.from_dict` raise,
+  caught by the surrounding except, and fall back to defaults for
+  every setting. Now the offending key gets a single warning, the
+  rest of the section survives.
+- **DiscordRPC dedupes identical consecutive payloads**. The
+  daemon ticks every 500 ms but Discord rate-limits presence
+  updates to 5/20 s — most ticks were silently dropped on the
+  Discord side anyway. Now the second-and-on identical payload
+  is a no-op on our side too.
+- **Browser hints expanded**: Floorp, Waterfox, Mullvad Browser,
+  Tor Browser, ungoogled-chromium.
+- **`docs/bluetooth.md`** — first-time-setup walkthrough covering
+  bluez install per distro, pairing recipe, AVRCP verification,
+  per-source Discord profile setup, and Troubleshooting.
+- **FAQ entries** for "Refrain isn't picking up my browser"
+  (covers `playerctl` diagnostic + Snap-confined-browser workaround
+  + Firefox `about:config` toggle) and "How do I add a browser
+  that isn't in the list".
+- **`docs/architecture.md` refreshed** to v0.2.x reality — diagram
+  no longer claims "1 Hz tick" (default has been 500 ms since
+  v0.2.2), `MPRISServer` block added, `org.mpris.MediaPlayer2.refrain`
+  publish documented, GLib thread for dbus-python signal dispatch
+  documented, new section on Discord IPC sandbox bridging.
+- **+13 unit tests**: `DiscordRPC` payload dedup (4),
+  `_bridge_sandboxed_ipc_socket` (4), `compute_idle_state` with
+  `effective_duration_ms` (2), `cleanup_orphan_downloads` (3).
+  Total: 113 → 125, all green.
+
 ## Up next — v0.3
 
 - **Polishing the wrapped i18n surface** — wrap the remaining

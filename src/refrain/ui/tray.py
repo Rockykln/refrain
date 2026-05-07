@@ -99,7 +99,15 @@ class TrayIcon(QObject):
         menu.addAction(self._next_action)
         menu.addSeparator()
         # Hidden by default — only shown when an update has been detected.
-        self._update_action = QAction(self.tr("⬆  Update available"))
+        # Blue up-arrow icon (KDE Breeze accent) instead of a plain
+        # unicode glyph so the line stands out from the rest of the
+        # white menu text. Without this, "Update available — vX.Y.Z"
+        # is a quiet white line easy to miss; with the colored icon
+        # in the menu's icon column, it reads as the obvious action.
+        self._update_action = QAction(self.tr("Update available"))
+        update_icon_path = self._icons_dir / "menu-update.svg"
+        if update_icon_path.exists():
+            self._update_action.setIcon(QIcon(str(update_icon_path)))
         self._update_action.setVisible(False)
         self._update_action.triggered.connect(self.updateRequested.emit)
         menu.addAction(self._update_action)
@@ -161,10 +169,10 @@ class TrayIcon(QObject):
     def set_update_available(self, available: bool, version: str = "") -> None:
         if available and version:
             self._update_action.setText(
-                self.tr("⬆  Update available — v{version}").format(version=version)
+                self.tr("Update available — v{version}").format(version=version)
             )
         else:
-            self._update_action.setText(self.tr("⬆  Update available"))
+            self._update_action.setText(self.tr("Update available"))
         self._update_action.setVisible(available)
 
     def set_discord_connected(self, connected: bool) -> None:

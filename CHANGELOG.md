@@ -7,30 +7,133 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-05-07
+
+A polish + reliability release built on the v0.2.3 distro-portability
+work. The headline items are time-display consistency across all
+three surfaces (tray / Discord / Plasma panel), Snap/Flatpak Discord
+support out of the box, a full inline changelog in Settings, and
+~20 % more test coverage to lock the new behaviour in. No breaking
+changes — same config schema, same Python floor, same UI layout.
+
 ### Added
 
 - **Inline release notes in Settings → Updates tab.** The tab
   previously only had an auto-check toggle, last-checked label and a
   "Check now" button — the actual release notes only showed up in
-  the popup when an update was available. Now the tab carries a
+  the popup when an update was available. The tab now carries a
   QTextBrowser that renders the same Markdown the popup uses, plus
-  "Current version" and "Latest known" labels. UpdateOrchestrator
+  "Current version" and "Latest known" labels. `UpdateOrchestrator`
   gained a `releaseInfoFetched(release | None)` signal that fires
   after every check (auto or manual, success or failure) so the tab
   refreshes its contents regardless of the result.
+- **`docs/bluetooth.md`** — first-time-setup walkthrough covering
+  bluez install per distro, pairing recipe, AVRCP verification,
+  per-source Discord profile setup, and a Troubleshooting section
+  for the common breakage modes (no AVRCP exposed, missing
+  control, multiple paired devices, empty dropdown).
+- **FAQ entries** for "Refrain isn't picking up my browser"
+  (covers the `playerctl` diagnostic, the Snap-confined-browser
+  workaround, and the Firefox `about:config` toggle), and
+  "How do I add a browser that isn't in the list".
 
 ### Changed
 
+- **Tray progress + published MPRIS metadata + Discord activity
+  payload all use the iTunes-corrected duration.** v0.2.3 already
+  fixed Discord; the tray's "0:42 / 7:21 (-6:39)" ticker and the
+  `mpris:length` we publish to Plasma's panel were still using the
+  raw `mpris:length` and showed inconsistent numbers when MPRIS
+  briefly lied about a song's duration. Hoisted
+  `pick_effective_duration_ms` into `_dispatch` so all three
+  surfaces see the same value every tick. Tray position is also
+  now clamped to duration so a "2:30 / 0:14 (-0:00)" display can't
+  happen during a brief MPRIS preview-clip glitch on a longer song.
 - **`os.chmod(tmp, 0o755)` on AppImage update replaced by mode
   preservation** — read the running AppImage's mode and mirror it,
-  with `0o700` as fallback. CodeQL's
-  `py/overly-permissive-file` warning is gone, and an AppImage that
-  the user installed at `0o700` stays `0o700` across upgrades.
-- **More UI strings wrapped in `tr()`.** ~20 English-only strings in
-  `update_dialog.py` (status labels, button labels, header HTML) and
-  `log_window.py` (toolbar Level/Auto-scroll/Copy/Clear/Close)
-  weren't translatable. Refresh of `refrain_de.ts` brings the German
-  build to 125/125 finished translations.
+  with `0o700` as fallback. CodeQL's `py/overly-permissive-file`
+  warning is gone, and an AppImage that the user installed at
+  `0o700` stays `0o700` across upgrades.
+- **DiscordRPC dedupes identical consecutive payloads** instead of
+  hammering the IPC channel on every poll. The daemon ticks every
+  500 ms but Discord rate-limits presence updates to 5 per 20 s, so
+  ~75 % of those ticks were silently being dropped on the Discord
+  side anyway. Now the second-and-on identical payload is a no-op
+  on our side too.
+- **Cover-wait defer back to 3 polls (~1.5 s)**. v0.2.2 lowered it
+  to 1 poll to feel more "live", but that meant Discord briefly
+  rendered the `refrain` brand fallback as the *large* image while
+  iTunes search returned, then flipped to the cover — visible
+  flicker on every track change. With 3 polls Discord typically
+  transitions straight from "no activity" to the cover with no
+  flash. Bounded: songs that have no iTunes match still update
+  after 1.5 s with the brand fallback.
+- **Tray menu's "Update available" line now carries a coloured
+  icon** (Breeze accent blue, `assets/icons/menu-update.svg`)
+  instead of just a unicode `⬆` arrow in the same white as every
+  other line. Visually distinguishes the update notification from
+  Settings / Live log / Restart in the menu's icon column.
+- **Browser hint defaults expanded** with Floorp, Waterfox, Mullvad
+  Browser, Tor Browser and ungoogled-chromium. Existing configs
+  keep their saved list (no auto-migration); the new entries appear
+  unticked in Settings → Sources until the user toggles them.
+- **~20 English-only UI strings wrapped in `tr()`** —
+  `update_dialog.py` (status labels, button labels, header HTML),
+  `log_window.py` (toolbar Level/Auto-scroll/Copy/Clear/Close), and
+  `app.py` module-level QMessageBox calls (now via
+  `QCoreApplication.translate`). Re-ran `lupdate6` + `lrelease6`
+  against `refrain_de.ts`: 127/127 finished German translations.
+- **`docs/architecture.md` refreshed** to v0.2.x reality — the
+  diagram showed a "1 Hz tick" (default has been 500 ms since
+  v0.2.2), the worker-thread block was missing `MPRISServer`, the
+  GLib thread for dbus-python signal dispatch was undocumented, and
+  the "does not export any custom interfaces" line was wrong since
+  the v0.2.2 MPRIS-server publication. Plus a new section on
+  Discord IPC sandbox bridging (Snap/Flatpak).
+
+### Fixed
+
+- **Tray tooltip cleared on track change.** After a paused-to-paused
+  track switch, the tooltip briefly showed "Song B • 1:30 / 2:11"
+  using Song A's elapsed counter while the new track waited for its
+  first `progressTick`. `set_track` now drops the stale progress
+  line when the title text actually changed.
+- **`compute_idle_state` honours the iTunes-corrected duration.**
+  Previously the deadline keyed off `track.duration_ms` so a
+  7:21-playlist-total-on-a-2:11-song lie made dangling-tab cleanup
+  fire 5 minutes too late. New optional `effective_duration_ms`
+  parameter; the daemon passes the same value the RPC payload
+  uses.
+- **Snap and Flatpak Discord builds reachable out of the box.**
+  Their IPC socket lives inside the sandbox tree
+  (`$XDG_RUNTIME_DIR/app/com.discordapp.Discord/`,
+  `~/.var/app/com.discordapp.Discord/config/discord/`,
+  `~/snap/discord/current/.config/discord/`), so pypresence's stock
+  discovery never finds it. `_bridge_sandboxed_ipc_socket` symlinks
+  the first sandbox socket it finds into `$XDG_RUNTIME_DIR` before
+  each connect attempt, and sweeps stale symlinks left behind when
+  the sandbox path's target is removed (Snap uninstall, Flatpak
+  remove, host reboot).
+- **Config drops unknown TOML keys instead of nuking the whole
+  file.** A single typo or a key written by a *newer* Refrain that
+  the user has since downgraded from used to make
+  `Config.from_dict` raise `TypeError`, caught by the surrounding
+  `except` and falling back to defaults for *every* setting.
+  `_construct()` now filters the payload through dataclass fields
+  before `**`-splatting; the offending keys get a single WARNING in
+  the log naming the section, the rest of the section survives.
+- **Stale comments + doc references cleaned up.** Four "1 Hz" call-
+  outs in `mpris.py` / `daemon.py` (default has been 500 ms since
+  v0.2.2), plus one reference to the AppImage runtime that no
+  longer matches the AppRun layout.
+
+### Tests
+
+- **+13 unit tests** covering the new helpers — `DiscordRPC` payload
+  dedup (4), `_bridge_sandboxed_ipc_socket` (4), `compute_idle_state`
+  with `effective_duration_ms` (2), `cleanup_orphan_downloads` (3).
+  Total: 113 → 125, all green, ruff + bandit + pip-audit clean,
+  Dependabot 0 outstanding alerts.
 
 ## [0.2.3] - 2026-05-07
 

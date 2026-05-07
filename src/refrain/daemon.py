@@ -562,14 +562,16 @@ class DaemonWorker(QObject):
             is_new_track
             and self._config.behavior.cover_art
             and cover_url is None
-            and self._rpc_cover_wait_count < 1
+            and self._rpc_cover_wait_count < 3
         ):
-            # Defer at most one poll for the cover URL — the previous 3-poll
-            # cap added up to 3 s of perceived "Discord didn't update yet"
-            # latency and felt non-live. With 500 ms default polling, one
-            # defer is ~500 ms; on the second tick we update with whatever
-            # cover-fetcher has, even if still None (Discord falls back to
-            # the brand image and swaps to the real cover on the next tick).
+            # Defer up to 3 polls (~1.5 s at 500 ms) so iTunes search
+            # has time to land before we push the activity. Without
+            # this, Discord briefly shows the `refrain` brand fallback
+            # in the large-image slot for the first ~500 ms-1 s of a
+            # new track, then flips to the cover when iTunes returns
+            # — visible flicker on every track change. The 3-poll cap
+            # bounds the worst case: a song with no iTunes match
+            # still updates after 1.5 s with the brand fallback.
             self._rpc_cover_wait_count += 1
             return
         self._rpc_cover_wait_count = 0
@@ -642,6 +644,13 @@ class DaemonWorker(QObject):
             "state": state[:128],
             "large_image": large_image,
         }
+        # Note: Discord's LISTENING activity type intentionally does
+        # NOT render `small_image` — only PLAYING / WATCHING activities
+        # show a small-icon overlay. We keep activity_type=LISTENING
+        # (from DiscordRPC.update) so the status reads "Listening to
+        # Refrain" instead of "Playing Refrain", and accept that the
+        # small-icon corner stays empty. The cover_url already
+        # carries the visual identity in the large slot.
         if not is_short_track:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it

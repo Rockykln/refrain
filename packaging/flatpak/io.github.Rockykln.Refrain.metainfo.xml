@@ -51,6 +51,28 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.4" date="2026-05-07">
+      <description>
+        <p>
+          Polish + reliability release on top of v0.2.3. Time-display
+          consistency across tray, Plasma panel media-controls applet
+          and Discord (all three now read the same iTunes-corrected
+          duration). Snap and Flatpak Discord builds reachable out of
+          the box via sandbox-aware IPC-socket bridging. Inline
+          release notes in Settings → Updates. Discord activity card
+          always carries the Refrain brand as small_image so the
+          cover gets the visual focus. Config drops unknown TOML
+          keys instead of nuking the whole file when a newer-version
+          key is encountered. DiscordRPC dedupes identical
+          consecutive payloads. Browser hints expanded with Floorp,
+          Waterfox, Mullvad Browser, Tor Browser, ungoogled-chromium.
+          New docs/bluetooth.md walkthrough and FAQ entries on
+          browser MPRIS troubleshooting. +13 unit tests, total now
+          125, all green; ruff + bandit + pip-audit + Dependabot all
+          clean.
+        </p>
+      </description>
+    </release>
     <release version="0.2.3" date="2026-05-07">
       <description>
         <p>
