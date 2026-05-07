@@ -65,3 +65,31 @@ def test_enable_overwrites_existing(xdg_tmp):
     assert "\nExec=" in contents
     assert "--silent" in contents
     assert "garbage" not in contents
+
+
+def test_resolve_exec_line_appimage(monkeypatch, tmp_path):
+    """When $APPIMAGE points at a real file, that's what wins — and
+    extra_args is appended verbatim."""
+    fake_appimage = tmp_path / "Refrain-x86_64.AppImage"
+    fake_appimage.write_bytes(b"")
+    monkeypatch.setenv("APPIMAGE", str(fake_appimage))
+
+    import refrain.autostart as autostart
+
+    assert autostart.resolve_exec_line() == str(fake_appimage)
+    assert autostart.resolve_exec_line("--silent") == f"{fake_appimage} --silent"
+
+
+def test_resolve_exec_line_quotes_paths_with_spaces(monkeypatch, tmp_path):
+    """Spaces in the path require Desktop-Entry-spec double-quoting."""
+    spaced_dir = tmp_path / "with space"
+    spaced_dir.mkdir()
+    fake_appimage = spaced_dir / "Refrain.AppImage"
+    fake_appimage.write_bytes(b"")
+    monkeypatch.setenv("APPIMAGE", str(fake_appimage))
+
+    import refrain.autostart as autostart
+
+    line = autostart.resolve_exec_line("--silent")
+    assert line == f'"{fake_appimage}" --silent'
+    assert line.startswith('"')
