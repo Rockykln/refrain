@@ -11,26 +11,33 @@ Refrain is one process with two threads and one external IPC socket.
 │  ├─ TrayIcon (QSystemTrayIcon)         ←─── status / track      │
 │  ├─ SettingsWindow (QDialog, hidden after Apply)                │
 │  ├─ LogWindow (QDialog, on-demand)                              │
+│  ├─ WelcomeDialog (first-run only)                              │
 │  ├─ UpdateOrchestrator                                          │
 │  └─ UpdateDialog                                                │
 │                                                                 │
 │  Worker thread (Qt event loop, QThread)                         │
 │  ├─ DaemonWorker                                                │
-│  │    ├─ MPRISSource         ──► Session DBus                   │
+│  │    ├─ MPRISSource         ──► Session DBus (read)            │
 │  │    ├─ BluetoothSource     ──► System DBus (org.bluez)        │
 │  │    ├─ CoverFetcher        ──► iTunes Search (HTTPS)          │
-│  │    └─ DiscordRPC          ──► Discord IPC socket             │
-│  └─ Timer (QTimer, 1 Hz tick)                                   │
+│  │    ├─ DiscordRPC          ──► Discord IPC socket             │
+│  │    └─ MPRISServer         ──► Session DBus (publish own)     │
+│  └─ Timer (QTimer, 500 ms default poll, configurable)           │
+│                                                                 │
+│  GLib thread (only when PyGObject is available)                 │
+│  └─ GLib.MainLoop — pumps dbus-python signals so Plasma's panel │
+│     PlayPause / Next / Previous reach our MPRISServer methods.  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Why a worker thread?
 
-The polling loop (1 Hz) reads MPRIS / BlueZ properties via D-Bus. Some of
-those calls block briefly. iTunes Search lookups can take up to 5 s.
-Discord IPC writes can stall when Discord is restarting. Doing any of
-that on the GUI thread would make the tray icon and settings window
-freeze every poll.
+The polling loop (default 500 ms, configurable via
+`advanced.poll_interval_ms`) reads MPRIS / BlueZ properties via D-Bus.
+Some of those calls block briefly. iTunes Search lookups can take up
+to 5 s. Discord IPC writes can stall when Discord is restarting.
+Doing any of that on the GUI thread would make the tray icon and
+settings window freeze every poll.
 
 The worker thread runs a Qt event loop (driven by `QTimer`, *not* a
 `while/sleep` loop — that detail matters: a sleep loop blocks the event
@@ -84,6 +91,30 @@ to `/usr/share/applications/refrain.desktop` instead.
 | `org.mpris.MediaPlayer2.Player`         | session| Track metadata + Play/Next/Prev   |
 | `org.bluez.MediaPlayer1`                | system | AVRCP track + Play/Pause/Next/Prev|
 | `org.bluez.Device1` (via ObjectManager) | system | Paired-device enumeration         |
+| `org.freedesktop.DBus.NameHasOwner`     | system | Fast-fail check before activating `org.bluez` (avoids a 25 s service-activation timeout on hosts without bluez)|
 
-Refrain also registers exactly one well-known name on the session bus
-for the single-instance lock; it does not export any custom interfaces.
+## D-Bus interfaces published
+
+Refrain publishes two well-known names on the **session** bus:
+
+| Bus name                              | Purpose                                        |
+|---------------------------------------|------------------------------------------------|
+| `io.github.Rockykln.Refrain`          | Single-instance lock. No object path; just the name reservation. |
+| `org.mpris.MediaPlayer2.refrain`      | Refrain itself as an MPRIS player. KDE Plasma's panel media controls applet, KDE Connect, GNOME Shell etc. drive the same Play/Pause/Next/Previous as the tray, and render the same track Discord renders. Implements the standard MPRIS root + Player interfaces. |
+
+The MPRIS-server publication needs PyGObject (`gi`) for a GLib main loop
+to pump dbus-python signal dispatch. When PyGObject isn't installed,
+Refrain logs a warning at startup and falls back to read-only mode —
+the rest of the app works, but Plasma's panel can't drive playback.
+
+## Discord IPC discovery
+
+The standard path is `$XDG_RUNTIME_DIR/discord-ipc-N` (N=0..9). Snap
+and Flatpak Discord builds put their socket inside the sandbox tree
+instead (`$XDG_RUNTIME_DIR/app/com.discordapp.Discord/discord-ipc-N`,
+`~/.var/app/com.discordapp.Discord/config/discord/discord-ipc-N`,
+`~/snap/discord/current/.config/discord/discord-ipc-N`).
+`DiscordRPC._bridge_sandboxed_ipc_socket` symlinks the first sandbox
+socket it finds into `$XDG_RUNTIME_DIR` before each connect attempt,
+and sweeps stale symlinks left behind by previously-uninstalled
+Discord builds.

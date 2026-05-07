@@ -64,7 +64,7 @@ def compute_idle_state(
     Logs the detection exactly once per dangling-track instance: the
     returned ``new_key`` is prefixed with a sentinel so subsequent
     polls of the same stuck track skip the log line. Without that
-    suppression, every 1 Hz tick re-logged the idle state and drowned
+    suppression, every poll tick re-logged the idle state and drowned
     the live log in identical messages while the user was looking at
     a stuck Apple Music tab.
     """
@@ -187,9 +187,10 @@ class DaemonWorker(QObject):
     def start_polling(self) -> None:
         """Called on the worker thread once the QThread's event loop is up."""
         log.info("Daemon started")
-        # Pure 1 Hz polling. A signal-driven path via QDBusConnection
-        # was prototyped but PySide6's connect-signature handling proved
-        # too brittle to ship; revisiting it is a v0.3 task.
+        # Pure-polling design (default 500 ms; user-configurable via
+        # advanced.poll_interval_ms, floored at 250 ms). A signal-driven
+        # path via QDBusConnection was prototyped but PySide6's
+        # connect-signature handling proved too brittle to ship.
         self._timer = QTimer()
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))

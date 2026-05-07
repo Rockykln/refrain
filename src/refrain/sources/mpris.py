@@ -274,8 +274,8 @@ class MPRISSource:
         """
         try:
             # introspect=False so a flaky MPRIS player (we're looking
-            # at you, plasma-browser-integration) can't hang our 1 Hz
-            # poll for 25 s waiting for an Introspect reply that never
+            # at you, plasma-browser-integration) can't hang our poll
+            # for 25 s waiting for an Introspect reply that never
             # comes. We don't need the introspection XML — we already
             # know the property/method signatures.
             player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
@@ -289,9 +289,9 @@ class MPRISSource:
             # list — including, critically, the chromium player whose
             # Next/Previous calls actually skip Apple Music tracks.
             #
-            # 2 s timeout per Get caps total cost: dbus-python's default
-            # 25 s reply timeout would let a single hung player freeze
-            # the 1 Hz poll cycle for half a minute.
+            # 0.5 s timeout per Get caps total cost: dbus-python's
+            # default 25 s reply timeout would let a single hung
+            # player freeze the poll loop for half a minute.
             def _safe_get(iface: str, prop: str, default=""):
                 try:
                     return props.Get(iface, prop, timeout=0.5)
