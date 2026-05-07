@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from refrain.timing import compute_rpc_start_ts
+from refrain.timing import compute_rpc_start_ts, pick_effective_duration_ms
 
 # ---------------------------------------------------------------------------
 # Happy path: a new track always triggers a recompute.
@@ -234,3 +234,49 @@ def test_custom_drift_threshold(drift_threshold, position_ms, now, expected_chan
         drift_threshold_s=drift_threshold,
     )
     assert changed is expected_changed
+
+
+# ---------------------------------------------------------------------------
+# pick_effective_duration_ms: MPRIS / iTunes reconciliation.
+# ---------------------------------------------------------------------------
+
+
+def test_duration_no_itunes_falls_back_to_mpris():
+    assert pick_effective_duration_ms(131_000, 0) == 131_000
+
+
+def test_duration_no_mpris_uses_itunes():
+    assert pick_effective_duration_ms(0, 131_000) == 131_000
+
+
+def test_duration_both_zero_returns_zero():
+    assert pick_effective_duration_ms(0, 0) == 0
+
+
+def test_duration_mpris_preview_clip_overridden_by_itunes_full_song():
+    # Apple Music briefly reports a 14 s preview length on a 2:11 song —
+    # the canonical bug from the user's report.
+    assert pick_effective_duration_ms(14_000, 131_000) == 131_000
+
+
+def test_duration_mpris_playlist_total_overridden_by_itunes():
+    # MPRIS reports 7:21 when track is 2:11 (catalogued).
+    assert pick_effective_duration_ms(441_000, 131_000) == 131_000
+
+
+def test_duration_within_15_percent_keeps_mpris():
+    # Slight rounding / encoding-vs-catalog drift should not flip.
+    # MPRIS 200 s vs iTunes 210 s is ~5 % — keep MPRIS.
+    assert pick_effective_duration_ms(200_000, 210_000) == 200_000
+
+
+def test_duration_outside_15_percent_uses_itunes():
+    # 200 s vs 250 s is 20 % — trust iTunes.
+    assert pick_effective_duration_ms(200_000, 250_000) == 250_000
+
+
+def test_duration_both_short_keeps_mpris():
+    # A genuinely short item (e.g. 12 s announcement, 13 s in catalog) —
+    # within 15 %, MPRIS wins. Either is fine; the song-is-short check
+    # downstream will drop start/end anyway.
+    assert pick_effective_duration_ms(12_000, 13_000) == 12_000

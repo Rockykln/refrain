@@ -26,7 +26,7 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
 from refrain.sources.mpris_server import MPRISServer
-from refrain.timing import compute_rpc_start_ts
+from refrain.timing import compute_rpc_start_ts, pick_effective_duration_ms
 
 log = logging.getLogger(__name__)
 
@@ -533,12 +533,25 @@ class DaemonWorker(QObject):
             return
         self._rpc_cover_wait_count = 0
 
+        # iTunes-catalog duration (0 = no match cached yet). Used both
+        # for diagnostic logging and to override an obviously-wrong
+        # mpris:length when the two disagree (see pick_effective_duration_ms).
+        itunes_dur_ms = (
+            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
+            if self._config.behavior.cover_art
+            else 0
+        )
+        effective_duration_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+
         # Discord elapsed-timer correctness — see refrain.timing for the
         # full rationale. Recomputes on track change, pause/resume, or seek;
         # otherwise leaves the start_ts stable so the progress bar doesn't
         # twitch every poll. Preview-clip mode disables drift-resync: the
         # MPRIS Position field loops 0→8s while the preview replays,
         # which would otherwise reset the elapsed counter every loop.
+        # The drift skip keys off MPRIS-reported duration (because the
+        # position-loop is a property of MPRIS' preview-clip mode), not
+        # the effective duration.
         new_start_ts, recomputed = compute_rpc_start_ts(
             prev_start_ts=self._rpc_start_ts,
             prev_track_key=self._rpc_track_key,
@@ -549,19 +562,13 @@ class DaemonWorker(QObject):
         )
         if recomputed:
             if is_new_track:
-                # New track — log raw values plus the iTunes-catalog
-                # duration (if cached) so duration mismatches are
-                # visible: e.g. MPRIS dur=673861 vs iTunes dur=278000
-                # tells us the browser integration is wrong about
-                # this song.
-                itunes_dur_dbg = self._cover_fetcher.get_duration_ms(
-                    track.artist, track.title, track.album
-                )
                 log.info(
-                    "RPC reset for new track: pos=%dms mpris_dur=%dms itunes_dur=%dms",
+                    "RPC reset for new track: pos=%dms mpris_dur=%dms itunes_dur=%dms"
+                    " effective=%dms",
                     track.position_ms,
                     track.duration_ms,
-                    itunes_dur_dbg,
+                    itunes_dur_ms,
+                    effective_duration_ms,
                 )
             else:
                 log.debug("RPC start resync — likely pause/resume or seek")
@@ -584,22 +591,22 @@ class DaemonWorker(QObject):
 
         album_for_display = _format_album_for_display(track.album, track.artist, track.title)
 
-        # Preview-clip mode: Apple Music's MPRIS reports an 8-15 s
-        # `mpris:length` while looping the preview, and the position
-        # field cycles 0→8→0 over and over. Even with iTunes giving us
-        # the real song length, Discord's elapsed counter resets every
-        # time Apple Music auto-advances to the next preview (which it
-        # does at the 8 s mark). The honest UI is to drop `start` AND
-        # `end` entirely — Discord then shows just the song name with
-        # no misleading progress bar.
-        is_preview_clip = 0 < track.duration_ms < 30_000
+        # Preview-clip mode for the Discord payload: drop start AND end
+        # when the *effective* track length is under 30 s. Using the
+        # effective duration (MPRIS overridden by iTunes when they
+        # disagree) means a brief MPRIS preview-clip glitch on a
+        # full-length song doesn't kill the progress bar — iTunes
+        # tells us the real song is 2:11, so we send start/end based
+        # on that instead of dropping them just because MPRIS said
+        # "14 s" for one poll.
+        is_short_track = 0 < effective_duration_ms < 30_000
 
         payload: dict = {
             "details": details[:128],
             "state": state[:128],
             "large_image": large_image,
         }
-        if not is_preview_clip:
+        if not is_short_track:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it
         # as a third visible line for LISTENING activity, and an
@@ -607,8 +614,8 @@ class DaemonWorker(QObject):
         if album_for_display and album_for_display.lower() != state.lower():
             payload["large_text"] = album_for_display[:128]
 
-        if not is_preview_clip and track.duration_ms > 0:
-            payload["end"] = self._rpc_start_ts + (track.duration_ms // 1000)
+        if not is_short_track and effective_duration_ms > 0:
+            payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
 
         # Prefer the iTunes-resolved song URL (links to the *specific* track)
         # over xesam:url from the browser tab (often the album / playlist page).

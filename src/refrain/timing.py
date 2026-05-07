@@ -7,6 +7,42 @@ suite can exercise it in isolation without the GUI runtime installed.
 from __future__ import annotations
 
 
+def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
+    """Choose the more trustworthy of MPRIS-reported and iTunes-catalog
+    durations.
+
+    Apple Music's MPRIS surface (chromium / firefox / plasma-browser-
+    integration) is unreliable about ``mpris:length``:
+
+    - During a brief preview-clip representation it reports 8-15 s on a
+      track that's actually 2-5 minutes long.
+    - During a playlist transition it sometimes reports the playlist
+      total ("7:21" or "9:33") instead of the current track's length.
+    - On the first MPRIS event after a track change it occasionally
+      keeps the previous track's duration for a poll cycle.
+
+    iTunes Search returns the canonical track length in milliseconds.
+    When we have it (cover-art lookup populated the cache) and it
+    disagrees with MPRIS by more than 15 %, we trust iTunes — the
+    "0:14" / "7:21" total flickers users were seeing in Discord were
+    Refrain faithfully forwarding whichever wrong value MPRIS sent.
+
+    Falls back to the MPRIS value when iTunes has no match (search
+    returned no result for this artist+title), so songs outside the
+    catalog still get a progress bar.
+    """
+    if itunes_dur_ms <= 0:
+        return mpris_dur_ms
+    if mpris_dur_ms <= 0:
+        return itunes_dur_ms
+    if mpris_dur_ms < 30_000 <= itunes_dur_ms:
+        return itunes_dur_ms
+    relative_delta = abs(mpris_dur_ms - itunes_dur_ms) / itunes_dur_ms
+    if relative_delta > 0.15:
+        return itunes_dur_ms
+    return mpris_dur_ms
+
+
 def compute_rpc_start_ts(
     prev_start_ts: int,
     prev_track_key: str,
