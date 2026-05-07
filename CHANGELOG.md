@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Inline release notes in Settings → Updates tab.** The tab
+  previously only had an auto-check toggle, last-checked label and a
+  "Check now" button — the actual release notes only showed up in
+  the popup when an update was available. Now the tab carries a
+  QTextBrowser that renders the same Markdown the popup uses, plus
+  "Current version" and "Latest known" labels. UpdateOrchestrator
+  gained a `releaseInfoFetched(release | None)` signal that fires
+  after every check (auto or manual, success or failure) so the tab
+  refreshes its contents regardless of the result.
+
+### Changed
+
+- **`os.chmod(tmp, 0o755)` on AppImage update replaced by mode
+  preservation** — read the running AppImage's mode and mirror it,
+  with `0o700` as fallback. CodeQL's
+  `py/overly-permissive-file` warning is gone, and an AppImage that
+  the user installed at `0o700` stays `0o700` across upgrades.
+- **More UI strings wrapped in `tr()`.** ~20 English-only strings in
+  `update_dialog.py` (status labels, button labels, header HTML) and
+  `log_window.py` (toolbar Level/Auto-scroll/Copy/Clear/Close)
+  weren't translatable. Refresh of `refrain_de.ts` brings the German
+  build to 125/125 finished translations.
+
 ## [0.2.3] - 2026-05-07
 
 A reliability + portability pass driven by hands-on testing across
