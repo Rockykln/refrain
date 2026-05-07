@@ -145,7 +145,7 @@ What's done, what's next, what's deliberately not in scope.
 - **Window-title cleanup** — no more "Refrain — Settings — Refrain"
   triple; Qt's auto-suffix is the only place "Refrain" appears.
 
-## Done — v0.2.1
+## Done — v0.2.1 (rolled into v0.2.2; never separately tagged)
 
 - **Settings UI overhaul** — consistent `QGroupBox` + form-layout
   across every tab, left-aligned group titles via stylesheet

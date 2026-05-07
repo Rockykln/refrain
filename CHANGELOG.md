@@ -411,6 +411,11 @@ of reliability + UX work driven by live-testing the v0.2.1 build.
 
 ## [0.2.1] - 2026-05-06
 
+> **Note:** v0.2.1 was never tagged or published as a separate
+> release. The changes documented below were rolled into the
+> subsequent v0.2.2 release. Kept here for changelog continuity —
+> see [v0.2.2](#022---2026-05-06) for the actually-shipped delta.
+
 Polish release built around the v0.2.0 surface. The Settings window got
 a UI overhaul, two notification cover-art races are gone, and the
 external code-review punch list landed in full (atomic config writes,
@@ -849,7 +854,7 @@ with a proper, installable Linux app.
 [0.2.4]: https://github.com/Rockykln/refrain/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/Rockykln/refrain/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/Rockykln/refrain/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/Rockykln/refrain/compare/v0.2.0...v0.2.1
+[0.2.1]: https://github.com/Rockykln/refrain/commit/6b339ba
 [0.2.0]: https://github.com/Rockykln/refrain/compare/v0.1.5...v0.2.0
 [0.1.5]: https://github.com/Rockykln/refrain/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/Rockykln/refrain/compare/v0.1.3...v0.1.4
