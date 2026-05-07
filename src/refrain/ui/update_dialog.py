@@ -7,6 +7,7 @@ upgrade, or surface the distro upgrade command).
 
 from __future__ import annotations
 
+import contextlib
 import logging
 
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
@@ -36,7 +37,12 @@ log = logging.getLogger(__name__)
 
 
 class _UpdateRunner(QThread):
-    """Runs the (potentially slow) network update on a background thread."""
+    """Runs the (potentially slow) network update on a background thread.
+
+    Forwards Qt's ``isInterruptionRequested`` to ``apply_update`` so the
+    chunked AppImage download can break out promptly when the user hits
+    Cancel.
+    """
 
     finished_with_result = Signal(object)  # UpdateResult
 
@@ -46,7 +52,11 @@ class _UpdateRunner(QThread):
         self._install_type = install_type
 
     def run(self) -> None:
-        result = apply_update(self._release, self._install_type)
+        result = apply_update(
+            self._release,
+            self._install_type,
+            cancelled=self.isInterruptionRequested,
+        )
         self.finished_with_result.emit(result)
 
 
@@ -129,26 +139,62 @@ class UpdateDialog(QDialog):
 
         # Network/subprocess work on a background thread.
         self.update_btn.setEnabled(False)
-        self.close_btn.setEnabled(False)
         self.progress.setVisible(True)
         self.status_label.setText(
             "Downloading…" if self._install_type == "appimage" else "Running pip…"
         )
+        # Repurpose the "Later" button as Cancel while the runner is alive.
+        # Only the AppImage path actually polls the cancel flag — pip is a
+        # subprocess we don't try to interrupt mid-flight.
+        if self._install_type == "appimage":
+            self.close_btn.setText("Cancel")
+            self.close_btn.clicked.disconnect()
+            self.close_btn.clicked.connect(self._on_cancel_clicked)
+        else:
+            self.close_btn.setEnabled(False)
 
         self._runner = _UpdateRunner(self._release, self._install_type, self)
         self._runner.finished_with_result.connect(self._on_runner_finished)
         self._runner.start()
 
+    def _on_cancel_clicked(self) -> None:
+        if self._runner is None or not self._runner.isRunning():
+            return
+        log.info("User requested update cancel")
+        self.status_label.setText("Cancelling…")
+        self.close_btn.setEnabled(False)
+        self._runner.requestInterruption()
+
     def _on_runner_finished(self, result: UpdateResult) -> None:
         self.progress.setVisible(False)
         self.update_btn.setEnabled(True)
+        # Restore the original "Later" wiring whether or not we showed Cancel.
         self.close_btn.setEnabled(True)
+        self.close_btn.setText("Later")
+        with contextlib.suppress(TypeError):
+            self.close_btn.clicked.disconnect()
+        self.close_btn.clicked.connect(self.reject)
         self._show_result(result)
 
     def _show_result(self, result: UpdateResult) -> None:
+        if result.cancelled:
+            self.status_label.setText("Update cancelled.")
+            return
         if result.success:
             QMessageBox.information(self, "Update complete", result.message)
             if result.needs_restart:
                 self.accept()
         else:
             QMessageBox.warning(self, "Update", result.message)
+
+    def closeEvent(self, event) -> None:
+        # If the user closes the window while a download is running, treat
+        # it as a cancel: ask the runner to stop and wait briefly so the
+        # tmp file is cleaned up before we vanish. The runner's
+        # finished_with_result will not fire after we close, so we accept
+        # the close once the thread has joined.
+        if self._runner is not None and self._runner.isRunning():
+            log.info("Update dialog closed during download — cancelling")
+            self._runner.requestInterruption()
+            self._runner.wait(3000)
+        super().closeEvent(event)

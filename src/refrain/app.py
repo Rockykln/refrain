@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 
 from PySide6.QtCore import (
+    QCoreApplication,
     QLibraryInfo,
     QLocale,
     QObject,
@@ -45,7 +46,7 @@ from refrain.ui.settings_window import SettingsWindow
 from refrain.ui.tray import TrayIcon
 from refrain.ui.update_dialog import UpdateDialog
 from refrain.ui.welcome_dialog import WelcomeDialog
-from refrain.updater import ReleaseInfo, check_latest_release
+from refrain.updater import ReleaseInfo, check_latest_release, cleanup_orphan_downloads
 
 log = logging.getLogger(__name__)
 
@@ -78,6 +79,83 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Set log level to DEBUG and open the live-log window on startup.",
     )
     return p.parse_args(argv)
+
+
+def _detect_system_qt6_version() -> str | None:
+    """Walk libQt6Core.so symlinks to read the system Qt 6 version.
+
+    Returns ``"6.11.0"``-shaped strings, or ``None`` if no system Qt 6 is
+    discoverable. Cheap (two stat calls) — avoids spawning ``qmake6``.
+    """
+    candidates = [
+        Path("/usr/lib/libQt6Core.so.6"),
+        Path("/usr/lib64/libQt6Core.so.6"),
+        Path("/usr/lib/x86_64-linux-gnu/libQt6Core.so.6"),
+        Path("/usr/lib/aarch64-linux-gnu/libQt6Core.so.6"),
+    ]
+    for c in candidates:
+        if not c.is_symlink() and not c.exists():
+            continue
+        try:
+            real = c.resolve()
+        except OSError:
+            continue
+        # libQt6Core.so.6.11.0 → "6.11.0"
+        _, _, version = real.name.partition(".so.")
+        if version and version[0].isdigit():
+            return version
+    return None
+
+
+def _augment_qt_plugin_path() -> None:
+    """Make the system's Qt style plugins discoverable when running
+    against a bundled PySide6 wheel.
+
+    The PySide6 PyPI wheel ships its own copy of Qt **without** distro
+    style plugins (no ``styles/breeze6.so`` etc.), so a pip/pipx install
+    of Refrain on KDE Plasma falls back to the Fusion style and looks
+    visibly different from the AUR / system build that runs against the
+    distro PySide6.
+
+    If the host has ``/usr/lib/qt6/plugins`` and the system Qt's MAJOR.MINOR
+    matches ours, we prepend that path so Qt finds the styles. We require
+    a minor-version match because mixing plugins across Qt minors risks
+    a silent ABI break.
+
+    Must be called before ``QApplication`` is constructed — Qt resolves
+    the platform/style plugin during construction.
+    """
+    if sys.platform != "linux":
+        return
+    bundled_plugins = Path(QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))
+    if (bundled_plugins / "styles").is_dir():
+        # PySide6 already shipped style plugins (or we're running against
+        # the distro PySide6 whose plugin path *is* /usr/lib/qt6/plugins).
+        return
+    system_plugins = Path("/usr/lib/qt6/plugins")
+    if not (system_plugins / "styles").is_dir():
+        return
+    bundled_version = QLibraryInfo.version().toString()
+    system_version = _detect_system_qt6_version()
+    if not system_version:
+        log.debug("Could not determine system Qt 6 version; not augmenting plugin path")
+        return
+    bundled_minor = ".".join(bundled_version.split(".")[:2])
+    system_minor = ".".join(system_version.split(".")[:2])
+    if bundled_minor != system_minor:
+        log.debug(
+            "Qt minor mismatch (bundled=%s system=%s); not augmenting plugin path",
+            bundled_version,
+            system_version,
+        )
+        return
+    log.info(
+        "Augmenting Qt plugin path with %s (bundled Qt %s, system Qt %s)",
+        system_plugins,
+        bundled_version,
+        system_version,
+    )
+    QCoreApplication.addLibraryPath(str(system_plugins))
 
 
 def _user_apps_dir() -> Path:
@@ -329,6 +407,10 @@ def main() -> int:
     qInstallMessageHandler(_qt_message_handler)
     log.info("Refrain %s starting", __version__)
 
+    # Self-heal a previously interrupted AppImage update before anything
+    # else touches the filesystem.
+    cleanup_orphan_downloads()
+
     # Wire dbus-python's dispatch into a GLib main loop *before* anything
     # touches the session bus. Has to happen before MPRISSource /
     # BluetoothSource construct their first SessionBus, otherwise the
@@ -342,6 +424,8 @@ def main() -> int:
         _ensure_dbus_glib_loop()
     except Exception as e:
         log.debug("dbus-glib loop init skipped: %s", e)
+
+    _augment_qt_plugin_path()
 
     app = QApplication(sys.argv)
     app.setApplicationName("Refrain")

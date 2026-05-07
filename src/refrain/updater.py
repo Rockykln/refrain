@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -223,15 +224,47 @@ class UpdateResult:
     success: bool
     message: str
     needs_restart: bool = False
+    cancelled: bool = False
 
 
-def apply_update(release: ReleaseInfo, install_type: str | None = None) -> UpdateResult:
+class _DownloadCancelled(Exception):
+    """Internal — raised from the chunked download loop on user cancel."""
+
+
+def cleanup_orphan_downloads() -> None:
+    """Remove a leftover ``.AppImage.new`` from a previously interrupted update.
+
+    Normally ``_apply_appimage`` removes its ``tmp`` file on any error
+    path, but a hard kill (SIGKILL, OOM, power loss) bypasses that
+    cleanup and leaves the partial download next to the running binary
+    forever. Calling this once at startup makes the situation
+    self-healing.
+    """
+    appimage_path = os.environ.get("APPIMAGE")
+    if not appimage_path:
+        return
+    target = Path(appimage_path)
+    tmp = target.with_suffix(target.suffix + ".new")
+    if not tmp.exists():
+        return
+    try:
+        tmp.unlink()
+        log.info("Removed orphan update download: %s", tmp)
+    except OSError as e:
+        log.debug("Could not remove orphan update download %s: %s", tmp, e)
+
+
+def apply_update(
+    release: ReleaseInfo,
+    install_type: str | None = None,
+    cancelled: Callable[[], bool] | None = None,
+) -> UpdateResult:
     """Type-aware update. Never modifies system files."""
     install_type = install_type or detect_install_type()
     log.info("apply_update: target=%s install_type=%s", release.version, install_type)
 
     if install_type == "appimage":
-        return _apply_appimage(release)
+        return _apply_appimage(release, cancelled=cancelled)
     if install_type == "pip":
         return _apply_pip()
     if install_type == "dev":
@@ -258,7 +291,10 @@ def apply_update(release: ReleaseInfo, install_type: str | None = None) -> Updat
     )
 
 
-def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
+def _apply_appimage(
+    release: ReleaseInfo,
+    cancelled: Callable[[], bool] | None = None,
+) -> UpdateResult:
     appimage_path = os.environ.get("APPIMAGE")
     if not appimage_path:
         return UpdateResult(
@@ -287,8 +323,19 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
             release.appimage_url,
             headers={"User-Agent": _USER_AGENT},
         )
+        # Chunked read so we can poll the cancel flag between blocks.
+        # 64 KiB is large enough not to dominate syscall overhead and
+        # small enough to stay responsive on slow links (~50ms ticks
+        # at 1 MB/s).
+        chunk_size = 64 * 1024
         with urllib.request.urlopen(req, timeout=60) as r, open(tmp, "wb") as out:  # nosec B310
-            shutil.copyfileobj(r, out)
+            while True:
+                if cancelled is not None and cancelled():
+                    raise _DownloadCancelled()
+                chunk = r.read(chunk_size)
+                if not chunk:
+                    break
+                out.write(chunk)
         # Validate downloaded size matches the release manifest before we
         # replace the running binary. A truncated download (network drop,
         # mid-transfer disconnect) would otherwise overwrite the working
@@ -308,6 +355,12 @@ def _apply_appimage(release: ReleaseInfo) -> UpdateResult:
         os.chmod(tmp, 0o755)  # nosec B103  lgtm[py/overly-permissive-file]
         os.replace(tmp, target)
         log.info("AppImage update complete: %s now at v%s", target, release.version)
+    except _DownloadCancelled:
+        log.info("AppImage update cancelled by user")
+        if tmp.exists():
+            with contextlib.suppress(Exception):
+                tmp.unlink()
+        return UpdateResult(success=False, message="Update cancelled.", cancelled=True)
     except Exception as e:
         log.warning("AppImage update aborted: %s", e)
         if tmp.exists():
