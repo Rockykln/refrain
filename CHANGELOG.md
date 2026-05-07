@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Middle-click on the tray icon toggles play/pause.** Clicks the
+  PlayPause command on whichever MPRIS source Refrain is currently
+  attached to — same path as the tray-menu Play/Pause item, but
+  reachable without opening the menu. Plain left-click still opens
+  Settings; right-click still shows the menu.
+
+### Fixed
+
+- **Settings → Updates "Latest release notes" pane stayed empty
+  on every Refrain restart within the 24-hour update-check
+  cooldown** — `maybe_check_on_startup` short-circuited *before*
+  fetching anything when the cooldown was active, so
+  `releaseInfoFetched` never fired and `set_latest_release` never
+  populated the inline pane. The v0.2.6 workaround — re-fetching
+  on Updates-tab activation with `manual=True` — additionally
+  fired the "up to date" / "update available" popups on every tab
+  visit, which was its own bug. Startup now always fetches the
+  release info (silent, no popups) so the pane is populated
+  immediately; the cooldown only gates whether that fetch *also*
+  triggers the auto-popup. The on-tab-activation fetch is gone.
+
 ## [0.2.6] - 2026-05-07
 
 Localization expansion plus a bundle of reliability fixes accumulated

@@ -151,13 +151,6 @@ class SettingsWindow(QDialog):
     checkUpdatesRequested = Signal()
     showLogRequested = Signal()
     restartRequested = Signal()
-    # Fires when the user activates the Updates tab. The orchestrator
-    # uses this to auto-trigger a fetch if it doesn't have a cached
-    # release yet — without this, the inline release-notes pane stays
-    # on its placeholder string until the user manually clicks
-    # "Check for updates now", because the 24-hour startup cooldown
-    # blocks `maybe_check_on_startup`.
-    updatesTabRequested = Signal()
 
     def __init__(self, config: Config, parent: QWidget | None = None):
         super().__init__(parent)
@@ -185,9 +178,8 @@ class SettingsWindow(QDialog):
         self.tabs.setDocumentMode(True)
         self.tabs.addTab(self._build_general_tab(), self.tr("General"))
         self.tabs.addTab(self._build_sources_tab(), self.tr("Sources"))
-        self._updates_tab_index = self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
+        self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
         self.tabs.addTab(self._build_advanced_tab(), self.tr("Advanced"))
-        self.tabs.currentChanged.connect(self._on_tab_changed)
 
         self.cancel_btn = QPushButton(self.tr("Cancel"))
         self.apply_btn = QPushButton(self.tr("Apply"))
@@ -517,17 +509,6 @@ class SettingsWindow(QDialog):
             )
         body = release.body or self.tr("_No release notes provided._")
         self.release_notes_view.setMarkdown(prepare_release_notes(body))
-
-    def _on_tab_changed(self, index: int) -> None:
-        """Auto-trigger an update fetch the first time the user views
-        the Updates tab in this Refrain session, so the release-notes
-        pane populates without the user needing to click the Check
-        button. The orchestrator's slot is a no-op when a check is
-        already in flight or when a cached release is already loaded
-        (see app.py wireup), so re-emitting on every tab visit is
-        harmless."""
-        if index == getattr(self, "_updates_tab_index", -1):
-            self.updatesTabRequested.emit()
 
     # ====================================================================
     # Advanced tab

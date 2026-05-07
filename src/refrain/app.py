@@ -390,25 +390,35 @@ class UpdateOrchestrator(QObject):
         self._thread: QThread | None = None
         self._worker: _UpdateCheckWorker | None = None
         self._manual = False
+        # When True, the in-flight check is purely for populating the
+        # in-app release-notes pane — suppress all popups and don't
+        # bump last_check_ts (which gates the auto-nag cooldown).
+        self._silent = False
 
     @property
     def latest(self) -> ReleaseInfo | None:
         return self._latest
 
     def maybe_check_on_startup(self) -> None:
+        """Always fire one fetch on startup so the Settings → Updates
+        pane has data immediately. The 24-hour cooldown only gates
+        whether this fetch can ALSO trigger the auto-popup for new
+        releases — within the cooldown the fetch runs silently and
+        only refreshes the inline release-notes pane."""
         if not self._config.update.auto_check:
             return
         elapsed = time.time() - self._config.update.last_check_ts
-        if elapsed < self.UPDATE_CHECK_COOLDOWN_S:
-            log.debug("Auto-update check skipped (cooldown, %.0fs since last)", elapsed)
-            return
-        self.check_now(manual=False)
+        silent = elapsed < self.UPDATE_CHECK_COOLDOWN_S
+        if silent:
+            log.debug("Auto-update check running silently (cooldown active)")
+        self.check_now(manual=False, silent=silent)
 
-    def check_now(self, manual: bool = True) -> None:
+    def check_now(self, manual: bool = True, silent: bool = False) -> None:
         if self._thread is not None:
             log.debug("Update check already in progress")
             return
         self._manual = manual
+        self._silent = silent
         self._thread = QThread()
         self._thread.setObjectName("refrain-update-check")
         self._worker = _UpdateCheckWorker()
@@ -418,20 +428,27 @@ class UpdateOrchestrator(QObject):
         self._thread.start()
 
     def _on_check_finished(self, release: ReleaseInfo | None) -> None:
-        self._config.update.last_check_ts = int(time.time())
-        try:
-            self._config.save()
-        except Exception as e:
-            log.debug("Could not persist last_check_ts: %s", e)
+        manual = self._manual
+        silent = self._silent
+        self._manual = False
+        self._silent = False
+
+        # Only bump the cooldown timestamp when this was a real auto-
+        # nag check. A silent pane-refresh shouldn't reset the cooldown
+        # — otherwise every startup would block the next day's auto-
+        # nag. Manual checks always count as "I just checked".
+        if not silent:
+            self._config.update.last_check_ts = int(time.time())
+            try:
+                self._config.save()
+            except Exception as e:
+                log.debug("Could not persist last_check_ts: %s", e)
 
         if self._thread is not None:
             self._thread.quit()
             self._thread.wait(1500)
             self._thread = None
             self._worker = None
-
-        manual = self._manual
-        self._manual = False
 
         # Always fan out the raw fetch result so subscribers (Settings
         # tab, etc.) can render whatever state they want regardless of
@@ -440,6 +457,15 @@ class UpdateOrchestrator(QObject):
         if release is not None:
             self._latest = release
         self.releaseInfoFetched.emit(release)
+
+        # Silent fetches stop here — the pane is populated, no nags.
+        if silent:
+            log.info(
+                "Silent update check finished: latest=%s, current=%s",
+                release.version if release else "?",
+                __version__,
+            )
+            return
 
         if release is None:
             log.info("Update check: no release info returned")
@@ -607,19 +633,6 @@ def main() -> int:
         lambda msg: QMessageBox.warning(settings, _tr("app", "Updates"), msg)
     )
     updater.releaseInfoFetched.connect(settings.set_latest_release)
-
-    # Auto-fetch on first visit to Settings → Updates so the inline
-    # release-notes pane populates without the user needing to click
-    # "Check for updates now". Skipped when we already have a cached
-    # release this session — re-fetching every tab open is wasteful
-    # and can hit GitHub's unauthenticated rate limit on multi-restart
-    # debug sessions. The 24-hour startup cooldown stays in place for
-    # actual auto-checks; this is opt-in via tab activation.
-    def _maybe_fetch_for_tab() -> None:
-        if updater.latest is None and updater._thread is None:
-            updater.check_now(manual=True)
-
-    settings.updatesTabRequested.connect(_maybe_fetch_for_tab)
 
     # Log-window wireup
     def _show_log() -> None:
