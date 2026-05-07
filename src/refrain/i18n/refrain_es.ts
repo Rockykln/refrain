@@ -425,19 +425,19 @@ Después de confirmar, pulsa Aplicar en la parte inferior de Ajustes para guarda
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
-        <source>⏮  Previous</source>
-        <translation>⏮  Anterior</translation>
+        <source>Previous</source>
+        <translation>Anterior</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="86" />
         <location filename="../ui/tray.py" line="159" />
-        <source>⏵  Play</source>
-        <translation>⏵  Reproducir</translation>
+        <source>Play</source>
+        <translation>Reproducir</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="88" />
-        <source>⏭  Next</source>
-        <translation>⏭  Siguiente</translation>
+        <source>Next</source>
+        <translation>Siguiente</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="102" />
@@ -457,8 +457,8 @@ Después de confirmar, pulsa Aplicar en la parte inferior de Ajustes para guarda
     </message>
     <message>
         <location filename="../ui/tray.py" line="111" />
-        <source>⟳  Restart Refrain</source>
-        <translation>⟳  Reiniciar Refrain</translation>
+        <source>Restart Refrain</source>
+        <translation>Reiniciar Refrain</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="113" />
@@ -467,8 +467,8 @@ Después de confirmar, pulsa Aplicar en la parte inferior de Ajustes para guarda
     </message>
     <message>
         <location filename="../ui/tray.py" line="157" />
-        <source>⏸  Pause</source>
-        <translation>⏸  Pausar</translation>
+        <source>Pause</source>
+        <translation>Pausar</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="164" />

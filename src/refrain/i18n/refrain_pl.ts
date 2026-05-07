@@ -425,19 +425,19 @@ Po potwierdzeniu kliknij Zastosuj na dole okna Ustawień, aby zapisać reset.</t
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
-        <source>⏮  Previous</source>
-        <translation>⏮  Poprzedni</translation>
+        <source>Previous</source>
+        <translation>Poprzedni</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="86" />
         <location filename="../ui/tray.py" line="159" />
-        <source>⏵  Play</source>
-        <translation>⏵  Odtwórz</translation>
+        <source>Play</source>
+        <translation>Odtwórz</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="88" />
-        <source>⏭  Next</source>
-        <translation>⏭  Następny</translation>
+        <source>Next</source>
+        <translation>Następny</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="102" />
@@ -457,8 +457,8 @@ Po potwierdzeniu kliknij Zastosuj na dole okna Ustawień, aby zapisać reset.</t
     </message>
     <message>
         <location filename="../ui/tray.py" line="111" />
-        <source>⟳  Restart Refrain</source>
-        <translation>⟳  Uruchom ponownie Refrain</translation>
+        <source>Restart Refrain</source>
+        <translation>Uruchom ponownie Refrain</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="113" />
@@ -467,8 +467,8 @@ Po potwierdzeniu kliknij Zastosuj na dole okna Ustawień, aby zapisać reset.</t
     </message>
     <message>
         <location filename="../ui/tray.py" line="157" />
-        <source>⏸  Pause</source>
-        <translation>⏸  Pauza</translation>
+        <source>Pause</source>
+        <translation>Pauza</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="164" />

@@ -92,13 +92,13 @@ class TrayIcon(QObject):
         # the user's Plasma / GNOME / Breeze icon set; a missing theme
         # icon falls back to a null QIcon and the row degrades to
         # text-only without breaking layout.
-        self._previous_action = QAction(self.tr("⏮  Previous"))
+        self._previous_action = QAction(self.tr("Previous"))
         self._previous_action.setIcon(QIcon.fromTheme("media-skip-backward"))
         self._previous_action.triggered.connect(self.previousRequested.emit)
-        self._play_pause_action = QAction(self.tr("⏵  Play"))
+        self._play_pause_action = QAction(self.tr("Play"))
         self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
         self._play_pause_action.triggered.connect(self.playPauseRequested.emit)
-        self._next_action = QAction(self.tr("⏭  Next"))
+        self._next_action = QAction(self.tr("Next"))
         self._next_action.setIcon(QIcon.fromTheme("media-skip-forward"))
         self._next_action.triggered.connect(self.nextRequested.emit)
 
@@ -132,7 +132,7 @@ class TrayIcon(QObject):
         log_action.setIcon(QIcon.fromTheme("view-list-text"))
         log_action.triggered.connect(self.logRequested.emit)
         menu.addSeparator()
-        restart_action = menu.addAction(self.tr("⟳  Restart Refrain"))
+        restart_action = menu.addAction(self.tr("Restart Refrain"))
         restart_action.setIcon(QIcon.fromTheme("view-refresh"))
         restart_action.triggered.connect(self.restartRequested.emit)
         quit_action = menu.addAction(self.tr("Quit Refrain"))
@@ -195,9 +195,11 @@ class TrayIcon(QObject):
         if icon is not None:
             self._tray.setIcon(icon)
         if status == PlaybackStatus.PLAYING:
-            self._play_pause_action.setText(self.tr("⏸  Pause"))
+            self._play_pause_action.setText(self.tr("Pause"))
+            self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-pause"))
         else:
-            self._play_pause_action.setText(self.tr("⏵  Play"))
+            self._play_pause_action.setText(self.tr("Play"))
+            self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
 
     def set_update_available(self, available: bool, version: str = "") -> None:
         if available and version:

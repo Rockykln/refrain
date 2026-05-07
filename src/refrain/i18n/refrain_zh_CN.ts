@@ -425,19 +425,19 @@ After confirming, click Apply at the bottom of the Settings window to save the r
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
-        <source>⏮  Previous</source>
-        <translation>⏮  上一首</translation>
+        <source>Previous</source>
+        <translation>上一首</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="86" />
         <location filename="../ui/tray.py" line="159" />
-        <source>⏵  Play</source>
-        <translation>⏵  播放</translation>
+        <source>Play</source>
+        <translation>播放</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="88" />
-        <source>⏭  Next</source>
-        <translation>⏭  下一首</translation>
+        <source>Next</source>
+        <translation>下一首</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="102" />
@@ -457,8 +457,8 @@ After confirming, click Apply at the bottom of the Settings window to save the r
     </message>
     <message>
         <location filename="../ui/tray.py" line="111" />
-        <source>⟳  Restart Refrain</source>
-        <translation>⟳  重启 Refrain</translation>
+        <source>Restart Refrain</source>
+        <translation>重启 Refrain</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="113" />
@@ -467,8 +467,8 @@ After confirming, click Apply at the bottom of the Settings window to save the r
     </message>
     <message>
         <location filename="../ui/tray.py" line="157" />
-        <source>⏸  Pause</source>
-        <translation>⏸  暂停</translation>
+        <source>Pause</source>
+        <translation>暂停</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="164" />

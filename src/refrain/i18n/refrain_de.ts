@@ -425,19 +425,19 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
     </message>
     <message>
         <location filename="../ui/tray.py" line="84"/>
-        <source>⏮  Previous</source>
-        <translation>⏮  Zurück</translation>
+        <source>Previous</source>
+        <translation>Zurück</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="86"/>
         <location filename="../ui/tray.py" line="159"/>
-        <source>⏵  Play</source>
-        <translation>⏵  Wiedergabe</translation>
+        <source>Play</source>
+        <translation>Wiedergabe</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="88"/>
-        <source>⏭  Next</source>
-        <translation>⏭  Weiter</translation>
+        <source>Next</source>
+        <translation>Weiter</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="102"/>
@@ -457,8 +457,8 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
     </message>
     <message>
         <location filename="../ui/tray.py" line="111"/>
-        <source>⟳  Restart Refrain</source>
-        <translation>⟳  Refrain neu starten</translation>
+        <source>Restart Refrain</source>
+        <translation>Refrain neu starten</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="113"/>
@@ -467,8 +467,8 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
     </message>
     <message>
         <location filename="../ui/tray.py" line="157"/>
-        <source>⏸  Pause</source>
-        <translation>⏸  Pause</translation>
+        <source>Pause</source>
+        <translation>Pause</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="164"/>

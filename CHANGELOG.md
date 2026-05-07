@@ -23,7 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `view-refresh`, `media-skip-backward`, `media-playback-start`,
   `media-playback-pause`, `media-skip-forward`) which match the
   user's Plasma / GNOME / Breeze icon set. Update + Quit keep
-  their bundled coloured-accent SVGs.
+  their bundled coloured-accent SVGs. Source strings for the
+  playback / restart actions dropped their unicode-glyph prefixes
+  (`⏮ ⏵ ⏸ ⏭ ⟳`) so the new icons don't read as duplicates next
+  to them; all 9 .ts files updated to match. The Quit ✕ glyph was
+  redrawn to fill its 16×16 viewBox edge-to-edge so it visually
+  matches the theme icons' pixel weight instead of looking shrunk.
 
 ### Fixed
 
