@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-05-07
+
+Localization expansion plus a bundle of reliability fixes accumulated
+since v0.2.5 across the config layer, restart path, cover cache, IPC
+sandbox bridge, and update flow.
+
+### Added
+
+- **8 new UI languages.** Refrain ships full translations (127 / 127
+  strings each) for Spanish (`es`), French (`fr`), Portuguese (`pt`),
+  Italian (`it`), Russian (`ru`), Polish (`pl`), Japanese (`ja`), and
+  Simplified Chinese (`zh_CN`) on top of the existing English source
+  + German. The Settings → Advanced → Language dropdown lists each
+  language under its native endonym ("Español", "Français",
+  "Português", "Italiano", "Русский", "Polski", "日本語",
+  "简体中文"). Picking a language restarts Refrain so the
+  QTranslator picks up the new `.qm`. Together with English and
+  German, this covers roughly 3 billion native speakers.
+
 ### Fixed
 
 - **GitHub release bodies were one-line "Full Changelog: …"** — the
@@ -960,7 +979,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/Rockykln/refrain/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/Rockykln/refrain/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/Rockykln/refrain/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/Rockykln/refrain/compare/v0.2.2...v0.2.3

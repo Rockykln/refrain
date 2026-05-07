@@ -51,6 +51,20 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.6" date="2026-05-07">
+      <description>
+        <p>
+          Localization expansion. Refrain now ships full UI
+          translations for 8 additional languages — Spanish,
+          French, Portuguese, Italian, Russian, Polish, Japanese,
+          and Simplified Chinese — covering an additional ~3
+          billion native speakers worldwide on top of English and
+          German. Also fixes the empty "Latest release notes" pane
+          that pipx-installed v0.2.5 showed on the Updates tab
+          when no auto-check had fetched the body yet.
+        </p>
+      </description>
+    </release>
     <release version="0.2.5" date="2026-05-07">
       <description>
         <p>
