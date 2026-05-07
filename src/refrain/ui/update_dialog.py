@@ -155,7 +155,11 @@ class UpdateDialog(QDialog):
         # subprocess we don't try to interrupt mid-flight.
         if self._install_type == "appimage":
             self.close_btn.setText(self.tr("Cancel"))
-            self.close_btn.clicked.disconnect()
+            # `disconnect()` raises TypeError when the signal has no
+            # connections — defensive in case _on_update_clicked is
+            # ever re-entered between runner-start and runner-finish.
+            with contextlib.suppress(TypeError):
+                self.close_btn.clicked.disconnect()
             self.close_btn.clicked.connect(self._on_cancel_clicked)
         else:
             self.close_btn.setEnabled(False)

@@ -54,6 +54,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tagged or published; its content rolled into v0.2.2). Replaced
   with a commit-hash link to `6b339ba`. ROADMAP gained a matching
   `(rolled into v0.2.2; never separately tagged)` suffix.
+- **Settings → Apply with a non-writable config directory crashed
+  silently.** `Config.save` raised OSError (read-only home, disk
+  full, permissions). PySide6's signal-slot machinery logged
+  "uncaught exception in slot" and Apply visibly did nothing.
+  Now wrapped in try/except: the user gets a `QMessageBox.critical`
+  naming the path + the OS error, and the in-memory daemon state
+  still updates so the rest of the session works.
+- **`autostart.enable` / `disable` raised on filesystem failure**
+  with no user feedback. Now they return a bool and log a warning
+  on failure; Settings → Apply continues instead of crashing.
+- **Update dialog `_on_update_clicked` could TypeError on a
+  re-entered click** — `close_btn.clicked.disconnect()` raises if
+  the signal has no connections (unusual but possible during
+  fast double-clicks while runner setup is in flight). Wrapped
+  in `contextlib.suppress(TypeError)` like the matching
+  `_on_runner_finished` path.
 
 ### Tests
 

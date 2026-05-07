@@ -83,15 +83,33 @@ def is_enabled() -> bool:
     return autostart_path().exists()
 
 
-def enable() -> None:
+def enable() -> bool:
+    """Write the autostart .desktop file. Returns True on success.
+
+    Returning False (instead of raising) keeps the Settings → Apply
+    flow alive when ~/.config/autostart/ is read-only or out of
+    space — the user gets a logged warning and the rest of Apply
+    (config save, daemon update_config) still runs.
+    """
     p = autostart_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(_desktop_entry(), encoding="utf-8")
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(_desktop_entry(), encoding="utf-8")
+    except OSError as e:
+        log.warning("Could not enable autostart at %s: %s", p, e)
+        return False
     log.info("Autostart enabled at %s", p)
+    return True
 
 
-def disable() -> None:
+def disable() -> bool:
     p = autostart_path()
-    if p.exists():
+    if not p.exists():
+        return True
+    try:
         p.unlink()
-        log.info("Autostart disabled (removed %s)", p)
+    except OSError as e:
+        log.warning("Could not disable autostart at %s: %s", p, e)
+        return False
+    log.info("Autostart disabled (removed %s)", p)
+    return True

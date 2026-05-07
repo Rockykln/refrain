@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__
 from refrain.config import Config
-from refrain.paths import assets_dir, state_dir
+from refrain.paths import assets_dir, config_path, state_dir
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.updater import ReleaseInfo, prepare_release_notes
 
@@ -752,7 +752,27 @@ class SettingsWindow(QDialog):
         c.advanced.log_level = self.log_level_combo.currentData() or "INFO"
         c.advanced.language = self.language_combo.currentData() or "system"
 
-        c.save()
+        try:
+            c.save()
+        except OSError as e:
+            # Disk full / read-only / permission denied: we can't
+            # silently swallow this — the user just clicked Apply and
+            # would otherwise see no feedback while their settings
+            # actually didn't get persisted (in-memory daemon state
+            # would update but reload a stale config on next launch).
+            log.exception("Could not save config")
+            QMessageBox.critical(
+                self,
+                self.tr("Could not save settings"),
+                self.tr(
+                    "Refrain could not write to {path}:\n\n{error}\n\n"
+                    "The settings you just changed will apply for this "
+                    "session but won't persist across a restart."
+                ).format(path=config_path(), error=e),
+            )
+            # Continue with applied.emit anyway — the in-memory
+            # daemon state should still be consistent for this
+            # session even if the file write failed.
         self.applied.emit(c)
         # Apply triggers a restart automatically when the user changed
         # the UI language or the Discord client_id. Both need a fresh
