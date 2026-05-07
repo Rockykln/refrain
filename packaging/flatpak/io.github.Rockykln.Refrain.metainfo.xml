@@ -51,6 +51,19 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.5" date="2026-05-07">
+      <description>
+        <p>
+          Same-day patch over v0.2.4. AUR and Flatpak updates now
+          spawn a terminal emulator running the package-manager
+          command (yay -Syu / flatpak update) instead of just
+          displaying the command in a popup for the user to retype.
+          The user confirms any sudo prompt in the terminal, the
+          package manager retains state. Falls back to the previous
+          message-box hint when no terminal is on PATH.
+        </p>
+      </description>
+    </release>
     <release version="0.2.4" date="2026-05-07">
       <description>
         <p>

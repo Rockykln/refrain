@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-05-07
+
+A same-day patch on top of v0.2.4 driven by user feedback that the
+AUR / Flatpak update path was effectively unusable from the GUI — the
+dialog only displayed the package-manager command in a popup and
+expected the user to copy + paste it into a terminal themselves.
+
+### Changed
+
+- **AUR + Flatpak updates now spawn a terminal automatically** with
+  the package-manager command pre-typed. The user confirms any sudo
+  prompt in the terminal, the package manager retains state, and
+  Refrain just needs a restart afterwards. The
+  "Refrain never modifies system files directly" guarantee is
+  preserved — we only spawn the user's own AUR helper / `flatpak`,
+  and only inside a terminal the user can read / cancel.
+  - `_run_in_terminal()` walks a probe list (konsole, gnome-terminal,
+    xfce4-terminal, kitty, alacritty, foot, xterm, wezterm) and
+    spawns the first hit. Falls back to the previous "show command
+    in a popup" behaviour when no terminal is on PATH.
+  - `_aur_helper()` picks `yay` → `paru` → `trizen` → `pikaur` in
+    that order; falls back to `sudo pacman -Syu refrain` when no
+    helper is installed.
+  - Update dialog button label flips from "Show update command" to
+    "Run update in terminal" when the install is AUR or Flatpak.
+
+### Tests
+
+- 4 new tests in `tests/test_updater.py` covering the fallback
+  message-box path, terminal-spawn for both AUR + Flatpak, and the
+  `_aur_helper` pacman fallback when no helper is installed.
+
 ## [0.2.4] - 2026-05-07
 
 A polish + reliability release built on the v0.2.3 distro-portability
@@ -812,7 +844,9 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/Rockykln/refrain/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/Rockykln/refrain/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/Rockykln/refrain/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/Rockykln/refrain/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/Rockykln/refrain/compare/v0.2.0...v0.2.1
