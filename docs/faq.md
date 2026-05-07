@@ -37,6 +37,50 @@ Install the **AppIndicator and KStatusNotifierItem** GNOME Shell
 extension. Refrain's tray uses `QSystemTrayIcon`, which on GNOME requires
 that extension to be visible.
 
+## Refrain isn't picking up my browser.
+
+Refrain reads track metadata from the browser's MPRIS publication. If
+nothing shows up while Apple Music is playing, run `playerctl -l` in a
+terminal — it lists every MPRIS player on your session bus.
+
+- **Empty list (or no Firefox / Chromium entry):** the browser isn't
+  publishing MPRIS at all. Common causes:
+  - **Firefox**: MPRIS is off by default on some installs. Open
+    `about:config` → set `media.hardwaremediakeys.enabled = true` →
+    fully quit Firefox (close all windows + wait for `pgrep firefox`
+    to be empty) → relaunch.
+  - **Snap-confined browsers** (Snap Firefox, Snap Chromium on
+    Ubuntu): the snap sandbox blocks D-Bus session-bus access for
+    MPRIS. Switch to a deb-channel browser:
+    - Mozilla's official Firefox deb:
+      <https://support.mozilla.org/en-US/kb/install-firefox-linux>
+    - Brave deb: <https://brave.com/linux/>
+    - Chromium from Debian/Ubuntu deb (not the Snap).
+  - **Flatpak browsers** without `--talk-name=org.mpris.MediaPlayer2.*`:
+    Flathub builds usually have it; self-built ones may not.
+- **Browser shows but track isn't picked up:** check that `xesam:url`
+  contains `music.apple.com`:
+  ```sh
+  playerctl --player=firefox metadata | grep xesam:url
+  ```
+  If the URL field is empty or points elsewhere, Apple Music's tab
+  isn't the active media tab — switch to it and start playback.
+
+## How do I add a browser that isn't in the Settings list?
+
+*Settings → Sources → Detected browsers → Other (comma-separated)*.
+Enter a substring of the browser's MPRIS bus name. Find it via
+`playerctl -l` while a media tab is playing — e.g. for Floorp the
+substring is `floorp`. Save with *Apply*.
+
+## Bluetooth: how do I get my iPhone / phone showing up?
+
+See the dedicated walkthrough at [`docs/bluetooth.md`](bluetooth.md).
+Quick version: pair the phone in your desktop's Bluetooth manager,
+connect it, start music on the phone, then in Refrain
+*Settings → Sources → Bluetooth* turn the toggle on and pick the
+device from the dropdown.
+
 ## Refrain is already running but the settings window won't reopen.
 
 Click the tray icon. The settings window is normally hidden, not closed —

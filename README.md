@@ -285,6 +285,8 @@ tray + controls running.
 
 - [Architecture overview](docs/architecture.md) — threads, D-Bus surface, file paths
 - [FAQ](docs/faq.md)
+- [Bluetooth quick-start](docs/bluetooth.md) — pair + AVRCP setup walkthrough
+- [Test matrix](docs/test-matrix.md) — supported distros, smoke-check checklist
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md) — dev setup, testing, code style

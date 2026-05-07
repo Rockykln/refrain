@@ -657,4 +657,17 @@ Ohne Discord-Status fortfahren?</translation>
         <translation>Die Discord-Anwendungs-ID ist eine 17- bis 19-stellige Zahl. Prüfe den Wert, den du aus dem Developer Portal kopiert hast.</translation>
     </message>
 </context>
+<context>
+    <name>app</name>
+    <message>
+        <location filename="../app.py" line="732"/>
+        <source>Updates</source>
+        <translation>Aktualisierungen</translation>
+    </message>
+    <message>
+        <location filename="../app.py" line="733"/>
+        <source>No update information available yet. Try again in a moment.</source>
+        <translation>Noch keine Update-Information vorhanden. Bitte gleich erneut versuchen.</translation>
+    </message>
+</context>
 </TS>

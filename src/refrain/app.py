@@ -509,10 +509,16 @@ def main() -> int:
     # created — strings are looked up at construction time.
     app._refrain_translators = _install_translators(app, config.advanced.language)
 
+    _tr = QCoreApplication.translate
+
     try:
         bus_lock = acquire_lock()
     except AlreadyRunning:
-        QMessageBox.information(None, "Already running", "Refrain is already running.")
+        QMessageBox.information(
+            None,
+            _tr("app", "Already running"),
+            _tr("app", "Refrain is already running."),
+        )
         return 0
     app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
 
@@ -520,19 +526,22 @@ def main() -> int:
         log.error("No system tray available — refusing to start")
         QMessageBox.critical(
             None,
-            "No system tray",
-            "No system tray available. Refrain lives in the tray, so it "
-            "needs a StatusNotifierItem-aware host. Common fixes:\n\n"
-            "• GNOME — install the 'AppIndicator and KStatusNotifierItem "
-            "Support' extension, then re-run Refrain.\n"
-            "• MATE — install 'mate-applet-statusnotifier'.\n"
-            "• XFCE — add 'xfce4-statusnotifier-plugin' to your panel.\n"
-            "• Hyprland / Sway / i3 / river — use a status bar with "
-            "StatusNotifierItem support (waybar's 'tray' module, polybar, "
-            "i3status-rust 'tray', …).\n"
-            "• KDE Plasma / Cinnamon / LXQt / Budgie — should work out "
-            "of the box; if not, your panel/bar may have crashed — try "
-            "logging out and back in.",
+            _tr("app", "No system tray"),
+            _tr(
+                "app",
+                "No system tray available. Refrain lives in the tray, so it "
+                "needs a StatusNotifierItem-aware host. Common fixes:\n\n"
+                "• GNOME — install the 'AppIndicator and KStatusNotifierItem "
+                "Support' extension, then re-run Refrain.\n"
+                "• MATE — install 'mate-applet-statusnotifier'.\n"
+                "• XFCE — add 'xfce4-statusnotifier-plugin' to your panel.\n"
+                "• Hyprland / Sway / i3 / river — use a status bar with "
+                "StatusNotifierItem support (waybar's 'tray' module, polybar, "
+                "i3status-rust 'tray', …).\n"
+                "• KDE Plasma / Cinnamon / LXQt / Budgie — should work out "
+                "of the box; if not, your panel/bar may have crashed — try "
+                "logging out and back in.",
+            ),
         )
         return 1
 
@@ -569,11 +578,13 @@ def main() -> int:
     updater.checkUpToDate.connect(
         lambda v: QMessageBox.information(
             settings,
-            "Updates",
-            f"You're already on the latest version ({v}).",
+            _tr("app", "Updates"),
+            _tr("app", "You're already on the latest version ({version}).").format(version=v),
         )
     )
-    updater.checkFailed.connect(lambda msg: QMessageBox.warning(settings, "Updates", msg))
+    updater.checkFailed.connect(
+        lambda msg: QMessageBox.warning(settings, _tr("app", "Updates"), msg)
+    )
     updater.releaseInfoFetched.connect(settings.set_latest_release)
 
     # Log-window wireup
@@ -718,8 +729,10 @@ def _open_update_dialog_factory(updater: UpdateOrchestrator, parent_widget):
         if release is None:
             QMessageBox.information(
                 parent_widget,
-                "Updates",
-                "No update information available yet. Try again in a moment.",
+                QCoreApplication.translate("app", "Updates"),
+                QCoreApplication.translate(
+                    "app", "No update information available yet. Try again in a moment."
+                ),
             )
             return
         dlg = UpdateDialog(release, parent=parent_widget)
