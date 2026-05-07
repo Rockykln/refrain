@@ -15,22 +15,102 @@ from refrain.paths import config_path
 log = logging.getLogger(__name__)
 
 
+def _coerce_value(annot, name: str, value):
+    """Best-effort coercion of a single config value to its declared
+    field type. Raises TypeError when the value can't be made to fit.
+
+    Coercion rules:
+      bool → accept bool; "true"/"false"/"yes"/"no"/"0"/"1" strings
+        from a hand-edit get converted; otherwise reject.
+      int  → accept int (but reject bool, since
+        ``poll_interval_ms = true`` is much more likely a typo than
+        a literal 1); coerce floats by truncating; coerce numeric
+        strings; reject otherwise.
+      str  → accept str; coerce other primitives via str(); reject
+        otherwise.
+    """
+    if annot is bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            low = value.strip().lower()
+            if low in ("true", "1", "yes"):
+                return True
+            if low in ("false", "0", "no"):
+                return False
+        if isinstance(value, (int, float)):
+            return bool(value)
+        raise TypeError(f"{name}={value!r} is not a bool")
+    if annot is int:
+        if isinstance(value, bool):
+            raise TypeError(f"{name}={value!r} is bool, not int")
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str) and value.strip().lstrip("-").isdigit():
+            return int(value.strip())
+        raise TypeError(f"{name}={value!r} is not an int")
+    if annot is str:
+        if isinstance(value, str):
+            return value
+        # Accept numeric primitives (rare hand-edit case where someone
+        # wrote `client_id = 1234` instead of `"1234"`). Reject bool
+        # explicitly — `log_level = false` is much more likely a typo
+        # for `log_level = "INFO"` than the literal string "False".
+        if isinstance(value, bool):
+            raise TypeError(f"{name}={value!r} is bool, not str")
+        if isinstance(value, (int, float)):
+            return str(value)
+        raise TypeError(f"{name}={value!r} is not a str")
+    # Un-annotated / non-primitive field type — accept as-is.
+    return value
+
+
+# Populated lazily from typing.get_type_hints() the first time each
+# section is loaded. Keyed by ``cls.__qualname__`` so reloads (tests,
+# hot-reload) refresh per-section without rebuilding everything.
+_DATACLASS_HINTS: dict[str, dict[str, type]] = {}
+
+
 def _construct(cls, payload):
-    """Build a dataclass from ``payload`` while ignoring unknown keys.
+    """Build a dataclass from ``payload`` while ignoring unknown keys
+    AND coercing/dropping wrongly-typed values.
 
     Plain ``cls(**payload)`` raises TypeError on any key that isn't a
     declared field — including keys written by a *newer* Refrain that
     the user has since downgraded from, or hand-edited typos. The
     surrounding except in ``Config.load`` would then drop the *whole*
     config back to defaults, silently losing every other setting the
-    user picked. Filtering first means a single stray key just gets
+    user picked. Filtering + per-field coercion means a single stray
+    key (or a wrong type, e.g. ``log_level = false``) just gets
     dropped (with a warning) and the rest of the section survives.
     """
+    import typing
+
+    qual = cls.__qualname__
+    if qual not in _DATACLASS_HINTS:
+        _DATACLASS_HINTS[qual] = typing.get_type_hints(cls)
+    hints = _DATACLASS_HINTS[qual]
+
     if not payload:
         return cls()
-    known = {f.name for f in dataclasses.fields(cls)}
-    accepted = {k: v for k, v in payload.items() if k in known}
-    dropped = set(payload) - known
+    known_field_names = {f.name for f in dataclasses.fields(cls)}
+    accepted: dict = {}
+    dropped: list[str] = []
+    for k, v in payload.items():
+        if k not in known_field_names:
+            dropped.append(k)
+            continue
+        try:
+            accepted[k] = _coerce_value(hints.get(k), k, v)
+        except (TypeError, ValueError) as e:
+            log.warning(
+                "Config: dropping wrongly-typed %s.%s value (%s) — using default",
+                cls.__name__,
+                k,
+                e,
+            )
     if dropped:
         log.warning(
             "Config: ignoring unknown %s keys %s — likely from a different "

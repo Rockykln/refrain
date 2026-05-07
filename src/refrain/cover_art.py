@@ -16,6 +16,7 @@ Caching layout:
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
@@ -142,12 +143,20 @@ def _read_cache(key: str) -> TrackLookup | None:
 
 
 def _write_cache(key: str, info: TrackLookup) -> None:
+    """Write the URL-cache .txt file. Best-effort — a failure here
+    must not propagate up because the caller is in a worker-thread
+    Future and the in-memory cache is already populated. The user
+    just won't get the disk-cache hit on next session, which is
+    acceptable degradation."""
     d = cover_cache_dir()
-    d.mkdir(parents=True, exist_ok=True)
-    (d / f"{key}.txt").write_text(
-        f"{info.cover_url}\n{info.song_url}\n{info.duration_ms}\n",
-        encoding="utf-8",
-    )
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        (d / f"{key}.txt").write_text(
+            f"{info.cover_url}\n{info.song_url}\n{info.duration_ms}\n",
+            encoding="utf-8",
+        )
+    except OSError as e:
+        log.debug("Cover URL-cache write failed for %s: %s", key, e)
 
 
 def image_path_for_url(url: str) -> Path:
@@ -179,13 +188,20 @@ def download_cover_image(url: str) -> Path | None:
         log.debug("Cover image download failed for %s: %s", url, e)
         return None
     log.debug("Cover downloaded: %s (%d bytes)", dest.name, len(data))
-    dest.parent.mkdir(parents=True, exist_ok=True)
     # Write to a sibling temp file and atomically rename. Without this,
     # a daemon kill mid-download would leave a truncated file that
     # `dest.exists() and st_size > 0` happily returns from on the next
     # tick, then notify-send would render a broken thumbnail forever
     # until the cache pruner evicts it.
     tmp = dest.with_suffix(dest.suffix + ".tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, dest)
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(data)
+        os.replace(tmp, dest)
+    except OSError as e:
+        log.debug("Cover image write failed for %s: %s", url, e)
+        if tmp.exists():
+            with contextlib.suppress(OSError):
+                tmp.unlink()
+        return None
     return dest

@@ -131,7 +131,13 @@ class DiscordRPC:
         # Sandbox-aware socket bridging — cheap (a few stat calls when
         # the standard path already works) and handles the
         # Snap/Flatpak Discord case without per-user manual symlinks.
-        _bridge_sandboxed_ipc_socket()
+        # Wrap defensively: a permission error on iterdir() of one of
+        # the sandbox candidate dirs (rare but possible on locked-down
+        # systems) shouldn't crash the connect path on every tick.
+        try:
+            _bridge_sandboxed_ipc_socket()
+        except Exception as e:
+            log.debug("Sandboxed-IPC bridge failed: %s", e)
         try:
             p = Presence(self.client_id)
             p.connect()

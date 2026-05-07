@@ -21,16 +21,31 @@ _REPLY_PRIMARY_OWNER = 1
 
 
 class AlreadyRunning(Exception):
-    pass
+    """Another Refrain process owns the well-known bus name."""
+
+
+class SessionBusUnavailable(Exception):
+    """The session bus itself isn't reachable — distinct from AlreadyRunning
+    so the caller can show a different (and accurate) error message.
+
+    This happens on headless / minimal systems without dbus-daemon, when
+    DBUS_SESSION_BUS_ADDRESS isn't set, or when Polkit / AppArmor denies
+    access. Callers shouldn't tell the user "Refrain is already
+    running" — that's confusing and wrong.
+    """
 
 
 def acquire() -> dbus.SessionBus:
-    bus = dbus.SessionBus()
+    try:
+        bus = dbus.SessionBus()
+    except dbus.DBusException as e:
+        log.error("Session bus unreachable: %s", e)
+        raise SessionBusUnavailable(str(e)) from e
     try:
         result = bus.request_name(BUS_NAME, _DO_NOT_QUEUE)
     except dbus.DBusException as e:
         log.error("Could not request bus name %s: %s", BUS_NAME, e)
-        raise
+        raise SessionBusUnavailable(str(e)) from e
 
     if result != _REPLY_PRIMARY_OWNER:
         raise AlreadyRunning(f"{BUS_NAME} is already in use")

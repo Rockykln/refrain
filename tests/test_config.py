@@ -175,6 +175,38 @@ def test_save_cleans_tmp_on_failure(tmp_path, monkeypatch):
     assert not (tmp_path / "config.toml.tmp").exists()
 
 
+def test_wrong_type_value_dropped_not_fatal(caplog):
+    """A hand-edited config that puts a bool where an int is expected
+    (e.g. ``log_level = false`` or ``poll_interval_ms = true``) used
+    to either crash on .upper() / arithmetic or be silently accepted
+    and crash deeper. _coerce_value should drop the bad value with a
+    warning and the rest of the section survives."""
+    payload = {
+        "advanced": {
+            "poll_interval_ms": "750",  # numeric string — should coerce
+            "log_level": False,  # bool, not str — should drop
+            "cover_cache_size": 200.5,  # float, not int — should coerce to 200
+            "idle_grace_s": True,  # bool, not int — should drop
+        },
+        "behavior": {
+            "autostart": "true",  # string "true" — should coerce
+            "notifications": "false",  # string "false" — should coerce
+        },
+    }
+    with caplog.at_level("WARNING", logger="refrain.config"):
+        c = Config.from_dict(payload)
+    assert c.advanced.poll_interval_ms == 750  # coerced from "750"
+    assert c.advanced.log_level == "INFO"  # default kept after False rejected
+    assert c.advanced.cover_cache_size == 200  # truncated from 200.5
+    assert c.advanced.idle_grace_s == 30  # default after True rejected
+    assert c.behavior.autostart is True
+    assert c.behavior.notifications is False
+    # Bad values produced warnings.
+    msgs = [rec.message for rec in caplog.records]
+    assert any("log_level" in m for m in msgs)
+    assert any("idle_grace_s" in m for m in msgs)
+
+
 def test_unknown_section_keys_dropped_not_fatal(caplog):
     """Forward/backward-compat: a key the current code doesn't know
     (e.g. written by a newer Refrain that the user has downgraded from,

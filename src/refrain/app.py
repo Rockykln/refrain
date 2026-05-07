@@ -41,7 +41,7 @@ from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
 from refrain.paths import assets_dir
-from refrain.single_instance import AlreadyRunning
+from refrain.single_instance import AlreadyRunning, SessionBusUnavailable
 from refrain.single_instance import acquire as acquire_lock
 from refrain.ui.log_window import LogWindow
 from refrain.ui.settings_window import SettingsWindow
@@ -340,7 +340,10 @@ def _apply_log_level(config: Config) -> None:
     Settings dialog takes effect immediately, instead of silently
     waiting for the next restart.
     """
-    level_name = (config.advanced.log_level or "INFO").upper()
+    # Defensive str() coercion: a hand-edited config with
+    # `log_level = 5` would otherwise AttributeError on .upper().
+    raw = config.advanced.log_level
+    level_name = str(raw if raw else "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
     root = logging.getLogger()
     if root.level != level:
@@ -520,6 +523,24 @@ def main() -> int:
             _tr("app", "Refrain is already running."),
         )
         return 0
+    except SessionBusUnavailable as e:
+        log.error("Cannot start without a session bus")
+        QMessageBox.critical(
+            None,
+            _tr("app", "D-Bus session bus unavailable"),
+            _tr(
+                "app",
+                "Refrain needs a working D-Bus session bus to run "
+                "(it's used for the single-instance lock, MPRIS metadata "
+                "from your browser, and the Plasma-panel media-controls "
+                "publication).\n\n"
+                "Underlying error: {error}\n\n"
+                "On a desktop session this should normally be available "
+                "automatically. Check that dbus-daemon is running and "
+                "that DBUS_SESSION_BUS_ADDRESS is set in your environment.",
+            ).format(error=str(e)),
+        )
+        return 1
     app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
 
     if not QSystemTrayIcon.isSystemTrayAvailable():

@@ -70,6 +70,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fast double-clicks while runner setup is in flight). Wrapped
   in `contextlib.suppress(TypeError)` like the matching
   `_on_runner_finished` path.
+- **Refrain crashed at startup when no D-Bus session bus was
+  available** — `single_instance.acquire()` propagated
+  `dbus.DBusException` past `app.py`'s `except AlreadyRunning`,
+  giving the user an unhandled exception traceback instead of a
+  message box. New `SessionBusUnavailable` exception type
+  surfaces the actual reason ("D-Bus session bus unavailable")
+  with hints about `dbus-daemon` / `DBUS_SESSION_BUS_ADDRESS`.
+- **`setup_logging(level)` and `_apply_log_level` crashed on
+  non-string `log_level`** — a hand-edited config with
+  `log_level = false` (boolean) or `log_level = 5` (int) would
+  AttributeError on `.upper()`. Now coerced to str defensively.
+- **`Config._construct` accepted wrongly-typed values silently** —
+  `cover_cache_size = "200"` (string) would survive the dataclass
+  __init__ but then crash in `_prune_cover_cache` with TypeError on
+  `len(files) - "200"`. The new `_coerce_value()` helper coerces
+  primitives where it makes sense (int from numeric string,
+  bool from "true"/"false") and drops + warns when it doesn't
+  (e.g. `log_level = false` → use the field default). 1 new test
+  in test_config.py.
+- **Cover-art cache writes leaked .tmp files on disk failure** —
+  `cover_art._write_cache` and `download_cover_image` called
+  `tmp.write_bytes()` / `os.replace()` without exception
+  handling. A read-only `~/.cache/refrain/covers/` left a stale
+  `*.tmp` next to the real file forever. Both now wrap in
+  try/except, clean up the partial tmp, and log debug.
+- **`_bridge_sandboxed_ipc_socket` could raise on locked-down
+  sandbox dirs** — a permission-denied `iterdir()` of one of the
+  Snap/Flatpak candidate paths used to propagate up through
+  `DiscordRPC._ensure_connected` → daemon `_tick`'s except, killing
+  the connect attempt every poll. Now wrapped: failures log debug
+  and the connect proceeds without sandbox-bridging.
 
 ### Tests
 

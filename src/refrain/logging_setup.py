@@ -26,7 +26,12 @@ def setup_logging(level: str = "INFO") -> None:
 
     root = logging.getLogger()
     root.handlers.clear()
-    root.setLevel(getattr(logging, level.upper(), logging.INFO))
+    # Coerce to str before .upper() — a hand-edited config with
+    # `log_level = false` (boolean) or `log_level = 5` (int) would
+    # otherwise AttributeError on .upper() and crash the whole startup
+    # before we can log anything about it.
+    level_str = str(level) if level is not None else "INFO"
+    root.setLevel(getattr(logging, level_str.upper(), logging.INFO))
     root.addHandler(console_handler)
 
     try:
