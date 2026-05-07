@@ -75,17 +75,31 @@ class TrayIcon(QObject):
         self._title_action.setEnabled(False)
         self._artist_action = QAction("")
         self._artist_action.setEnabled(False)
+        # Hidden until a real track populates it — otherwise it
+        # rendered as a tall empty row right under "(nothing playing)".
+        self._artist_action.setVisible(False)
         self._progress_action = QAction("")
         self._progress_action.setEnabled(False)
         self._progress_action.setVisible(False)
         self._discord_action = QAction(self.tr("○  Discord: not connected"))
         self._discord_action.setEnabled(False)
 
+        # Once any item in a QMenu has an icon, the menu reserves the
+        # icon column for ALL items. Without icons here the playback /
+        # navigation rows would render as blank-icon-column + text,
+        # while Update / Settings / Log / Restart / Quit had glyphs —
+        # visually unbalanced. Theme icons (freedesktop names) match
+        # the user's Plasma / GNOME / Breeze icon set; a missing theme
+        # icon falls back to a null QIcon and the row degrades to
+        # text-only without breaking layout.
         self._previous_action = QAction(self.tr("⏮  Previous"))
+        self._previous_action.setIcon(QIcon.fromTheme("media-skip-backward"))
         self._previous_action.triggered.connect(self.previousRequested.emit)
         self._play_pause_action = QAction(self.tr("⏵  Play"))
+        self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
         self._play_pause_action.triggered.connect(self.playPauseRequested.emit)
         self._next_action = QAction(self.tr("⏭  Next"))
+        self._next_action.setIcon(QIcon.fromTheme("media-skip-forward"))
         self._next_action.triggered.connect(self.nextRequested.emit)
 
         menu = QMenu()
@@ -112,11 +126,14 @@ class TrayIcon(QObject):
         self._update_action.triggered.connect(self.updateRequested.emit)
         menu.addAction(self._update_action)
         settings_action = menu.addAction(self.tr("Settings…"))
+        settings_action.setIcon(QIcon.fromTheme("configure"))
         settings_action.triggered.connect(self.settingsRequested.emit)
         log_action = menu.addAction(self.tr("Live log…"))
+        log_action.setIcon(QIcon.fromTheme("view-list-text"))
         log_action.triggered.connect(self.logRequested.emit)
         menu.addSeparator()
         restart_action = menu.addAction(self.tr("⟳  Restart Refrain"))
+        restart_action.setIcon(QIcon.fromTheme("view-refresh"))
         restart_action.triggered.connect(self.restartRequested.emit)
         quit_action = menu.addAction(self.tr("Quit Refrain"))
         # Red "✕" icon marks the destructive action — KDE Plasma's
@@ -220,6 +237,10 @@ class TrayIcon(QObject):
         if not track.has_track:
             self._title_action.setText(self.tr("(nothing playing)"))
             self._artist_action.setText("")
+            # Hide instead of leaving an empty row — without this the
+            # menu showed "(nothing playing)" followed by a tall blank
+            # line that read as a layout glitch.
+            self._artist_action.setVisible(False)
             self._progress_action.setVisible(False)
             self._current_track_line = ""
             self._current_progress_line = ""
@@ -233,6 +254,7 @@ class TrayIcon(QObject):
         else:
             line = track.album or "—"
         self._artist_action.setText(line)
+        self._artist_action.setVisible(True)
         new_track_line = f"{track.title}\n{line}"
         # If the track text actually changed, drop the stale progress
         # line so the tooltip doesn't briefly show "Song B • 1:30/2:11"

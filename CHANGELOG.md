@@ -14,14 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attached to — same path as the tray-menu Play/Pause item, but
   reachable without opening the menu. Plain left-click still opens
   Settings; right-click still shows the menu.
-- **Quit Refrain shows a red ✕ icon** in the tray menu so the
-  destructive action stands out visually. Qt's QAction has no
-  per-action text-colour API and DBusMenu has no portable
-  "destructive" disposition flag, so a coloured icon (same pattern
-  as the blue update icon) is the most reliable cross-DE signal.
+- **Tray menu actions now all carry icons.** Once any QMenu item
+  has an icon, the menu reserves the icon column for *all* items —
+  so adding the red ✕ to Quit Refrain made every previously
+  text-only action (Settings, Live log, Restart, playback
+  controls) read as misaligned with blank icon space. Action items
+  now use freedesktop theme icons (`configure`, `view-list-text`,
+  `view-refresh`, `media-skip-backward`, `media-playback-start`,
+  `media-playback-pause`, `media-skip-forward`) which match the
+  user's Plasma / GNOME / Breeze icon set. Update + Quit keep
+  their bundled coloured-accent SVGs.
 
 ### Fixed
 
+- **Empty artist row in tray menu when nothing was playing.** The
+  artist QAction stayed visible with empty text whenever no track
+  was active, rendering as a tall blank line right under
+  "(nothing playing)". Now hidden via `setVisible(False)` until a
+  real track populates it; visibility flips back on for actual
+  playback.
 - **Settings → Updates "Latest release notes" pane stayed empty
   on every Refrain restart within the 24-hour update-check
   cooldown** — `maybe_check_on_startup` short-circuited *before*
