@@ -31,6 +31,7 @@ driver and should be tested on every commit; the rest before each tag.
 | [ ] | **Arch Linux** (rolling) | KDE Plasma 6 | X11 | AUR `refrain` | | alternate display server |
 | [ ] | **Fedora 42 Workstation** | GNOME 47 | Wayland | AppImage + PyPI | | RPM world + GNOME tray ext. |
 | [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS, glibc floor |
+| ❌ | **Ubuntu 25.04** | GNOME 48 | Wayland | PyPI | 2026-05-07 / v0.2.2 | Tested + **failed**. Settings window came up with the gnome-control-center icon (Wayland app-id matching heuristic; fixed in `1e759ba` by setting per-window icon explicitly). Snap-sandboxed Firefox + Chrome both refused to publish MPRIS so Refrain saw no players — distro-external, workaround is a deb-channel browser (Brave / Mozilla apt repo). 25 s `org.bluez` activation timeout per poll when bluez isn't present (fast-fail via `NameHasOwner` added in follow-up). Re-test with v0.2.3+ once those fixes ship. |
 | [ ] | **Debian 13** (Trixie) | KDE Plasma 6 | Wayland | AppImage | | Plasma outside Arch |
 | [ ] | **openSUSE Tumbleweed** | KDE Plasma 6 | Wayland | PyPI in venv | | rolling non-Arch |
 | [ ] | **Linux Mint 22** | Cinnamon 6 | X11 | AppImage | | Cinnamon tray, X11 |
@@ -79,7 +80,9 @@ These are documented as **unsupported** — don't open issues for them.
 | Debian 11 (Bullseye) | Python 3.9 — too old |
 | Ubuntu 20.04 / 22.04 LTS | Python 3.8 / 3.10 too old; AppImage glibc floor too high for 22.04 |
 | Linux Mint 21.x | Python 3.10 — too old |
-| RHEL 9 / Rocky 9 / AlmaLinux 9 | glibc 2.34 < 2.35 (AppImage); Python 3.9 default |
+| **CentOS Stream 10** | Tested 2026-05-07 against v0.2.2 — **failed**. AppImage in mounted mode needs `fuse` (not just `fuse-libs`) which the docs didn't surface; in `--appimage-extract-and-run` mode raises `No module named refrain` on a fresh extract. PyPI install starts but GNOME default ships no AppIndicator package out of the box — Refrain refuses to launch with "No system tray". Reachable only with manual Extension-Manager dance. Not Tier-1/2 worth. |
+| CentOS Stream 9 | glibc 2.34 < 2.35 (AppImage breaks); Python 3.9 default |
+| RHEL 9 / Rocky 9 / AlmaLinux 9 | same family as CentOS Stream 9 |
 | RHEL 8 / Rocky 8 / AlmaLinux 8 | glibc 2.28; Python 3.6 default |
 | Alpine Linux | musl libc — PySide6 wheels are glibc-only |
 | openSUSE Leap 15.5 | Python 3.6 default |
@@ -163,3 +166,4 @@ If a check fails, the most common causes:
 | Cover art missing | iTunes Search has no match for that artist / title — fallback brand icon shown |
 | Settings window has no icons / wrong style on pip/pipx install | Qt plugin-path augmentation didn't fire — check log for `Augmenting Qt plugin path` |
 | Duration shows as 0:14 or some too-short value | Pre-`pick_effective_duration_ms` build, or iTunes lookup hasn't resolved yet for that track |
+| AppImage fails with `failed to exec fusermount` (RHEL family) | `fuse-libs` alone is not enough — install the `fuse` package too, or run with `--appimage-extract-and-run` |

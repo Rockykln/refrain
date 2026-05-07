@@ -15,6 +15,25 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 log = logging.getLogger(__name__)
 
 
+def _bluez_owned(bus) -> bool:
+    """Return True iff org.bluez currently has an owner on the system bus.
+
+    Uses ``NameHasOwner`` instead of ``get_object('org.bluez', ...)`` so
+    a missing bluez daemon is detected in <1 ms instead of triggering
+    D-Bus's 25 s service-activation timeout. On VMs / minimal installs
+    without bluez this previously stalled every Refrain poll cycle for
+    a full 25 s waiting for an `org.bluez`-activation that would never
+    succeed.
+    """
+    try:
+        dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+        dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
+        return bool(dbus_iface.NameHasOwner("org.bluez"))
+    except Exception as e:
+        log.debug("Bluetooth: NameHasOwner(org.bluez) failed: %s", e)
+        return False
+
+
 class BluetoothSource:
     def __init__(self, device_mac: str = ""):
         self._device_mac = device_mac
@@ -30,6 +49,8 @@ class BluetoothSource:
             bus = dbus.SystemBus()
         except Exception as e:
             log.debug("Bluetooth: cannot reach system bus: %s", e)
+            return TrackInfo.empty()
+        if not _bluez_owned(bus):
             return TrackInfo.empty()
 
         player_path = self._find_player(bus)
@@ -109,6 +130,8 @@ class BluetoothSource:
             return False
         try:
             bus = dbus.SystemBus()
+            if not _bluez_owned(bus):
+                return False
             obj = bus.get_object("org.bluez", path, introspect=False)
             iface = dbus.Interface(obj, "org.bluez.MediaPlayer1")
             getattr(iface, method)()
@@ -152,6 +175,12 @@ class BluetoothSource:
         """Enumerate paired devices (for the settings-window picker)."""
         try:
             bus = dbus.SystemBus()
+        except Exception as e:
+            log.debug("Bluetooth list_paired_devices: bus connect failed: %s", e)
+            return []
+        if not _bluez_owned(bus):
+            return []
+        try:
             obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
