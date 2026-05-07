@@ -156,6 +156,15 @@ class SettingsWindow(QDialog):
         # this title by the window manager. Setting the manual prefix
         # too would duplicate it as "Refrain — Settings — Refrain".
         self.setWindowTitle(self.tr("Settings"))
+        # Explicit per-window icon — without this, GNOME Shell's
+        # window-to-desktop-entry matcher on Wayland sees a window
+        # titled "Settings" and falls back to gnome-control-center
+        # ("org.gnome.Settings"), so Refrain shows up in the dock /
+        # task bar with a gear icon. Setting the icon directly bypasses
+        # that heuristic.
+        icon_path = assets_dir() / "icons" / "refrain.svg"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         # Bigger default size: German labels run ~30% longer than English,
         # and the new GroupBox layout adds vertical chrome. Anything
         # smaller squeezes either the labels or the spinbox suffixes.

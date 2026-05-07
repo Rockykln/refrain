@@ -11,7 +11,7 @@ import contextlib
 import logging
 
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
 )
 
 from refrain import __version__
+from refrain.paths import assets_dir
 from refrain.updater import (
     ReleaseInfo,
     UpdateResult,
@@ -65,6 +66,9 @@ class UpdateDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(self.tr("Update available"))
         self.setMinimumSize(560, 480)
+        icon_path = assets_dir() / "icons" / "refrain.svg"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         self._release = release
         self._install_type = detect_install_type()
         self._runner: _UpdateRunner | None = None

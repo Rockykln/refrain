@@ -10,7 +10,7 @@ from __future__ import annotations
 import html
 import logging
 
-from PySide6.QtGui import QFont, QGuiApplication
+from PySide6.QtGui import QFont, QGuiApplication, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from refrain.paths import assets_dir
 
 _LEVEL_COLORS = {
     logging.DEBUG: "#888888",
@@ -40,6 +42,9 @@ class LogWindow(QDialog):
         # Don't override windowFlags here — QDialog defaults are correct.
         # Adding Qt.WindowType.Window broke visibility on some compositors.
         self.setModal(False)
+        icon_path = assets_dir() / "icons" / "refrain.svg"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         # ---- toolbar -------------------------------------------------------
         bar = QHBoxLayout()
