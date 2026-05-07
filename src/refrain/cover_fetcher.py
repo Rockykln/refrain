@@ -42,21 +42,39 @@ def _prune_cover_cache(max_entries: int = _MAX_CACHED_COVERS) -> int:
     Returns the number of files removed. Url-cache (``.txt``) and image
     files (``.jpg``) are tracked separately so a track without a cover
     doesn't displace a track that has one.
+
+    Failure-tolerant: a permission error on the cache dir, a corrupt
+    btrfs subvolume, etc. used to crash CoverFetcher.__init__ and
+    therefore the entire app at startup. Now any OSError during
+    enumeration is logged at debug and prune returns 0; the daemon
+    starts normally and just lives without disk-cache pruning until
+    next session.
     """
+    # Defensive coercion: a hand-edited config with `cover_cache_size
+    # = "200"` would survive the dataclass __init__ (we coerce in
+    # _construct now) but a callsite passing a non-int still works.
+    try:
+        max_entries = int(max_entries)
+    except (TypeError, ValueError):
+        max_entries = _MAX_CACHED_COVERS
     removed = 0
     cache_dir = cover_cache_dir()
     if not cache_dir.exists():
         return 0
-    for ext in (".jpg", ".txt"):
-        files = sorted(cache_dir.glob(f"*{ext}"), key=lambda p: p.stat().st_mtime)
-        excess = len(files) - max_entries
-        if excess > 0:
-            for p in files[:excess]:
-                try:
-                    p.unlink()
-                    removed += 1
-                except OSError:
-                    pass
+    try:
+        for ext in (".jpg", ".txt"):
+            files = sorted(cache_dir.glob(f"*{ext}"), key=lambda p: p.stat().st_mtime)
+            excess = len(files) - max_entries
+            if excess > 0:
+                for p in files[:excess]:
+                    try:
+                        p.unlink()
+                        removed += 1
+                    except OSError:
+                        pass
+    except OSError as e:
+        log.debug("Cover-cache prune failed: %s", e)
+        return removed
     if removed:
         log.info("Pruned %d cover-cache file(s)", removed)
     return removed

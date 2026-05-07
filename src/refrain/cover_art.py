@@ -87,7 +87,12 @@ def lookup_track_info(artist: str, title: str, album: str = "") -> TrackLookup:
         log.debug("iTunes lookup failed for %s — %s: %s", artist, title, e)
         return TrackLookup()
 
-    result = _extract(data.get("results", []))
+    # Defensive: iTunes can in theory return a non-dict (an error
+    # string, an unwrapped list, …). data.get(...) on a non-dict
+    # raises AttributeError; treat anything that isn't the expected
+    # shape as "no results".
+    results_list = data.get("results", []) if isinstance(data, dict) else []
+    result = _extract(results_list)
     _write_cache(key, result)
     log.debug(
         "iTunes lookup result for %s — %s: cover=%s song=%s",
@@ -99,10 +104,17 @@ def lookup_track_info(artist: str, title: str, album: str = "") -> TrackLookup:
     return result
 
 
-def _extract(results: list) -> TrackLookup:
-    if not results:
+def _extract(results) -> TrackLookup:
+    # Defensive shape checks — iTunes occasionally returns oddities
+    # (empty list, wrapped error strings, missing fields). Anything
+    # that doesn't match the expected `[{...}, ...]` shape gets
+    # treated as "no result" so the caller falls back to the
+    # bundled refrain icon and an empty cover URL.
+    if not isinstance(results, list) or not results:
         return TrackLookup()
     first = results[0]
+    if not isinstance(first, dict):
+        return TrackLookup()
     art = str(first.get("artworkUrl100", "") or "")
     cover_url = art.replace("100x100bb.jpg", "600x600bb.jpg") if art else ""
     song_url = str(first.get("trackViewUrl", "") or "")

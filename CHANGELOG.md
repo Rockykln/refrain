@@ -101,6 +101,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `DiscordRPC._ensure_connected` → daemon `_tick`'s except, killing
   the connect attempt every poll. Now wrapped: failures log debug
   and the connect proceeds without sandbox-bridging.
+- **iTunes search shape-check.** A malformed response (string
+  error, list-not-dict, missing fields) used to AttributeError
+  on `data.get("results", [])` or `first.get(...)`. Now both
+  layers check `isinstance(...)` first and treat unexpected
+  shapes as "no result" — caller falls back to the bundled
+  brand icon.
+- **`_prune_cover_cache` could crash daemon startup** on a
+  permission-denied or corrupt cache dir. Now wraps the
+  enumerate/sort in try/except, logs debug, returns 0 — the
+  daemon starts normally and lives without prune until next
+  session. Plus defensive int() coercion of `max_entries`.
 
 ### Tests
 
