@@ -374,6 +374,11 @@ class UpdateOrchestrator(QObject):
     # Manual checks emit one of these so the user always gets feedback.
     checkUpToDate = Signal(str)  # current version string
     checkFailed = Signal(str)  # error message
+    # Fires after every check (auto or manual, success or failure) with
+    # the latest ReleaseInfo (or None on network failure). The Settings
+    # → Updates tab subscribes to this to render the inline release
+    # notes — independent of whether the user is on the latest version.
+    releaseInfoFetched = Signal(object)  # ReleaseInfo | None
 
     def __init__(self, config: Config, parent: QObject | None = None):
         super().__init__(parent)
@@ -425,6 +430,14 @@ class UpdateOrchestrator(QObject):
         manual = self._manual
         self._manual = False
 
+        # Always fan out the raw fetch result so subscribers (Settings
+        # tab, etc.) can render whatever state they want regardless of
+        # whether this constitutes "an update". Cache it too so a
+        # later subscriber can pull it on demand.
+        if release is not None:
+            self._latest = release
+        self.releaseInfoFetched.emit(release)
+
         if release is None:
             log.info("Update check: no release info returned")
             if manual:
@@ -437,7 +450,6 @@ class UpdateOrchestrator(QObject):
             return
 
         log.info("Update check: %s available (current: %s)", release.version, __version__)
-        self._latest = release
         self.updateAvailable.emit(release)
 
 
@@ -562,6 +574,7 @@ def main() -> int:
         )
     )
     updater.checkFailed.connect(lambda msg: QMessageBox.warning(settings, "Updates", msg))
+    updater.releaseInfoFetched.connect(settings.set_latest_release)
 
     # Log-window wireup
     def _show_log() -> None:

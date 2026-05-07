@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QTabWidget,
+    QTextBrowser,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -30,6 +31,7 @@ from refrain import __version__
 from refrain.config import Config
 from refrain.paths import assets_dir, state_dir
 from refrain.sources.bluetooth import BluetoothSource
+from refrain.updater import ReleaseInfo, prepare_release_notes
 
 GITHUB_URL = "https://github.com/Rockykln/refrain"
 
@@ -431,6 +433,12 @@ class SettingsWindow(QDialog):
         )
         uf.addRow(self.auto_check_box)
 
+        self.current_version_label = QLabel(__version__)
+        uf.addRow(self.tr("Current version:"), self.current_version_label)
+
+        self.latest_version_label = QLabel(self.tr("—"))
+        uf.addRow(self.tr("Latest known:"), self.latest_version_label)
+
         self.last_check_label = QLabel("—")
         uf.addRow(self.tr("Last checked:"), self.last_check_label)
 
@@ -453,8 +461,54 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(update_group)
 
-        v.addStretch(1)
+        # Inline release-notes pane — same Markdown source as the
+        # update-available popup, but always visible here so users can
+        # read what's in the latest version without having to click
+        # through to GitHub. Populated lazily once the orchestrator's
+        # check finishes (set_latest_release).
+        notes_group, _ = _new_group(self.tr("Latest release notes"))
+        notes_layout = QVBoxLayout()
+        self.release_notes_view = QTextBrowser()
+        self.release_notes_view.setOpenExternalLinks(True)
+        self.release_notes_view.setMarkdown(
+            self.tr(
+                "_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._"
+            )
+        )
+        self.release_notes_view.setMinimumHeight(180)
+        notes_layout.addWidget(self.release_notes_view)
+        notes_group.setLayout(notes_layout)
+        v.addWidget(notes_group, 1)
+
         return w
+
+    # ====================================================================
+    # External hooks for the update orchestrator
+    # ====================================================================
+
+    def set_latest_release(self, release: ReleaseInfo | None) -> None:
+        """Update the in-tab release-notes pane + the latest-known label.
+
+        Wired from ``app.py`` to ``UpdateOrchestrator.releaseInfoFetched``
+        so each check refreshes the inline changelog without making the
+        user click through the popup.
+        """
+        if release is None:
+            self.latest_version_label.setText(self.tr("(check failed)"))
+            self.release_notes_view.setMarkdown(
+                self.tr("_Could not reach GitHub. Check your network and try again._")
+            )
+            return
+        if release.is_newer_than_current:
+            self.latest_version_label.setText(
+                self.tr("{version} (update available)").format(version=release.version)
+            )
+        else:
+            self.latest_version_label.setText(
+                self.tr("{version} (up to date)").format(version=release.version)
+            )
+        body = release.body or self.tr("_No release notes provided._")
+        self.release_notes_view.setMarkdown(prepare_release_notes(body))
 
     # ====================================================================
     # Advanced tab
