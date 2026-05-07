@@ -146,7 +146,7 @@ def test_check_latest_release_handles_empty_assets(monkeypatch, updater):
     assert info.appimage_size == 0
 
 
-def test_apply_update_dispatches_per_install_type(updater):
+def test_apply_update_dispatches_per_install_type(updater, monkeypatch):
     info = updater.ReleaseInfo(
         tag="v0.2.0",
         version="0.2.0",
@@ -156,17 +156,63 @@ def test_apply_update_dispatches_per_install_type(updater):
     )
     # Without an APPIMAGE env var, "appimage" path errors out cleanly
     os.environ.pop("APPIMAGE", None)
+    # Force the fallback path (no terminal available) so the
+    # assertions test the offline-friendly message-box behaviour.
+    # The terminal-spawn path is exercised separately below.
+    monkeypatch.setattr(updater, "_run_in_terminal", lambda _cmd: False)
+
     r = updater.apply_update(info, install_type="flatpak")
     assert r.success is False
     assert "flatpak update" in r.message.lower()
 
     r = updater.apply_update(info, install_type="aur")
     assert r.success is False
-    assert "yay" in r.message.lower()
+    # The hint message names whatever helper detect produced
+    # (yay/paru/trizen/pikaur or the bare-pacman fallback) — assert
+    # we mention the canonical keyword "syu" which all of them use.
+    assert "syu" in r.message.lower()
 
     r = updater.apply_update(info, install_type="dev")
     assert r.success is False
     assert "git pull" in r.message.lower()
+
+
+def test_apply_update_aur_launches_terminal_when_available(updater, monkeypatch):
+    """AUR install + a usable terminal → spawn it, mark needs_restart."""
+    spawned: list[str] = []
+
+    def fake_terminal(cmd: str) -> bool:
+        spawned.append(cmd)
+        return True
+
+    monkeypatch.setattr(updater, "_run_in_terminal", fake_terminal)
+
+    info = updater.ReleaseInfo(tag="v0.2.0", version="0.2.0", name="x", body="", html_url="")
+    r = updater.apply_update(info, install_type="aur")
+    assert r.success is True
+    assert r.needs_restart is True
+    assert spawned and "syu refrain" in spawned[0].lower()
+
+
+def test_apply_update_flatpak_launches_terminal_when_available(updater, monkeypatch):
+    spawned: list[str] = []
+    monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: spawned.append(cmd) or True)
+
+    info = updater.ReleaseInfo(tag="v0.2.0", version="0.2.0", name="x", body="", html_url="")
+    r = updater.apply_update(info, install_type="flatpak")
+    assert r.success is True
+    assert r.needs_restart is True
+    assert spawned and "flatpak update" in spawned[0].lower()
+
+
+def test_aur_helper_falls_back_to_pacman(updater, monkeypatch):
+    """When no AUR helper is installed, _aur_helper falls back to a
+    bare pacman command. Update dialog will still surface this so
+    the user can swap in their preferred helper if they prefer."""
+    monkeypatch.setattr(updater.shutil, "which", lambda _name: None)
+    cmd = updater._aur_helper()
+    assert "pacman" in cmd
+    assert "refrain" in cmd
 
 
 # ---------------------------------------------------------------------------

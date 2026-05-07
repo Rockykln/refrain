@@ -254,12 +254,67 @@ def cleanup_orphan_downloads() -> None:
         log.debug("Could not remove orphan update download %s: %s", tmp, e)
 
 
+# Terminal emulators we know how to launch a command inside, in
+# preference order. Each entry is ``(binary, argv_template)`` where
+# ``argv_template[i] == "{cmd}"`` gets replaced with the shell command
+# string. The shell wrapper pauses at the end so the user can read
+# output before the window closes.
+_TERMINAL_PROBES: tuple[tuple[str, list[str]], ...] = (
+    ("konsole", ["konsole", "-e", "bash", "-c", "{cmd}"]),
+    ("gnome-terminal", ["gnome-terminal", "--", "bash", "-c", "{cmd}"]),
+    ("xfce4-terminal", ["xfce4-terminal", "-x", "bash", "-c", "{cmd}"]),
+    ("kitty", ["kitty", "bash", "-c", "{cmd}"]),
+    ("alacritty", ["alacritty", "-e", "bash", "-c", "{cmd}"]),
+    ("foot", ["foot", "bash", "-c", "{cmd}"]),
+    ("xterm", ["xterm", "-e", "bash", "-c", "{cmd}"]),
+    ("wezterm", ["wezterm", "start", "--", "bash", "-c", "{cmd}"]),
+)
+
+
+def _run_in_terminal(cmd: str) -> bool:
+    """Pop up a terminal emulator running ``cmd`` (a shell string).
+
+    Wraps the command so the terminal stays open after it exits — the
+    user can read the package-manager output and any error before the
+    window vanishes. Returns True iff we successfully spawned a
+    terminal; False (silently) if no known emulator is on PATH.
+    """
+    wrapped = f"{cmd}; echo; read -rp 'Press Enter to close…'"
+    for binary, template in _TERMINAL_PROBES:
+        if not shutil.which(binary):
+            continue
+        argv = [arg.format(cmd=wrapped) for arg in template]
+        try:
+            subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            log.info("Spawned %s for update command", binary)
+            return True
+        except Exception as e:
+            log.debug("Failed to spawn %s: %s", binary, e)
+    log.info("No known terminal emulator found — falling back to message-box hint")
+    return False
+
+
+def _aur_helper() -> str:
+    """Pick the user's AUR helper. Falls back to bare ``pacman -Syu``
+    when no helper is on PATH (won't update AUR packages, but at least
+    won't be wrong — the user gets to see the issue + run their own
+    helper manually).
+    """
+    for helper in ("yay", "paru", "trizen", "pikaur"):
+        if shutil.which(helper):
+            return f"{helper} -Syu refrain"
+    return "sudo pacman -Syu refrain"
+
+
 def apply_update(
     release: ReleaseInfo,
     install_type: str | None = None,
     cancelled: Callable[[], bool] | None = None,
 ) -> UpdateResult:
-    """Type-aware update. Never modifies system files."""
+    """Type-aware update. Never modifies system files directly — for
+    AUR / Flatpak / system installs we shell out to the user's package
+    manager via a terminal emulator so the user confirms any sudo
+    prompt themselves and the package manager retains state."""
     install_type = install_type or detect_install_type()
     log.info("apply_update: target=%s install_type=%s", release.version, install_type)
 
@@ -274,15 +329,38 @@ def apply_update(
             "`git pull` and reinstall with `pip install -e .`.",
         )
     if install_type == "flatpak":
+        cmd = "flatpak update -y io.github.Rockykln.Refrain"
+        if _run_in_terminal(cmd):
+            return UpdateResult(
+                success=True,
+                message=(
+                    "Launched the update in a new terminal:\n\n"
+                    f"    {cmd}\n\n"
+                    "Confirm any prompts there. Restart Refrain afterwards "
+                    "to load the new version."
+                ),
+                needs_restart=True,
+            )
         return UpdateResult(
             success=False,
-            message="Flatpak install detected. Update via:\n\n"
-            "    flatpak update io.github.Rockykln.Refrain",
+            message=f"Flatpak install detected. Update via:\n\n    {cmd}",
         )
     if install_type == "aur":
+        cmd = _aur_helper()
+        if _run_in_terminal(cmd):
+            return UpdateResult(
+                success=True,
+                message=(
+                    "Launched the update in a new terminal:\n\n"
+                    f"    {cmd}\n\n"
+                    "Confirm any sudo prompt there. Restart Refrain "
+                    "afterwards to load the new version."
+                ),
+                needs_restart=True,
+            )
         return UpdateResult(
             success=False,
-            message="AUR install detected. Update via your AUR helper:\n\n    yay -Syu refrain",
+            message=f"AUR install detected. Update via your AUR helper:\n\n    {cmd}",
         )
     return UpdateResult(
         success=False,

@@ -127,6 +127,8 @@ class UpdateDialog(QDialog):
             return self.tr("Download && replace")
         if self._install_type == "pip":
             return self.tr("Run pip upgrade")
+        if self._install_type in ("aur", "flatpak"):
+            return self.tr("Run update in terminal")
         return self.tr("Show update command")
 
     def _open_release_page(self) -> None:
