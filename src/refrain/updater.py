@@ -349,10 +349,19 @@ def _apply_appimage(
                 raise OSError(
                     f"size mismatch — downloaded {actual} bytes, expected {release.appimage_size}"
                 )
-        # AppImages must be executable to run; 0o755 matches what `chmod +x`
-        # produces and what `linuxdeploy --output appimage` writes. Atomic
-        # in-place replacement on Linux even while the old file is mmap'd.
-        os.chmod(tmp, 0o755)  # nosec B103  lgtm[py/overly-permissive-file]
+        # Preserve the existing AppImage's mode (or fall back to a
+        # private user-only +x if we can't read it). Mirroring the
+        # original mode keeps the user's chosen permissions stable
+        # across upgrades, and avoids hard-coding a world-readable
+        # 0o755 that CodeQL flags as overly permissive when 0o700
+        # already gives the only thing AppImages strictly need (the
+        # owner's execute bit). os.replace is atomic on Linux even
+        # while the old file is mmap'd.
+        try:
+            preserved_mode = target.stat().st_mode & 0o777
+        except OSError:
+            preserved_mode = 0o700
+        os.chmod(tmp, preserved_mode)
         os.replace(tmp, target)
         log.info("AppImage update complete: %s now at v%s", target, release.version)
     except _DownloadCancelled:

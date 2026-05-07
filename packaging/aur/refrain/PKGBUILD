@@ -23,10 +23,7 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-# Placeholder — recompute after the GitHub release exists:
-#   curl -sLO "https://github.com/Rockykln/refrain/archive/v${pkgver}.tar.gz"
-#   sha256sum "v${pkgver}.tar.gz"
-sha256sums=('SKIP')
+sha256sums=('29f2371393d855f508730238a096cbdc85219616a9fab240745c1072a005b23d')
 
 build() {
     cd "$pkgname-$pkgver"
