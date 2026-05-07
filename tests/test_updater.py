@@ -167,3 +167,41 @@ def test_apply_update_dispatches_per_install_type(updater):
     r = updater.apply_update(info, install_type="dev")
     assert r.success is False
     assert "git pull" in r.message.lower()
+
+
+# ---------------------------------------------------------------------------
+# cleanup_orphan_downloads — self-heal of *.AppImage.new files left behind
+# by a SIGKILL / power-loss mid-download.
+# ---------------------------------------------------------------------------
+
+
+def test_cleanup_orphan_downloads_removes_stale_new(tmp_path, monkeypatch, updater):
+    appimage = tmp_path / "Refrain-x86_64.AppImage"
+    appimage.write_bytes(b"")
+    orphan = tmp_path / "Refrain-x86_64.AppImage.new"
+    orphan.write_bytes(b"partial download")
+    monkeypatch.setenv("APPIMAGE", str(appimage))
+
+    updater.cleanup_orphan_downloads()
+
+    assert not orphan.exists()
+    # The real AppImage must NOT be touched.
+    assert appimage.exists()
+
+
+def test_cleanup_orphan_downloads_no_appimage_env_is_safe(monkeypatch, updater):
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    # Must not raise.
+    updater.cleanup_orphan_downloads()
+
+
+def test_cleanup_orphan_downloads_no_orphan_is_idempotent(tmp_path, monkeypatch, updater):
+    appimage = tmp_path / "Refrain-x86_64.AppImage"
+    appimage.write_bytes(b"")
+    monkeypatch.setenv("APPIMAGE", str(appimage))
+
+    # Call twice — must succeed both times even when nothing is there.
+    updater.cleanup_orphan_downloads()
+    updater.cleanup_orphan_downloads()
+
+    assert appimage.exists()

@@ -121,3 +121,63 @@ def test_empty_track_is_never_idle():
     assert out.source == "none"
     assert key == ""
     assert seen == 0.0
+
+
+def test_effective_duration_overrides_mpris_for_deadline():
+    """When MPRIS lies about duration (e.g. 7:21 playlist total on a
+    2:11 song), passing the iTunes-corrected value should give idle
+    detection a sensible deadline instead of waiting 5 extra minutes."""
+    real_dur_ms = 131_000  # 2:11 — the truth
+    mpris_dur_ms = 441_000  # 7:21 — what MPRIS reports
+    track = TrackInfo(
+        source="mpris",
+        title="A",
+        artist="B",
+        album="C",
+        duration_ms=mpris_dur_ms,
+        status=PlaybackStatus.PLAYING,
+    )
+    track_key = "mpris|A|B|C"
+    seen_at = 100.0
+    # Just past the *real* deadline (131s + 30s grace = 161s) but
+    # well within the MPRIS-reported one (441s + 30s = 471s).
+    now = seen_at + 165.0
+    out, key, _seen = compute_idle_state(
+        track,
+        prev_track_key=track_key,
+        prev_seen_at=seen_at,
+        grace_s=30,
+        now=now,
+        effective_duration_ms=real_dur_ms,
+    )
+    assert out.source == "none"
+    assert key.startswith("__refrain_idle_logged__:")
+
+
+def test_effective_duration_preview_clip_skip_uses_effective():
+    """A preview-clip-mode MPRIS report (14 s) on a song iTunes knows
+    is full-length (3:00) must NOT be skipped from idle detection —
+    the effective duration is full-length so dangling-handle protection
+    still applies."""
+    track = TrackInfo(
+        source="mpris",
+        title="A",
+        artist="B",
+        album="C",
+        duration_ms=14_000,  # MPRIS preview-clip lie
+        status=PlaybackStatus.PLAYING,
+    )
+    real_dur = 180_000  # iTunes truth: 3:00
+    track_key = "mpris|A|B|C"
+    seen_at = 100.0
+    now = seen_at + 250.0  # past 3:00 + 30 s grace = 210 s
+    out, key, _seen = compute_idle_state(
+        track,
+        prev_track_key=track_key,
+        prev_seen_at=seen_at,
+        grace_s=30,
+        now=now,
+        effective_duration_ms=real_dur,
+    )
+    assert out.source == "none"
+    assert key.startswith("__refrain_idle_logged__:")
