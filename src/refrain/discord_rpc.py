@@ -96,6 +96,15 @@ class DiscordRPC:
         self._presence: Presence | None = None
         self._next_retry_ts: float = 0.0
         self._backoff_s: float = 2.0
+        # Memoise the last payload we sent so we don't hammer Discord
+        # with identical updates on every poll. Discord rate-limits
+        # presence updates to ~5 per 20 s; the daemon ticks at 500 ms,
+        # so without this we'd be sending 4× the cap and pypresence
+        # would silently queue/drop most of them. Only the "start"
+        # key meaningfully changes between consecutive ticks (and only
+        # on a drift-resync), so most ticks would otherwise be
+        # entirely redundant.
+        self._last_payload: dict | None = None
         # Cap retry backoff at 15 s instead of 60 s — autostart launches
         # refrain before Discord is ready, and a 60 s ceiling means the
         # user can sit there for almost a minute after Discord finishes
@@ -154,16 +163,30 @@ class DiscordRPC:
         # wrong for a music status and is what made early v0.1.x feel like
         # "Discord status missing" even though the RPC was sending data.
         payload.setdefault("activity_type", ActivityType.LISTENING)
+        # Skip when the payload is byte-for-byte identical to what we
+        # already pushed — Discord's rate-limit (5/20 s) drops most of
+        # them anyway, but the IPC write + json-encode + Discord-side
+        # state recompute is wasted work. The cache key intentionally
+        # round-trips through dict-equality so any field change (start
+        # drift-resync, cover URL arrival, button URL change) re-pushes.
+        if payload == self._last_payload:
+            return
         try:
             self._presence.update(**payload)
+            self._last_payload = dict(payload)
         except Exception as e:
             log.warning("Discord RPC update failed: %s", e)
             self._presence = None
+            self._last_payload = None
             self._schedule_retry()
 
     def clear(self) -> None:
         if self._presence is None:
             return
+        # Whatever the user just listened to is no longer current; the
+        # next update() must push (don't dedupe against a previous
+        # identical payload).
+        self._last_payload = None
         try:
             self._presence.clear()
         except Exception as e:
@@ -177,6 +200,7 @@ class DiscordRPC:
         with contextlib.suppress(Exception):
             self._presence.close()
         self._presence = None
+        self._last_payload = None
 
     def _schedule_retry(self) -> None:
         self._next_retry_ts = time.monotonic() + self._backoff_s
