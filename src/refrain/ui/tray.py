@@ -119,6 +119,16 @@ class TrayIcon(QObject):
         restart_action = menu.addAction(self.tr("⟳  Restart Refrain"))
         restart_action.triggered.connect(self.restartRequested.emit)
         quit_action = menu.addAction(self.tr("Quit Refrain"))
+        # Red "✕" icon marks the destructive action — KDE Plasma's
+        # DBusMenu renderer shows it in the menu's icon column, GNOME
+        # extensions and AppIndicator do the same. Qt's QAction has no
+        # per-action text-colour API and DBusMenu has no portable
+        # disposition flag, so a coloured icon is the most reliable
+        # cross-DE way to signal "this exits the app".
+        quit_icon_path = self._icons_dir / "menu-quit.svg"
+        if quit_icon_path.exists():
+            quit_action.setIcon(QIcon(str(quit_icon_path)))
+            quit_action.setIconVisibleInMenu(True)
         quit_action.triggered.connect(self.quitRequested.emit)
 
         self._tray.setContextMenu(menu)

@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   attached to — same path as the tray-menu Play/Pause item, but
   reachable without opening the menu. Plain left-click still opens
   Settings; right-click still shows the menu.
+- **Quit Refrain shows a red ✕ icon** in the tray menu so the
+  destructive action stands out visually. Qt's QAction has no
+  per-action text-colour API and DBusMenu has no portable
+  "destructive" disposition flag, so a coloured icon (same pattern
+  as the blue update icon) is the most reliable cross-DE signal.
 
 ### Fixed
 
