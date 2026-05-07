@@ -420,8 +420,8 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
     <message>
         <location filename="../ui/tray.py" line="81"/>
         <location filename="../ui/tray.py" line="174"/>
-        <source>○  Discord: not connected</source>
-        <translation>○  Discord: nicht verbunden</translation>
+        <source>Discord: not connected</source>
+        <translation>Discord: nicht verbunden</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="84"/>
@@ -477,8 +477,8 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
     </message>
     <message>
         <location filename="../ui/tray.py" line="172"/>
-        <source>●  Discord: connected</source>
-        <translation>●  Discord: verbunden</translation>
+        <source>Discord: connected</source>
+        <translation>Discord: verbunden</translation>
     </message>
 </context>
 <context>

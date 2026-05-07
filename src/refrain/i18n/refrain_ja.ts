@@ -420,8 +420,8 @@ After confirming, click Apply at the bottom of the Settings window to save the r
     <message>
         <location filename="../ui/tray.py" line="81" />
         <location filename="../ui/tray.py" line="174" />
-        <source>○  Discord: not connected</source>
-        <translation>○  Discord: 未接続</translation>
+        <source>Discord: not connected</source>
+        <translation>Discord: 未接続</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
@@ -477,8 +477,8 @@ After confirming, click Apply at the bottom of the Settings window to save the r
     </message>
     <message>
         <location filename="../ui/tray.py" line="172" />
-        <source>●  Discord: connected</source>
-        <translation>●  Discord: 接続済み</translation>
+        <source>Discord: connected</source>
+        <translation>Discord: 接続済み</translation>
     </message>
 </context>
 <context>

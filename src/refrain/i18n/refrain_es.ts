@@ -420,8 +420,8 @@ Después de confirmar, pulsa Aplicar en la parte inferior de Ajustes para guarda
     <message>
         <location filename="../ui/tray.py" line="81" />
         <location filename="../ui/tray.py" line="174" />
-        <source>○  Discord: not connected</source>
-        <translation>○  Discord: no conectado</translation>
+        <source>Discord: not connected</source>
+        <translation>Discord: no conectado</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
@@ -477,8 +477,8 @@ Después de confirmar, pulsa Aplicar en la parte inferior de Ajustes para guarda
     </message>
     <message>
         <location filename="../ui/tray.py" line="172" />
-        <source>●  Discord: connected</source>
-        <translation>●  Discord: conectado</translation>
+        <source>Discord: connected</source>
+        <translation>Discord: conectado</translation>
     </message>
 </context>
 <context>

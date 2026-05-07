@@ -51,6 +51,24 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.7" date="2026-05-07">
+      <description>
+        <p>
+          Tray menu polish + Discord-RPC reliability. Every tray
+          action now carries an icon (theme-matched on Plasma /
+          GNOME / Breeze), the song-info rows render in normal text
+          colour with proper icons instead of greyed-out indented
+          rows, and middle-clicking the tray icon toggles
+          play/pause. Discord handshake errors (e.g. "User logged
+          out", "Invalid Client ID") are now caught explicitly
+          instead of crash-logged as unexpected exceptions, with a
+          longer back-off so Refrain doesn't retry tightly while
+          you're signing back in. The Settings → Updates
+          "Latest release notes" pane populates on every restart
+          regardless of the 24-hour update-check cooldown.
+        </p>
+      </description>
+    </release>
     <release version="0.2.6" date="2026-05-07">
       <description>
         <p>

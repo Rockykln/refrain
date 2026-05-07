@@ -285,14 +285,97 @@ What's done, what's next, what's deliberately not in scope.
 
 ## Up next — v0.3
 
-- **Polishing the wrapped i18n surface** — wrap the remaining
-  fixed-position strings (date formatters, advanced-tab subtitles,
-  bluetooth picker labels) so the German build covers everything a
-  user sees, not just the high-traffic widgets.
 - **Stable-release AUR build** that doesn't rely on the GitHub
   release tarball — switch to a `git`-source PKGBUILD pinned to the
   signed tag, so AUR users get the exact same commit the release
   workflow ships.
+- **Wrap the remaining fixed-position strings** (date formatters,
+  bluetooth picker labels) so every language reaches 100% coverage,
+  not just the high-traffic widgets.
+
+## Done — v0.2.7
+
+- **Tray-menu polish.** Every action carries an icon now —
+  freedesktop theme icons (`configure`, `view-list-text`,
+  `view-refresh`, `media-skip-{backward,forward}`,
+  `media-playback-{start,pause}`) for built-in actions plus the
+  bundled coloured-accent SVGs for Update / Quit. Source strings
+  for the playback / restart / Discord-status entries dropped
+  their unicode-glyph prefixes (`⏮ ⏵ ⏸ ⏭ ⟳ ●/○`); all 9 .ts
+  files updated. Quit ✕ glyph redrawn to fill its 16×16 viewBox.
+- **Song-info rows render with proper colour + icons.** Title /
+  Artist / Progress / Discord-status used to be `setEnabled(False)`
+  so KDE / GNOME's DBusMenu painted them muted-grey + indented +
+  iconless. They're now enabled (a click opens Settings) and
+  carry `view-media-{track,artist}`, `chronometer`, and
+  `network-{connect,disconnect}` icons.
+- **Middle-click on the tray icon toggles play/pause.** Same
+  PlayPause command as the tray-menu Play/Pause item, but
+  reachable without opening the menu.
+- **Discord handshake errors no longer crash-log.** `pypresence.
+  exceptions.DiscordError` (raised when Discord rejects the
+  handshake — "User logged out", "Invalid Client ID") fell
+  through the bare `except Exception:` and emitted a full
+  traceback every retry cycle. Now caught explicitly, logged at
+  INFO, with backoff jumping straight to the 15 s ceiling so
+  Refrain doesn't retry tightly while you sign back into Discord.
+- **First Discord push after a forced reconnect can no longer be
+  deduped out.** `_last_payload` is reset in the connect-success
+  path so the dedup cache from a previous Presence instance
+  doesn't suppress the first push on the new pipe.
+- **Settings → Updates "Latest release notes" pane populates on
+  every restart.** v0.2.6's startup auto-check short-circuited
+  before fetching when the 24h cooldown was active; the v0.2.6
+  workaround re-fetched on every Updates-tab visit. Both gone —
+  startup runs a silent fetch (no popups, no cooldown bump) so
+  the pane is populated immediately, while the cooldown still
+  gates the auto-nag popup.
+- **Empty artist row in tray menu when nothing was playing**
+  (`setVisible(False)` until a real track populates it).
+
+## Done — v0.2.6
+
+- **8 new UI languages** at 127/127 strings each: Spanish (`es`),
+  French (`fr`), Portuguese (`pt`), Italian (`it`), Russian
+  (`ru`), Polish (`pl`), Japanese (`ja`), Simplified Chinese
+  (`zh_CN`). Settings → Advanced → Language dropdown lists each
+  under its native endonym. Together with English + German this
+  covers ~3 billion native speakers.
+- **GitHub release bodies were one-line "Full Changelog: …"**
+  because the workflow used `generate_release_notes: true`. Now
+  extracts the matching `## [X.Y.Z]` section from CHANGELOG.md
+  via awk and feeds it as `body_path`; existing v0.1.0 – v0.2.5
+  bodies were backfilled out-of-band.
+- **Reliability sweep**: `os.execvp` Restart fallback to
+  `python -m refrain` when `argv[0]` isn't runnable;
+  Config.save .tmp cleanup on disk-full / read-only;
+  `Config._format_value` escapes `\n / \r / \t`;
+  `Config._construct` coerces wrongly-typed primitives (e.g.
+  `cover_cache_size = "200"`) instead of crashing in
+  `_prune_cover_cache`; cover-art `_write_cache` +
+  `download_cover_image` clean up `.tmp` siblings on disk
+  failure; `_bridge_sandboxed_ipc_socket` permission-error wrap;
+  iTunes Search shape-checks; `SessionBusUnavailable` exception
+  surfacing instead of bare DBusException; Apply error toast for
+  non-writable config dirs; `setup_logging`/`_apply_log_level`
+  coerce non-string `log_level`.
+
+## Done — v0.2.5
+
+- **AUR + Flatpak self-update spawns a terminal automatically**
+  running the package-manager command (`yay -Syu refrain` /
+  `flatpak update io.github.Rockykln.Refrain`) instead of just
+  showing the command in a popup. Falls back to the previous
+  message-box hint when no terminal is on PATH (probe list:
+  konsole, gnome-terminal, xfce4-terminal, kitty, alacritty,
+  foot, xterm, wezterm).
+- **pip auto-update detects "no-op" exits.** PyPI's CDN can lag
+  the GitHub Releases API by minutes, so a "0.2.X available"
+  check could succeed while pip exited 0 with "Requirement
+  already satisfied" (no upgrade). Refrain now parses pip's
+  stdout to distinguish "Successfully installed" from
+  "Requirement already satisfied" and tells the user to retry
+  shortly instead of restarting into the same version.
 
 ## Done — v0.2.2
 

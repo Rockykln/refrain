@@ -466,9 +466,14 @@ class SettingsWindow(QDialog):
         # read what's in the latest version without having to click
         # through to GitHub. Populated lazily once the orchestrator's
         # check finishes (set_latest_release).
-        notes_group, _ = _new_group(self.tr("Latest release notes"))
-        notes_layout = QVBoxLayout()
-        self.release_notes_view = QTextBrowser()
+        # `_new_group` already installs a QFormLayout on the box. Calling
+        # `notes_group.setLayout(QVBoxLayout())` on top of that is a no-op
+        # — Qt logs "QLayout: Attempting to add QLayout to QGroupBox which
+        # already has a layout" and the new layout is discarded, leaving
+        # the QTextBrowser parentless. So we add the view to the existing
+        # form layout via addRow with a single field instead.
+        notes_group, nf = _new_group(self.tr("Latest release notes"))
+        self.release_notes_view = QTextBrowser(notes_group)
         self.release_notes_view.setOpenExternalLinks(True)
         self.release_notes_view.setMarkdown(
             self.tr(
@@ -476,8 +481,7 @@ class SettingsWindow(QDialog):
             )
         )
         self.release_notes_view.setMinimumHeight(180)
-        notes_layout.addWidget(self.release_notes_view)
-        notes_group.setLayout(notes_layout)
+        nf.addRow(self.release_notes_view)
         v.addWidget(notes_group, 1)
 
         return w

@@ -143,6 +143,12 @@ class DiscordRPC:
             p.connect()
             self._presence = p
             self._backoff_s = 2.0
+            # A fresh IPC pipe carries no state on Discord's side —
+            # so the dedup cache from a *previous* presence object
+            # would wrongly skip the first update on the new
+            # connection (Discord would then keep showing nothing
+            # until the daemon picks up a metadata change).
+            self._last_payload = None
             log.info("Discord RPC connected")
             return True
         except (
@@ -153,6 +159,17 @@ class DiscordRPC:
             OSError,
         ) as e:
             log.debug("Discord RPC connect failed: %s", e)
+        except ppx.DiscordError as e:
+            # Discord accepted the IPC pipe but sent back an error
+            # response to the handshake. Common reasons:
+            #   - "User logged out": user signed out of Discord
+            #   - "Invalid Client ID": client_id is malformed / not a
+            #     Discord application (Settings → Discord input typo)
+            # These aren't bugs in Refrain — log at INFO and back off
+            # longer than the standard transient-error retry, since
+            # the user has to take action (sign back in, fix ID).
+            log.info("Discord RPC handshake rejected: %s", e)
+            self._backoff_s = self._max_backoff_s
         except Exception:
             log.exception("Discord RPC connect unexpected error")
         self._presence = None

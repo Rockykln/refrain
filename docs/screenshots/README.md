@@ -4,14 +4,16 @@ The README references screenshots from this directory. To regenerate them:
 
 | File                       | What to capture                                      |
 |----------------------------|------------------------------------------------------|
-| `tray-menu.png`            | Right-click the Refrain tray icon while a track plays. The full menu, with track name, artist, time and player controls visible. |
+| `tray-menu.png`            | Right-click the Refrain tray icon while a track plays. Captures title / artist / progress / Discord-status info rows + Previous / Play-Pause / Next / Settings / Live log / Restart / Quit, all with theme icons. |
 | `settings-general.png`     | Settings window → *General* tab, showing Discord client ID, Privacy combo, autostart, notifications, cover art, buttons. |
 | `settings-sources.png`     | Settings window → *Sources* tab, showing MPRIS toggle, Bluetooth toggle, and the paired-device dropdown populated. |
-| `settings-updates.png`     | Settings window → *Updates* tab. Auto-check on, last-checked timestamp visible, hint text wrapped. |
+| `settings-updates.png`     | Settings window → *Updates* tab. Auto-check on, last-checked timestamp visible, the "Latest release notes" pane populated from CHANGELOG. |
+| `settings-advanced.png`    | Settings window → *Advanced* tab, showing the Language dropdown (11 entries: System default + 10 native endonyms), poll interval, log level, cover cache size, idle grace, and the Reset-all-settings button. |
 | `update-dialog.png`        | The update-available dialog (only appears when a new version is found). Trigger it locally by editing `__version__` to something older and clicking *Check for updates now*. |
 | `discord-rpc.png`          | Cropped section of your Discord profile showing the "Listening to" card with cover art + elapsed/total timer. |
 | `notification.png`         | A desktop notification fired by Refrain on track change. KDE Plasma's notification with the album cover at left. |
 | `live-log.png`             | The live-log window, opened via tray → *Live log…*, with at least 10 lines of streamed log. |
+| `welcome.png`              | First-run welcome wizard — shown when no `client_id` is configured yet. Diagnostics panel + Discord-app guidance. |
 
 ## How to capture on KDE Plasma
 

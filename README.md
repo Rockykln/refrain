@@ -119,6 +119,15 @@ registers their own (free, takes 30 seconds):
 4. Launch Refrain → *Settings → General → Discord Client ID* → paste,
    *Apply*.
 
+The first time you launch Refrain without a configured ID, the
+welcome wizard pops up with the setup steps + a live diagnostics
+panel that probes your D-Bus session and Discord IPC socket so you
+know up front whether your environment can host the RPC at all.
+
+<p align="center">
+  <img src="docs/screenshots/welcome.png" alt="Welcome wizard" width="560"/>
+</p>
+
 That's it. The status will appear in Discord on the next track change.
 
 ## Configuration
@@ -153,7 +162,7 @@ poll_interval_ms = 500
 log_level = "INFO"
 cover_cache_size = 200             # disk cap for cached covers
 idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
-language = "system"                # "system" follows QLocale; "en" / "de" / … force a translation
+language = "system"                # "system" follows QLocale; "en", "de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN" force a translation
 ```
 
 Per-source `client_id_*` fields let Apple Music render under one Discord

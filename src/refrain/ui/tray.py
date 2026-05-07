@@ -71,18 +71,31 @@ class TrayIcon(QObject):
         self._current_track_line = ""
         self._current_progress_line = ""
 
+        # Info rows: title / artist / progress / Discord-status.
+        # Left ENABLED on purpose — KDE Plasma's DBusMenu renderer (and
+        # GNOME's AppIndicator) draw disabled QActions in a muted /
+        # greyed-out style, which made the song info read like
+        # "broken" rows with their text washed out next to the white
+        # action labels below. Enabled rows render in the standard
+        # menu-item colour. Click-handlers for these rows fall back
+        # to opening Settings (their natural "tell me more" target);
+        # we don't want them to look greyed-out + indented + iconless.
         self._title_action = QAction(self.tr("(nothing playing)"))
-        self._title_action.setEnabled(False)
+        self._title_action.setIcon(QIcon.fromTheme("view-media-track"))
+        self._title_action.triggered.connect(self.settingsRequested.emit)
         self._artist_action = QAction("")
-        self._artist_action.setEnabled(False)
+        self._artist_action.setIcon(QIcon.fromTheme("view-media-artist"))
+        self._artist_action.triggered.connect(self.settingsRequested.emit)
         # Hidden until a real track populates it — otherwise it
         # rendered as a tall empty row right under "(nothing playing)".
         self._artist_action.setVisible(False)
         self._progress_action = QAction("")
-        self._progress_action.setEnabled(False)
+        self._progress_action.setIcon(QIcon.fromTheme("chronometer"))
+        self._progress_action.triggered.connect(self.settingsRequested.emit)
         self._progress_action.setVisible(False)
-        self._discord_action = QAction(self.tr("○  Discord: not connected"))
-        self._discord_action.setEnabled(False)
+        self._discord_action = QAction(self.tr("Discord: not connected"))
+        self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
+        self._discord_action.triggered.connect(self.settingsRequested.emit)
 
         # Once any item in a QMenu has an icon, the menu reserves the
         # icon column for ALL items. Without icons here the playback /
@@ -212,9 +225,11 @@ class TrayIcon(QObject):
 
     def set_discord_connected(self, connected: bool) -> None:
         if connected:
-            self._discord_action.setText(self.tr("●  Discord: connected"))
+            self._discord_action.setText(self.tr("Discord: connected"))
+            self._discord_action.setIcon(QIcon.fromTheme("network-connect"))
         else:
-            self._discord_action.setText(self.tr("○  Discord: not connected"))
+            self._discord_action.setText(self.tr("Discord: not connected"))
+            self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         if duration_ms <= 0:
@@ -227,7 +242,7 @@ class TrayIcon(QObject):
         dur = max(0, duration_ms) // 1000
         rem = max(0, dur - pos)
         progress = (
-            f"⏱  {pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
+            f"{pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
             f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
         )
         self._progress_action.setText(progress)
@@ -248,7 +263,7 @@ class TrayIcon(QObject):
             self._current_progress_line = ""
             self._tray.setToolTip("Refrain")
             return
-        self._title_action.setText(f"♪ {track.title}")
+        self._title_action.setText(track.title)
         if track.artist and track.album:
             line = f"{track.artist} • {track.album}"
         elif track.artist:

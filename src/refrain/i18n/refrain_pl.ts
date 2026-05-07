@@ -420,8 +420,8 @@ Po potwierdzeniu kliknij Zastosuj na dole okna Ustawień, aby zapisać reset.</t
     <message>
         <location filename="../ui/tray.py" line="81" />
         <location filename="../ui/tray.py" line="174" />
-        <source>○  Discord: not connected</source>
-        <translation>○  Discord: niepołączony</translation>
+        <source>Discord: not connected</source>
+        <translation>Discord: niepołączony</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="84" />
@@ -477,8 +477,8 @@ Po potwierdzeniu kliknij Zastosuj na dole okna Ustawień, aby zapisać reset.</t
     </message>
     <message>
         <location filename="../ui/tray.py" line="172" />
-        <source>●  Discord: connected</source>
-        <translation>●  Discord: połączony</translation>
+        <source>Discord: connected</source>
+        <translation>Discord: połączony</translation>
     </message>
 </context>
 <context>

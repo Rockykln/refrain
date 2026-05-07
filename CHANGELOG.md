@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-05-07
+
+Tray-menu polish + Discord-RPC reliability fixes. Every tray action
+now carries an icon, song-info rows render in normal menu text
+colour instead of greyed-out indented rows, middle-click on the
+tray toggles play/pause, and Discord handshake errors no longer
+spam the log with unexpected-exception tracebacks.
+
 ### Added
 
 - **Middle-click on the tray icon toggles play/pause.** Clicks the
@@ -17,30 +25,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tray menu actions now all carry icons.** Once any QMenu item
   has an icon, the menu reserves the icon column for *all* items —
   so adding the red ✕ to Quit Refrain made every previously
-  text-only action (Settings, Live log, Restart, playback
-  controls) read as misaligned with blank icon space. Action items
-  now use freedesktop theme icons (`configure`, `view-list-text`,
-  `view-refresh`, `media-skip-backward`, `media-playback-start`,
-  `media-playback-pause`, `media-skip-forward`) which match the
-  user's Plasma / GNOME / Breeze icon set. Update + Quit keep
-  their bundled coloured-accent SVGs. Source strings for the
-  playback / restart actions dropped their unicode-glyph prefixes
-  (`⏮ ⏵ ⏸ ⏭ ⟳`) so the new icons don't read as duplicates next
-  to them; all 9 .ts files updated to match. The Quit ✕ glyph was
-  redrawn to fill its 16×16 viewBox edge-to-edge so it visually
-  matches the theme icons' pixel weight instead of looking shrunk.
+  text-only action read as misaligned with blank icon space. Action
+  items now use freedesktop theme icons (`configure`,
+  `view-list-text`, `view-refresh`, `media-skip-backward`,
+  `media-playback-start`, `media-playback-pause`,
+  `media-skip-forward`) which match the user's Plasma / GNOME /
+  Breeze icon set. Update + Quit keep their bundled coloured-accent
+  SVGs. Source strings for the playback / restart actions dropped
+  their unicode-glyph prefixes (`⏮ ⏵ ⏸ ⏭ ⟳`) so the new icons
+  don't read as duplicates; all 9 .ts files updated to match. The
+  Quit ✕ glyph was redrawn to fill its 16×16 viewBox edge-to-edge
+  so it visually matches the theme icons' pixel weight.
+- **Song-info rows in the tray menu now render with proper icons
+  and full-strength text colour.** Title / Artist / Progress /
+  Discord-status used to be `setEnabled(False)` so KDE's DBusMenu
+  rendered them muted-grey + indented + iconless next to the white
+  action labels below. They're now enabled (a stray click opens
+  Settings — their natural "tell me more" target) and carry
+  `view-media-track`, `view-media-artist`, `chronometer`, and
+  `network-connect` / `network-disconnect` icons. The `♪` prefix
+  on the title and the `●/○` prefix on the Discord-status row are
+  gone — the icons replace them.
 
 ### Fixed
 
+- **Settings → Updates "Latest release notes" QTextBrowser was
+  parent-less.** `_build_updates_tab` called
+  `notes_group.setLayout(QVBoxLayout())` on a QGroupBox that
+  already had a QFormLayout installed by `_new_group`. Qt refuses
+  to install a second layout (logs "QLayout: Attempting to add
+  QLayout to QGroupBox which already has a layout") so the new
+  VBoxLayout was discarded and the QTextBrowser ended up as a
+  free-floating top-level widget kept alive only by the Python
+  reference. In production it still painted because the parent
+  page laid it out somewhere reasonable, but it was outside the
+  widget tree (`findChildren(QTextBrowser)` returned 0). The view
+  is now added via the existing form layout's `addRow`.
+- **Discord handshake errors logged as ERROR-level unexpected
+  exceptions with a full traceback every retry.** When Discord
+  responded to a `pypresence.Presence.connect()` with an error
+  message (e.g. "User logged out" — DiscordError code 1000, or
+  "Invalid Client ID"), the bare `except Exception:` clause in
+  `_ensure_connected` swallowed it as a programmer bug and emitted
+  a noisy traceback every backoff cycle. `pypresence.exceptions.
+  DiscordError` is now caught explicitly and logged at INFO; the
+  back-off jumps straight to the 15 s ceiling so Refrain doesn't
+  retry tightly while the user is signing back into Discord or
+  fixing a typo'd client_id.
+- **First Discord push after a forced reconnect could be deduped
+  out of existence.** The presence-update dedupe cache lived on
+  the orchestrator across `Presence` instance replacements; after
+  a reconnect with byte-identical payload data, the new pipe
+  carried no state on Discord's side but our cache still claimed
+  "we already pushed this", so the user saw "no activity" until
+  metadata changed. `_last_payload` is now reset to None in the
+  successful-connect path of `_ensure_connected`.
 - **Empty artist row in tray menu when nothing was playing.** The
   artist QAction stayed visible with empty text whenever no track
   was active, rendering as a tall blank line right under
-  "(nothing playing)". Now hidden via `setVisible(False)` until a
-  real track populates it; visibility flips back on for actual
-  playback.
+  "(nothing playing)". Now hidden until a real track populates it.
 - **Settings → Updates "Latest release notes" pane stayed empty
   on every Refrain restart within the 24-hour update-check
-  cooldown** — `maybe_check_on_startup` short-circuited *before*
+  cooldown.** `maybe_check_on_startup` short-circuited *before*
   fetching anything when the cooldown was active, so
   `releaseInfoFetched` never fired and `set_latest_release` never
   populated the inline pane. The v0.2.6 workaround — re-fetching
@@ -1023,7 +1069,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/Rockykln/refrain/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/Rockykln/refrain/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/Rockykln/refrain/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/Rockykln/refrain/compare/v0.2.3...v0.2.4
