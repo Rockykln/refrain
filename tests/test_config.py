@@ -131,3 +131,27 @@ def test_browser_hints_list_empty_when_blank():
 
     assert SourcesConfig(browser_hints="").browser_hints_list() == []
     assert SourcesConfig(browser_hints=" ,, ").browser_hints_list() == []
+
+
+def test_unknown_section_keys_dropped_not_fatal(caplog):
+    """Forward/backward-compat: a key the current code doesn't know
+    (e.g. written by a newer Refrain that the user has downgraded from,
+    or a hand-edit typo) must NOT make Config.from_dict fall back to
+    defaults for the *whole* file. Only the offending key is dropped."""
+    payload = {
+        "discord": {
+            "client_id": "123456789012345678",
+            "client_id_youtube": "777",  # not a real field — user downgraded
+        },
+        "advanced": {
+            "poll_interval_ms": 750,
+            "frobnicate_level": 11,  # typo
+        },
+    }
+    with caplog.at_level("WARNING", logger="refrain.config"):
+        c = Config.from_dict(payload)
+    assert c.discord.client_id == "123456789012345678"
+    assert c.advanced.poll_interval_ms == 750
+    # The two stray keys should produce diagnostic warnings.
+    assert any("client_id_youtube" in rec.message for rec in caplog.records)
+    assert any("frobnicate_level" in rec.message for rec in caplog.records)

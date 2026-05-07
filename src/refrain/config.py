@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import tomllib
@@ -12,6 +13,32 @@ from typing import Any
 from refrain.paths import config_path
 
 log = logging.getLogger(__name__)
+
+
+def _construct(cls, payload):
+    """Build a dataclass from ``payload`` while ignoring unknown keys.
+
+    Plain ``cls(**payload)`` raises TypeError on any key that isn't a
+    declared field — including keys written by a *newer* Refrain that
+    the user has since downgraded from, or hand-edited typos. The
+    surrounding except in ``Config.load`` would then drop the *whole*
+    config back to defaults, silently losing every other setting the
+    user picked. Filtering first means a single stray key just gets
+    dropped (with a warning) and the rest of the section survives.
+    """
+    if not payload:
+        return cls()
+    known = {f.name for f in dataclasses.fields(cls)}
+    accepted = {k: v for k, v in payload.items() if k in known}
+    dropped = set(payload) - known
+    if dropped:
+        log.warning(
+            "Config: ignoring unknown %s keys %s — likely from a different "
+            "Refrain version or a hand-edit typo",
+            cls.__name__,
+            sorted(dropped),
+        )
+    return cls(**accepted)
 
 
 @dataclass
@@ -157,12 +184,12 @@ class Config:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Config:
         return cls(
-            discord=DiscordConfig(**(data.get("discord") or {})),
-            sources=SourcesConfig(**(data.get("sources") or {})),
-            privacy=PrivacyConfig(**(data.get("privacy") or {})),
-            behavior=BehaviorConfig(**(data.get("behavior") or {})),
-            advanced=AdvancedConfig(**(data.get("advanced") or {})),
-            update=UpdateConfig(**(data.get("update") or {})),
+            discord=_construct(DiscordConfig, data.get("discord")),
+            sources=_construct(SourcesConfig, data.get("sources")),
+            privacy=_construct(PrivacyConfig, data.get("privacy")),
+            behavior=_construct(BehaviorConfig, data.get("behavior")),
+            advanced=_construct(AdvancedConfig, data.get("advanced")),
+            update=_construct(UpdateConfig, data.get("update")),
         )
 
     def to_dict(self) -> dict[str, Any]:
