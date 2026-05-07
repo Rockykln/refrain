@@ -169,6 +169,56 @@ What's done, what's next, what's deliberately not in scope.
   in the wheel**, **MPRIS dispatch logging at INFO** so
   Next/Previous routing is visible in the live log.
 
+## Done — v0.2.3
+
+- **Distro-portability sweep** driven by hands-on testing.
+  - Qt style plugin path augmentation extended to Debian / Ubuntu
+    (`/usr/lib/<arch-triple>/qt6/plugins`) and Fedora / RHEL / openSUSE
+    (`/usr/lib64/qt6/plugins`); v0.2.2 only handled the Arch layout.
+  - Snap and Flatpak Discord builds now reachable out of the box —
+    `_bridge_sandboxed_ipc_socket` symlinks the sandboxed
+    `discord-ipc-N` into `$XDG_RUNTIME_DIR` before each pypresence
+    connect attempt.
+  - Bluetooth fast-fail via `NameHasOwner('org.bluez')` so VMs and
+    minimal installs without bluez no longer block the daemon's
+    poll cycle for 25 s waiting on D-Bus service activation.
+  - "No system tray" error covers GNOME, MATE, XFCE, and the
+    tiling-WM crowd (Hyprland / Sway / i3 / river); was
+    GNOME-AppIndicator-only.
+  - `--install-desktop` rewrites `Exec=` in the installed `.desktop`
+    to match the running install (AppImage path / venv shim / system
+    binary), so AppImage and source-checkout users get a working
+    menu entry.
+  - Browser hints expanded to cover Floorp, Waterfox, Mullvad
+    Browser, Tor Browser, ungoogled-chromium.
+- **iTunes-catalog duration as MPRIS override** —
+  `pick_effective_duration_ms` chooses iTunes when MPRIS and iTunes
+  disagree by more than 15 % or when MPRIS sits in the preview-clip
+  band on a song iTunes considers full-length. Apple Music's MPRIS
+  surface no longer makes Discord briefly flip a 2:11 song's total
+  to 0:14 / 7:21 mid-track.
+- **Update-dialog Cancel + orphan-download self-heal** — `Cancel`
+  button + window-close handler abort an in-flight AppImage
+  download cleanly and remove the partial `.new`. A separate
+  `cleanup_orphan_downloads` runs at startup so a SIGKILL or power
+  loss mid-download doesn't leave a stale `*.AppImage.new` next to
+  the binary forever.
+- **Per-window icons** on Settings / Log / Update dialogs so GNOME
+  Shell's title-based heuristic on Wayland doesn't render them with
+  the gnome-control-center gear icon in the dock.
+- **Logging audit** closed six gaps: `setup_logging` runs before
+  `Config.load` so config-load messages reach the file log; the
+  log-level toggle in Settings applies live; `setup_logging` degrades
+  gracefully when the XDG state dir is unwritable; `os.execvp`-based
+  restarts flush log handlers first; catch-all exception branches in
+  `DiscordRPC._ensure_connected`, `MPRISSource._call_method_on` and
+  `BluetoothSource._call_method` switched to `log.exception()` so
+  tracebacks land in `refrain.log`.
+- **`docs/test-matrix.md`** — eight Tier-1 distros, Tier-2 spot-check
+  list, Tier-3 desktop / compositor sweep, six-step smoke checks,
+  out-of-scope reasons for the floor of unsupported distros (RHEL 9
+  / Rocky 9 / Alma 9 / Debian 11 / Ubuntu 22.04 / Alpine).
+
 ## Up next — v0.3
 
 - **Polishing the wrapped i18n surface** — wrap the remaining

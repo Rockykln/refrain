@@ -7,6 +7,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-05-07
+
+A reliability + portability pass driven by hands-on testing across
+Ubuntu 25.04, CentOS Stream 10, and the existing CachyOS daily driver.
+No breaking changes — same config, same UI, same Python floor; the
+release just makes Refrain behave correctly on more distros and tightens
+a handful of long-standing rough edges.
+
+### Added
+
+- **Sandboxed Discord IPC bridge** — Snap and Flatpak Discord builds
+  publish their `discord-ipc-N` socket inside the sandbox tree instead
+  of `$XDG_RUNTIME_DIR`, so pypresence's stock discovery never finds it.
+  `_bridge_sandboxed_ipc_socket` probes the three known sandbox paths
+  (Flatpak instance dir, Flatpak config-dir layout, Snap path) and
+  symlinks the first hit into `$XDG_RUNTIME_DIR` before each connect
+  attempt. The welcome-dialog probe walks the same paths so first-run
+  diagnostics turn green on those installs.
+- **Cancel button in the update dialog** — `_apply_appimage` now
+  reads in 64 KiB chunks and polls a cancellation callback between
+  blocks. The dialog repurposes its "Later" button as "Cancel" while a
+  download is running, treats window-close as cancel, and removes the
+  partial `.AppImage.new` on abort. `UpdateResult.cancelled` lets the
+  dialog suppress the failure popup for user-initiated aborts.
+- **Orphan-download self-heal** — `cleanup_orphan_downloads` runs once
+  at startup so a `*.AppImage.new` left behind by a SIGKILL or power
+  loss mid-download doesn't sit next to the binary forever.
+- **Browser hints expanded** — Floorp, Waterfox, Mullvad Browser, Tor
+  Browser, and ungoogled-chromium are now in `DEFAULT_BROWSER_HINTS`
+  and surface as Settings checkboxes. Existing configs keep their
+  saved list (no auto-migration); the new entries appear unticked
+  until the user toggles them.
+- **iTunes-catalog duration as MPRIS override** — when MPRIS reports
+  an obviously-wrong `mpris:length` (Apple Music's preview-clip 14 s,
+  the playlist-total instead of the track length, or a stale value
+  carried over from the previous track), `pick_effective_duration_ms`
+  prefers the iTunes value if the two disagree by more than 15 % or
+  if MPRIS sits in the preview-clip band on a song iTunes considers
+  full-length. 8 new unit tests in `test_timing.py`. Discord no
+  longer briefly flips a 2:11 song's total to 0:14 / 7:21 mid-track.
+- **`docs/test-matrix.md`** — eight Tier-1 distros that together
+  cover ≈ 95 % of the realistic user base, plus Tier-2 spot-checks,
+  Tier-3 desktop / compositor combinations, and a six-step smoke
+  check ("tray + theme parity", "settings round-trip", "MPRIS to
+  Discord", "Bluetooth", "update-dialog cleanup", "restart cycle")
+  per row.
+
+### Changed
+
+- **Qt style plugin path augmentation also walks Debian / Ubuntu and
+  Fedora / RHEL / openSUSE layouts** — the v0.2.2 fix only checked
+  `/usr/lib/qt6/plugins` (Arch). pip / pipx installs on those distros
+  now also pick up the system Breeze plugin instead of falling back
+  to Fusion. Detection picks the first existing path among
+  `/usr/lib/<arch-triple>/qt6/plugins`, `/usr/lib64/qt6/plugins`,
+  `/usr/lib/qt6/plugins`.
+- **"No system tray" error** rewritten to cover GNOME, MATE, XFCE,
+  Hyprland / Sway / i3 / river, plus a "should work, try logging
+  out" hint for Plasma / Cinnamon / LXQt / Budgie. Previously the
+  fix advice was GNOME-AppIndicator-only, leaving everyone else to
+  guess.
+- **`refrain --install-desktop`** rewrites the installed
+  `Exec=` line to point at the actual launcher path of the running
+  install. Previously the bundled `Exec=refrain` only worked when
+  `refrain` was on `$PATH` (distro packages, pipx); AppImage and
+  source-checkout users got a broken menu entry. Resolution order
+  matches the autostart logic — extracted into the new
+  `autostart.resolve_exec_line(extra_args)` helper.
+- **MPRIS source duration handling decouples drift-resync from the
+  payload's preview-clip flag** — the drift-skip still keys off the
+  raw MPRIS-reported duration (because the position-field looping is
+  a property of MPRIS' preview-clip mode), but the Discord activity
+  payload's start/end fields key off the *effective* duration so a
+  brief MPRIS preview-clip glitch on a full-length song doesn't kill
+  the progress bar.
+- **PyGObject "not installed" warning fires once per startup**
+  instead of twice (eager init from `app.py` plus lazy fallback in
+  `MPRISServer.start` both used to log). The install hint also lists
+  the Fedora / RHEL / openSUSE package name (`python3-gobject`)
+  alongside the Arch and Debian ones.
+
+### Fixed
+
+- **Settings / Log / Update windows now carry the Refrain icon
+  explicitly** — on GNOME Wayland the title-based heuristic was
+  matching "Settings" against `org.gnome.Settings` and rendering the
+  gnome-control-center gear icon in the dock. The WelcomeDialog
+  already set its own icon; the other three top-level windows did
+  not.
+- **Bluetooth fast-fail when `org.bluez` is not present** — every
+  poll cycle on a VM / minimal install previously triggered a
+  `service_start_timeout=25000ms` D-Bus activation timeout, blocking
+  the worker thread for the full 25 s. `NameHasOwner` returns
+  instantly without triggering activation; the three entry points
+  (`read`, `_call_method`, `list_paired_devices`) now short-circuit
+  when the owner check returns False.
+- **Logging gaps closed in six places** — `setup_logging` runs
+  before `Config.load` so the "created default config" /
+  "config unreadable" messages reach the file log; toggling the log
+  level in Settings now applies to the running root logger via
+  `_apply_log_level` on `settings.applied`; the "no system tray"
+  early-exit gets a `log.error()`; `os.execvp`-based restarts call
+  `logging.shutdown()` first so the file handler's last buffered
+  line isn't lost; `Config.load` exception path adds `exc_info=True`;
+  `setup_logging` degrades gracefully when the XDG state dir or log
+  file can't be opened (console handler always attaches first).
+- **Catch-all exception branches in `DiscordRPC._ensure_connected`,
+  `MPRISSource._call_method_on`, and `BluetoothSource._call_method`**
+  now use `log.exception()` so the traceback lands in `refrain.log`
+  for unexpected errors. Previously they only logged `str(exc)`,
+  losing the stack exactly when it would matter most.
+- **Qt-internal log records routed through `refrain.qt`** instead
+  of the bare `qt` logger, so they parent under the project
+  namespace and show up alongside everything else when the user
+  filters by name.
+
 ## [0.2.2] - 2026-05-06
 
 Two roadmap features pulled forward from v0.3 plus a substantial batch
@@ -568,7 +684,14 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/Rockykln/refrain/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/Rockykln/refrain/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/Rockykln/refrain/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/Rockykln/refrain/compare/v0.1.5...v0.2.0
+[0.1.5]: https://github.com/Rockykln/refrain/compare/v0.1.4...v0.1.5
+[0.1.4]: https://github.com/Rockykln/refrain/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/Rockykln/refrain/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Rockykln/refrain/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Rockykln/refrain/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Rockykln/refrain/releases/tag/v0.1.0

@@ -39,6 +39,7 @@ env/
 # Local config / runtime
 *.log
 .refrain.local.toml
+*.local.md
 
 # Build artifacts (Flatpak / packaging)
 .flatpak-builder/

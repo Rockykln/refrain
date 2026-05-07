@@ -100,9 +100,10 @@ and `~/.local/share/icons/`. To undo: `refrain --uninstall-desktop`.
 
 ### Tested on
 
-- KDE Plasma 6 (Wayland) — primary target
-- KDE Plasma 6 (X11)
-- GNOME (with the [AppIndicator and KStatusNotifierItem](https://extensions.gnome.org/extension/615/appindicator-support/) extension)
+See [`docs/test-matrix.md`](docs/test-matrix.md) for the full Tier-1 / Tier-2 list, the per-row smoke checks, and which distros are explicitly out-of-scope (Python or glibc floor too low).
+
+- **Tier 1 (must pass every release):** CachyOS, Arch Linux, Fedora 42, Ubuntu 24.04 LTS, Debian 13, openSUSE Tumbleweed, Linux Mint 22, Manjaro Stable.
+- **Desktops:** KDE Plasma 6 (Wayland is the primary target, X11 also covered), GNOME with the [AppIndicator and KStatusNotifierItem](https://extensions.gnome.org/extension/615/appindicator-support/) extension, XFCE / Cinnamon / LXQt / Budgie via their native or AppIndicator-bridged tray, MATE with `mate-applet-statusnotifier`, tiling WMs (Hyprland / Sway / i3 / river) via a SNI-capable status bar.
 
 ## First-time setup
 

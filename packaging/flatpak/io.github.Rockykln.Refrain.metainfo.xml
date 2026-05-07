@@ -51,6 +51,27 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.2.3" date="2026-05-07">
+      <description>
+        <p>
+          Reliability + portability pass. Sandbox-aware Discord IPC
+          discovery so Snap and Flatpak Discord builds are reachable
+          out of the box, Qt style plugin path augmentation extended
+          to Debian / Ubuntu / Fedora / RHEL / openSUSE layouts so
+          pip / pipx installs render in the system theme on those
+          distros (was Arch-only in 0.2.2), Bluetooth fast-fail so
+          VMs without bluez don't stall the poll cycle for 25 s, and
+          "No system tray" advice extended past the GNOME
+          AppIndicator hint to cover MATE, XFCE, and tiling
+          window managers. Plus a Cancel button on the update
+          dialog, orphan-download self-heal, per-window icons (no
+          more gnome-control-center gear icon on Wayland), an
+          iTunes-catalog duration override that fixes Discord briefly
+          flipping a 2:11 song's total to 0:14 mid-track, and a
+          six-step distro test matrix in docs/test-matrix.md.
+        </p>
+      </description>
+    </release>
     <release version="0.2.2" date="2026-05-06">
       <description>
         <p>

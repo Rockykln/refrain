@@ -30,7 +30,7 @@ AppDir:
     id: io.github.Rockykln.Refrain
     name: Refrain
     icon: refrain
-    version: 0.2.2
+    version: 0.2.3
     exec: usr/bin/python3
     exec_args: -m refrain $@
 
