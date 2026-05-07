@@ -107,6 +107,24 @@ def _detect_system_qt6_version() -> str | None:
     return None
 
 
+# Where distros put Qt 6 plugins. Order matters: try the
+# multiarch path first (Debian/Ubuntu derivatives), then lib64
+# (Fedora/RHEL/openSUSE), then the plain lib (Arch/CachyOS).
+_SYSTEM_QT6_PLUGIN_PATHS = (
+    Path("/usr/lib/x86_64-linux-gnu/qt6/plugins"),
+    Path("/usr/lib/aarch64-linux-gnu/qt6/plugins"),
+    Path("/usr/lib64/qt6/plugins"),
+    Path("/usr/lib/qt6/plugins"),
+)
+
+
+def _find_system_qt6_plugin_path() -> Path | None:
+    for p in _SYSTEM_QT6_PLUGIN_PATHS:
+        if (p / "styles").is_dir():
+            return p
+    return None
+
+
 def _augment_qt_plugin_path() -> None:
     """Make the system's Qt style plugins discoverable when running
     against a bundled PySide6 wheel.
@@ -117,9 +135,9 @@ def _augment_qt_plugin_path() -> None:
     visibly different from the AUR / system build that runs against the
     distro PySide6.
 
-    If the host has ``/usr/lib/qt6/plugins`` and the system Qt's MAJOR.MINOR
-    matches ours, we prepend that path so Qt finds the styles. We require
-    a minor-version match because mixing plugins across Qt minors risks
+    If a system Qt 6 plugin tree exists and the system Qt's MAJOR.MINOR
+    matches ours, we prepend it so Qt finds the styles. We require a
+    minor-version match because mixing plugins across Qt minors risks
     a silent ABI break.
 
     Must be called before ``QApplication`` is constructed — Qt resolves
@@ -130,10 +148,10 @@ def _augment_qt_plugin_path() -> None:
     bundled_plugins = Path(QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))
     if (bundled_plugins / "styles").is_dir():
         # PySide6 already shipped style plugins (or we're running against
-        # the distro PySide6 whose plugin path *is* /usr/lib/qt6/plugins).
+        # the distro PySide6 whose plugin path *is* the system one).
         return
-    system_plugins = Path("/usr/lib/qt6/plugins")
-    if not (system_plugins / "styles").is_dir():
+    system_plugins = _find_system_qt6_plugin_path()
+    if system_plugins is None:
         return
     bundled_version = QLibraryInfo.version().toString()
     system_version = _detect_system_qt6_version()
