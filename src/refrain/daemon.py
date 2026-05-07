@@ -294,11 +294,7 @@ class DaemonWorker(QObject):
                 return False
 
         dispatched = False
-        if (
-            active == "mpris"
-            and self._config.sources.mpris_enabled
-            and _try(self._mpris, "mpris")
-        ):
+        if active == "mpris" and self._config.sources.mpris_enabled and _try(self._mpris, "mpris"):
             dispatched = True
         elif (
             active == "bluetooth"
@@ -408,22 +404,41 @@ class DaemonWorker(QObject):
             self.statusChanged.emit(track.status)
             self._last_status = track.status
 
-        # Tray progress label: emit on every tick while playing
-        if track.status == PlaybackStatus.PLAYING and track.duration_ms > 0:
-            self.progressTick.emit(track.position_ms, track.duration_ms)
+        # Compute the iTunes-corrected duration once per tick — every
+        # consumer downstream wants the same value (tray progress,
+        # Discord RPC payload, the published MPRIS server forwarded to
+        # Plasma). Doing it here keeps the three sites consistent and
+        # avoids three independent cache lookups when one would do.
+        # Falls back to MPRIS when iTunes has no match.
+        itunes_dur_ms = (
+            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
+            if self._config.behavior.cover_art
+            else 0
+        )
+        effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
 
-        self._update_rpc(track)
+        # Tray progress label: emit on every tick while playing.
+        if track.status == PlaybackStatus.PLAYING and effective_dur_ms > 0:
+            # Clamp position to duration so the tray doesn't show a
+            # nonsensical "2:30 / 0:14 (-0:00)" line during a brief
+            # MPRIS preview-clip glitch on a longer song.
+            display_pos = min(max(0, track.position_ms), effective_dur_ms)
+            self.progressTick.emit(display_pos, effective_dur_ms)
+
+        self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 
         # Push the same track + cover URL to the published MPRIS server
         # so KDE Plasma's panel media-controls applet (and any other
-        # MPRIS-aware client) renders what Discord renders.
+        # MPRIS-aware client) renders what Discord renders. Forward
+        # effective_dur_ms so Plasma's panel sees the corrected
+        # duration instead of MPRIS' raw (possibly wrong) value.
         with contextlib.suppress(Exception):
             cover_for_mpris = (
                 self._cover_fetcher.get(track.artist, track.title, track.album)
                 if self._config.behavior.cover_art
                 else None
             )
-            self._mpris_server.update(track, cover_for_mpris)
+            self._mpris_server.update(track, cover_for_mpris, effective_dur_ms)
 
         # Surface RPC connect/disconnect transitions so the tray can show
         # an at-a-glance "● Discord connected" indicator.
@@ -488,7 +503,12 @@ class DaemonWorker(QObject):
         self._notify_retry_count = 0
         self._notify(track)
 
-    def _update_rpc(self, track: TrackInfo) -> None:
+    def _update_rpc(
+        self,
+        track: TrackInfo,
+        effective_duration_ms: int,
+        itunes_dur_ms: int,
+    ) -> None:
         if self._config.privacy.mode == "off":
             self._rpc.clear()
             return
@@ -553,15 +573,10 @@ class DaemonWorker(QObject):
             return
         self._rpc_cover_wait_count = 0
 
-        # iTunes-catalog duration (0 = no match cached yet). Used both
-        # for diagnostic logging and to override an obviously-wrong
-        # mpris:length when the two disagree (see pick_effective_duration_ms).
-        itunes_dur_ms = (
-            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
-            if self._config.behavior.cover_art
-            else 0
-        )
-        effective_duration_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+        # effective_duration_ms + itunes_dur_ms come from the caller —
+        # _dispatch computes them once per tick and forwards to every
+        # consumer (tray progress label, this RPC update, the published
+        # MPRIS server) so all three render the same value.
 
         # Discord elapsed-timer correctness — see refrain.timing for the
         # full rationale. Recomputes on track change, pause/resume, or seek;

@@ -209,7 +209,15 @@ class TrayIcon(QObject):
         else:
             line = track.album or "—"
         self._artist_action.setText(line)
-        self._current_track_line = f"{track.title}\n{line}"
+        new_track_line = f"{track.title}\n{line}"
+        # If the track text actually changed, drop the stale progress
+        # line so the tooltip doesn't briefly show "Song B • 1:30/2:11"
+        # using Song A's elapsed counter while a paused new track waits
+        # for its first progressTick.
+        if new_track_line != self._current_track_line:
+            self._current_progress_line = ""
+            self._progress_action.setVisible(False)
+        self._current_track_line = new_track_line
         self._refresh_tooltip()
 
     def _refresh_tooltip(self) -> None:

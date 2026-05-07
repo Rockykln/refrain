@@ -83,6 +83,7 @@ def _ensure_dbus_glib_loop() -> bool:
     log.debug("MPRIS server: GLib main loop started for dbus-python dispatch")
     return True
 
+
 _BUS_NAME = "org.mpris.MediaPlayer2.refrain"
 _OBJECT_PATH = "/org/mpris/MediaPlayer2"
 _ROOT_IFACE = "org.mpris.MediaPlayer2"
@@ -108,13 +109,25 @@ def _track_id(track: TrackInfo) -> dbus.ObjectPath:
     return dbus.ObjectPath(f"/refrain/track/{safe or 'unknown'}")
 
 
-def _build_metadata(track: TrackInfo, cover_url: str | None) -> dbus.Dictionary:
+def _build_metadata(
+    track: TrackInfo,
+    cover_url: str | None,
+    effective_duration_ms: int | None = None,
+) -> dbus.Dictionary:
     """Build the MPRIS Metadata dict. Empty fields are dropped so KDE's
-    panel doesn't render placeholder text."""
+    panel doesn't render placeholder text.
+
+    ``effective_duration_ms`` overrides ``track.duration_ms`` for the
+    published ``mpris:length`` so Plasma's panel widget shows the
+    iTunes-corrected duration instead of whatever Apple Music's
+    browser MPRIS happened to report this poll. ``None`` falls back
+    to ``track.duration_ms``.
+    """
     md: dict = {"mpris:trackid": _track_id(track)}
-    if track.duration_ms > 0:
+    duration_ms = effective_duration_ms if effective_duration_ms is not None else track.duration_ms
+    if duration_ms > 0:
         # MPRIS spec: mpris:length is microseconds, not milliseconds.
-        md["mpris:length"] = dbus.Int64(track.duration_ms * 1000)
+        md["mpris:length"] = dbus.Int64(duration_ms * 1000)
     if track.title:
         md["xesam:title"] = dbus.String(track.title)
     if track.artist:
@@ -153,6 +166,7 @@ class MPRISServer(dbus.service.Object):
         self._bus_name: dbus.service.BusName | None = None
         self._track: TrackInfo = TrackInfo.empty()
         self._cover_url: str | None = None
+        self._effective_duration_ms: int | None = None
         # dbus.service.Object.__init__ is deferred to start() so a bus
         # connect failure doesn't propagate from the daemon constructor.
 
@@ -192,16 +206,29 @@ class MPRISServer(dbus.service.Object):
 
     # ---------------------------------------------------- updates from daemon
 
-    def update(self, track: TrackInfo, cover_url: str | None) -> None:
+    def update(
+        self,
+        track: TrackInfo,
+        cover_url: str | None,
+        effective_duration_ms: int | None = None,
+    ) -> None:
         """Push the current track + cover URL into the published Metadata
         and PlaybackStatus properties. PropertiesChanged is emitted so
-        Plasma's media-controls applet refreshes immediately."""
+        Plasma's media-controls applet refreshes immediately.
+
+        ``effective_duration_ms`` is the iTunes-corrected song length
+        (when MPRIS lies — see ``timing.pick_effective_duration_ms``).
+        Forwarded to ``_build_metadata`` so Plasma's panel widget
+        shows the correct duration in the same situation Discord
+        does.
+        """
         if self._bus_name is None:
             return
         prev_track = self._track
         prev_cover = self._cover_url
         self._track = track
         self._cover_url = cover_url
+        self._effective_duration_ms = effective_duration_ms
         # Only emit when something visible to the panel actually moved.
         if (
             track.fingerprint() != prev_track.fingerprint()
@@ -212,7 +239,7 @@ class MPRISServer(dbus.service.Object):
                 self.PropertiesChanged(
                     _PLAYER_IFACE,
                     {
-                        "Metadata": _build_metadata(track, cover_url),
+                        "Metadata": _build_metadata(track, cover_url, effective_duration_ms),
                         "PlaybackStatus": _status_str(track.status),
                     },
                     [],
@@ -338,7 +365,9 @@ class MPRISServer(dbus.service.Object):
                     "LoopStatus": dbus.String("None"),
                     "Rate": dbus.Double(1.0),
                     "Shuffle": dbus.Boolean(False),
-                    "Metadata": _build_metadata(self._track, self._cover_url),
+                    "Metadata": _build_metadata(
+                        self._track, self._cover_url, self._effective_duration_ms
+                    ),
                     "Volume": dbus.Double(1.0),
                     "Position": dbus.Int64(self._track.position_ms * 1000),
                     "MinimumRate": dbus.Double(1.0),
