@@ -104,10 +104,38 @@ jobs:
           mv *.AppImage.zsync ../../dist/ 2>/dev/null || true
           ls -la ../../dist/
 
+      # Extract the matching `## [X.Y.Z]` section from CHANGELOG.md
+      # and feed it into the GitHub release body. Without this we'd
+      # fall back to GitHub's auto-generated "Full Changelog: …"
+      # one-liner — which is also what the in-app
+      # Settings → Updates → "Latest release notes" pane renders, so
+      # users would only ever see the bare compare-link there.
+      - name: Extract CHANGELOG section for the release body
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          # awk: print everything between `## [TAG]` and the next
+          # top-level ## section, excluding the heading lines themselves.
+          awk -v ver="${TAG}" '
+            $0 ~ "^## \\[" ver "\\]" { p=1; next }
+            p && /^## \[/ { exit }
+            p { print }
+          ' CHANGELOG.md > release-notes.md
+          echo "::group::release-notes.md"
+          cat release-notes.md
+          echo "::endgroup::"
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG section for v${TAG} extracted to nothing"
+            exit 1
+          fi
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          generate_release_notes: true
+          # Use our CHANGELOG section (extracted above), not GitHub's
+          # auto-generated notes — the in-app update dialog renders
+          # this body verbatim so it has to actually be the changelog.
+          body_path: release-notes.md
+          generate_release_notes: false
           draft: false
           prerelease: ${{ contains(github.ref, '-') }}   # e.g. v0.2.0-rc1
           name: "Refrain ${{ github.ref_name }}"
