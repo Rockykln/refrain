@@ -252,8 +252,8 @@ class MPRISSource:
         except dbus.DBusException as e:
             log.debug("MPRIS %s on %s failed: %s", method, name, e)
             return False
-        except Exception as e:
-            log.warning("MPRIS %s on %s unexpected error: %s", method, name, e)
+        except Exception:
+            log.exception("MPRIS %s on %s unexpected error", method, name)
             return False
 
     def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, bool]:

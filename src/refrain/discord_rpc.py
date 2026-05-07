@@ -62,8 +62,8 @@ class DiscordRPC:
             OSError,
         ) as e:
             log.debug("Discord RPC connect failed: %s", e)
-        except Exception as e:
-            log.warning("Discord RPC connect unexpected error: %s", e)
+        except Exception:
+            log.exception("Discord RPC connect unexpected error")
         self._presence = None
         self._schedule_retry()
         return False

@@ -274,10 +274,13 @@ _QT_LEVEL_MAP = {
 }
 
 
+_qt_logger = logging.getLogger("refrain.qt")
+
+
 def _qt_message_handler(msg_type, _context, message: str) -> None:
     if any(noise in message for noise in _QT_NOISE_SUBSTRINGS):
         return
-    logging.getLogger("qt").log(_QT_LEVEL_MAP.get(msg_type, logging.INFO), "%s", message)
+    _qt_logger.log(_QT_LEVEL_MAP.get(msg_type, logging.INFO), "%s", message)
 
 
 def _install_signal_handlers(app: QApplication) -> None:
