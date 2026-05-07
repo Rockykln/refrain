@@ -476,15 +476,60 @@ def _apply_pip() -> UpdateResult:
         log.warning("pip update invocation failed: %s", e)
         return UpdateResult(success=False, message=f"pip invocation failed: {e}")
 
-    log.info("pip exit=%d stdout_len=%d", result.returncode, len(result.stdout))
+    # Log the meaningful tail line of pip's stdout so the live log
+    # shows "Successfully installed refrain-X.Y.Z" or
+    # "Requirement already satisfied: refrain==X.Y.Z" — without this
+    # the user sees `pip exit=0` and assumes the upgrade worked when
+    # PyPI's index might still have a stale latest pinned, leaving
+    # the venv at the previous version after pip claimed success.
+    last_line = next(
+        (line for line in reversed(result.stdout.splitlines()) if line.strip()),
+        "",
+    )
+    log.info(
+        "pip exit=%d stdout_len=%d last=%s",
+        result.returncode,
+        len(result.stdout),
+        last_line[:200],
+    )
     if result.returncode != 0:
         log.warning("pip stderr: %s", result.stderr.strip()[:400])
         return UpdateResult(
             success=False,
             message=f"pip exited with code {result.returncode}:\n{result.stderr.strip()}",
         )
+    # Distinguish a real upgrade from pip's "already-satisfied" no-op.
+    # PyPI's CDN can lag the GitHub Releases API by minutes after a
+    # publish, so an update-check that just succeeded ("0.2.5
+    # available") may still see 0.2.4 as latest from pip's side and
+    # exit-zero without changing anything. Without this branch we'd
+    # show "Update complete — restart Refrain" and the user would
+    # restart to find themselves on the same version.
+    stdout_lower = result.stdout.lower()
+    if "successfully installed" in stdout_lower:
+        return UpdateResult(
+            success=True,
+            message="pip upgrade complete. Restart Refrain to load the new version.",
+            needs_restart=True,
+        )
+    if "requirement already satisfied" in stdout_lower:
+        return UpdateResult(
+            success=False,
+            message=(
+                "pip considered the package already up to date — usually "
+                "PyPI's CDN cache is lagging the new release by a few "
+                "minutes. Wait a moment and try again, or force the "
+                "refresh manually:\n\n"
+                "    pip install --upgrade --force-reinstall refrain"
+            ),
+        )
+    # Pip exited 0 but neither marker is present — unusual, surface
+    # the tail of stdout so the user has *something* to act on.
     return UpdateResult(
         success=True,
-        message="pip upgrade complete. Restart Refrain to load the new version.",
+        message=(
+            "pip exited successfully. Restart Refrain to load the new "
+            "version. (pip output: " + (last_line[:120] or "<empty>") + ")"
+        ),
         needs_restart=True,
     )
