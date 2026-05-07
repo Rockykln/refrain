@@ -37,6 +37,7 @@ log = logging.getLogger(__name__)
 # Plasma's `PlayPause` call never reaches our handler (the dispatcher
 # would have nothing to pump). Idempotent; the second call is a no-op.
 _DBUS_LOOP_INITIALIZED = False
+_DBUS_LOOP_INIT_FAILED = False
 _GLIB_THREAD: threading.Thread | None = None
 
 
@@ -51,16 +52,23 @@ def _ensure_dbus_glib_loop() -> bool:
     MPRIS server falls back to polling-only mode and Plasma controls
     won't reach us, but the rest of refrain keeps working).
     """
-    global _DBUS_LOOP_INITIALIZED, _GLIB_THREAD
+    global _DBUS_LOOP_INITIALIZED, _DBUS_LOOP_INIT_FAILED, _GLIB_THREAD
     if _DBUS_LOOP_INITIALIZED:
         return True
+    if _DBUS_LOOP_INIT_FAILED:
+        # Already warned once; subsequent callers (the eager init from
+        # app.py, then the lazy one from MPRISServer.start) get a silent
+        # False instead of a duplicate WARNING in the log.
+        return False
     try:
         from gi.repository import GLib
     except ImportError as e:
+        _DBUS_LOOP_INIT_FAILED = True
         log.warning(
             "MPRIS server: PyGObject not installed (%s) — Plasma media "
-            "controls won't work. Install python-gobject (Arch) / "
-            "python3-gi (Debian) to enable.",
+            "controls won't work. Install: python-gobject (Arch / "
+            "CachyOS / Manjaro), python3-gi (Debian / Ubuntu / Mint), "
+            "python3-gobject (Fedora / RHEL / openSUSE).",
             e,
         )
         return False
