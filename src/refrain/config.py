@@ -210,8 +210,19 @@ class Config:
         # half-written config — and refrain falls back to defaults on
         # malformed TOML, silently losing every setting the user picked.
         tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(_serialize(self.to_dict()), encoding="utf-8")
-        os.replace(tmp, path)
+        try:
+            tmp.write_text(_serialize(self.to_dict()), encoding="utf-8")
+            os.replace(tmp, path)
+        except Exception:
+            # Disk full / permission denied / read-only fs — clean up
+            # the partial tmp file before re-raising so we don't leak
+            # a stale .tmp next to the real config.
+            if tmp.exists():
+                import contextlib
+
+                with contextlib.suppress(OSError):
+                    tmp.unlink()
+            raise
         log.info("Config saved to %s", path)
 
 
@@ -231,5 +242,18 @@ def _format_value(v: Any) -> str:
         return "true" if v else "false"
     if isinstance(v, (int, float)):
         return str(v)
-    s = str(v).replace("\\", "\\\\").replace('"', '\\"')
+    # TOML basic-string escaping: backslash + double-quote are
+    # required by the spec; tab / newline / carriage-return are
+    # added so an accidentally-multiline value (paste from a wider
+    # field) doesn't produce a half-line that tomllib would then
+    # reject on next load and trip the "config unreadable, using
+    # defaults" fallback.
+    s = (
+        str(v)
+        .replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
     return f'"{s}"'

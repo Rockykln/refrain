@@ -730,7 +730,42 @@ def main() -> int:
         # so the rotating file handler's buffer doesn't lose the last
         # restart line.
         logging.shutdown()
-        os.execvp(binary, [binary, *new_argv])
+        # Two failure modes we have to handle:
+        #   1. binary is empty or not a real path (sys.argv[0] missing,
+        #      or `python -m refrain` invocation where argv[0] is the
+        #      __main__.py file rather than an executable).
+        #   2. execvp itself fails (binary not on PATH, permission denied).
+        # Fall back to `<sys.executable> -m refrain`, which always works
+        # if Refrain is currently importable (which it must be, since
+        # we just ran it). Without this fallback, source-checkout dev
+        # users would get an OSError traceback instead of a working
+        # restart.
+        is_runnable_script = binary and (
+            os.path.isabs(binary)
+            and os.access(binary, os.X_OK)
+            and not binary.endswith(".py")
+        )
+        if not is_runnable_script:
+            log.info(
+                "Restart: %r isn't a runnable script; falling back to `%s -m refrain`",
+                binary,
+                sys.executable,
+            )
+            binary = sys.executable
+            new_argv = ["-m", "refrain", *new_argv]
+        try:
+            os.execvp(binary, [binary, *new_argv])
+        except OSError as e:
+            log.error(
+                "Re-exec failed (%s) — falling back to `%s -m refrain`",
+                e,
+                sys.executable,
+            )
+            try:
+                os.execvp(sys.executable, [sys.executable, "-m", "refrain", *new_argv])
+            except OSError as e2:
+                log.error("Fallback re-exec also failed (%s); exiting non-zero", e2)
+                return 1
 
     log.info("Refrain shutting down with rc=%d", rc)
     return rc

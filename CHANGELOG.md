@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **GitHub release bodies were one-line "Full Changelog: …"** — the
+  release workflow used `generate_release_notes: true`, which is
+  GitHub's auto-generated content (just a compare-link to the
+  previous tag). The in-app inline release-notes pane and the
+  popup dialog rendered that 79-character body verbatim. The
+  workflow now extracts the matching `## [X.Y.Z]` section from
+  CHANGELOG.md via awk and feeds it as the release `body_path`.
+  Existing v0.1.0 – v0.2.5 release bodies were backfilled out-of-
+  band via `gh release edit --notes-file …` against the same
+  extraction.
+- **Release-notes pane stayed empty after every Refrain restart** —
+  the orchestrator's 24-hour startup cooldown blocks
+  `maybe_check_on_startup` whenever `last_check_ts` is recent, and
+  a fresh process has no cached `_latest`. `SettingsWindow` now
+  emits `updatesTabRequested` when the user activates the Updates
+  tab; app.py wires that to a slot that triggers
+  `updater.check_now(manual=True)` only when no cached release is
+  available this session. First visit fetches in the background;
+  subsequent visits use the cache.
+- **`os.execvp` failure during Restart had no fallback** — if
+  `sys.argv[0]` wasn't a runnable script (typical of
+  `python -m refrain` source-checkout invocation, where argv[0] is
+  `__main__.py`), execvp raised an unhandled OSError. Detect
+  unrunnable paths up front and fall back to
+  `<sys.executable> -m refrain`, which always works because
+  Refrain is currently importable. The fallback is also retried
+  from the actual OSError handler if the first execvp fails for
+  any other reason.
+- **`Config.save` leaked .tmp files on write failure** — a disk-
+  full / read-only / permission-denied error during the atomic
+  write left a stale `*.tmp` sibling next to the real config
+  forever. Now wrapped in a `try/finally` that unlinks the partial
+  file before re-raising.
+- **`Config._format_value` didn't escape newline / tab / CR** —
+  any string value with those characters (extremely rare in our
+  schema, but possible via a hand-edited config or a future
+  field) would produce broken TOML that tomllib rejects on next
+  load, tripping the "config unreadable, using defaults" fallback
+  and silently losing every setting. Added `\n` / `\r` / `\t`
+  escapes alongside the existing `\\` / `\"`.
+- **CHANGELOG link `[0.2.1]` was a 404** — pointed at a non-
+  existent `v0.2.1` tag (the v0.2.1 commit was made but never
+  tagged or published; its content rolled into v0.2.2). Replaced
+  with a commit-hash link to `6b339ba`. ROADMAP gained a matching
+  `(rolled into v0.2.2; never separately tagged)` suffix.
+
+### Tests
+
+- 3 new in `tests/test_config.py` covering newline-escape
+  round-trip and the .tmp cleanup-on-failure path.
+
 ## [0.2.5] - 2026-05-07
 
 A same-day patch on top of v0.2.4 driven by user feedback that the

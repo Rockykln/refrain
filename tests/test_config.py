@@ -133,6 +133,48 @@ def test_browser_hints_list_empty_when_blank():
     assert SourcesConfig(browser_hints=" ,, ").browser_hints_list() == []
 
 
+def test_serialize_escapes_newline_tab_cr():
+    """Hand-edited TOML with stray newlines in a string value would
+    otherwise produce broken output that tomllib rejects on next
+    load, tripping the 'config unreadable, using defaults' fallback
+    and silently losing every setting."""
+    from refrain.config import _format_value
+
+    assert _format_value("line1\nline2") == '"line1\\nline2"'
+    assert _format_value("col\tcol") == '"col\\tcol"'
+    assert _format_value("car\rret") == '"car\\rret"'
+    # Round-trip through tomllib to make sure the escapes are valid.
+    rendered = "key = " + _format_value("multi\nline\twith\rweird")
+    parsed = tomllib.loads(rendered)
+    assert parsed["key"] == "multi\nline\twith\rweird"
+
+
+def test_save_cleans_tmp_on_failure(tmp_path, monkeypatch):
+    """Disk full / permission denied during save must not leave a
+    stale .tmp sibling next to the real config — the next save would
+    work, but `ls ~/.config/refrain/` would show clutter."""
+    cfg_path = tmp_path / "config.toml"
+    cfg_path.write_text('[discord]\nclient_id = "old"\n', encoding="utf-8")
+
+    cfg = Config()
+    cfg.discord.client_id = "new"
+
+    # Simulate os.replace failing (e.g., target on read-only fs).
+    import refrain.config as cfg_module
+
+    def _boom(*_a, **_k):
+        raise OSError("read-only")
+
+    monkeypatch.setattr(cfg_module.os, "replace", _boom)
+    try:
+        cfg.save(cfg_path)
+    except OSError:
+        pass
+
+    # The tmp must not survive the failed save.
+    assert not (tmp_path / "config.toml.tmp").exists()
+
+
 def test_unknown_section_keys_dropped_not_fatal(caplog):
     """Forward/backward-compat: a key the current code doesn't know
     (e.g. written by a newer Refrain that the user has downgraded from,
