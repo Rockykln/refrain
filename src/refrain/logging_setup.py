@@ -15,26 +15,34 @@ _qt_bridge = None  # set by attach_qt_log_bridge(), read by the live-log window
 
 
 def setup_logging(level: str = "INFO") -> None:
-    state_dir().mkdir(parents=True, exist_ok=True)
-
     formatter = logging.Formatter(_FMT, datefmt=_DATEFMT)
 
-    file_handler = logging.handlers.RotatingFileHandler(
-        log_path(),
-        maxBytes=1_048_576,
-        backupCount=3,
-        encoding="utf-8",
-    )
-    file_handler.setFormatter(formatter)
-
+    # Console handler attaches unconditionally — even if the file
+    # handler can't be created (read-only home, permission issue), the
+    # user still gets log output on stderr instead of a hard crash at
+    # startup.
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setFormatter(formatter)
 
     root = logging.getLogger()
     root.handlers.clear()
     root.setLevel(getattr(logging, level.upper(), logging.INFO))
-    root.addHandler(file_handler)
     root.addHandler(console_handler)
+
+    try:
+        state_dir().mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_path(),
+            maxBytes=1_048_576,
+            backupCount=3,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(formatter)
+        root.addHandler(file_handler)
+    except OSError as e:
+        # No file log this session — the error itself reaches stderr via
+        # the console handler we already attached.
+        root.warning("Could not open log file %s: %s — console only", log_path(), e)
 
     # Silence dbus-python's own loggers — `dbus.proxies` in particular
     # logs every introspection timeout against unrelated MPRIS players

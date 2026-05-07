@@ -299,6 +299,21 @@ def _sync_autostart(config: Config) -> None:
         autostart_disable()
 
 
+def _apply_log_level(config: Config) -> None:
+    """Push the configured log level onto the running root logger.
+
+    Wired to ``settings.applied`` so toggling between INFO/DEBUG in the
+    Settings dialog takes effect immediately, instead of silently
+    waiting for the next restart.
+    """
+    level_name = (config.advanced.log_level or "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
+    root = logging.getLogger()
+    if root.level != level:
+        root.setLevel(level)
+        log.info("Log level changed to %s", level_name)
+
+
 class _UpdateCheckWorker(QObject):
     """Run check_latest_release on a background QThread."""
 
@@ -400,11 +415,17 @@ def main() -> int:
     if args.uninstall_desktop:
         return uninstall_desktop_files()
 
-    config = Config.load()
-    log_level = "DEBUG" if args.debug else config.advanced.log_level
-    setup_logging(log_level)
+    # Bring logging up at INFO before anything that might log — Config.load
+    # in particular emits "Created default config" and "Config unreadable"
+    # messages we want captured in the file log. The level is adjusted to
+    # whatever the user configured once the config is loaded.
+    setup_logging("DEBUG" if args.debug else "INFO")
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)
+
+    config = Config.load()
+    if not args.debug:
+        _apply_log_level(config)
     log.info("Refrain %s starting", __version__)
 
     # Self-heal a previously interrupted AppImage update before anything
@@ -450,6 +471,7 @@ def main() -> int:
     app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
+        log.error("No system tray available — refusing to start")
         QMessageBox.critical(
             None,
             "No system tray",
@@ -480,6 +502,7 @@ def main() -> int:
     # _sync_autostart runs on the main thread (file I/O, OK).
     settings.applied.connect(daemon.worker.update_config)
     settings.applied.connect(_sync_autostart)
+    settings.applied.connect(_apply_log_level)
 
     # Updater wireup — Settings button = manual check (always shows feedback);
     # the auto-check on startup goes through maybe_check_on_startup() which
@@ -623,6 +646,10 @@ def main() -> int:
         # socket via CLOEXEC and lets the bus daemon reclaim the name.
         app._refrain_bus_lock = None
         log.info("Re-executing %s for restart", binary)
+        # Flush + close handlers before execv replaces the process image
+        # so the rotating file handler's buffer doesn't lose the last
+        # restart line.
+        logging.shutdown()
         os.execvp(binary, [binary, *new_argv])
 
     log.info("Refrain shutting down with rc=%d", rc)

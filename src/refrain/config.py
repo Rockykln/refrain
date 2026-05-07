@@ -138,7 +138,12 @@ class Config:
                 data = tomllib.load(f)
             return cls.from_dict(data)
         except Exception as e:
-            log.warning("Config at %s unreadable (%s), using defaults", path, e)
+            log.warning(
+                "Config at %s unreadable (%s), using defaults",
+                path,
+                e,
+                exc_info=True,
+            )
             return cls()
 
     @classmethod
