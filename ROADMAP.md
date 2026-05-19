@@ -523,6 +523,21 @@ were tracked internally as "v0.2.8" but never separately tagged.
   row added, middle-click play/pause + tooltip-vs-open-menu
   behaviour documented.
 
+## Done — v0.4.1
+
+Same-day patch over v0.4.0.
+
+- **Honest Last.fm connection status.** Status keyed off
+  `session_key` alone, so it rendered "Connected as (connected)"
+  with no username and a misleading "Connected" when a keyring
+  session survived without a usable api_key/secret (scrobbling
+  inert). New pure `lastfm_connection_state()` requires the usable
+  triple (api_key + shared_secret + session_key): "Connected[ as
+  <user>]" only when all three are present, an explicit
+  re-enter-and-Connect prompt for a desynced leftover, else "Not
+  connected"; the Connect button no longer treats an incomplete
+  leftover as Disconnect. +13 tests (pure + offscreen).
+
 ## Up next — v0.3.x
 
 - **Stable-release AUR build** that doesn't rely on the GitHub

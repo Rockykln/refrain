@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-19
+
+Same-day patch over v0.4.0: makes the Last.fm connection status
+honest (no more "Connected as (connected)", no false "Connected"
+when the connection isn't actually usable).
+
 ### Fixed
 
 - **Last.fm status no longer shows a misleading "Connected".** The
@@ -1202,7 +1208,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Rockykln/refrain/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Rockykln/refrain/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Rockykln/refrain/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/Rockykln/refrain/compare/v0.2.6...v0.2.7
