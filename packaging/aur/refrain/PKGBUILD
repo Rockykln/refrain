@@ -23,11 +23,7 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-# Pinned post-tag: the v0.3.0 source tarball only exists once the tag
-# is pushed. Recompute and replace 'SKIP' per packaging/README.md
-# ("When tagging a new release, the AUR side needs…"), then
-# regenerate .SRCINFO, in the dedicated post-release AUR commit.
-sha256sums=('SKIP')
+sha256sums=('47b8abea6f5392e40591780745991aba2cdefa97732cb420c45a3b5d5ad01251')
 
 build() {
     cd "$pkgname-$pkgver"
