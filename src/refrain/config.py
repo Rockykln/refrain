@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import dataclasses
 import logging
 import os
+import re
 import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -285,21 +287,42 @@ class Config:
     def save(self, path: Path | None = None) -> None:
         path = path or config_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+        payload = self.to_dict()
+        # Comment-/unknown-key-preserving write: when a config file
+        # already exists, rewrite only the `key = value` lines Refrain
+        # owns and leave user comments, blank lines, ordering, and any
+        # keys a newer Refrain wrote (that this one downgraded from)
+        # intact. The old behaviour re-serialised from scratch on every
+        # save — including the silent daily update-check stamping
+        # `last_check_ts` — which quietly nuked hand-added comments.
+        text = _serialize(payload)
+        if path.exists():
+            try:
+                text = _merge_into_existing(path.read_text(encoding="utf-8"), payload)
+            except OSError as e:
+                log.warning(
+                    "Config: could not read %s for comment-preserving save (%s); "
+                    "rewriting from scratch",
+                    path,
+                    e,
+                )
+            except Exception:
+                log.exception(
+                    "Config: comment-preserving merge failed; rewriting from scratch"
+                )
         # Atomic write: tmp file + os.replace. Without this, a crash or
         # power-cut between truncate-and-write would leave an empty or
         # half-written config — and refrain falls back to defaults on
         # malformed TOML, silently losing every setting the user picked.
         tmp = path.with_suffix(path.suffix + ".tmp")
         try:
-            tmp.write_text(_serialize(self.to_dict()), encoding="utf-8")
+            tmp.write_text(text, encoding="utf-8")
             os.replace(tmp, path)
         except Exception:
             # Disk full / permission denied / read-only fs — clean up
             # the partial tmp file before re-raising so we don't leak
             # a stale .tmp next to the real config.
             if tmp.exists():
-                import contextlib
-
                 with contextlib.suppress(OSError):
                     tmp.unlink()
             raise
@@ -337,3 +360,73 @@ def _format_value(v: Any) -> str:
         .replace("\t", "\\t")
     )
     return f'"{s}"'
+
+
+_SECTION_RE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
+_KEY_RE = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_-]*)\s*=")
+
+
+def _merge_into_existing(existing: str, data: dict[str, Any]) -> str:
+    """Rewrite only the ``key = value`` lines Refrain owns, passing
+    everything else through verbatim.
+
+    ``data`` is ``Config.to_dict()`` — every known section and key.
+    Owned keys already present in the file are updated in place;
+    owned keys missing from a section are appended at the end of that
+    section; sections absent entirely are appended at the end of the
+    file. Comments, blank lines, line order, and any section/key not in
+    ``data`` (e.g. a key written by a newer Refrain) are preserved as-is.
+
+    Known limitation: an inline trailing comment on an owned key
+    (``client_id = "x"  # note``) is not preserved — distinguishing a
+    real comment from a ``#`` inside the value needs a full TOML parser,
+    and Refrain's schema is flat scalars edited almost entirely through
+    the GUI. Whole-line comments (the common case) survive.
+    """
+    remaining: dict[str, dict] = {s: dict(kv) for s, kv in data.items()}
+    out: list[str] = []
+    current: str | None = None
+
+    def _flush(section: str | None) -> None:
+        # Emit owned keys for `section` that never appeared in the file,
+        # so they land *inside* that section rather than at EOF.
+        if section is None or section not in remaining:
+            return
+        for k, v in remaining[section].items():
+            out.append(f"{k} = {_format_value(v)}")
+        remaining.pop(section, None)
+
+    for line in existing.splitlines():
+        m_sec = _SECTION_RE.match(line)
+        if m_sec:
+            # Section change — flush the section that just ended first.
+            _flush(current)
+            current = m_sec.group(1).strip()
+            out.append(line)
+            continue
+        m_key = _KEY_RE.match(line)
+        if (
+            m_key
+            and current in remaining
+            and m_key.group(2) in remaining[current]
+        ):
+            indent, key = m_key.group(1), m_key.group(2)
+            value = remaining[current].pop(key)
+            out.append(f"{indent}{key} = {_format_value(value)}")
+            continue
+        out.append(line)
+
+    _flush(current)
+    # Sections that never appeared in the file at all (data order).
+    for section in data:
+        if section in remaining:
+            out.append(f"[{section}]")
+            for k, v in remaining[section].items():
+                out.append(f"{k} = {_format_value(v)}")
+            out.append("")
+            remaining.pop(section, None)
+
+    text = "\n".join(out)
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
