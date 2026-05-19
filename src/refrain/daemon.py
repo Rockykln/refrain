@@ -22,6 +22,7 @@ from refrain.config import Config
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
 from refrain.paths import assets_dir
+from refrain.scrobble import Scrobbler
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
@@ -243,6 +244,11 @@ class DaemonWorker(QObject):
         self._rpc = DiscordRPC(config.discord.client_id)
         self._rpc_active_client_id: str = config.discord.client_id
         self._cover_fetcher = CoverFetcher(max_cached_covers=config.advanced.cover_cache_size)
+        # Last.fm scrobbling — opt-in, alongside (never replacing) the
+        # Discord RPC. Constructed always; inert until the user enables
+        # it + connects an account. All network work runs on its own
+        # worker executor so the poll tick never blocks.
+        self._scrobbler = Scrobbler(config.lastfm)
         self._timer: QTimer | None = None
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
@@ -326,6 +332,10 @@ class DaemonWorker(QObject):
             self._rpc.clear()
         with contextlib.suppress(Exception):
             self._rpc.close()
+        with contextlib.suppress(Exception):
+            # Banks a qualifying in-progress track to the on-disk queue
+            # so quitting mid-song still scrobbles it next launch.
+            self._scrobbler.shutdown()
         self._cover_fetcher.shutdown()
         log.info("Daemon stopped")
 
@@ -373,6 +383,11 @@ class DaemonWorker(QObject):
             from refrain.cover_fetcher import _prune_cover_cache
 
             _prune_cover_cache(config.advanced.cover_cache_size)
+        # Last.fm: pick up enable/disable, new credentials, or a freshly
+        # connected session without a process restart (unlike the
+        # Discord client_id, the Scrobbler rebinds cleanly in place).
+        with contextlib.suppress(Exception):
+            self._scrobbler.reconfigure(config.lastfm)
 
     # --------------------------------------------------------------- controls
 
@@ -543,6 +558,18 @@ class DaemonWorker(QObject):
             self.progressTick.emit(display_pos, effective_dur_ms)
 
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
+
+        # Last.fm scrobbling. Fed the same iTunes-corrected duration the
+        # RPC + tray see. Gated on privacy "off" (the global no-external-
+        # broadcasting kill switch); the Scrobbler itself is inert until
+        # the user enables it and connects an account. Wrapped so a
+        # scrobble-side failure can never break the daemon tick.
+        with contextlib.suppress(Exception):
+            self._scrobbler.update(
+                track,
+                effective_dur_ms,
+                privacy_off=self._config.privacy.mode == "off",
+            )
 
         # Push the same track + cover URL to the published MPRIS server
         # so KDE Plasma's panel media-controls applet (and any other
