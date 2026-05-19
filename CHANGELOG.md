@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Per-source Discord Client IDs are now opt-in.** The General tab
+  showed three Client ID fields; most users need one. The two
+  per-source overrides (Apple Music / Bluetooth) are hidden behind a
+  *"Use a separate Discord application per source (advanced)"* toggle
+  (off by default, auto-enabled when an override is already
+  configured so existing setups are untouched).
 - **Source priority now prefers the actively-playing source.** A
   stale *paused* Apple Music browser tab no longer masks music
   actively playing over Bluetooth headphones (idle detection is

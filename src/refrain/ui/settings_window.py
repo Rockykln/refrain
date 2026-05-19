@@ -306,18 +306,26 @@ class SettingsWindow(QDialog):
         # render without truncation. Both at the same width so they
         # line up vertically.
         discord_group, df = _new_group(self.tr("Discord"))
+        self._discord_form = df
 
         self.client_id_input = QLineEdit()
         self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
         self.client_id_input.setFixedWidth(_INPUT_WIDE_WIDTH)
         df.addRow(self.tr("Client ID:"), self.client_id_input)
 
-        # Per-source overrides — leave empty to share the default
-        # Client ID above. Useful for users who want Apple Music to
-        # render under one Discord application (with the Apple Music
-        # album-grid as artwork) and Bluetooth headphones under another
-        # (with a generic Bluetooth glyph). Refrain reconnects RPC
+        # Most users need exactly one Discord application, so the
+        # per-source override fields are hidden behind this opt-in
+        # toggle (default off) instead of cluttering the tab. Ticking
+        # it reveals separate Client IDs for Apple Music vs Bluetooth —
+        # handy if you want each to render under its own Discord app
+        # (different name + uploaded artwork). Refrain reconnects RPC
         # automatically when the active source flips.
+        self.discord_per_source_box = QCheckBox(
+            self.tr("Use a separate Discord application per source (advanced)")
+        )
+        self.discord_per_source_box.toggled.connect(self._set_discord_overrides_visible)
+        df.addRow(self.discord_per_source_box)
+
         self.client_id_mpris_input = QLineEdit()
         self.client_id_mpris_input.setPlaceholderText(self.tr("(uses default Client ID)"))
         self.client_id_mpris_input.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -327,6 +335,9 @@ class SettingsWindow(QDialog):
         self.client_id_bluetooth_input.setPlaceholderText(self.tr("(uses default Client ID)"))
         self.client_id_bluetooth_input.setFixedWidth(_INPUT_WIDE_WIDTH)
         df.addRow(self.tr("Bluetooth Client ID:"), self.client_id_bluetooth_input)
+        # Hidden until the advanced toggle is ticked (or a saved
+        # override is loaded — see _load_into_form).
+        self._set_discord_overrides_visible(False)
 
         self.privacy_combo = QComboBox()
         self.privacy_combo.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -374,6 +385,22 @@ class SettingsWindow(QDialog):
 
         v.addStretch(1)
         return w
+
+    def _set_discord_overrides_visible(self, visible: bool) -> None:
+        """Show/hide the per-source Client ID rows (label + field).
+
+        Uses QFormLayout.setRowVisible (Qt 6.4+, we require ≥ 6.6) so
+        the row's *label* hides too — not just the input. Degrades to
+        hiding only the field on the off-chance the API is missing.
+        """
+        form = getattr(self, "_discord_form", None)
+        if form is None:
+            return
+        for widget in (self.client_id_mpris_input, self.client_id_bluetooth_input):
+            try:
+                form.setRowVisible(widget, visible)
+            except (AttributeError, TypeError):
+                widget.setVisible(visible)
 
     # ====================================================================
     # Last.fm tab
@@ -905,6 +932,12 @@ class SettingsWindow(QDialog):
         self.client_id_input.setText(c.discord.client_id)
         self.client_id_mpris_input.setText(c.discord.client_id_mpris)
         self.client_id_bluetooth_input.setText(c.discord.client_id_bluetooth)
+        # Reveal the per-source override fields only if the user already
+        # has one configured — otherwise keep the advanced toggle off
+        # and the rows hidden so the tab stays uncluttered.
+        has_overrides = bool(c.discord.client_id_mpris or c.discord.client_id_bluetooth)
+        self.discord_per_source_box.setChecked(has_overrides)
+        self._set_discord_overrides_visible(has_overrides)
         self.autostart_box.setChecked(c.behavior.autostart)
         self.notifications_box.setChecked(c.behavior.notifications)
         self.cover_art_box.setChecked(c.behavior.cover_art)
@@ -976,8 +1009,16 @@ class SettingsWindow(QDialog):
         # could never *clear* a Client ID — emptying the field was a
         # no-op, surprising anyone trying to disable the integration.
         c.discord.client_id = self.client_id_input.text().strip()
-        c.discord.client_id_mpris = self.client_id_mpris_input.text().strip()
-        c.discord.client_id_bluetooth = self.client_id_bluetooth_input.text().strip()
+        # The advanced toggle is the per-source feature switch: when
+        # it's off, the overrides are cleared so the single default
+        # Client ID is used everywhere (and the hidden field contents
+        # can't linger). When on, persist what's in the fields.
+        if self.discord_per_source_box.isChecked():
+            c.discord.client_id_mpris = self.client_id_mpris_input.text().strip()
+            c.discord.client_id_bluetooth = self.client_id_bluetooth_input.text().strip()
+        else:
+            c.discord.client_id_mpris = ""
+            c.discord.client_id_bluetooth = ""
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
         c.behavior.cover_art = self.cover_art_box.isChecked()
