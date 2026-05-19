@@ -8,6 +8,7 @@ even when the settings window is hidden so the tray + daemon persist.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import logging
 import os
 import re
@@ -74,6 +75,19 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         "--uninstall-desktop",
         action="store_true",
         help="Remove the files written by --install-desktop, then exit.",
+    )
+    p.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Remove ALL Refrain data (config, logs, cache, autostart, "
+        "menu entry) and the Last.fm credentials from the keyring, print "
+        "the command to remove the package itself, then exit.",
+    )
+    p.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Skip the confirmation prompt for --uninstall (non-interactive).",
     )
     p.add_argument(
         "--debug",
@@ -233,6 +247,59 @@ def uninstall_desktop_files() -> int:
             print(f"  {p}")
     else:
         print("Nothing to remove (refrain.desktop and refrain.svg are not installed).")
+    return 0
+
+
+def run_uninstall_cli(assume_yes: bool = False) -> int:
+    """`refrain --uninstall` — wipe all data + credentials, print the
+    package-removal command. One-shot, runs before the GUI / lock."""
+    from refrain.uninstall import collect_paths, purge, removal_command
+    from refrain.updater import detect_install_type
+
+    install_type = detect_install_type()
+    appimage = os.environ.get("APPIMAGE")
+    paths = collect_paths()
+    cmd = removal_command(install_type, appimage)
+
+    print("This will permanently remove all Refrain data:")
+    if paths:
+        for p in paths:
+            print(f"  {p}")
+    else:
+        print("  (no data files found)")
+    print("  + the Last.fm credentials stored in your OS keyring")
+    print()
+    print(f"Detected install type: {install_type}")
+    print(f"It will NOT remove the program itself — do that with:\n  {cmd}")
+    print()
+
+    if not assume_yes:
+        try:
+            answer = input("Proceed with removing all Refrain data? [y/N] ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nAborted.")
+            return 1
+        if answer not in ("y", "yes"):
+            print("Aborted — nothing was removed.")
+            return 1
+
+    report = purge()
+    print()
+    if report.removed:
+        print("Removed:")
+        for r in report.removed:
+            print(f"  {r}")
+    if report.secrets_purged:
+        print("  Last.fm credentials cleared from the keyring")
+    if report.failed:
+        print("Could not remove (check permissions):")
+        for f in report.failed:
+            print(f"  {f}")
+    if not report.removed and not report.failed:
+        print("Nothing to remove — Refrain left no data on this machine.")
+    print()
+    print(f"Refrain data is gone. To remove the program itself, run:\n  {cmd}")
+    print("(Quit any running Refrain instance first.)")
     return 0
 
 
@@ -489,6 +556,10 @@ def main() -> int:
         return install_desktop_files()
     if args.uninstall_desktop:
         return uninstall_desktop_files()
+    if args.uninstall:
+        # One-shot: runs before the single-instance lock + QApplication
+        # so it works headless and never collides with a running tray.
+        return run_uninstall_cli(assume_yes=args.yes)
 
     # Bring logging up at INFO before anything that might log — Config.load
     # in particular emits "Created default config" and "Config unreadable"
@@ -659,6 +730,40 @@ def main() -> int:
 
     tray.restartRequested.connect(_restart)
     settings.restartRequested.connect(_restart)
+
+    # Uninstall wireup — the SettingsWindow already showed + confirmed
+    # the destructive dialog. Stop the daemon first (so nothing rewrites
+    # config after the purge), wipe everything in-process, show the
+    # package-removal command, then quit. Same core as `--uninstall`.
+    def _uninstall() -> None:
+        from refrain.uninstall import purge, removal_command
+        from refrain.updater import detect_install_type
+
+        log.info("Uninstall requested from Settings")
+        cmd = removal_command(detect_install_type(), os.environ.get("APPIMAGE"))
+        with contextlib.suppress(Exception):
+            daemon.stop()
+        report = purge()
+        log.info(
+            "Uninstall purge: %d removed, %d failed, secrets=%s",
+            len(report.removed),
+            len(report.failed),
+            report.secrets_purged,
+        )
+        body = _tr(
+            "app",
+            "All Refrain data and the Last.fm keyring credentials were "
+            "removed. Refrain will now close.\n\nTo remove the program "
+            "itself, run:\n\n  {cmd}",
+        ).format(cmd=cmd)
+        if report.failed:
+            body += "\n\n" + _tr("app", "Some files could not be removed:") + "\n" + "\n".join(
+                f"  {f}" for f in report.failed
+            )
+        QMessageBox.information(settings, _tr("app", "Uninstall"), body)
+        app.quit()
+
+    settings.uninstallRequested.connect(_uninstall)
 
     _install_signal_handlers(app)
     _sync_autostart(config)

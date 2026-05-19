@@ -207,6 +207,7 @@ class SettingsWindow(QDialog):
     checkUpdatesRequested = Signal()
     showLogRequested = Signal()
     restartRequested = Signal()
+    uninstallRequested = Signal()
 
     def __init__(self, config: Config, parent: QWidget | None = None):
         super().__init__(parent)
@@ -766,6 +767,19 @@ class SettingsWindow(QDialog):
         reset_btn = QPushButton(self.tr("Reset all settings to defaults"))
         reset_btn.clicked.connect(self._on_reset_clicked)
         mf.addRow(_row_with_buttons(restart_btn, reset_btn))
+        uninstall_btn = QPushButton(self.tr("Uninstall Refrain…"))
+        uninstall_btn.clicked.connect(self._on_uninstall_clicked)
+        mf.addRow(_row_with_buttons(uninstall_btn))
+        mf.addRow(
+            _hint(
+                self.tr(
+                    "Deletes all Refrain data (config, logs, cache, autostart, "
+                    "menu entry) and the Last.fm credentials from your keyring, "
+                    "then tells you the one command to remove the program "
+                    "itself. This cannot be undone."
+                )
+            )
+        )
         v.addWidget(maint_group)
 
         v.addStretch(1)
@@ -813,6 +827,37 @@ class SettingsWindow(QDialog):
         self._config.discord = keep_discord
         self._config.lastfm = keep_lastfm
         self._load_into_form()
+
+    def _on_uninstall_clicked(self) -> None:
+        # Build the plan from the same core the CLI uses so the dialog
+        # and `refrain --uninstall` can never disagree.
+        import os
+
+        from refrain.uninstall import collect_paths, removal_command
+        from refrain.updater import detect_install_type
+
+        paths = collect_paths()
+        cmd = removal_command(detect_install_type(), os.environ.get("APPIMAGE"))
+        listing = "\n".join(f"  • {p}" for p in paths) or "  • (no data files found)"
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Warning)
+        msg.setWindowTitle(self.tr("Uninstall Refrain"))
+        msg.setText(
+            self.tr(
+                "This permanently deletes all Refrain data and the Last.fm "
+                "credentials from your keyring:\n\n{listing}\n  • Last.fm "
+                "credentials in the OS keyring\n\nIt does NOT remove the "
+                "program itself — afterwards run:\n\n  {cmd}\n\n"
+                "Refrain will close. This cannot be undone."
+            ).format(listing=listing, cmd=cmd)
+        )
+        go = msg.addButton(self.tr("Uninstall"), QMessageBox.DestructiveRole)
+        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        msg.setDefaultButton(msg.buttons()[-1])  # default = Cancel (safe)
+        msg.exec()
+        if msg.clickedButton() is go:
+            self.uninstallRequested.emit()
 
     # ====================================================================
     # Last.fm connect flow
