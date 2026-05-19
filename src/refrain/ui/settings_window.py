@@ -1041,6 +1041,13 @@ class SettingsWindow(QDialog):
             # Continue with applied.emit anyway — the in-memory
             # daemon state should still be consistent for this
             # session even if the file write failed.
+        # Persist the Last.fm credentials to the OS keyring (NOT
+        # config.toml — to_dict() blanks them). Separate from c.save()
+        # so a config-write failure doesn't also lose the secrets, and
+        # vice-versa.
+        from refrain.secrets_store import save_from as _save_lastfm_secrets
+
+        _save_lastfm_secrets(c.lastfm)
         self.applied.emit(c)
         # Apply triggers a restart automatically when the user changed
         # the UI language or the Discord client_id. Both need a fresh

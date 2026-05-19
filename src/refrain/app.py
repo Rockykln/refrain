@@ -499,6 +499,12 @@ def main() -> int:
     qInstallMessageHandler(_qt_message_handler)
 
     config = Config.load()
+    # Last.fm secrets live in the OS keyring, never in config.toml.
+    # Overlay them onto the in-memory config (and migrate any legacy
+    # plaintext out of an old config.toml) before anything reads them.
+    from refrain.secrets_store import load_into as _load_lastfm_secrets
+
+    _load_lastfm_secrets(config.lastfm)
     if not args.debug:
         _apply_log_level(config)
     log.info("Refrain %s starting", __version__)

@@ -301,6 +301,15 @@ class Config:
         )
 
     def to_dict(self) -> dict[str, Any]:
+        lastfm = asdict(self.lastfm)
+        # SECURITY: the Last.fm shared secret and session key are
+        # credentials — they are NEVER written to config.toml. They
+        # live in the OS keyring (see refrain.secrets_store). Forcing
+        # them empty here also means the comment-preserving writer
+        # rewrites any legacy plaintext line to `… = ""` on the next
+        # save, scrubbing secrets that an older build left on disk.
+        lastfm["shared_secret"] = ""
+        lastfm["session_key"] = ""
         return {
             "discord": asdict(self.discord),
             "sources": asdict(self.sources),
@@ -308,7 +317,7 @@ class Config:
             "behavior": asdict(self.behavior),
             "advanced": asdict(self.advanced),
             "update": asdict(self.update),
-            "lastfm": asdict(self.lastfm),
+            "lastfm": lastfm,
         }
 
     def save(self, path: Path | None = None) -> None:
@@ -353,6 +362,11 @@ class Config:
                 with contextlib.suppress(OSError):
                     tmp.unlink()
             raise
+        # Defense in depth: config.toml never holds secrets (they're in
+        # the keyring) but it does hold the Discord/Last.fm api_key and
+        # the user's listening-related preferences — keep it owner-only.
+        with contextlib.suppress(OSError):
+            os.chmod(path, 0o600)
         log.info("Config saved to %s", path)
 
 
