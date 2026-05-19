@@ -36,8 +36,6 @@ log = logging.getLogger(__name__)
 # permanently-broken session would otherwise grow forever.
 _MAX_QUEUE = 1000
 
-_FIELDS = ("artist", "track", "album", "timestamp", "duration")
-
 
 def queue_path() -> Path:
     return state_dir() / "scrobble_queue.jsonl"

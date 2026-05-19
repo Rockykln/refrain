@@ -183,5 +183,21 @@ def test_invalid_session_latches_and_keeps_queue(tmp_path):
     mono, wall = _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     sc._executor.shutdown(wait=True)  # let the drain attempt run
-    assert sc.session_invalid is True
+    assert sc._session_invalid is True
     assert len(q) == 1  # scrobble kept for retry after reconnect
+
+
+def test_permanently_rejected_batch_is_dropped_not_head_of_line_blocking(tmp_path):
+    """A non-retryable, non-session error (bad params, suspended key)
+    must not pin the queue forever — drop it so later scrobbles flow."""
+
+    class RejectClient(FakeClient):
+        def scrobble(self, batch):
+            raise LastfmError("Last.fm error 6: Invalid parameters", code=6)
+
+    sc, q = _scrobbler(tmp_path, client=RejectClient())
+    mono, wall = _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    sc._executor.shutdown(wait=True)
+    assert sc._session_invalid is False  # not a session problem
+    assert len(q) == 0  # poison entry dropped, queue not blocked

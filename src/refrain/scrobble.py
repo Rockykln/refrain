@@ -331,11 +331,6 @@ class Scrobbler:
             return None
         return LastfmClient(cfg.api_key, cfg.shared_secret, cfg.session_key)
 
-    @property
-    def session_invalid(self) -> bool:
-        with self._lock:
-            return self._session_invalid
-
     @staticmethod
     def _content_key(track: TrackInfo) -> str:
         return f"{track.source}|{track.title}|{track.artist}|{track.album}"
@@ -515,7 +510,17 @@ class Scrobbler:
             return client.scrobble(batch)
         except LastfmError as e:
             self._handle_lastfm_error(e, "scrobble")
-            raise  # let ScrobbleQueue.drain keep the batch queued
+            if e.invalid_session or e.retryable:
+                # Transient (offline / outage / rate-limit) or a revoked
+                # session: re-raise so ScrobbleQueue.drain stops and
+                # keeps the batch for a later retry / reconnect.
+                raise
+            # Permanently rejected (bad params, suspended API key, …) —
+            # re-queuing it forever would head-of-line-block every later
+            # scrobble behind a batch that can never succeed. Drop it
+            # (report it as "submitted" so drain advances past it).
+            log.warning("Dropping %d unscrobblable queued track(s): %s", len(batch), e)
+            return len(batch)
 
     def _handle_lastfm_error(self, e: LastfmError, where: str) -> None:
         if e.invalid_session:
