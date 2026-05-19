@@ -140,6 +140,10 @@ class LastfmClient:
         req_params["format"] = "json"
         body = urllib.parse.urlencode(req_params).encode("utf-8")
 
+        # Defence in depth: never send credentials/scrobbles over a
+        # plaintext transport, even if a future edit changes API_ROOT.
+        if not API_ROOT.startswith("https://"):
+            raise LastfmError("refusing non-HTTPS Last.fm endpoint")
         try:
             if http_post:
                 request = urllib.request.Request(
@@ -150,8 +154,6 @@ class LastfmClient:
                 )
             else:
                 url = f"{API_ROOT}?{urllib.parse.urlencode(req_params)}"
-                if not url.startswith("https://"):
-                    raise LastfmError("refusing non-HTTPS Last.fm endpoint")
                 request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
             with urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r:
                 payload = json.load(r)

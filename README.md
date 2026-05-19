@@ -320,12 +320,26 @@ without tailing it from a terminal.
 
 ## Privacy
 
-The cover-art lookup hits Apple's public iTunes Search API over HTTPS with
-just the artist + track name. Nothing else leaves your machine — track
-metadata goes to Discord's local IPC socket, not over the network.
+Refrain is **local-first**: no Refrain server, no account, **no
+telemetry**, and the author receives nothing. Data leaves your machine
+**only** when *you* enable an optional integration, and then it goes
+directly to that provider:
 
-`Off` privacy mode disables the Discord status entirely while keeping the
-tray + controls running.
+- **Discord** — only if you set a Discord Application ID; track
+  metadata goes to the *local* Discord IPC socket (the Discord client
+  then broadcasts it under your account).
+- **Apple iTunes Search** (HTTPS) — artist + track name, only while
+  cover-art is enabled, to fetch album art. Untick it for zero egress.
+- **GitHub** (HTTPS) — a daily update check sends only the Refrain
+  version + your IP. Disable in *Updates*.
+- **Last.fm** (HTTPS) — opt-in scrobbling only; credentials live in
+  your **OS keyring** (encrypted at rest), never in `config.toml`.
+
+`Privacy → Off` is the global kill switch (no Discord status, no
+scrobbling) while keeping the tray + controls running.
+
+Full data-flow, retention and erasure details — written to GDPR
+transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
 
 ## Documentation
 
@@ -337,6 +351,7 @@ tray + controls running.
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md) — dev setup, testing, code style
+- [Privacy & data protection](PRIVACY.md) — every data flow, retention, erasure
 - [Security policy](SECURITY.md)
 - [Packaging guide](packaging/README.md) — AUR, Flatpak, AppImage build steps
 

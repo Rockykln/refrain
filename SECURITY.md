@@ -41,9 +41,14 @@ Refrain is a desktop app that talks to D-Bus and a single local IPC socket
   compromised response could in theory steer Refrain into rendering an
   attacker-chosen URL in the Discord status — but the URL is read by
   Discord, not executed locally, so the risk is very small.
-- **Config / log paths** — Refrain writes only to `$XDG_CONFIG_HOME`,
-  `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`. Anything that lets these files
-  escape those directories qualifies.
+- **Last.fm API** — opt-in scrobbling sends signed requests over
+  HTTPS. The shared secret + session token are credentials; anything
+  that exposes them (in a log, in `config.toml`, world-readable on
+  disk, or sent anywhere other than Last.fm) qualifies.
+- **Config / log / credential paths** — Refrain writes only to
+  `$XDG_CONFIG_HOME`, `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`. Anything
+  that lets these files escape those directories, or that leaks the
+  credentials out of the OS keyring / `0600` fallback, qualifies.
 
 ## What doesn't count
 
@@ -57,3 +62,11 @@ Refrain is a desktop app that talks to D-Bus and a single local IPC socket
 Refrain's CI runs CodeQL, Bandit, pip-audit, and TruffleHog. Reports from
 these tools are reviewed; not every false positive is suppressed, but real
 findings get fixed.
+
+Credentials (the Last.fm shared secret + session token) are stored in
+the OS keyring via the freedesktop Secret Service (encrypted at rest),
+falling back to a `0600` owner-only file only where no keyring exists;
+they are never written to `config.toml` (itself `0600`) or to logs.
+
+For the full data-flow / privacy picture (what leaves the machine,
+when, to whom, retention and erasure) see [`PRIVACY.md`](PRIVACY.md).
