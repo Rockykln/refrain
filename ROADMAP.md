@@ -495,6 +495,34 @@ were tracked internally as "v0.2.8" but never separately tagged.
   - Every Settings tab is scroll-safe (Last.fm on its own page);
     no visible scrollbar at the default size in English or German.
 
+## Done — v0.4.0
+
+- **Full uninstall — one command, any distro.** `refrain
+  --uninstall` (and a *Settings → Advanced → Uninstall Refrain…*
+  button) wipes everything Refrain wrote — config, logs, cover
+  cache, scrobble queue, autostart entry, menu `.desktop` + icon —
+  and purges the Last.fm credentials from the OS keyring, then
+  prints the exact package-removal one-liner for the detected
+  install type (pip / pipx / AUR / Flatpak / AppImage / system).
+  One-shot before the GUI/lock so it works headless; idempotent and
+  failure-tolerant; confirms before deleting (`-y` skips). New
+  `refrain.uninstall` core (collect_paths / removal_command /
+  purge), +13 strictly-hermetic tests. This is the GDPR
+  right-to-erasure as a single command.
+- **pipx self-update fixed.** A pipx-installed Refrain self-update
+  died with "No module named pip": the pipx app venv has
+  `sys.prefix != base_prefix` (looked like a plain pip install) but
+  ships no pip. `detect_install_type()` now returns `pipx` for the
+  `/pipx/venvs/` layout (checked before the generic venv→pip
+  branch); `apply_update` runs `pipx upgrade refrain` via a new
+  `_apply_pipx()` with an "already at latest" no-op guard and a
+  clear hint when the `pipx` binary isn't on PATH. UpdateDialog
+  treats pipx as auto-updatable. +5 tests.
+- **README tray-menu section refreshed** to post-v0.2.7 reality —
+  unicode-glyph prefixes gone (theme icons), the Discord-connection
+  row added, middle-click play/pause + tooltip-vs-open-menu
+  behaviour documented.
+
 ## Up next — v0.3.x
 
 - **Stable-release AUR build** that doesn't rely on the GitHub

@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-19
+
+Adds a one-command full uninstall — Refrain can now wipe every file
+and credential it created on any distro / install method — plus the
+pipx self-update fix and the refreshed tray docs.
+
+### Added
+
+- **Full uninstall.** `refrain --uninstall` (and a *Settings →
+  Advanced → Uninstall Refrain…* button) deletes **all** Refrain
+  data — config, logs, cover cache, the scrobble queue, the
+  autostart entry, the menu `.desktop` + icon — **and** purges the
+  Last.fm credentials from the OS keyring, then prints the exact
+  one-liner to remove the program itself for the detected install
+  type (pip / pipx / AUR / Flatpak / AppImage / system). Works
+  headless (one-shot, runs before the GUI/lock), idempotent,
+  failure-tolerant, and confirms before deleting (`-y` to skip).
+  This is the GDPR "right to erasure" made one command.
+
 ### Fixed
 
 - **pipx self-update no longer fails with "No module named pip".**
@@ -1170,7 +1189,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Rockykln/refrain/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Rockykln/refrain/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/Rockykln/refrain/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/Rockykln/refrain/compare/v0.2.5...v0.2.6
