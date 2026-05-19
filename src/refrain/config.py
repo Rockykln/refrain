@@ -234,6 +234,30 @@ class UpdateConfig:
 
 
 @dataclass
+class LastfmConfig:
+    # Opt-in, *alongside* the Discord Rich Presence (never a
+    # replacement). Off by default — scrobbling broadcasts listening
+    # history to a third party, so the user has to turn it on.
+    enabled: bool = False
+    # Each user registers their own Last.fm API account at
+    # https://www.last.fm/api/account/create and pastes both values in
+    # Settings → Last.fm — same "bring your own credentials" pattern as
+    # the Discord client_id.
+    api_key: str = ""
+    shared_secret: str = ""
+    # Obtained via the desktop auth flow (auth.getToken → browser
+    # authorize → auth.getSession). Long-lived until the user revokes
+    # it on last.fm. `username` is display-only (shown in Settings so
+    # the user can see which account is connected).
+    session_key: str = ""
+    username: str = ""
+    # Also push the ephemeral "now playing" indicator (Last.fm's
+    # equivalent of the Discord RPC). Cheap; on by default when
+    # scrobbling is enabled.
+    scrobble_now_playing: bool = True
+
+
+@dataclass
 class Config:
     discord: DiscordConfig = field(default_factory=DiscordConfig)
     sources: SourcesConfig = field(default_factory=SourcesConfig)
@@ -241,6 +265,7 @@ class Config:
     behavior: BehaviorConfig = field(default_factory=BehaviorConfig)
     advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
     update: UpdateConfig = field(default_factory=UpdateConfig)
+    lastfm: LastfmConfig = field(default_factory=LastfmConfig)
 
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
@@ -272,6 +297,7 @@ class Config:
             behavior=_construct(BehaviorConfig, data.get("behavior")),
             advanced=_construct(AdvancedConfig, data.get("advanced")),
             update=_construct(UpdateConfig, data.get("update")),
+            lastfm=_construct(LastfmConfig, data.get("lastfm")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -282,6 +308,7 @@ class Config:
             "behavior": asdict(self.behavior),
             "advanced": asdict(self.advanced),
             "update": asdict(self.update),
+            "lastfm": asdict(self.lastfm),
         }
 
     def save(self, path: Path | None = None) -> None:
