@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Last.fm scrobbling** — opt-in, *alongside* the Discord Rich
+  Presence (never a replacement), off by default. Register your own
+  free Last.fm API account (same bring-your-own-credentials model as
+  the Discord Application ID), enter the key + shared secret in
+  *Settings → General → Last.fm scrobbling*, and **Connect** via the
+  in-app browser auth flow. A track is scrobbled at Last.fm's standard
+  threshold (half the track or four minutes, whichever first; > 30 s
+  only), with pause/seek-aware play-time accounting. Optional
+  `track.updateNowPlaying`. No new dependency — the signed API surface
+  is hand-rolled on `urllib` + `hashlib`. Walkthrough:
+  [`docs/lastfm.md`](docs/lastfm.md).
+- **Crash-safe persistent scrobble queue**
+  (`$XDG_STATE_HOME/refrain/scrobble_queue.jsonl`). A qualifying track
+  is queued the instant it earns it, so being offline, a Last.fm
+  outage, or quitting Refrain mid-song never loses a scrobble — it's
+  submitted (≤ 50-item batches) on the next opportunity. SHA-256
+  dedup, 1000-entry cap, atomic writes, corrupt-line tolerant. All
+  Last.fm network runs on a worker executor so the poll tick never
+  blocks; Privacy `Off` silences scrobbling too.
+- **Cover-art replacement notifications.** When iTunes is slow and the
+  ~2 s cover-retry window times out, Refrain now fires the
+  brand-fallback notification immediately, then re-issues it with
+  `notify-send --replace-id` once the cover finishes downloading — the
+  album art swaps into the *same* bubble instead of never appearing
+  (or a second popup).
+
+### Changed
+
+- **Source priority now prefers the actively-playing source.** A
+  stale *paused* Apple Music browser tab no longer masks music
+  actively playing over Bluetooth headphones (idle detection is
+  PLAYING-only, so the paused tab never cleared either). MPRIS keeps
+  the tie-break when neither is playing.
+- **Config saves preserve comments and unknown keys.** `Config.save()`
+  now rewrites only the `key = value` lines Refrain owns; hand-added
+  comments, ordering, and keys written by a newer Refrain survive the
+  daily silent update-check that stamps `last_check_ts`.
+- **More UI strings localised** — the Updates "last checked"
+  timestamp now formats in the active locale (`QLocale`) instead of a
+  hard-coded ISO string; the Bluetooth picker labels and the
+  live-log "ALL" sentinel are now translatable.
+
+### Fixed
+
+- `welcome_dialog.py` relied on `urllib.error` transitively via
+  `urllib.request`; an `except urllib.error.URLError` could have
+  raised `AttributeError` during handler matching. Imported
+  explicitly; dropped the unused `urllib.parse` import.
+- ROADMAP section ordering corrected — forward-looking sections no
+  longer sit above shipped releases.
+
 ## [0.2.7] - 2026-05-07
 
 Tray-menu polish + Discord-RPC reliability fixes. Every tray action

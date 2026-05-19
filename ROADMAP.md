@@ -453,6 +453,39 @@ What's done, what's next, what's deliberately not in scope.
   import. ROADMAP section ordering fixed (forward-looking sections
   no longer sit above shipped releases).
 
+## Done — v0.3.0 (unreleased)
+
+- **Last.fm scrobbling** — opt-in, *alongside* the Discord Rich
+  Presence (never a replacement), off by default. Each user
+  registers their own Last.fm API account (same bring-your-own-
+  credentials model as the Discord client_id) and connects it via
+  the in-app desktop auth flow (`auth.getToken` → browser authorize
+  → `auth.getSession`). No new dependency — the three signed API
+  methods are hand-rolled on `urllib` + `hashlib` like
+  `cover_art.py` (protocol-mandated MD5 request signature, marked
+  `usedforsecurity=False`; SHA-256 for the parts Refrain controls).
+  - **Crash-safe persistent offline queue** (`scrobble_queue.jsonl`
+    under `$XDG_STATE_HOME`): a played track is banked the instant
+    it qualifies, so an offline window, a Last.fm outage, or
+    quitting mid-song never loses it; submitted in ≤ 50-item
+    batches on the next opportunity. SHA-256 dedup, 1000-entry cap
+    (oldest dropped), atomic writes, corrupt-line tolerant.
+  - **Scrobble rule** = Last.fm's standard "half the track or four
+    minutes, whichever first; > 30 s only". Play time is
+    accumulated pause/seek-aware off monotonic time and clamped so
+    a suspended laptop can't credit phantom hours. Preview clips
+    (< 30 s effective) are never scrobbled, matching the
+    Discord/idle paths.
+  - Optional `track.updateNowPlaying` (the Last.fm equivalent of
+    the Discord status), once per track.
+  - All network is offloaded to a single-worker executor so the
+    poll tick never blocks (same pattern as `CoverFetcher`).
+    Privacy `Off` silences scrobbling too; an invalid/revoked
+    session latches and surfaces a "reconnect" hint while keeping
+    the queue intact. Settings → General → Last.fm group with
+    Connect/Disconnect; reconfigures in place (no restart, unlike
+    the Discord client_id). +47 unit tests.
+
 ## Up next — v0.3
 
 - **Stable-release AUR build** that doesn't rely on the GitHub
@@ -470,8 +503,6 @@ What's done, what's next, what's deliberately not in scope.
   `packaging/flatpak/` is fully validated locally and ready to ship —
   what's missing is a clean re-submission later when the time is
   right. No fixed timeline.
-- **Last.fm scrobbling** as an opt-in alongside the Discord Rich Presence
-  (no replacement, just an extra channel).
 
 ## Deliberately not in scope
 
