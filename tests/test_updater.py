@@ -74,6 +74,69 @@ def test_detect_install_type_returns_known_value(monkeypatch, updater):
     assert install in ("pip", "dev", "system", "aur")
 
 
+def test_detect_install_type_pipx(monkeypatch, updater):
+    # pipx app venv: own venv (prefix != base_prefix) but NO pip — must
+    # be detected as pipx, not pip, or self-update dies with
+    # "No module named pip".
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    monkeypatch.delenv("FLATPAK_ID", raising=False)
+    monkeypatch.delenv("container", raising=False)
+    monkeypatch.setattr(
+        updater.sys, "executable",
+        "/home/u/.local/share/pipx/venvs/refrain/bin/python",
+    )
+    monkeypatch.setattr(updater.sys, "prefix", "/home/u/.local/share/pipx/venvs/refrain")
+    monkeypatch.setattr(updater.sys, "base_prefix", "/usr")
+    assert updater.detect_install_type() == "pipx"
+
+
+class _Proc:
+    def __init__(self, returncode, stdout="", stderr=""):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+def test_apply_pipx_success(updater, monkeypatch):
+    monkeypatch.setattr(updater.shutil, "which", lambda _n: "/usr/bin/pipx")
+    monkeypatch.setattr(
+        updater.subprocess, "run",
+        lambda *a, **kw: _Proc(0, "upgraded package refrain from 0.2.7 to 0.3.0\n"),
+    )
+    r = updater._apply_pipx()
+    assert r.success is True
+    assert r.needs_restart is True
+
+
+def test_apply_pipx_already_latest_is_not_success(updater, monkeypatch):
+    monkeypatch.setattr(updater.shutil, "which", lambda _n: "/usr/bin/pipx")
+    monkeypatch.setattr(
+        updater.subprocess, "run",
+        lambda *a, **kw: _Proc(0, "refrain is already at latest version 0.3.0\n"),
+    )
+    r = updater._apply_pipx()
+    assert r.success is False
+    assert "pipx upgrade --force refrain" in r.message
+
+
+def test_apply_pipx_missing_pipx_binary(updater, monkeypatch):
+    monkeypatch.setattr(updater.shutil, "which", lambda _n: None)
+    r = updater._apply_pipx()
+    assert r.success is False
+    assert "pipx upgrade refrain" in r.message
+
+
+def test_apply_update_routes_pipx(updater, monkeypatch):
+    info = updater.ReleaseInfo(tag="v0.3.1", version="0.3.1", name="x", body="", html_url="")
+    called = {}
+    monkeypatch.setattr(
+        updater, "_apply_pipx",
+        lambda: called.setdefault("hit", True) or updater.UpdateResult(True, "ok"),
+    )
+    updater.apply_update(info, install_type="pipx")
+    assert called.get("hit") is True
+
+
 def _fake_response(payload):
     class _R:
         def __init__(self, data):

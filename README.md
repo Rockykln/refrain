@@ -194,19 +194,29 @@ render the same track Discord renders.
   <img src="docs/screenshots/tray-menu.png" alt="Tray menu" width="320"/>
 </p>
 
+Every item carries a theme-matched icon (freedesktop icon names on
+Plasma / GNOME / Breeze; bundled accent SVGs for Update and Quit) —
+no unicode-glyph prefixes.
+
 | Item              | What it does                                              |
 |-------------------|-----------------------------------------------------------|
-| ♪ Title           | Currently playing track (read-only)                       |
-| Artist • Album    | Currently playing artist + album (read-only)              |
-| ⏱ X:XX / Y:YY     | Elapsed time / track length (and remaining)               |
-| ⏮ Previous        | Skip backward on the active source                        |
-| ⏵ Play / ⏸ Pause  | Toggle on the active source (label follows playback state)|
-| ⏭ Next            | Skip forward on the active source                         |
-| ⬆ Update available| Only visible when a newer release exists                  |
+| Title             | Currently playing track (click opens Settings)            |
+| Artist • Album    | Currently playing artist + album (hidden when idle)       |
+| X:XX / Y:YY (–Z:ZZ) | Elapsed / track length / remaining (hidden when idle)   |
+| Discord: connected / not connected | Live Discord-RPC connection state        |
+| Previous          | Skip backward on the active source                        |
+| Play / Pause      | Toggle on the active source (label follows playback state)|
+| Next              | Skip forward on the active source                         |
+| Update available — vX.Y.Z | Only visible when a newer release exists          |
 | Settings…         | Open the settings window                                  |
 | Live log…         | Open the live-log window                                  |
-| ⟳ Restart Refrain | Cleanly stop and re-launch (release D-Bus name + RPC, exec the same binary) |
+| Restart Refrain   | Cleanly stop and re-launch (release D-Bus name + RPC, exec the same binary) |
 | Quit Refrain      | Stop the daemon and exit                                  |
+
+Left-click the tray icon opens Settings, **middle-click toggles
+play/pause**, right-click shows this menu. (DBusMenu keeps an open
+menu's text static, so the progress line is a snapshot from when you
+opened it — hover the tray icon for a live-updating tooltip.)
 
 ## Settings
 

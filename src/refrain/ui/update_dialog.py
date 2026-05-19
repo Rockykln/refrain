@@ -127,6 +127,8 @@ class UpdateDialog(QDialog):
             return self.tr("Download && replace")
         if self._install_type == "pip":
             return self.tr("Run pip upgrade")
+        if self._install_type == "pipx":
+            return self.tr("Run pipx upgrade")
         if self._install_type in ("aur", "flatpak"):
             return self.tr("Run update in terminal")
         return self.tr("Show update command")
@@ -139,7 +141,7 @@ class UpdateDialog(QDialog):
 
     def _on_update_clicked(self) -> None:
         # For install types we can't auto-update, just show the command.
-        if self._install_type not in ("appimage", "pip"):
+        if self._install_type not in ("appimage", "pip", "pipx"):
             result = apply_update(self._release, self._install_type)
             self._show_result(result)
             return
@@ -147,9 +149,13 @@ class UpdateDialog(QDialog):
         # Network/subprocess work on a background thread.
         self.update_btn.setEnabled(False)
         self.progress.setVisible(True)
-        self.status_label.setText(
-            self.tr("Downloading…") if self._install_type == "appimage" else self.tr("Running pip…")
-        )
+        if self._install_type == "appimage":
+            busy = self.tr("Downloading…")
+        elif self._install_type == "pipx":
+            busy = self.tr("Running pipx…")
+        else:
+            busy = self.tr("Running pip…")
+        self.status_label.setText(busy)
         # Repurpose the "Later" button as Cancel while the runner is alive.
         # Only the AppImage path actually polls the cancel flag — pip is a
         # subprocess we don't try to interrupt mid-flight.

@@ -71,7 +71,8 @@ _TIMEOUT_S = 10
 
 
 def detect_install_type() -> str:
-    """Returns one of: ``appimage``, ``flatpak``, ``aur``, ``system``, ``pip``, ``dev``.
+    """Returns one of: ``appimage``, ``flatpak``, ``pipx``, ``aur``,
+    ``system``, ``pip``, ``dev``.
 
     Detection is best-effort — when ambiguous we err on the side that *won't*
     auto-modify system files.
@@ -83,6 +84,17 @@ def detect_install_type() -> str:
     if os.environ.get("FLATPAK_ID") or os.environ.get("container") == "flatpak":  # noqa: SIM112
         return "flatpak"
 
+    # pipx MUST be checked before the generic venv→pip branch: a pipx
+    # app lives in its own venv (sys.prefix != base_prefix) but that
+    # venv has *no pip*, so `python -m pip install -U` fails with
+    # "No module named pip". The correct upgrade path is
+    # `pipx upgrade refrain`. Canonical layout is
+    # `<PIPX_HOME>/venvs/<app>/...` (default ~/.local/share/pipx);
+    # the stable marker is the `/pipx/venvs/` path segment.
+    exe_str = sys.executable
+    if "/pipx/venvs/" in exe_str or "/pipx/venvs/" in sys.prefix:
+        return "pipx"
+
     # Canonical venv detection — works regardless of whether sys.executable is
     # the venv's symlink or has been resolved to the underlying system python.
     if sys.prefix != sys.base_prefix:
@@ -90,7 +102,6 @@ def detect_install_type() -> str:
 
     # Use the unresolved path so a venv's symlinked python isn't classified
     # as "system" just because its target lives in /usr/.
-    exe_str = sys.executable
     if "/.local/" in exe_str or ".venv" in exe_str or "/venv/" in exe_str:
         return "pip"
 
@@ -322,6 +333,8 @@ def apply_update(
         return _apply_appimage(release, cancelled=cancelled)
     if install_type == "pip":
         return _apply_pip()
+    if install_type == "pipx":
+        return _apply_pipx()
     if install_type == "dev":
         return UpdateResult(
             success=False,
@@ -458,6 +471,61 @@ def _apply_appimage(
     return UpdateResult(
         success=True,
         message=f"Downloaded Refrain {release.version}. Restart Refrain to use it.",
+        needs_restart=True,
+    )
+
+
+def _apply_pipx() -> UpdateResult:
+    """Upgrade a pipx-managed install via ``pipx upgrade refrain``.
+
+    pipx app venvs ship without pip, so the plain ``python -m pip``
+    path can't work here — and even with pip it would desync pipx's
+    metadata. ``pipx`` itself is normally on PATH for a pipx user; if
+    it isn't, surface the one-liner instead of failing opaquely.
+    """
+    pipx = shutil.which("pipx")
+    if not pipx:
+        return UpdateResult(
+            success=False,
+            message=(
+                "Refrain was installed with pipx, but the `pipx` command "
+                "isn't on PATH so it can't self-update. Update manually:\n\n"
+                "    pipx upgrade refrain"
+            ),
+        )
+    cmd = [pipx, "upgrade", "refrain"]
+    log.info("pipx update: invoking %s", " ".join(cmd))
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except Exception as e:
+        log.warning("pipx update invocation failed: %s", e)
+        return UpdateResult(success=False, message=f"pipx invocation failed: {e}")
+
+    out = (result.stdout or "") + (result.stderr or "")
+    last_line = next((ln for ln in reversed(out.splitlines()) if ln.strip()), "")
+    log.info("pipx exit=%d last=%s", result.returncode, last_line[:200])
+    if result.returncode != 0:
+        return UpdateResult(
+            success=False,
+            message=f"pipx exited with code {result.returncode}:\n{out.strip()[:400]}",
+        )
+    low = out.lower()
+    # pipx prints "upgraded package refrain from X to Y" on a real
+    # upgrade, and "refrain is already at latest version" on a no-op
+    # (which can happen while PyPI's CDN lags the GitHub release).
+    if "already at latest version" in low and "upgraded" not in low:
+        return UpdateResult(
+            success=False,
+            message=(
+                "pipx reports Refrain is already at the latest version — "
+                "usually PyPI's CDN is lagging the new release by a few "
+                "minutes. Wait a moment and try again, or force it:\n\n"
+                "    pipx upgrade --force refrain"
+            ),
+        )
+    return UpdateResult(
+        success=True,
+        message="pipx upgrade complete. Restart Refrain to load the new version.",
         needs_restart=True,
     )
 

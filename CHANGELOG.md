@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **pipx self-update no longer fails with "No module named pip".**
+  A pipx-installed Refrain lives in its own venv (so it looked like a
+  plain pip install) but pipx venvs ship without pip, so the update
+  ran `python -m pip install -U` and died. `detect_install_type()`
+  now recognises pipx (the `/pipx/venvs/` path) and the updater runs
+  `pipx upgrade refrain` instead, with an "already at latest"
+  no-op guard and a clear hint when `pipx` isn't on PATH.
+- **README tray-menu section updated** to current reality: the
+  unicode-glyph prefixes were dropped in v0.2.7 (theme icons now),
+  the Discord-connection row was missing, and middle-click
+  play/pause + the tooltip-vs-menu behaviour weren't documented.
+
 ## [0.3.0] - 2026-05-19
 
 Last.fm scrobbling (opt-in, alongside the Discord status), with
