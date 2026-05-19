@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFormLayout,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSpinBox,
     QTabWidget,
@@ -101,6 +103,27 @@ def _tab_layout(parent: QWidget) -> QVBoxLayout:
     v.setContentsMargins(*_TAB_MARGINS)
     v.setSpacing(_TAB_SPACING)
     return v
+
+
+def _scroll_wrap(page: QWidget) -> QScrollArea:
+    """Put a tab page in a vertically-scrolling viewport.
+
+    Every tab stacks fixed-height QGroupBoxes; with enough groups (the
+    General tab now carries Discord + Last.fm + Notifications +
+    Behavior) — and especially with the ~30 %-longer German strings —
+    the content is taller than the dialog. Without a scroll area Qt
+    crushes every group below its sizeHint and the form rows overlap
+    ("the first page is all broken"). ``setWidgetResizable(True)`` keeps
+    the page at the viewport width (inputs stay laid out; only a
+    vertical scrollbar appears, and only when actually needed), so this
+    is inert on tabs that already fit.
+    """
+    sa = QScrollArea()
+    sa.setWidgetResizable(True)
+    sa.setFrameShape(QFrame.NoFrame)
+    sa.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    sa.setWidget(page)
+    return sa
 
 
 # Stylesheet applied to every QGroupBox so the title sits flush left
@@ -220,10 +243,10 @@ class SettingsWindow(QDialog):
 
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self._build_general_tab(), self.tr("General"))
-        self.tabs.addTab(self._build_sources_tab(), self.tr("Sources"))
-        self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
-        self.tabs.addTab(self._build_advanced_tab(), self.tr("Advanced"))
+        self.tabs.addTab(_scroll_wrap(self._build_general_tab()), self.tr("General"))
+        self.tabs.addTab(_scroll_wrap(self._build_sources_tab()), self.tr("Sources"))
+        self.tabs.addTab(_scroll_wrap(self._build_updates_tab()), self.tr("Updates"))
+        self.tabs.addTab(_scroll_wrap(self._build_advanced_tab()), self.tr("Advanced"))
 
         self.cancel_btn = QPushButton(self.tr("Cancel"))
         self.apply_btn = QPushButton(self.tr("Apply"))
