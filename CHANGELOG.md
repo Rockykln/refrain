@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Last.fm status no longer shows a misleading "Connected".** The
+  status keyed off the session key alone, so (a) with no Last.fm
+  username it rendered "Connected as (connected)", and (b) when only
+  the keyring session survived but the api_key/secret were missing
+  it claimed "Connected" while scrobbling was actually inert.
+  Connection state is now a usable triple (api_key + shared_secret +
+  session_key): "Connected[ as <user>]" only when all three are
+  present, an explicit "re-enter the API key + secret, then Connect"
+  for a leftover/desynced session, else "Not connected". New pure
+  `lastfm_connection_state()` helper, +13 tests.
+
 ## [0.4.0] - 2026-05-19
 
 Adds a one-command full uninstall — Refrain can now wipe every file

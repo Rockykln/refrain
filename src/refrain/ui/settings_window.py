@@ -41,6 +41,32 @@ GITHUB_URL = "https://github.com/Rockykln/refrain"
 log = logging.getLogger(__name__)
 
 
+def lastfm_connection_state(session_key: str, api_key: str, shared_secret: str) -> str:
+    """Whether the Last.fm connection is actually *usable*.
+
+    Pure (no Qt) so it's unit-testable. A Last.fm call needs all three
+    of api_key + shared_secret + session_key — the secret/session live
+    in the keyring, the api_key in config.toml, so they can desync
+    (fresh config but a surviving keyring entry, or vice-versa). Status
+    keyed on session_key alone used to show "Connected" for an
+    unusable, scrobble-inert state.
+
+    Returns:
+      * ``"connected"``    — all three present; scrobbling works.
+      * ``"incomplete"``   — a leftover session but no usable
+        api_key/secret; the user must re-enter them and reconnect.
+      * ``"disconnected"`` — no session.
+    """
+    sk = (session_key or "").strip()
+    ak = (api_key or "").strip()
+    ss = (shared_secret or "").strip()
+    if sk and ak and ss:
+        return "connected"
+    if sk:
+        return "incomplete"
+    return "disconnected"
+
+
 # ---------------------------------------------------------------------------
 # Layout helpers — keep every tab visually consistent.
 # ---------------------------------------------------------------------------
@@ -864,20 +890,46 @@ class SettingsWindow(QDialog):
     # ====================================================================
 
     def _refresh_lastfm_status(self) -> None:
-        if self._lastfm_session_key:
-            who = self._lastfm_username or self.tr("(connected)")
-            self.lastfm_status_label.setText(self.tr("Connected as {user}").format(user=who))
+        state = lastfm_connection_state(
+            self._lastfm_session_key,
+            self.lastfm_api_key_input.text(),
+            self.lastfm_secret_input.text(),
+        )
+        if state == "connected":
+            if self._lastfm_username:
+                self.lastfm_status_label.setText(
+                    self.tr("Connected as {user}").format(user=self._lastfm_username)
+                )
+            else:
+                self.lastfm_status_label.setText(self.tr("Connected"))
             self.lastfm_connect_btn.setText(self.tr("Disconnect"))
+        elif state == "incomplete":
+            # A session survived (keyring) but the api_key/secret are
+            # missing — scrobbling is inert. Don't claim "Connected";
+            # the button reconnects (re-entering the credentials).
+            self.lastfm_status_label.setText(
+                self.tr("Not connected — re-enter the API key + secret, then Connect")
+            )
+            self.lastfm_connect_btn.setText(self.tr("Connect…"))
         else:
             self.lastfm_status_label.setText(self.tr("Not connected"))
             self.lastfm_connect_btn.setText(self.tr("Connect…"))
         self.lastfm_connect_btn.setEnabled(True)
 
     def _on_lastfm_connect(self) -> None:
-        # Already connected → this button is "Disconnect". Clearing is
+        # Fully connected → this button is "Disconnect". Clearing is
         # local; it persists when the user hits Apply (same as every
-        # other field).
-        if self._lastfm_session_key:
+        # other field). An "incomplete" leftover (session in keyring
+        # but no usable api_key/secret) falls through to the connect
+        # flow instead so the user can re-enter and reconnect.
+        if (
+            lastfm_connection_state(
+                self._lastfm_session_key,
+                self.lastfm_api_key_input.text(),
+                self.lastfm_secret_input.text(),
+            )
+            == "connected"
+        ):
             self._lastfm_session_key = ""
             self._lastfm_username = ""
             self._refresh_lastfm_status()
@@ -949,14 +1001,17 @@ class SettingsWindow(QDialog):
         self._lastfm_session_key = key
         self._lastfm_username = name
         self._refresh_lastfm_status()
-        QMessageBox.information(
-            self,
-            self.tr("Last.fm"),
-            self.tr(
+        if name:
+            done = self.tr(
                 "Connected as {user}. Click Apply to save — scrobbling "
                 "starts on the next track."
-            ).format(user=name or self.tr("(your account)")),
-        )
+            ).format(user=name)
+        else:
+            done = self.tr(
+                "Connected. Click Apply to save — scrobbling starts on "
+                "the next track."
+            )
+        QMessageBox.information(self, self.tr("Last.fm"), done)
 
     def _on_lastfm_auth_failed(self, message: str) -> None:
         self._finish_lastfm_thread()
