@@ -59,6 +59,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   explicitly; dropped the unused `urllib.parse` import.
 - ROADMAP section ordering corrected — forward-looking sections no
   longer sit above shipped releases.
+- Settings dialog no longer crushes/overlaps form rows: the Last.fm
+  controls moved to their own tab and every tab page is wrapped in a
+  scroll area; the default window size fits the tallest tab with no
+  visible scrollbar in English and German.
+
+### Security
+
+- **Last.fm credentials are never written to `config.toml`.** The
+  shared secret and session token are stored in the OS keyring
+  (freedesktop Secret Service — KWallet / GNOME Keyring), encrypted
+  at rest, hand-rolled on `dbus-python` (no new dependency). When no
+  keyring is reachable they fall back to a `0600`, owner-only file
+  separate from the config. `config.toml` itself is now written
+  `0600`, and a legacy plaintext secret left by an earlier build is
+  auto-migrated into the keyring and scrubbed from disk on the next
+  save. Secrets are never logged and only ever leave the machine to
+  Last.fm over HTTPS (which is scrobbling itself).
 
 ## [0.2.7] - 2026-05-07
 

@@ -482,9 +482,18 @@ What's done, what's next, what's deliberately not in scope.
     poll tick never blocks (same pattern as `CoverFetcher`).
     Privacy `Off` silences scrobbling too; an invalid/revoked
     session latches and surfaces a "reconnect" hint while keeping
-    the queue intact. Settings → General → Last.fm group with
+    the queue intact. Its own **Last.fm** Settings tab with
     Connect/Disconnect; reconfigures in place (no restart, unlike
-    the Discord client_id). +47 unit tests.
+    the Discord client_id). +57 unit tests.
+  - **Credentials in the OS keyring, never plaintext.** The shared
+    secret + session token go to the freedesktop Secret Service
+    (KWallet / GNOME Keyring), encrypted at rest, hand-rolled on
+    `dbus-python` (no new dependency); `0600` owner-only file
+    fallback only when no keyring exists. `config.toml` never holds
+    them (and is itself written `0600`); a legacy plaintext copy is
+    auto-migrated and scrubbed. Live KWallet round-trip verified.
+  - Every Settings tab is scroll-safe (Last.fm on its own page);
+    no visible scrollbar at the default size in English or German.
 
 ## Up next — v0.3
 

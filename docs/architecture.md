@@ -85,7 +85,9 @@ name and exit. No lockfile in `/tmp`.
 
 | Purpose            | Path                                         |
 |--------------------|----------------------------------------------|
-| Config             | `$XDG_CONFIG_HOME/refrain/config.toml`       |
+| Config             | `$XDG_CONFIG_HOME/refrain/config.toml` (`0600`; no secrets) |
+| Credentials        | OS keyring via freedesktop Secret Service (KWallet / GNOME Keyring), encrypted at rest |
+| Credentials (fallback) | `$XDG_CONFIG_HOME/refrain/secrets.json` (`0600`, owner-only) — only when no keyring is reachable |
 | Logs (rotating)    | `$XDG_STATE_HOME/refrain/refrain.log{,.1,.2,.3}` |
 | Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt`          |
 | Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |

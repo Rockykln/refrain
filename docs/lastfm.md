@@ -24,7 +24,7 @@ each user registers their own free API account (takes a minute).
 
 ## 2. Enter the credentials
 
-*Settings → General → Last.fm scrobbling*:
+Open the *Settings → **Last.fm*** tab:
 
 1. Tick **Enable Last.fm scrobbling**.
 2. Paste the **API key** and **shared secret**.
@@ -61,6 +61,19 @@ profile — the equivalent of the Discord status — as each track starts.
   scrobbling (it's its own opt-in).
 - Nothing but the track's artist / title / album / timestamp goes to
   Last.fm, over HTTPS, only when scrobbling is enabled and connected.
+
+### Where credentials are stored
+
+The Last.fm **shared secret** and **session token** are the only real
+credentials Refrain holds. They are stored in your **OS keyring**
+(KWallet / GNOME Keyring) — encrypted at rest, unlocked with your
+login session — and are **never written to `config.toml`** (which is
+itself saved owner-only, `0600`). On a system with no Secret Service
+keyring they fall back to a `0600` (owner-only) file
+`$XDG_CONFIG_HOME/refrain/secrets.json`, clearly separate from the
+config. The values only ever leave your machine to Last.fm over
+HTTPS — that transfer *is* scrobbling; nothing else reads or forwards
+them, and they are never logged.
 
 ## Troubleshooting
 

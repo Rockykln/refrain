@@ -169,10 +169,11 @@ language = "system"                # "system" follows QLocale; "en", "de", "es",
 [lastfm]
 enabled = false                    # opt-in, alongside (never replacing) the Discord RPC
 api_key = ""                       # register your own at last.fm/api/account/create
-shared_secret = ""
-session_key = ""                   # filled by the in-app Connect flow — don't hand-edit
 username = ""                      # display only
 scrobble_now_playing = true        # also send the ephemeral "now playing" indicator
+# NOTE: the Last.fm shared secret and session key are credentials and
+# are deliberately NOT stored here. They live in your OS keyring
+# (KWallet / GNOME Keyring), encrypted at rest — see "Last.fm" below.
 ```
 
 Per-source `client_id_*` fields let Apple Music render under one Discord
@@ -278,9 +279,15 @@ Discord status — a second, independent channel, never a replacement.
 It's **opt-in** and off by default.
 
 Register your own free [API account](https://www.last.fm/api/account/create),
-then *Settings → General → Last.fm scrobbling*: tick **Enable**, paste
-the **API key** + **shared secret**, click **Connect…** and approve the
+then open the *Settings → Last.fm* tab: tick **Enable**, paste the
+**API key** + **shared secret**, click **Connect…** and approve the
 browser prompt. Scrobbling starts on the next track — no restart.
+
+The **shared secret and session token are stored in your OS keyring**
+(KWallet / GNOME Keyring), encrypted at rest — never in `config.toml`
+(which is itself written owner-only, `0600`). On a system with no
+keyring they fall back to a `0600` file. Credentials only ever leave
+the machine to Last.fm over HTTPS, which is what scrobbling *is*.
 
 A track is scrobbled once you've played at least half of it, or four
 minutes (Last.fm's rule), and only if it's longer than 30 s. Scrobbles
