@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtCore import QDateTime, QLocale, QObject, QSize, Qt, QThread, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QFormLayout,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
     QSpinBox,
     QTabWidget,
@@ -30,6 +32,7 @@ from PySide6.QtWidgets import (
 from refrain import __version__
 from refrain.config import Config
 from refrain.paths import assets_dir, config_path, state_dir
+from refrain.scrobble import API_ACCOUNT_URL, LastfmClient, LastfmError
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.updater import ReleaseInfo, prepare_release_notes
 
@@ -102,6 +105,27 @@ def _tab_layout(parent: QWidget) -> QVBoxLayout:
     return v
 
 
+def _scroll_wrap(page: QWidget) -> QScrollArea:
+    """Put a tab page in a vertically-scrolling viewport.
+
+    Every tab stacks fixed-height QGroupBoxes; with enough groups (the
+    General tab now carries Discord + Last.fm + Notifications +
+    Behavior) — and especially with the ~30 %-longer German strings —
+    the content is taller than the dialog. Without a scroll area Qt
+    crushes every group below its sizeHint and the form rows overlap
+    ("the first page is all broken"). ``setWidgetResizable(True)`` keeps
+    the page at the viewport width (inputs stay laid out; only a
+    vertical scrollbar appears, and only when actually needed), so this
+    is inert on tabs that already fit.
+    """
+    sa = QScrollArea()
+    sa.setWidgetResizable(True)
+    sa.setFrameShape(QFrame.NoFrame)
+    sa.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    sa.setWidget(page)
+    return sa
+
+
 # Stylesheet applied to every QGroupBox so the title sits flush left
 # instead of centered. Plasma Breeze centers QGroupBox titles by default;
 # left alignment matches the label/input rows below and reads better.
@@ -144,6 +168,38 @@ def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
     return box, form
 
 
+class _LastfmAuthWorker(QObject):
+    """Runs one Last.fm auth network call off the GUI thread.
+
+    The desktop flow is two calls with a browser round-trip between
+    them, so a worker handles a single ``phase`` ("token" or "session")
+    and is torn down before the next one — no thread lives across the
+    user's browser interaction.
+    """
+
+    tokenReady = Signal(str)  # request token
+    sessionReady = Signal(str, str)  # (session_key, username)
+    failed = Signal(str)  # human-readable error
+
+    def __init__(self, client: LastfmClient, phase: str, token: str = "") -> None:
+        super().__init__()
+        self._client = client
+        self._phase = phase
+        self._token = token
+
+    def run(self) -> None:
+        try:
+            if self._phase == "token":
+                self.tokenReady.emit(self._client.get_token())
+            else:
+                key, name = self._client.get_session(self._token)
+                self.sessionReady.emit(key, name)
+        except LastfmError as e:
+            self.failed.emit(str(e))
+        except Exception as e:  # never let a worker exception escape the thread
+            self.failed.emit(f"Unexpected Last.fm error: {e}")
+
+
 class SettingsWindow(QDialog):
     """Tabbed settings dialog. Emits `applied(Config)` when the user hits Apply."""
 
@@ -167,19 +223,36 @@ class SettingsWindow(QDialog):
         icon_path = assets_dir() / "icons" / "refrain.svg"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-        # Bigger default size: German labels run ~30% longer than English,
-        # and the new GroupBox layout adds vertical chrome. Anything
-        # smaller squeezes either the labels or the spinbox suffixes.
-        self.setMinimumSize(680, 620)
-        self.resize(720, 660)
+        # Default size is tuned so the tallest tab (Sources) fits with
+        # no visible scrollbar in both English *and* German (DE strings
+        # run ~30% longer; verified the Sources page needs ≤ 680 px of
+        # window height in DE). The per-tab scroll area is only a silent
+        # safety net for even-longer locales / very small screens — it
+        # shows no bar at this size. Min stays lower so the window is
+        # still resizable (the safety net then engages instead of
+        # crushing the form rows).
+        self.setMinimumSize(680, 600)
+        self.resize(720, 700)
         self._config = config
+
+        # Last.fm session/username aren't form widgets — they're set by
+        # the connect flow and persisted on Apply. Auth network calls run
+        # on a short-lived worker thread; refs kept so it's joined before
+        # the next phase / dialog close.
+        self._lastfm_session_key = ""
+        self._lastfm_username = ""
+        self._lastfm_token = ""
+        self._lastfm_client: LastfmClient | None = None
+        self._lastfm_auth_thread: QThread | None = None
+        self._lastfm_auth_worker: _LastfmAuthWorker | None = None
 
         self.tabs = QTabWidget()
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self._build_general_tab(), self.tr("General"))
-        self.tabs.addTab(self._build_sources_tab(), self.tr("Sources"))
-        self.tabs.addTab(self._build_updates_tab(), self.tr("Updates"))
-        self.tabs.addTab(self._build_advanced_tab(), self.tr("Advanced"))
+        self.tabs.addTab(_scroll_wrap(self._build_general_tab()), self.tr("General"))
+        self.tabs.addTab(_scroll_wrap(self._build_sources_tab()), self.tr("Sources"))
+        self.tabs.addTab(_scroll_wrap(self._build_lastfm_tab()), self.tr("Last.fm"))
+        self.tabs.addTab(_scroll_wrap(self._build_updates_tab()), self.tr("Updates"))
+        self.tabs.addTab(_scroll_wrap(self._build_advanced_tab()), self.tr("Advanced"))
 
         self.cancel_btn = QPushButton(self.tr("Cancel"))
         self.apply_btn = QPushButton(self.tr("Apply"))
@@ -233,18 +306,26 @@ class SettingsWindow(QDialog):
         # render without truncation. Both at the same width so they
         # line up vertically.
         discord_group, df = _new_group(self.tr("Discord"))
+        self._discord_form = df
 
         self.client_id_input = QLineEdit()
         self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
         self.client_id_input.setFixedWidth(_INPUT_WIDE_WIDTH)
         df.addRow(self.tr("Client ID:"), self.client_id_input)
 
-        # Per-source overrides — leave empty to share the default
-        # Client ID above. Useful for users who want Apple Music to
-        # render under one Discord application (with the Apple Music
-        # album-grid as artwork) and Bluetooth headphones under another
-        # (with a generic Bluetooth glyph). Refrain reconnects RPC
+        # Most users need exactly one Discord application, so the
+        # per-source override fields are hidden behind this opt-in
+        # toggle (default off) instead of cluttering the tab. Ticking
+        # it reveals separate Client IDs for Apple Music vs Bluetooth —
+        # handy if you want each to render under its own Discord app
+        # (different name + uploaded artwork). Refrain reconnects RPC
         # automatically when the active source flips.
+        self.discord_per_source_box = QCheckBox(
+            self.tr("Use a separate Discord application per source (advanced)")
+        )
+        self.discord_per_source_box.toggled.connect(self._set_discord_overrides_visible)
+        df.addRow(self.discord_per_source_box)
+
         self.client_id_mpris_input = QLineEdit()
         self.client_id_mpris_input.setPlaceholderText(self.tr("(uses default Client ID)"))
         self.client_id_mpris_input.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -254,6 +335,9 @@ class SettingsWindow(QDialog):
         self.client_id_bluetooth_input.setPlaceholderText(self.tr("(uses default Client ID)"))
         self.client_id_bluetooth_input.setFixedWidth(_INPUT_WIDE_WIDTH)
         df.addRow(self.tr("Bluetooth Client ID:"), self.client_id_bluetooth_input)
+        # Hidden until the advanced toggle is ticked (or a saved
+        # override is loaded — see _load_into_form).
+        self._set_discord_overrides_visible(False)
 
         self.privacy_combo = QComboBox()
         self.privacy_combo.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -298,6 +382,84 @@ class SettingsWindow(QDialog):
         self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
         bf.addRow(self.autostart_box)
         v.addWidget(behavior_group)
+
+        v.addStretch(1)
+        return w
+
+    def _set_discord_overrides_visible(self, visible: bool) -> None:
+        """Show/hide the per-source Client ID rows (label + field).
+
+        Uses QFormLayout.setRowVisible (Qt 6.4+, we require ≥ 6.6) so
+        the row's *label* hides too — not just the input. Degrades to
+        hiding only the field on the off-chance the API is missing.
+        """
+        form = getattr(self, "_discord_form", None)
+        if form is None:
+            return
+        for widget in (self.client_id_mpris_input, self.client_id_bluetooth_input):
+            try:
+                form.setRowVisible(widget, visible)
+            except (AttributeError, TypeError):
+                widget.setVisible(visible)
+
+    # ====================================================================
+    # Last.fm tab
+    # ====================================================================
+
+    def _build_lastfm_tab(self) -> QWidget:
+        # Last.fm gets its own tab rather than crowding General: opt-in
+        # scrobbling *alongside* the Discord RPC, same "bring your own
+        # credentials" model (register a Last.fm API account, connect
+        # via the desktop auth flow). Its own page also keeps every tab
+        # short enough to never need a scrollbar.
+        w = QWidget()
+        v = _tab_layout(w)
+
+        lastfm_group, lf = _new_group(self.tr("Last.fm scrobbling"))
+
+        self.lastfm_enabled_box = QCheckBox(self.tr("Enable Last.fm scrobbling"))
+        lf.addRow(self.lastfm_enabled_box)
+
+        self.lastfm_api_key_input = QLineEdit()
+        self.lastfm_api_key_input.setPlaceholderText(self.tr("Last.fm API key"))
+        self.lastfm_api_key_input.setFixedWidth(_INPUT_WIDE_WIDTH)
+        lf.addRow(self.tr("API key:"), self.lastfm_api_key_input)
+
+        self.lastfm_secret_input = QLineEdit()
+        self.lastfm_secret_input.setPlaceholderText(self.tr("Last.fm shared secret"))
+        self.lastfm_secret_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.lastfm_secret_input.setFixedWidth(_INPUT_WIDE_WIDTH)
+        lf.addRow(self.tr("Shared secret:"), self.lastfm_secret_input)
+
+        self.lastfm_status_label = QLabel(self.tr("Not connected"))
+        lf.addRow(self.tr("Account:"), self.lastfm_status_label)
+
+        self.lastfm_connect_btn = QPushButton(self.tr("Connect…"))
+        self.lastfm_connect_btn.clicked.connect(self._on_lastfm_connect)
+        account_btn = QPushButton(self.tr("Create API account"))
+        account_btn.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl(API_ACCOUNT_URL))
+        )
+        lf.addRow(_row_with_buttons(self.lastfm_connect_btn, account_btn))
+
+        self.lastfm_nowplaying_box = QCheckBox(
+            self.tr("Also send a “Now playing” update")
+        )
+        lf.addRow(self.lastfm_nowplaying_box)
+
+        lf.addRow(
+            _hint(
+                self.tr(
+                    "Register a free API account, paste the key + secret, then "
+                    "Connect to authorise in your browser. Scrobbling runs "
+                    "alongside Discord and never replaces it; it's silenced "
+                    "while Privacy is set to Off. The shared secret and the "
+                    "session token are stored in your system keyring, never "
+                    "in plain text."
+                )
+            )
+        )
+        v.addWidget(lastfm_group)
 
         v.addStretch(1)
         return w
@@ -406,9 +568,10 @@ class SettingsWindow(QDialog):
         self.bluetooth_device.clear()
         self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
         for d in BluetoothSource.list_paired_devices():
-            label = f"{d.get('name') or '?'} — {d.get('address', '')}"
+            name = d.get("name") or self.tr("(unknown device)")
+            label = f"{name} — {d.get('address', '')}"
             if d.get("connected"):
-                label = f"● {label}"
+                label = self.tr("● {label} (connected)").format(label=label)
             self.bluetooth_device.addItem(label, userData=d.get("address", ""))
         if previous:
             for i in range(self.bluetooth_device.count()):
@@ -416,13 +579,25 @@ class SettingsWindow(QDialog):
                     self.bluetooth_device.setCurrentIndex(i)
                     return
 
+    def _format_last_check(self, ts: int) -> str:
+        """Render the 'Last checked' timestamp in the active UI locale.
+
+        Was a hard-coded ``%Y-%m-%d %H:%M:%S`` strftime, which ignored
+        the user's chosen language. ``QLocale`` formats the date the way
+        every other localised string in the window does, so a German /
+        Japanese / etc. UI doesn't show a lone ISO timestamp. ``never``
+        is a real translatable string.
+        """
+        if not ts:
+            return self.tr("never")
+        dt = QDateTime.fromSecsSinceEpoch(int(ts))
+        return QLocale().toString(dt, QLocale.FormatType.ShortFormat)
+
     # ====================================================================
     # Updates tab
     # ====================================================================
 
     def _build_updates_tab(self) -> QWidget:
-        from datetime import datetime
-
         w = QWidget()
         v = _tab_layout(w)
 
@@ -442,9 +617,7 @@ class SettingsWindow(QDialog):
         self.last_check_label = QLabel("—")
         uf.addRow(self.tr("Last checked:"), self.last_check_label)
 
-        self._last_check_dt_format = lambda ts: (
-            self.tr("never") if not ts else datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-        )
+        self._last_check_dt_format = self._format_last_check
 
         check_btn = QPushButton(self.tr("Check for updates now"))
         check_btn.clicked.connect(self.checkUpdatesRequested.emit)
@@ -613,9 +786,10 @@ class SettingsWindow(QDialog):
         msg.setText(
             self.tr(
                 "Reset every setting to its default? All three Discord "
-                "Application IDs (default + per-source) stay untouched — "
-                "everything else (sources, privacy, autostart, advanced) "
-                "goes back to the shipped defaults.\n\n"
+                "Application IDs (default + per-source) and your connected "
+                "Last.fm account stay untouched — everything else (sources, "
+                "privacy, autostart, advanced) goes back to the shipped "
+                "defaults.\n\n"
                 "After confirming, click Apply at the bottom of the "
                 "Settings window to save the reset."
             )
@@ -630,14 +804,124 @@ class SettingsWindow(QDialog):
         # promises this explicitly, and per-source overrides
         # (`client_id_mpris` / `client_id_bluetooth`) count as part of
         # the user's Discord identity just as much as the default.
-        keep_default = self._config.discord.client_id
-        keep_mpris = self._config.discord.client_id_mpris
-        keep_bt = self._config.discord.client_id_bluetooth
+        keep_discord = self._config.discord
+        # Last.fm credentials + the connected session are user identity
+        # just like the Discord IDs — a settings reset must not silently
+        # disconnect the account or wipe the API key/secret.
+        keep_lastfm = self._config.lastfm
         self._config = Config()
-        self._config.discord.client_id = keep_default
-        self._config.discord.client_id_mpris = keep_mpris
-        self._config.discord.client_id_bluetooth = keep_bt
+        self._config.discord = keep_discord
+        self._config.lastfm = keep_lastfm
         self._load_into_form()
+
+    # ====================================================================
+    # Last.fm connect flow
+    # ====================================================================
+
+    def _refresh_lastfm_status(self) -> None:
+        if self._lastfm_session_key:
+            who = self._lastfm_username or self.tr("(connected)")
+            self.lastfm_status_label.setText(self.tr("Connected as {user}").format(user=who))
+            self.lastfm_connect_btn.setText(self.tr("Disconnect"))
+        else:
+            self.lastfm_status_label.setText(self.tr("Not connected"))
+            self.lastfm_connect_btn.setText(self.tr("Connect…"))
+        self.lastfm_connect_btn.setEnabled(True)
+
+    def _on_lastfm_connect(self) -> None:
+        # Already connected → this button is "Disconnect". Clearing is
+        # local; it persists when the user hits Apply (same as every
+        # other field).
+        if self._lastfm_session_key:
+            self._lastfm_session_key = ""
+            self._lastfm_username = ""
+            self._refresh_lastfm_status()
+            return
+        if self._lastfm_auth_thread is not None:
+            return  # an auth round-trip is already in flight
+        api_key = self.lastfm_api_key_input.text().strip()
+        secret = self.lastfm_secret_input.text().strip()
+        if not api_key or not secret:
+            QMessageBox.warning(
+                self,
+                self.tr("Last.fm"),
+                self.tr(
+                    "Enter your Last.fm API key and shared secret first. "
+                    "Use “Create API account” to register one (free)."
+                ),
+            )
+            return
+        self._lastfm_client = LastfmClient(api_key, secret)
+        self.lastfm_connect_btn.setEnabled(False)
+        self.lastfm_status_label.setText(self.tr("Requesting authorisation token…"))
+        self._start_lastfm_auth("token")
+
+    def _start_lastfm_auth(self, phase: str) -> None:
+        assert self._lastfm_client is not None
+        self._lastfm_auth_thread = QThread(self)
+        self._lastfm_auth_worker = _LastfmAuthWorker(
+            self._lastfm_client, phase, self._lastfm_token
+        )
+        self._lastfm_auth_worker.moveToThread(self._lastfm_auth_thread)
+        self._lastfm_auth_thread.started.connect(self._lastfm_auth_worker.run)
+        self._lastfm_auth_worker.tokenReady.connect(self._on_lastfm_token)
+        self._lastfm_auth_worker.sessionReady.connect(self._on_lastfm_session)
+        self._lastfm_auth_worker.failed.connect(self._on_lastfm_auth_failed)
+        self._lastfm_auth_thread.start()
+
+    def _finish_lastfm_thread(self) -> None:
+        if self._lastfm_auth_thread is not None:
+            self._lastfm_auth_thread.quit()
+            self._lastfm_auth_thread.wait(2000)
+            self._lastfm_auth_thread = None
+            self._lastfm_auth_worker = None
+
+    def _on_lastfm_token(self, token: str) -> None:
+        self._finish_lastfm_thread()
+        self._lastfm_token = token
+        assert self._lastfm_client is not None
+        QDesktopServices.openUrl(QUrl(self._lastfm_client.authorize_url(token)))
+        proceed = QMessageBox.information(
+            self,
+            self.tr("Authorise Refrain"),
+            self.tr(
+                "A Last.fm page opened in your browser. Approve access "
+                "for Refrain there, then click OK to finish connecting."
+            ),
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Ok,
+        )
+        if proceed != QMessageBox.StandardButton.Ok:
+            self._lastfm_token = ""
+            self._refresh_lastfm_status()
+            return
+        self.lastfm_status_label.setText(self.tr("Completing sign-in…"))
+        self._start_lastfm_auth("session")
+
+    def _on_lastfm_session(self, key: str, name: str) -> None:
+        self._finish_lastfm_thread()
+        self._lastfm_token = ""
+        self._lastfm_session_key = key
+        self._lastfm_username = name
+        self._refresh_lastfm_status()
+        QMessageBox.information(
+            self,
+            self.tr("Last.fm"),
+            self.tr(
+                "Connected as {user}. Click Apply to save — scrobbling "
+                "starts on the next track."
+            ).format(user=name or self.tr("(your account)")),
+        )
+
+    def _on_lastfm_auth_failed(self, message: str) -> None:
+        self._finish_lastfm_thread()
+        self._lastfm_token = ""
+        self._refresh_lastfm_status()
+        QMessageBox.warning(
+            self,
+            self.tr("Last.fm connection failed"),
+            self.tr("Could not connect to Last.fm:\n\n{error}").format(error=message),
+        )
 
     # ====================================================================
     # Form load + save
@@ -648,10 +932,24 @@ class SettingsWindow(QDialog):
         self.client_id_input.setText(c.discord.client_id)
         self.client_id_mpris_input.setText(c.discord.client_id_mpris)
         self.client_id_bluetooth_input.setText(c.discord.client_id_bluetooth)
+        # Reveal the per-source override fields only if the user already
+        # has one configured — otherwise keep the advanced toggle off
+        # and the rows hidden so the tab stays uncluttered.
+        has_overrides = bool(c.discord.client_id_mpris or c.discord.client_id_bluetooth)
+        self.discord_per_source_box.setChecked(has_overrides)
+        self._set_discord_overrides_visible(has_overrides)
         self.autostart_box.setChecked(c.behavior.autostart)
         self.notifications_box.setChecked(c.behavior.notifications)
         self.cover_art_box.setChecked(c.behavior.cover_art)
         self.buttons_box.setChecked(c.behavior.show_buttons)
+
+        self.lastfm_enabled_box.setChecked(c.lastfm.enabled)
+        self.lastfm_api_key_input.setText(c.lastfm.api_key)
+        self.lastfm_secret_input.setText(c.lastfm.shared_secret)
+        self.lastfm_nowplaying_box.setChecked(c.lastfm.scrobble_now_playing)
+        self._lastfm_session_key = c.lastfm.session_key
+        self._lastfm_username = c.lastfm.username
+        self._refresh_lastfm_status()
 
         self.auto_check_box.setChecked(c.update.auto_check)
         self.last_check_label.setText(self._last_check_dt_format(c.update.last_check_ts))
@@ -711,13 +1009,31 @@ class SettingsWindow(QDialog):
         # could never *clear* a Client ID — emptying the field was a
         # no-op, surprising anyone trying to disable the integration.
         c.discord.client_id = self.client_id_input.text().strip()
-        c.discord.client_id_mpris = self.client_id_mpris_input.text().strip()
-        c.discord.client_id_bluetooth = self.client_id_bluetooth_input.text().strip()
+        # The advanced toggle is the per-source feature switch: when
+        # it's off, the overrides are cleared so the single default
+        # Client ID is used everywhere (and the hidden field contents
+        # can't linger). When on, persist what's in the fields.
+        if self.discord_per_source_box.isChecked():
+            c.discord.client_id_mpris = self.client_id_mpris_input.text().strip()
+            c.discord.client_id_bluetooth = self.client_id_bluetooth_input.text().strip()
+        else:
+            c.discord.client_id_mpris = ""
+            c.discord.client_id_bluetooth = ""
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
         c.behavior.cover_art = self.cover_art_box.isChecked()
         c.behavior.show_buttons = self.buttons_box.isChecked()
         c.behavior.notify_delay_ms = self.notify_delay_spin.value()
+
+        c.lastfm.enabled = self.lastfm_enabled_box.isChecked()
+        c.lastfm.api_key = self.lastfm_api_key_input.text().strip()
+        c.lastfm.shared_secret = self.lastfm_secret_input.text().strip()
+        c.lastfm.scrobble_now_playing = self.lastfm_nowplaying_box.isChecked()
+        # session_key / username come from the connect flow, not a
+        # widget. The daemon's Scrobbler rebinds in place via
+        # update_config — no process restart needed (unlike Discord).
+        c.lastfm.session_key = self._lastfm_session_key
+        c.lastfm.username = self._lastfm_username
 
         c.update.auto_check = self.auto_check_box.isChecked()
 
@@ -766,6 +1082,13 @@ class SettingsWindow(QDialog):
             # Continue with applied.emit anyway — the in-memory
             # daemon state should still be consistent for this
             # session even if the file write failed.
+        # Persist the Last.fm credentials to the OS keyring (NOT
+        # config.toml — to_dict() blanks them). Separate from c.save()
+        # so a config-write failure doesn't also lose the secrets, and
+        # vice-versa.
+        from refrain.secrets_store import save_from as _save_lastfm_secrets
+
+        _save_lastfm_secrets(c.lastfm)
         self.applied.emit(c)
         # Apply triggers a restart automatically when the user changed
         # the UI language or the Discord client_id. Both need a fresh
@@ -784,3 +1107,10 @@ class SettingsWindow(QDialog):
             self.restartRequested.emit()
             return
         self.hide()
+
+    def closeEvent(self, event) -> None:
+        # Join any in-flight Last.fm auth worker so app teardown doesn't
+        # hit "QThread: Destroyed while thread is still running". Brief
+        # bounded wait, mirroring the welcome dialog's diagnostics thread.
+        self._finish_lastfm_thread()
+        super().closeEvent(event)

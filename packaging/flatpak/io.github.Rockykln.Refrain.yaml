@@ -39,6 +39,11 @@ finish-args:
   - --share=network
   # Bluetooth metadata via the system bus
   - --system-talk-name=org.bluez
+  # OS keyring (KWallet / GNOME Keyring) for the Last.fm credentials —
+  # without this the sandbox can't reach the Secret Service and the
+  # secret falls back to a 0600 file inside the sandbox instead of
+  # being encrypted at rest.
+  - --talk-name=org.freedesktop.secrets
   # Notifications
   - --talk-name=org.freedesktop.Notifications
   # MPRIS metadata from any media player on the session bus

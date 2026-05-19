@@ -51,6 +51,29 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.3.0" date="2026-05-19">
+      <description>
+        <p>
+          Last.fm scrobbling — opt-in, alongside the Discord status,
+          never a replacement. Bring your own Last.fm API account;
+          the shared secret and session token are stored in the OS
+          keyring (KWallet / GNOME Keyring), encrypted at rest, never
+          in plain text. Scrobbles are written to a crash-safe
+          offline queue so an outage or a quit mid-song never loses
+          them.
+        </p>
+        <p>
+          Also: an actively-playing source now beats a stale paused
+          browser tab; album art swaps into the same notification
+          once it finishes downloading; the config writer preserves
+          comments and unknown keys; the Settings window was
+          reshuffled (Last.fm on its own tab, per-source Discord IDs
+          behind an opt-in toggle) so no tab needs a scrollbar; and a
+          new PRIVACY.md documents every data flow. Folds in the
+          accumulated reliability fixes tracked as v0.2.8.
+        </p>
+      </description>
+    </release>
     <release version="0.2.7" date="2026-05-07">
       <description>
         <p>

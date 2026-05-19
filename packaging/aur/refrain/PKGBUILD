@@ -1,7 +1,7 @@
 # Maintainer: Rockykln <contact@rockykln.com>
 
 pkgname=refrain
-pkgver=0.2.7
+pkgver=0.3.0
 pkgrel=1
 pkgdesc="Discord Rich Presence for Apple Music on Linux"
 arch=('any')
@@ -23,7 +23,11 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-sha256sums=('83b4837c1f5eef6ab3569bed757eab08f09ddfd03cceaf298cd3856a9e396649')
+# Pinned post-tag: the v0.3.0 source tarball only exists once the tag
+# is pushed. Recompute and replace 'SKIP' per packaging/README.md
+# ("When tagging a new release, the AUR side needs…"), then
+# regenerate .SRCINFO, in the dedicated post-release AUR commit.
+sha256sums=('SKIP')
 
 build() {
     cd "$pkgname-$pkgver"

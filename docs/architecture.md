@@ -1,6 +1,9 @@
 # Architecture
 
-Refrain is one process with two threads and one external IPC socket.
+Refrain is one process. Two long-lived Qt threads (main + daemon
+worker), an optional GLib thread, plus short-lived worker executors
+(cover fetch, Last.fm) — all feeding one Discord IPC socket and a few
+outbound HTTPS clients.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -21,6 +24,7 @@ Refrain is one process with two threads and one external IPC socket.
 │  │    ├─ BluetoothSource     ──► System DBus (org.bluez)        │
 │  │    ├─ CoverFetcher        ──► iTunes Search (HTTPS)          │
 │  │    ├─ DiscordRPC          ──► Discord IPC socket             │
+│  │    ├─ Scrobbler           ──► Last.fm API (HTTPS, opt-in)    │
 │  │    └─ MPRISServer         ──► Session DBus (publish own)     │
 │  └─ Timer (QTimer, 500 ms default poll, configurable)           │
 │                                                                 │
@@ -62,6 +66,14 @@ Nothing else is shared; `Config` is treated as immutable after `Apply`.
   daemon polls the cache via `get()` / `get_local_path()`.
 - **UpdateOrchestrator** spawns a one-shot QThread for the GitHub Releases
   API call so the GUI stays responsive.
+- **Scrobbler** owns a 1-worker `ThreadPoolExecutor` for Last.fm
+  now-playing + scrobble submission. The daemon feeds it the current
+  track every tick (pure pause/seek-aware accounting); qualifying
+  tracks are written to a persistent on-disk queue and submitted in
+  the background. Inert until the user opts in + connects an account.
+- **SettingsWindow** spawns a short-lived QThread per Last.fm auth
+  step (`auth.getToken` / `auth.getSession`), joined before the next
+  step and on window close.
 
 ## Single-instance lock
 
@@ -73,10 +85,13 @@ name and exit. No lockfile in `/tmp`.
 
 | Purpose            | Path                                         |
 |--------------------|----------------------------------------------|
-| Config             | `$XDG_CONFIG_HOME/refrain/config.toml`       |
+| Config             | `$XDG_CONFIG_HOME/refrain/config.toml` (`0600`; no secrets) |
+| Credentials        | OS keyring via freedesktop Secret Service (KWallet / GNOME Keyring), encrypted at rest |
+| Credentials (fallback) | `$XDG_CONFIG_HOME/refrain/secrets.json` (`0600`, owner-only) — only when no keyring is reachable |
 | Logs (rotating)    | `$XDG_STATE_HOME/refrain/refrain.log{,.1,.2,.3}` |
 | Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt`          |
 | Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |
+| Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (1000-entry cap, atomic) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |
 
 The user-installed desktop file (via `--install-desktop`) goes to

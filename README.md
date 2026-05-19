@@ -21,6 +21,8 @@ streaming from your iPhone over Bluetooth.
 - Reads playback metadata from **MPRIS** (Apple Music in any major Linux
   browser) and **BlueZ AVRCP** (any AVRCP-capable Bluetooth source).
 - Forwards track + cover art to Discord via the local IPC socket.
+- Optionally **scrobbles to Last.fm** alongside Discord (opt-in, with a
+  crash-safe offline queue).
 - Lives in your **system tray** with Play/Pause/Next/Previous controls.
 - Provides a **settings window** (PySide6) for everything users typically want
   to tweak — privacy mode, sources, autostart, Bluetooth device picker.
@@ -163,6 +165,15 @@ log_level = "INFO"
 cover_cache_size = 200             # disk cap for cached covers
 idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
 language = "system"                # "system" follows QLocale; "en", "de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN" force a translation
+
+[lastfm]
+enabled = false                    # opt-in, alongside (never replacing) the Discord RPC
+api_key = ""                       # register your own at last.fm/api/account/create
+username = ""                      # display only
+scrobble_now_playing = true        # also send the ephemeral "now playing" indicator
+# NOTE: the Last.fm shared secret and session key are credentials and
+# are deliberately NOT stored here. They live in your OS keyring
+# (KWallet / GNOME Keyring), encrypted at rest — see "Last.fm" below.
 ```
 
 Per-source `client_id_*` fields let Apple Music render under one Discord
@@ -261,14 +272,40 @@ Behavior is install-type-aware:
   own upgrade command (`flatpak update …` / `yay -Syu refrain`) so the
   package manager stays in charge.
 
+## Last.fm scrobbling
+
+Refrain can scrobble to [Last.fm](https://www.last.fm) **alongside** the
+Discord status — a second, independent channel, never a replacement.
+It's **opt-in** and off by default.
+
+Register your own free [API account](https://www.last.fm/api/account/create),
+then open the *Settings → Last.fm* tab: tick **Enable**, paste the
+**API key** + **shared secret**, click **Connect…** and approve the
+browser prompt. Scrobbling starts on the next track — no restart.
+
+The **shared secret and session token are stored in your OS keyring**
+(KWallet / GNOME Keyring), encrypted at rest — never in `config.toml`
+(which is itself written owner-only, `0600`). On a system with no
+keyring they fall back to a `0600` file. Credentials only ever leave
+the machine to Last.fm over HTTPS, which is what scrobbling *is*.
+
+A track is scrobbled once you've played at least half of it, or four
+minutes (Last.fm's rule), and only if it's longer than 30 s. Scrobbles
+are queued to disk the instant they qualify, so being offline, a
+Last.fm outage, or quitting mid-song never loses them — they submit on
+the next opportunity. Privacy mode `Off` silences scrobbling too.
+
+Full walkthrough + troubleshooting: [`docs/lastfm.md`](docs/lastfm.md).
+
 ## File locations
 
-| What         | Where                                       |
-|--------------|---------------------------------------------|
-| Config       | `$XDG_CONFIG_HOME/refrain/config.toml`      |
-| Logs         | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
-| Cover cache  | `$XDG_CACHE_HOME/refrain/covers/*.txt`      |
-| Autostart    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (when enabled) |
+| What          | Where                                       |
+|---------------|---------------------------------------------|
+| Config        | `$XDG_CONFIG_HOME/refrain/config.toml`      |
+| Scrobble queue| `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` |
+| Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
+| Cover cache   | `$XDG_CACHE_HOME/refrain/covers/*.txt`      |
+| Autostart     | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (when enabled) |
 
 ## Diagnostics — live log
 
@@ -283,22 +320,38 @@ without tailing it from a terminal.
 
 ## Privacy
 
-The cover-art lookup hits Apple's public iTunes Search API over HTTPS with
-just the artist + track name. Nothing else leaves your machine — track
-metadata goes to Discord's local IPC socket, not over the network.
+Refrain is **local-first**: no Refrain server, no account, **no
+telemetry**, and the author receives nothing. Data leaves your machine
+**only** when *you* enable an optional integration, and then it goes
+directly to that provider:
 
-`Off` privacy mode disables the Discord status entirely while keeping the
-tray + controls running.
+- **Discord** — only if you set a Discord Application ID; track
+  metadata goes to the *local* Discord IPC socket (the Discord client
+  then broadcasts it under your account).
+- **Apple iTunes Search** (HTTPS) — artist + track name, only while
+  cover-art is enabled, to fetch album art. Untick it for zero egress.
+- **GitHub** (HTTPS) — a daily update check sends only the Refrain
+  version + your IP. Disable in *Updates*.
+- **Last.fm** (HTTPS) — opt-in scrobbling only; credentials live in
+  your **OS keyring** (encrypted at rest), never in `config.toml`.
+
+`Privacy → Off` is the global kill switch (no Discord status, no
+scrobbling) while keeping the tray + controls running.
+
+Full data-flow, retention and erasure details — written to GDPR
+transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
 
 ## Documentation
 
 - [Architecture overview](docs/architecture.md) — threads, D-Bus surface, file paths
 - [FAQ](docs/faq.md)
 - [Bluetooth quick-start](docs/bluetooth.md) — pair + AVRCP setup walkthrough
+- [Last.fm scrobbling](docs/lastfm.md) — API account + connect walkthrough
 - [Test matrix](docs/test-matrix.md) — supported distros, smoke-check checklist
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md) — dev setup, testing, code style
+- [Privacy & data protection](PRIVACY.md) — every data flow, retention, erasure
 - [Security policy](SECURITY.md)
 - [Packaging guide](packaging/README.md) — AUR, Flatpak, AppImage build steps
 

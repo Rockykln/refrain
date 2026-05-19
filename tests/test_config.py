@@ -117,6 +117,16 @@ def test_dataclasses_have_expected_fields():
         "idle_grace_s",
         "language",
     } == set(AdvancedConfig.__dataclass_fields__)
+    from refrain.config import LastfmConfig
+
+    assert {
+        "enabled",
+        "api_key",
+        "shared_secret",
+        "session_key",
+        "username",
+        "scrobble_now_playing",
+    } == set(LastfmConfig.__dataclass_fields__)
 
 
 def test_browser_hints_list_parses_csv():

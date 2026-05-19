@@ -22,6 +22,7 @@ from refrain.config import Config
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
 from refrain.paths import assets_dir
+from refrain.scrobble import Scrobbler
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
@@ -100,6 +101,49 @@ def compute_idle_state(
     return track, track_key, prev_seen_at
 
 
+def select_source_track(
+    mpris: TrackInfo | None,
+    bluetooth: TrackInfo | None,
+) -> tuple[TrackInfo, str]:
+    """Pick which source's reading drives this tick.
+
+    A source is a *candidate* when it has a track or is in a
+    PLAYING / PAUSED state. Among candidates, an actively **PLAYING**
+    source always outranks a merely paused / loaded one.
+
+    Why this matters: with a static "MPRIS before Bluetooth" order, a
+    stale *paused* Apple Music tab in the browser (``has_track=True``,
+    ``PAUSED``) permanently masked music actively playing over
+    Bluetooth headphones — and idle detection only fires on PLAYING,
+    so the paused tab never got cleared either. Ranking PLAYING first
+    fixes both.
+
+    When neither source is playing (both paused / loaded), MPRIS keeps
+    priority so the active source doesn't flip-flop between two idle
+    sources every poll — ``max`` returns the first maximal element, and
+    MPRIS is inserted first.
+
+    ``mpris`` / ``bluetooth`` are the per-source reads, or ``None`` when
+    that source is disabled. Returns ``(track, source_name)``;
+    ``(TrackInfo.empty(), "none")`` when nothing qualifies.
+    """
+
+    def _is_candidate(t: TrackInfo | None) -> bool:
+        return t is not None and (
+            t.has_track or t.status in (PlaybackStatus.PLAYING, PlaybackStatus.PAUSED)
+        )
+
+    candidates: list[tuple[int, str, TrackInfo]] = []
+    for name, t in (("mpris", mpris), ("bluetooth", bluetooth)):
+        if _is_candidate(t):
+            rank = 1 if t.status == PlaybackStatus.PLAYING else 0
+            candidates.append((rank, name, t))
+    if not candidates:
+        return TrackInfo.empty(), "none"
+    best = max(candidates, key=lambda c: c[0])
+    return best[2], best[1]
+
+
 def _format_album_for_display(album: str, artist: str, title: str) -> str:
     """Strip artist / title cruft from an album name for Discord's bottom
     line. MPRIS album fields sometimes embed the artist as a prefix
@@ -127,6 +171,61 @@ def _format_album_for_display(album: str, artist: str, title: str) -> str:
     return cleaned
 
 
+def build_notify_argv(
+    notify_bin: str,
+    image_path: str | None,
+    title: str,
+    body: str,
+    *,
+    replace_id: int | None = None,
+    print_id: bool = False,
+) -> list[str]:
+    """Assemble the ``notify-send`` argv.
+
+    ``image_path`` is passed BOTH as ``-i`` and as the
+    ``string:image-path:`` hint — KDE Plasma briefly renders ``-i``
+    while it loads the hint file from disk, so using the same file for
+    both makes the cover→cover transition invisible. Falls back to the
+    themed ``refrain`` name when there's no image at all.
+
+    ``replace_id`` emits ``--replace-id`` so the notification daemon
+    updates the existing bubble in place instead of stacking a second
+    one — used to swap a late-arriving cover into an already-shown
+    brand-fallback notification. ``print_id`` adds ``--print-id`` so
+    the daemon prints the (new) notification id to stdout for us to
+    capture.
+    """
+    argv = [notify_bin, "-a", "Refrain", "-i", image_path or "refrain"]
+    if image_path:
+        # file:// URI form works more reliably across compositors than
+        # a bare path — older libnotify versions rejected schemeless
+        # paths for the image-path hint.
+        argv.extend(["--hint", f"string:image-path:file://{image_path}"])
+    if replace_id is not None:
+        argv.extend(["--replace-id", str(replace_id)])
+    if print_id:
+        argv.append("--print-id")
+    argv.extend([title, body or ""])
+    return argv
+
+
+def parse_notify_id(stdout: str) -> int | None:
+    """Parse the integer id ``notify-send --print-id`` writes to stdout.
+
+    Returns ``None`` for empty / non-numeric output (a libnotify build
+    without ``--print-id`` support, a wrapper that prints nothing) so
+    the caller degrades to "first notification shown, no later swap"
+    rather than crashing.
+    """
+    line = (stdout or "").strip().splitlines()
+    if not line:
+        return None
+    try:
+        return int(line[0].strip())
+    except ValueError:
+        return None
+
+
 class DaemonWorker(QObject):
     trackChanged = Signal(object)  # TrackInfo
     statusChanged = Signal(object)  # PlaybackStatus
@@ -145,10 +244,25 @@ class DaemonWorker(QObject):
         self._rpc = DiscordRPC(config.discord.client_id)
         self._rpc_active_client_id: str = config.discord.client_id
         self._cover_fetcher = CoverFetcher(max_cached_covers=config.advanced.cover_cache_size)
+        # Last.fm scrobbling — opt-in, alongside (never replacing) the
+        # Discord RPC. Constructed always; inert until the user enables
+        # it + connects an account. All network work runs on its own
+        # worker executor so the poll tick never blocks.
+        self._scrobbler = Scrobbler(config.lastfm)
         self._timer: QTimer | None = None
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
         self._notify_retry_count = 0
+        # Cover-replace watch: when the initial retry window times out
+        # without a cover, fire the brand-fallback notification, remember
+        # its id, and keep watching — once the cover finishes downloading
+        # we re-issue the notification with `--replace-id` so it swaps in
+        # place (no second popup) instead of the user never seeing it.
+        self._replace_timer: QTimer | None = None
+        self._replace_track: TrackInfo | None = None
+        self._replace_attempts = 0
+        self._notify_id: int | None = None
+        self._notify_id_fp = ""
         self._last_track_fp = ""
         self._last_status: PlaybackStatus | None = None
         self._last_notified_fp = ""
@@ -209,12 +323,19 @@ class DaemonWorker(QObject):
         if self._notify_timer is not None:
             self._notify_timer.stop()
             self._notify_timer = None
+        if self._replace_timer is not None:
+            self._replace_timer.stop()
+            self._replace_timer = None
         with contextlib.suppress(Exception):
             self._mpris_server.stop()
         with contextlib.suppress(Exception):
             self._rpc.clear()
         with contextlib.suppress(Exception):
             self._rpc.close()
+        with contextlib.suppress(Exception):
+            # Banks a qualifying in-progress track to the on-disk queue
+            # so quitting mid-song still scrobbles it next launch.
+            self._scrobbler.shutdown()
         self._cover_fetcher.shutdown()
         log.info("Daemon stopped")
 
@@ -262,6 +383,11 @@ class DaemonWorker(QObject):
             from refrain.cover_fetcher import _prune_cover_cache
 
             _prune_cover_cache(config.advanced.cover_cache_size)
+        # Last.fm: pick up enable/disable, new credentials, or a freshly
+        # connected session without a process restart (unlike the
+        # Discord client_id, the Scrobbler rebinds cleanly in place).
+        with contextlib.suppress(Exception):
+            self._scrobbler.reconfigure(config.lastfm)
 
     # --------------------------------------------------------------- controls
 
@@ -338,17 +464,22 @@ class DaemonWorker(QObject):
         return self._apply_idle_detection(track)
 
     def _poll_sources(self) -> TrackInfo:
-        if self._config.sources.mpris_enabled:
-            t = self._mpris.read()
-            if t.has_track or t.status in (PlaybackStatus.PLAYING, PlaybackStatus.PAUSED):
-                self._active_source = "mpris"
-                return t
-        if self._config.sources.bluetooth_enabled:
-            t = self._bluetooth.read()
-            if t.has_track or t.status in (PlaybackStatus.PLAYING, PlaybackStatus.PAUSED):
-                self._active_source = "bluetooth"
-                return t
-        return TrackInfo.empty()
+        mpris_t = self._mpris.read() if self._config.sources.mpris_enabled else None
+        # Short-circuit: an actively-playing MPRIS source already
+        # outranks anything Bluetooth could report (nothing beats
+        # PLAYING — see `select_source_track`), so skip the extra
+        # system-bus round-trip in the common "music playing in the
+        # browser" case. We only pay for the Bluetooth read when MPRIS
+        # is paused / loaded / absent — exactly the case where a stale
+        # paused tab used to mask an actively-playing BT source.
+        if mpris_t is not None and mpris_t.status == PlaybackStatus.PLAYING:
+            bt_t = None
+        else:
+            bt_t = self._bluetooth.read() if self._config.sources.bluetooth_enabled else None
+        track, source = select_source_track(mpris_t, bt_t)
+        if source != "none":
+            self._active_source = source
+        return track
 
     def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
         # Idle detection's deadline keys off the track's *real* duration.
@@ -428,6 +559,18 @@ class DaemonWorker(QObject):
 
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 
+        # Last.fm scrobbling. Fed the same iTunes-corrected duration the
+        # RPC + tray see. Gated on privacy "off" (the global no-external-
+        # broadcasting kill switch); the Scrobbler itself is inert until
+        # the user enables it and connects an account. Wrapped so a
+        # scrobble-side failure can never break the daemon tick.
+        with contextlib.suppress(Exception):
+            self._scrobbler.update(
+                track,
+                effective_dur_ms,
+                privacy_off=self._config.privacy.mode == "off",
+            )
+
         # Push the same track + cover URL to the published MPRIS server
         # so KDE Plasma's panel media-controls applet (and any other
         # MPRIS-aware client) renders what Discord renders. Forward
@@ -493,16 +636,73 @@ class DaemonWorker(QObject):
         # If cover-art is on but the image hasn't landed on disk yet,
         # don't fire a "naked" notification. Retry briefly so the
         # notification consistently shows the album cover.
-        if self._config.behavior.cover_art and self._notify_retry_count < self._NOTIFY_MAX_RETRIES:
+        cover_present = True
+        if self._config.behavior.cover_art:
             cover = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
-            if cover is None:
+            cover_present = cover is not None
+            if not cover_present and self._notify_retry_count < self._NOTIFY_MAX_RETRIES:
                 self._notify_retry_count += 1
                 self._notify_timer.start(self._NOTIFY_RETRY_INTERVAL_MS)
                 return
 
         self._pending_notify_track = None
         self._notify_retry_count = 0
-        self._notify(track)
+        # Cover-art on but the image never landed within the ~2 s retry
+        # window: fire now with the brand fallback, capture the
+        # notification id, and start a longer watch — once the cover
+        # finishes downloading we re-issue with `--replace-id` so it
+        # swaps into the existing bubble (no second popup) instead of
+        # the user never seeing the cover at all.
+        need_replace_watch = self._config.behavior.cover_art and not cover_present
+        nid = self._notify(track, capture_id=need_replace_watch)
+        if need_replace_watch and nid is not None:
+            self._notify_id = nid
+            self._notify_id_fp = track.fingerprint()
+            self._start_cover_replace_watch(track)
+
+    # Watch beyond the initial 2 s notify-retry window for a cover that
+    # iTunes is slow to resolve. 16 × 500 ms ≈ 8 s of extra patience;
+    # past that iTunes almost certainly has no match and the brand-
+    # fallback notification stays as it is.
+    _COVER_REPLACE_INTERVAL_MS = 500
+    _COVER_REPLACE_MAX_ATTEMPTS = 16
+
+    def _start_cover_replace_watch(self, track: TrackInfo) -> None:
+        if self._replace_timer is None:
+            self._replace_timer = QTimer()
+            self._replace_timer.setSingleShot(True)
+            self._replace_timer.timeout.connect(self._fire_cover_replace)
+        self._replace_track = track
+        self._replace_attempts = 0
+        self._replace_timer.start(self._COVER_REPLACE_INTERVAL_MS)
+
+    def _fire_cover_replace(self) -> None:
+        track = self._replace_track
+        if track is None:
+            return
+        # Track moved on — the normal notify path will issue a fresh
+        # notification for whatever's playing now; nothing to swap into
+        # the old bubble.
+        if track.fingerprint() != self._last_track_fp:
+            self._replace_track = None
+            return
+        # The captured id must still belong to this exact track.
+        if self._notify_id is None or self._notify_id_fp != track.fingerprint():
+            self._replace_track = None
+            return
+        if self._config.behavior.cover_art:
+            cover = self._cover_fetcher.get_local_path(track.artist, track.title, track.album)
+            if cover is not None:
+                # Cover landed: re-issue the SAME notification in place.
+                log.debug("Cover landed late — replacing notification %d", self._notify_id)
+                self._notify(track, replace_id=self._notify_id)
+                self._replace_track = None
+                return
+        self._replace_attempts += 1
+        if self._replace_attempts < self._COVER_REPLACE_MAX_ATTEMPTS:
+            self._replace_timer.start(self._COVER_REPLACE_INTERVAL_MS)
+        else:
+            self._replace_track = None
 
     def _update_rpc(
         self,
@@ -672,7 +872,24 @@ class DaemonWorker(QObject):
 
         self._rpc.update(**payload)
 
-    def _notify(self, track: TrackInfo) -> None:
+    def _notify(
+        self,
+        track: TrackInfo,
+        *,
+        replace_id: int | None = None,
+        capture_id: bool = False,
+    ) -> int | None:
+        """Fire a desktop notification for ``track``.
+
+        ``replace_id`` updates an existing bubble in place (used to swap
+        a late cover into an already-shown brand-fallback notification).
+        ``capture_id`` / ``replace_id`` make us read back the
+        notification id via ``--print-id`` — that path blocks the worker
+        thread on ``notify-send`` (a fast D-Bus round-trip, capped at
+        2 s) instead of the fire-and-forget ``Popen``; the common path
+        (cover already present, cover-art off) stays non-blocking.
+        Returns the notification id when captured, else ``None``.
+        """
         # Re-resolve so a notify-send installed after refrain started
         # picks up immediately. shutil.which is cheap and only runs on
         # actual track-change ticks.
@@ -680,7 +897,7 @@ class DaemonWorker(QObject):
         if _NOTIFY_BIN is None:
             _NOTIFY_BIN = shutil.which("notify-send")
         if not _NOTIFY_BIN:
-            return
+            return None
         body = track.artist
         if track.album:
             body = f"{track.artist} — {track.album}" if track.artist else track.album
@@ -699,28 +916,33 @@ class DaemonWorker(QObject):
             if fallback.exists():
                 image_path = str(fallback)
 
-        # IMPORTANT: pass the SAME image as `-i` AND as the image-path
-        # hint. KDE Plasma briefly renders `-i` first while it loads the
-        # image-path file from disk; if `-i` is the themed app icon
-        # (`refrain`) and image-path is the cover, the user sees a
-        # ~50–100 ms flash of the brand badge before the cover paints.
-        # Using the same file for both makes the transition invisible.
-        # Falls back to the themed `refrain` name only when we have no
-        # image at all (cover-art off + bundled fallback missing).
-        cmd = [_NOTIFY_BIN, "-a", "Refrain", "-i", image_path or "refrain"]
-        if image_path:
-            # `string:image-path:` is the freedesktop-standard hint that
-            # every modern notification daemon honors. file:// URI form
-            # works more reliably across compositors than a bare path —
-            # older libnotify versions rejected paths without the scheme.
-            cmd.extend(["--hint", f"string:image-path:file://{image_path}"])
+        want_id = capture_id or replace_id is not None
+        cmd = build_notify_argv(
+            _NOTIFY_BIN,
+            image_path,
+            track.title,
+            body or "",
+            replace_id=replace_id,
+            print_id=want_id,
+        )
 
-        cmd.extend([track.title, body or ""])
-
+        if not want_id:
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception as e:
+                log.debug("notify-send failed: %s", e)
+            return None
         try:
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
         except Exception as e:
-            log.debug("notify-send failed: %s", e)
+            log.debug("notify-send (capture) failed: %s", e)
+            return None
+        return parse_notify_id(proc.stdout)
 
 
 class Daemon:
