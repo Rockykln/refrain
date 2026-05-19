@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from PySide6.QtCore import QSize, Qt, QUrl, Signal
+from PySide6.QtCore import QDateTime, QLocale, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -406,9 +406,10 @@ class SettingsWindow(QDialog):
         self.bluetooth_device.clear()
         self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
         for d in BluetoothSource.list_paired_devices():
-            label = f"{d.get('name') or '?'} — {d.get('address', '')}"
+            name = d.get("name") or self.tr("(unknown device)")
+            label = f"{name} — {d.get('address', '')}"
             if d.get("connected"):
-                label = f"● {label}"
+                label = self.tr("● {label} (connected)").format(label=label)
             self.bluetooth_device.addItem(label, userData=d.get("address", ""))
         if previous:
             for i in range(self.bluetooth_device.count()):
@@ -416,13 +417,25 @@ class SettingsWindow(QDialog):
                     self.bluetooth_device.setCurrentIndex(i)
                     return
 
+    def _format_last_check(self, ts: int) -> str:
+        """Render the 'Last checked' timestamp in the active UI locale.
+
+        Was a hard-coded ``%Y-%m-%d %H:%M:%S`` strftime, which ignored
+        the user's chosen language. ``QLocale`` formats the date the way
+        every other localised string in the window does, so a German /
+        Japanese / etc. UI doesn't show a lone ISO timestamp. ``never``
+        is a real translatable string.
+        """
+        if not ts:
+            return self.tr("never")
+        dt = QDateTime.fromSecsSinceEpoch(int(ts))
+        return QLocale().toString(dt, QLocale.FormatType.ShortFormat)
+
     # ====================================================================
     # Updates tab
     # ====================================================================
 
     def _build_updates_tab(self) -> QWidget:
-        from datetime import datetime
-
         w = QWidget()
         v = _tab_layout(w)
 
@@ -442,9 +455,7 @@ class SettingsWindow(QDialog):
         self.last_check_label = QLabel("—")
         uf.addRow(self.tr("Last checked:"), self.last_check_label)
 
-        self._last_check_dt_format = lambda ts: (
-            self.tr("never") if not ts else datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
-        )
+        self._last_check_dt_format = self._format_last_check
 
         check_btn = QPushButton(self.tr("Check for updates now"))
         check_btn.clicked.connect(self.checkUpdatesRequested.emit)

@@ -22,7 +22,7 @@ import json
 import logging
 import os
 import socket
-import urllib.parse
+import urllib.error
 import urllib.request
 from pathlib import Path
 

@@ -51,8 +51,11 @@ class LogWindow(QDialog):
 
         bar.addWidget(QLabel(self.tr("Level:")))
         self.level_combo = QComboBox()
+        # Level names (DEBUG/INFO/…) stay untranslated — they're the
+        # logging module's proper-noun constants and match the Advanced
+        # tab's log-level combo. Only the "ALL" sentinel is a real word.
         for label, value in (
-            ("ALL", 0),
+            (self.tr("ALL"), 0),
             ("DEBUG", logging.DEBUG),
             ("INFO", logging.INFO),
             ("WARNING", logging.WARNING),
