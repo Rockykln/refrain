@@ -32,6 +32,7 @@ import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
+from refrain import __version__
 from refrain.config import LastfmConfig
 from refrain.scrobble_queue import ScrobbleQueue
 from refrain.sources.base import PlaybackStatus, TrackInfo
@@ -41,7 +42,7 @@ log = logging.getLogger(__name__)
 API_ROOT = "https://ws.audioscrobbler.com/2.0/"
 AUTH_URL = "https://www.last.fm/api/auth/"
 API_ACCOUNT_URL = "https://www.last.fm/api/account/create"
-_USER_AGENT = "Refrain (+https://github.com/Rockykln/refrain)"
+_USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 10
 
 # Last.fm error codes we treat specially. The full list lives in the

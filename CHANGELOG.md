@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Flatpak manifest was pinned to v0.1.4.** Its git source
+  (`tag` + `commit`) is never rebuilt by the release workflow (no
+  live Flathub channel), so nothing caught it going stale — it sat
+  on v0.1.4 from then until v0.4.1. Re-pinned to v0.4.1, and a new
+  release-workflow gate now fails the release if the Flatpak
+  manifest doesn't pin the release tag + its commit (same class of
+  gate as the version / CHANGELOG checks).
+- **Outbound `User-Agent` no longer advertises a fake "0.1".**
+  `cover_art.py` (iTunes Search + artwork) hardcoded
+  `Refrain/0.1`; it (and the Last.fm client) now use
+  `Refrain/{__version__}` like the updater, so the version can
+  never go stale again.
+
 ## [0.4.1] - 2026-05-19
 
 Same-day patch over v0.4.0: makes the Last.fm connection status

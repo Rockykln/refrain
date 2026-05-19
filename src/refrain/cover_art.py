@@ -26,12 +26,15 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+from refrain import __version__
 from refrain.paths import cover_cache_dir
 
 log = logging.getLogger(__name__)
 
 _ITUNES_SEARCH = "https://itunes.apple.com/search"
-_USER_AGENT = "Refrain/0.1 (+https://github.com/Rockykln/refrain)"
+# Track the real version (was a hardcoded "Refrain/0.1" that never
+# updated — every iTunes request advertised a fake old version).
+_USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 5
 _MAX_IMAGE_BYTES = 2_000_000  # 2 MB — well above any 600x600 album cover
 
