@@ -223,11 +223,16 @@ class SettingsWindow(QDialog):
         icon_path = assets_dir() / "icons" / "refrain.svg"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
-        # Bigger default size: German labels run ~30% longer than English,
-        # and the new GroupBox layout adds vertical chrome. Anything
-        # smaller squeezes either the labels or the spinbox suffixes.
-        self.setMinimumSize(680, 620)
-        self.resize(720, 660)
+        # Default size is tuned so the tallest tab (Sources) fits with
+        # no visible scrollbar in both English *and* German (DE strings
+        # run ~30% longer; verified the Sources page needs ≤ 680 px of
+        # window height in DE). The per-tab scroll area is only a silent
+        # safety net for even-longer locales / very small screens — it
+        # shows no bar at this size. Min stays lower so the window is
+        # still resizable (the safety net then engages instead of
+        # crushing the form rows).
+        self.setMinimumSize(680, 600)
+        self.resize(720, 700)
         self._config = config
 
         # Last.fm session/username aren't form widgets — they're set by
@@ -245,6 +250,7 @@ class SettingsWindow(QDialog):
         self.tabs.setDocumentMode(True)
         self.tabs.addTab(_scroll_wrap(self._build_general_tab()), self.tr("General"))
         self.tabs.addTab(_scroll_wrap(self._build_sources_tab()), self.tr("Sources"))
+        self.tabs.addTab(_scroll_wrap(self._build_lastfm_tab()), self.tr("Last.fm"))
         self.tabs.addTab(_scroll_wrap(self._build_updates_tab()), self.tr("Updates"))
         self.tabs.addTab(_scroll_wrap(self._build_advanced_tab()), self.tr("Advanced"))
 
@@ -352,10 +358,36 @@ class SettingsWindow(QDialog):
 
         v.addWidget(discord_group)
 
-        # ---- Last.fm group -----------------------------------------------
-        # Opt-in scrobbling *alongside* the Discord RPC. Same "bring your
-        # own credentials" model as Discord: the user registers a Last.fm
-        # API account and connects it via the desktop auth flow.
+        # ---- Notifications group -----------------------------------------
+        notif_group, nf = _new_group(self.tr("Notifications"))
+        self.notifications_box = QCheckBox(self.tr("Show desktop notification on track change"))
+        nf.addRow(self.notifications_box)
+        self.cover_art_box = QCheckBox(self.tr("Fetch album cover art from iTunes"))
+        nf.addRow(self.cover_art_box)
+        v.addWidget(notif_group)
+
+        # ---- Behavior group ----------------------------------------------
+        behavior_group, bf = _new_group(self.tr("Behavior"))
+        self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
+        bf.addRow(self.autostart_box)
+        v.addWidget(behavior_group)
+
+        v.addStretch(1)
+        return w
+
+    # ====================================================================
+    # Last.fm tab
+    # ====================================================================
+
+    def _build_lastfm_tab(self) -> QWidget:
+        # Last.fm gets its own tab rather than crowding General: opt-in
+        # scrobbling *alongside* the Discord RPC, same "bring your own
+        # credentials" model (register a Last.fm API account, connect
+        # via the desktop auth flow). Its own page also keeps every tab
+        # short enough to never need a scrollbar.
+        w = QWidget()
+        v = _tab_layout(w)
+
         lastfm_group, lf = _new_group(self.tr("Last.fm scrobbling"))
 
         self.lastfm_enabled_box = QCheckBox(self.tr("Enable Last.fm scrobbling"))
@@ -394,25 +426,13 @@ class SettingsWindow(QDialog):
                     "Register a free API account, paste the key + secret, then "
                     "Connect to authorise in your browser. Scrobbling runs "
                     "alongside Discord and never replaces it; it's silenced "
-                    "while Privacy is set to Off."
+                    "while Privacy is set to Off. The shared secret and the "
+                    "session token are stored in your system keyring, never "
+                    "in plain text."
                 )
             )
         )
         v.addWidget(lastfm_group)
-
-        # ---- Notifications group -----------------------------------------
-        notif_group, nf = _new_group(self.tr("Notifications"))
-        self.notifications_box = QCheckBox(self.tr("Show desktop notification on track change"))
-        nf.addRow(self.notifications_box)
-        self.cover_art_box = QCheckBox(self.tr("Fetch album cover art from iTunes"))
-        nf.addRow(self.cover_art_box)
-        v.addWidget(notif_group)
-
-        # ---- Behavior group ----------------------------------------------
-        behavior_group, bf = _new_group(self.tr("Behavior"))
-        self.autostart_box = QCheckBox(self.tr("Start Refrain automatically on login"))
-        bf.addRow(self.autostart_box)
-        v.addWidget(behavior_group)
 
         v.addStretch(1)
         return w
