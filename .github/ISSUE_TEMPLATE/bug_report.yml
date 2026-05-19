@@ -13,7 +13,7 @@ body:
     attributes:
       label: Refrain version
       description: Run `refrain --version` or check the bottom-right of the settings window.
-      placeholder: "0.4.0"
+      placeholder: "0.4.1"
     validations:
       required: true
 

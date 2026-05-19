@@ -51,6 +51,19 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.4.1" date="2026-05-19">
+      <description>
+        <p>
+          Same-day patch over 0.4.0. Makes the Last.fm connection
+          status honest: it no longer shows "Connected as
+          (connected)" with no username, and no longer claims
+          "Connected" when only a keyring session survived without a
+          usable API key/secret (scrobbling was inert). It now
+          requires the full usable credential set and otherwise
+          prompts to re-enter the key + secret and reconnect.
+        </p>
+      </description>
+    </release>
     <release version="0.4.0" date="2026-05-19">
       <description>
         <p>
