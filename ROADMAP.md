@@ -409,7 +409,10 @@ What's done, what's next, what's deliberately not in scope.
 - **Empty artist row in tray menu when nothing was playing**
   (`setVisible(False)` until a real track populates it).
 
-## Done — v0.2.8 (unreleased)
+## Done — v0.3.0
+
+Shipped as one tag; folds in the accumulated reliability fixes that
+were tracked internally as "v0.2.8" but never separately tagged.
 
 - **Source priority now prefers the actively-playing source.**
   `_poll_sources` used a static "MPRIS before Bluetooth" order, so
@@ -452,9 +455,6 @@ What's done, what's next, what's deliberately not in scope.
   during handler matching). Dropped the unused `urllib.parse`
   import. ROADMAP section ordering fixed (forward-looking sections
   no longer sit above shipped releases).
-
-## Done — v0.3.0 (unreleased)
-
 - **Last.fm scrobbling** — opt-in, *alongside* the Discord Rich
   Presence (never a replacement), off by default. Each user
   registers their own Last.fm API account (same bring-your-own-
@@ -495,7 +495,7 @@ What's done, what's next, what's deliberately not in scope.
   - Every Settings tab is scroll-safe (Last.fm on its own page);
     no visible scrollbar at the default size in English or German.
 
-## Up next — v0.3
+## Up next — v0.3.x
 
 - **Stable-release AUR build** that doesn't rely on the GitHub
   release tarball — switch to a `git`-source PKGBUILD pinned to the
@@ -504,7 +504,7 @@ What's done, what's next, what's deliberately not in scope.
 - **Complete the translation catalogs** for the newly-wrapped
   strings: regenerate the `.ts` / `.qm` files and bring every
   shipped language back to 100% coverage via community PRs (the
-  code-side `tr()` wrapping landed in v0.2.8).
+  code-side `tr()` wrapping landed in v0.3.0).
 
 ## Maybe — v0.3+
 

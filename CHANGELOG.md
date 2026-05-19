@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-19
+
+Last.fm scrobbling (opt-in, alongside the Discord status), with
+credentials kept in the OS keyring instead of plaintext, a
+crash-safe offline scrobble queue, the source-priority fix, the
+cover-replace notifications, a comment-preserving config writer, and
+a Settings reshuffle (Last.fm on its own tab, per-source Discord IDs
+behind an opt-in toggle). Folds in the accumulated v0.2.8 fixes
+(never separately tagged). A full `PRIVACY.md` documents every data
+flow.
+
 ### Added
 
 - **Last.fm scrobbling** — opt-in, *alongside* the Discord Rich
@@ -1145,7 +1156,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Rockykln/refrain/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/Rockykln/refrain/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/Rockykln/refrain/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/Rockykln/refrain/compare/v0.2.4...v0.2.5
