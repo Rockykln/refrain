@@ -169,6 +169,48 @@ What's done, what's next, what's deliberately not in scope.
   in the wheel**, **MPRIS dispatch logging at INFO** so
   Next/Previous routing is visible in the live log.
 
+## Done — v0.2.2
+
+- **Multiple Discord profiles** — per-source `client_id_mpris` and
+  `client_id_bluetooth` overrides on top of the default `client_id`,
+  so Apple Music can render under one Discord application (with the
+  album-grid as artwork) and Bluetooth headphones under another (with
+  a generic Bluetooth glyph). Daemon reconnects RPC the moment the
+  active source flips.
+- **MPRIS-server mode** — Refrain publishes itself as
+  `org.mpris.MediaPlayer2.refrain` so KDE Plasma's panel media-controls
+  applet, KDE Connect, GNOME Shell, etc. drive the same Play/Pause/
+  Next/Previous as the tray and render the same track. Built on
+  `dbus-python` with a GLib main loop in its own thread so it
+  doesn't conflict with Qt's event loop.
+- **Welcome wizard redesign** — icon-badge header, subtitle, dedicated
+  diagnostics card with two clearly-labelled probe rows, readable
+  helper text on Plasma Breeze Dark (was invisible with `palette(mid)`).
+  Apply now opens Settings automatically with the just-saved Discord
+  ID pre-filled.
+- **Live-tier responsiveness** — default `poll_interval_ms` 1 s → 500 ms,
+  `notify_delay_ms` 600 ms → 0 ms (cache hits fire instantly), Discord
+  RPC connect happens within ~1 s of first track detection (was up to
+  51 s due to dbus-python's 25 s default reply timeout combined with
+  plasma-browser-integration introspection hangs — fixed via
+  `introspect=False` + per-property `timeout=0.5` + per-player
+  blacklist when a player times out).
+- **iTunes `trackTimeMillis` fallback** for Apple Music preview-clip
+  durations (< 30 s). Discord drops `start`/`end` entirely on preview
+  mode so the elapsed counter doesn't reset every 8 s.
+- **Skip / Previous reach Apple Music reliably** — chromium-native
+  MPRIS dispatched first, plasma-browser-integration as fallback,
+  cascade follow-up polls (0/50/150/350/750 ms) so the track-change
+  reflects in Discord + tray within ~250 ms of detection.
+- **Reset preserves all three Discord IDs**, dialog button labels
+  localised (`Reset` / `Zurücksetzen`), text states what's preserved
+  explicitly.
+- **Welcome wizard X / Esc** marks `first_run_complete=True` so the
+  wizard doesn't re-appear; Apply with empty ID asks for confirmation.
+- **Theme-aware text colors** — every helper-text label switched from
+  `palette(mid)` to `palette(text)` after Plasma Breeze Dark
+  rendered them invisible.
+
 ## Done — v0.2.3
 
 - **Distro-portability sweep** driven by hands-on testing.
@@ -283,15 +325,49 @@ What's done, what's next, what's deliberately not in scope.
   `effective_duration_ms` (2), `cleanup_orphan_downloads` (3).
   Total: 113 → 125, all green.
 
-## Up next — v0.3
+## Done — v0.2.5
 
-- **Stable-release AUR build** that doesn't rely on the GitHub
-  release tarball — switch to a `git`-source PKGBUILD pinned to the
-  signed tag, so AUR users get the exact same commit the release
-  workflow ships.
-- **Wrap the remaining fixed-position strings** (date formatters,
-  bluetooth picker labels) so every language reaches 100% coverage,
-  not just the high-traffic widgets.
+- **AUR + Flatpak self-update spawns a terminal automatically**
+  running the package-manager command (`yay -Syu refrain` /
+  `flatpak update io.github.Rockykln.Refrain`) instead of just
+  showing the command in a popup. Falls back to the previous
+  message-box hint when no terminal is on PATH (probe list:
+  konsole, gnome-terminal, xfce4-terminal, kitty, alacritty,
+  foot, xterm, wezterm).
+- **pip auto-update detects "no-op" exits.** PyPI's CDN can lag
+  the GitHub Releases API by minutes, so a "0.2.X available"
+  check could succeed while pip exited 0 with "Requirement
+  already satisfied" (no upgrade). Refrain now parses pip's
+  stdout to distinguish "Successfully installed" from
+  "Requirement already satisfied" and tells the user to retry
+  shortly instead of restarting into the same version.
+
+## Done — v0.2.6
+
+- **8 new UI languages** at 127/127 strings each: Spanish (`es`),
+  French (`fr`), Portuguese (`pt`), Italian (`it`), Russian
+  (`ru`), Polish (`pl`), Japanese (`ja`), Simplified Chinese
+  (`zh_CN`). Settings → Advanced → Language dropdown lists each
+  under its native endonym. Together with English + German this
+  covers ~3 billion native speakers.
+- **GitHub release bodies were one-line "Full Changelog: …"**
+  because the workflow used `generate_release_notes: true`. Now
+  extracts the matching `## [X.Y.Z]` section from CHANGELOG.md
+  via awk and feeds it as `body_path`; existing v0.1.0 – v0.2.5
+  bodies were backfilled out-of-band.
+- **Reliability sweep**: `os.execvp` Restart fallback to
+  `python -m refrain` when `argv[0]` isn't runnable;
+  Config.save .tmp cleanup on disk-full / read-only;
+  `Config._format_value` escapes `\n / \r / \t`;
+  `Config._construct` coerces wrongly-typed primitives (e.g.
+  `cover_cache_size = "200"`) instead of crashing in
+  `_prune_cover_cache`; cover-art `_write_cache` +
+  `download_cover_image` clean up `.tmp` siblings on disk
+  failure; `_bridge_sandboxed_ipc_socket` permission-error wrap;
+  iTunes Search shape-checks; `SessionBusUnavailable` exception
+  surfacing instead of bare DBusException; Apply error toast for
+  non-writable config dirs; `setup_logging`/`_apply_log_level`
+  coerce non-string `log_level`.
 
 ## Done — v0.2.7
 
@@ -333,91 +409,60 @@ What's done, what's next, what's deliberately not in scope.
 - **Empty artist row in tray menu when nothing was playing**
   (`setVisible(False)` until a real track populates it).
 
-## Done — v0.2.6
+## Done — v0.2.8 (unreleased)
 
-- **8 new UI languages** at 127/127 strings each: Spanish (`es`),
-  French (`fr`), Portuguese (`pt`), Italian (`it`), Russian
-  (`ru`), Polish (`pl`), Japanese (`ja`), Simplified Chinese
-  (`zh_CN`). Settings → Advanced → Language dropdown lists each
-  under its native endonym. Together with English + German this
-  covers ~3 billion native speakers.
-- **GitHub release bodies were one-line "Full Changelog: …"**
-  because the workflow used `generate_release_notes: true`. Now
-  extracts the matching `## [X.Y.Z]` section from CHANGELOG.md
-  via awk and feeds it as `body_path`; existing v0.1.0 – v0.2.5
-  bodies were backfilled out-of-band.
-- **Reliability sweep**: `os.execvp` Restart fallback to
-  `python -m refrain` when `argv[0]` isn't runnable;
-  Config.save .tmp cleanup on disk-full / read-only;
-  `Config._format_value` escapes `\n / \r / \t`;
-  `Config._construct` coerces wrongly-typed primitives (e.g.
-  `cover_cache_size = "200"`) instead of crashing in
-  `_prune_cover_cache`; cover-art `_write_cache` +
-  `download_cover_image` clean up `.tmp` siblings on disk
-  failure; `_bridge_sandboxed_ipc_socket` permission-error wrap;
-  iTunes Search shape-checks; `SessionBusUnavailable` exception
-  surfacing instead of bare DBusException; Apply error toast for
-  non-writable config dirs; `setup_logging`/`_apply_log_level`
-  coerce non-string `log_level`.
+- **Source priority now prefers the actively-playing source.**
+  `_poll_sources` used a static "MPRIS before Bluetooth" order, so
+  a stale *paused* Apple Music browser tab (`has_track=True`,
+  `PAUSED`) permanently masked music actively playing over
+  Bluetooth headphones — and idle detection (PLAYING-only) never
+  cleared the paused tab either. New pure `select_source_track`
+  ranks a PLAYING source above a paused/loaded one; MPRIS keeps
+  the tie-break when neither is playing so the active source
+  doesn't flip-flop. MPRIS-playing short-circuit keeps the common
+  case at one D-Bus round-trip. +7 unit tests.
+- **Cover-art replacement notifications.** When iTunes is slow and
+  the ~2 s cover-retry window times out, Refrain now fires the
+  brand-fallback notification immediately, captures its id via
+  `notify-send --print-id`, and watches ~8 s longer — once the
+  cover finishes downloading it re-issues with `--replace-id` so
+  the album art swaps into the *same* bubble instead of the user
+  never seeing it (or getting a second popup). Pure
+  `build_notify_argv` / `parse_notify_id` helpers, +8 unit tests;
+  the non-blocking fire-and-forget path is unchanged when the
+  cover is already cached or cover-art is off.
+- **Comment- and unknown-key-preserving config writer.**
+  `Config.save()` previously rewrote `config.toml` from scratch on
+  every silent write (e.g. the daily update-check stamping
+  `last_check_ts`), discarding user comments and any keys Refrain
+  didn't recognise. It now does a line-oriented in-place rewrite
+  that only touches the `key = value` lines it owns, leaving
+  comments, blank lines, ordering and unknown keys intact;
+  full-serialize fallback when the file is absent or unparseable.
+  Dependency-free — no `tomlkit`, in keeping with the three-runtime-
+  deps rule.
+- **Remaining fixed-position UI strings wrapped in `tr()`** (the
+  Updates "last checked" date formatter, the Bluetooth
+  paired-device picker labels). Catalog regeneration + translation
+  across the nine shipped languages is community-PR follow-up
+  (tracked under *Up next*).
+- **`urllib.error` import made explicit** in `welcome_dialog.py`
+  (was relied upon transitively via `urllib.request`; an
+  `except urllib.error.URLError` could have raised `AttributeError`
+  during handler matching). Dropped the unused `urllib.parse`
+  import. ROADMAP section ordering fixed (forward-looking sections
+  no longer sit above shipped releases).
 
-## Done — v0.2.5
+## Up next — v0.3
 
-- **AUR + Flatpak self-update spawns a terminal automatically**
-  running the package-manager command (`yay -Syu refrain` /
-  `flatpak update io.github.Rockykln.Refrain`) instead of just
-  showing the command in a popup. Falls back to the previous
-  message-box hint when no terminal is on PATH (probe list:
-  konsole, gnome-terminal, xfce4-terminal, kitty, alacritty,
-  foot, xterm, wezterm).
-- **pip auto-update detects "no-op" exits.** PyPI's CDN can lag
-  the GitHub Releases API by minutes, so a "0.2.X available"
-  check could succeed while pip exited 0 with "Requirement
-  already satisfied" (no upgrade). Refrain now parses pip's
-  stdout to distinguish "Successfully installed" from
-  "Requirement already satisfied" and tells the user to retry
-  shortly instead of restarting into the same version.
-
-## Done — v0.2.2
-
-- **Multiple Discord profiles** — per-source `client_id_mpris` and
-  `client_id_bluetooth` overrides on top of the default `client_id`,
-  so Apple Music can render under one Discord application (with the
-  album-grid as artwork) and Bluetooth headphones under another (with
-  a generic Bluetooth glyph). Daemon reconnects RPC the moment the
-  active source flips.
-- **MPRIS-server mode** — Refrain publishes itself as
-  `org.mpris.MediaPlayer2.refrain` so KDE Plasma's panel media-controls
-  applet, KDE Connect, GNOME Shell, etc. drive the same Play/Pause/
-  Next/Previous as the tray and render the same track. Built on
-  `dbus-python` with a GLib main loop in its own thread so it
-  doesn't conflict with Qt's event loop.
-- **Welcome wizard redesign** — icon-badge header, subtitle, dedicated
-  diagnostics card with two clearly-labelled probe rows, readable
-  helper text on Plasma Breeze Dark (was invisible with `palette(mid)`).
-  Apply now opens Settings automatically with the just-saved Discord
-  ID pre-filled.
-- **Live-tier responsiveness** — default `poll_interval_ms` 1 s → 500 ms,
-  `notify_delay_ms` 600 ms → 0 ms (cache hits fire instantly), Discord
-  RPC connect happens within ~1 s of first track detection (was up to
-  51 s due to dbus-python's 25 s default reply timeout combined with
-  plasma-browser-integration introspection hangs — fixed via
-  `introspect=False` + per-property `timeout=0.5` + per-player
-  blacklist when a player times out).
-- **iTunes `trackTimeMillis` fallback** for Apple Music preview-clip
-  durations (< 30 s). Discord drops `start`/`end` entirely on preview
-  mode so the elapsed counter doesn't reset every 8 s.
-- **Skip / Previous reach Apple Music reliably** — chromium-native
-  MPRIS dispatched first, plasma-browser-integration as fallback,
-  cascade follow-up polls (0/50/150/350/750 ms) so the track-change
-  reflects in Discord + tray within ~250 ms of detection.
-- **Reset preserves all three Discord IDs**, dialog button labels
-  localised (`Reset` / `Zurücksetzen`), text states what's preserved
-  explicitly.
-- **Welcome wizard X / Esc** marks `first_run_complete=True` so the
-  wizard doesn't re-appear; Apply with empty ID asks for confirmation.
-- **Theme-aware text colors** — every helper-text label switched from
-  `palette(mid)` to `palette(text)` after Plasma Breeze Dark
-  rendered them invisible.
+- **Stable-release AUR build** that doesn't rely on the GitHub
+  release tarball — switch to a `git`-source PKGBUILD pinned to the
+  signed tag, so AUR users get the exact same commit the release
+  workflow ships.
+- **Complete the translation catalogs** for the newly-wrapped
+  strings: regenerate the `.ts` / `.qm` files and bring every
+  shipped language back to 100% coverage via community PRs (the
+  code-side `tr()` wrapping landed in v0.2.8).
 
 ## Maybe — v0.3+
 
@@ -427,9 +472,6 @@ What's done, what's next, what's deliberately not in scope.
   right. No fixed timeline.
 - **Last.fm scrobbling** as an opt-in alongside the Discord Rich Presence
   (no replacement, just an extra channel).
-- **Cover-art replacement notifications**: re-send the desktop notification
-  via `--replace-id` once the cover finishes downloading, so the embed
-  swaps in even when the initial retry window times out.
 
 ## Deliberately not in scope
 
