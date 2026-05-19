@@ -117,7 +117,17 @@ policy. Refrain has no influence over this. Review their policies:
 
 ## Erasure ("right to be forgotten", locally)
 
-To remove all data Refrain stored on your machine:
+One command removes **everything** Refrain stored on your machine —
+all data files **and** the Last.fm credentials in your OS keyring:
+
+```sh
+refrain --uninstall          # confirms first; add -y to skip
+```
+
+(Or *Settings → Advanced → Uninstall Refrain…*.) It also prints the
+command to remove the program package itself.
+
+Prefer to do it by hand? The data directories are:
 
 ```sh
 rm -rf "${XDG_CONFIG_HOME:-$HOME/.config}/refrain" \
@@ -125,7 +135,8 @@ rm -rf "${XDG_CONFIG_HOME:-$HOME/.config}/refrain" \
        "${XDG_CACHE_HOME:-$HOME/.cache}/refrain"
 ```
 
-- **Last.fm credentials in the keyring:** click *Disconnect* in
+- **Last.fm credentials in the keyring:** `refrain --uninstall`
+  purges them automatically; manually, click *Disconnect* in
   *Settings → Last.fm* (then Apply), or delete the
   `io.github.Rockykln.Refrain` entries in your keyring tool
   (KWallet Manager / Seahorse).

@@ -307,6 +307,28 @@ the next opportunity. Privacy mode `Off` silences scrobbling too.
 
 Full walkthrough + troubleshooting: [`docs/lastfm.md`](docs/lastfm.md).
 
+## Uninstalling
+
+Refrain can wipe everything it ever wrote — on any distro, any
+install method — with one command:
+
+```sh
+refrain --uninstall          # asks for confirmation; -y to skip
+```
+
+This deletes the config, logs, cover cache, scrobble queue, autostart
+entry and menu entry, **and purges the Last.fm credentials from your
+OS keyring**, then prints the exact command to remove the program
+itself for your install type (pip / pipx / AUR / Flatpak / AppImage).
+There's also a *Settings → Advanced → Uninstall Refrain…* button.
+
+Removing just the program (keeping your settings) is the package
+command for how you installed it — `pip uninstall refrain`,
+`pipx uninstall refrain`, `yay -R refrain`,
+`flatpak uninstall io.github.Rockykln.Refrain`, or deleting the
+`.AppImage`. (`refrain --uninstall-desktop` removes only the menu
+entry + icon.)
+
 ## File locations
 
 | What          | Where                                       |
