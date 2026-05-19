@@ -23,10 +23,7 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-# Pinned post-tag (the v$pkgver tarball only exists once the tag is
-# pushed) — replaced + .SRCINFO regenerated in the post-release
-# AUR commit, see packaging/README.md.
-sha256sums=('SKIP')
+sha256sums=('853ff99e62416fc1888508ec6406957b8cc35c6c95a8d6f7270c8fd509c621f9')
 
 build() {
     cd "$pkgname-$pkgver"
