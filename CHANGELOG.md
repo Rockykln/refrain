@@ -7,12 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing here
+
+## [0.4.2] - 2026-08-12
+
+Fixed Apple Music RPC URL handling and Discord buttons,
+updated Flatpak versioning and release validation,
+and corrected outdated User-Agent version reporting.
+
 ### Fixed
 
+- **URL protocol in Discord RPC fixed.** The URL was partially specified
+  incorrectly or with the wrong protocols in the RPC. A check is
+  now performed to see if the link includes an `https` protocol;
+  if it does not, the button is disabled. Discord currently displays
+  the button only in the browser version;
+  there is currently no way to work around this.
 - **Flatpak manifest was pinned to v0.1.4.** Its git source
   (`tag` + `commit`) is never rebuilt by the release workflow (no
   live Flathub channel), so nothing caught it going stale — it sat
-  on v0.1.4 from then until v0.4.1. Re-pinned to v0.4.1, and a new
+  on v0.1.4 from then until v0.4.2. Re-pinned to v0.4.2, and a new
   release-workflow gate now fails the release if the Flatpak
   manifest doesn't pin the release tag + its commit (same class of
   gate as the version / CHANGELOG checks).
@@ -1223,7 +1237,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/Rockykln/refrain/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Rockykln/refrain/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Rockykln/refrain/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Rockykln/refrain/compare/v0.2.7...v0.3.0

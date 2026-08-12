@@ -18,6 +18,7 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 log = logging.getLogger(__name__)
 
 APPLE_MUSIC_HOSTS = ("music.apple.com",)
+_APPLE_DEEPLINK_SCHEMES = ("itunes://", "itmss://", "itms://", "music://")
 BROWSER_HINTS = (
     # Firefox family
     "firefox",
@@ -61,6 +62,16 @@ def _looks_apple_music(url: str) -> bool:
 def _looks_browser(name: str, identity: str, desktop_entry: str, hints: list[str]) -> bool:
     hay = f"{name} {identity} {desktop_entry}".lower()
     return any(h in hay for h in hints)
+
+
+def _normalize_apple_url(url: str) -> str:
+    if not url:
+        return ""
+    low = url.lower()
+    for scheme in _APPLE_DEEPLINK_SCHEMES:
+        if low.startswith(scheme):
+            return "https://" + url[len(scheme):]
+    return url
 
 
 def _normalize(s: str) -> str:
@@ -326,7 +337,7 @@ class MPRISSource:
             artists = _to_str_list(metadata.get("xesam:artist", []))
             artist = ", ".join(a for a in artists if a).strip()
             album = _safe_str(metadata.get("xesam:album", ""))
-            url = _safe_str(metadata.get("xesam:url", ""))
+            url = _normalize_apple_url(_safe_str(metadata.get("xesam:url", "")))
 
             try:
                 duration_ms = int(metadata.get("mpris:length", 0)) // 1000

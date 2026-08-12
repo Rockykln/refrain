@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import importlib
 import sys
+import pytest
 from unittest.mock import MagicMock
 
 # dbus is a required runtime dep but these tests target the *dispatch*
@@ -35,6 +36,43 @@ import refrain.sources.mpris as _mpris_mod  # noqa: E402
 
 _mpris_mod = importlib.reload(_mpris_mod)
 MPRISSource = _mpris_mod.MPRISSource
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "itunes://music.apple.com/de/album/test",
+        "itmss://music.apple.com/de/album/test",
+        "itms://music.apple.com/de/album/test",
+        "music://music.apple.com/de/album/test",
+    ],
+)
+def test_normalize_apple_url_converts_deep_links(url):
+    assert _mpris_mod._normalize_apple_url(url) == \
+        "https://music.apple.com/de/album/test"
+
+
+def test_normalize_apple_url_is_case_insensitive():
+    assert _mpris_mod._normalize_apple_url(
+        "MUSIC://music.apple.com/de/album/test"
+    ) == "https://music.apple.com/de/album/test"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://music.apple.com/de/album/test",
+        "http://example.com/test",
+        "not-a-url",
+    ],
+)
+def test_normalize_apple_url_keeps_other_urls_unchanged(url):
+    assert _mpris_mod._normalize_apple_url(url) == url
+
+
+def test_normalize_apple_url_handles_empty_url():
+    assert _mpris_mod._normalize_apple_url("") == ""
+    assert _mpris_mod._normalize_apple_url(None) == ""
 
 
 class _FakePlayer:

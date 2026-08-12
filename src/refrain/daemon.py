@@ -867,7 +867,7 @@ class DaemonWorker(QObject):
         if self._config.behavior.show_buttons:
             song_url = self._cover_fetcher.get_song_url(track.artist, track.title, track.album)
             link = song_url or (track.url if track.source == "mpris" else "")
-            if link:
+            if link.startswith("https://"):
                 payload["buttons"] = [{"label": "Listen on Apple Music", "url": link}]
 
         self._rpc.update(**payload)

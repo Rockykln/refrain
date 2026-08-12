@@ -51,6 +51,15 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.4.2" date="2026-08-12">
+      <description>
+        <p>
+          Fixed Apple Music RPC URL handling and Discord buttons,
+          updated Flatpak versioning and release validation,
+          and corrected outdated User-Agent version reporting.
+        </p>
+      </description>
+    </release>
     <release version="0.4.1" date="2026-05-19">
       <description>
         <p>

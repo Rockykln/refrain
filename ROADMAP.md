@@ -525,8 +525,6 @@ were tracked internally as "v0.2.8" but never separately tagged.
 
 ## Done — v0.4.1
 
-Same-day patch over v0.4.0.
-
 - **Honest Last.fm connection status.** Status keyed off
   `session_key` alone, so it rendered "Connected as (connected)"
   with no username and a misleading "Connected" when a keyring
@@ -538,7 +536,7 @@ Same-day patch over v0.4.0.
   connected"; the Connect button no longer treats an incomplete
   leftover as Disconnect. +13 tests (pure + offscreen).
 
-## Up next — v0.3.x
+## Up next — v0.5.x
 
 - **Stable-release AUR build** that doesn't rely on the GitHub
   release tarball — switch to a `git`-source PKGBUILD pinned to the
@@ -549,7 +547,7 @@ Same-day patch over v0.4.0.
   shipped language back to 100% coverage via community PRs (the
   code-side `tr()` wrapping landed in v0.3.0).
 
-## Maybe — v0.3+
+## Maybe — v0.5+
 
 - **Flathub submission**, second attempt. The manifest under
   `packaging/flatpak/` is fully validated locally and ready to ship —

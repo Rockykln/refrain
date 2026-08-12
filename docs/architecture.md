@@ -11,7 +11,7 @@ outbound HTTPS clients.
 │                                                                 │
 │  Main thread (Qt event loop)                                    │
 │  ├─ QApplication                                                │
-│  ├─ TrayIcon (QSystemTrayIcon)         ←─── status / track      │
+│  ├─ TrayIcon (QSystemTrayIcon)         <─── status / track      │
 │  ├─ SettingsWindow (QDialog, hidden after Apply)                │
 │  ├─ LogWindow (QDialog, on-demand)                              │
 │  ├─ WelcomeDialog (first-run only)                              │

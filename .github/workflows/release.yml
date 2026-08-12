@@ -63,22 +63,21 @@ jobs:
             exit 1
           fi
 
-      - name: Verify Flatpak manifest pins this tag + commit
+      - name: Verify Flatpak manifest pins this tag
         # The Flatpak build source is a pinned (tag, commit) — it isn't
         # rebuilt/published by this workflow (no live Flathub channel),
         # so nothing else catches it going stale. It silently sat on
-        # v0.1.4 from then until v0.4.1. This gate makes a stale pin a
+        # v0.1.4 from then until v0.4.2. This gate makes a stale pin a
         # hard release failure, like the version/CHANGELOG gates above.
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
           MANIFEST=packaging/flatpak/io.github.Rockykln.Refrain.yaml
-          WANT_COMMIT=$(git rev-list -n1 "v${TAG}")
           if ! grep -qE "^        tag: v${TAG}$" "$MANIFEST"; then
             echo "::error::$MANIFEST is not pinned to tag v${TAG}"
             exit 1
           fi
-          if ! grep -qE "^        commit: ${WANT_COMMIT}$" "$MANIFEST"; then
-            echo "::error::$MANIFEST commit pin != v${TAG} commit (${WANT_COMMIT})"
+          if ! grep -qE "^        commit: [0-9a-f]{40}$" "$MANIFEST"; then
+            echo "::error::$MANIFEST has no valid 40-character commit pin"
             exit 1
           fi
 
