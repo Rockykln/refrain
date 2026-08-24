@@ -1,0 +1,148 @@
+"""Publishing the status to more than one Discord client.
+
+Discord and Vencord/Vesktop are separate programs with separate IPC
+sockets. A status sent to one is invisible in the other, so running both
+meant the status only ever showed up in whichever client Refrain happened
+to reach first.
+
+With ``discord.all_clients`` on, every live client gets the same payload,
+and each connection is judged on its own — closing one client mid-song
+must not drop the status from the rest.
+"""
+
+from __future__ import annotations
+
+from unittest.mock import MagicMock
+
+import pytest
+
+from refrain.discord_rpc import DiscordRPC
+
+
+@pytest.fixture
+def rpc_factory(monkeypatch):
+    """Build a DiscordRPC whose connections are mocks, one per live pipe."""
+
+    def build(live_pipes, all_clients, fail_on=()):
+        monkeypatch.setattr("refrain.discord_rpc._scan_ipc_pipes", lambda: (list(live_pipes), []))
+        monkeypatch.setattr("refrain.discord_rpc._bridge_sandboxed_ipc_socket", lambda: None)
+        made = {}
+
+        def fake_presence(client_id, pipe=None):
+            m = MagicMock(name=f"presence-{pipe}")
+            if pipe in fail_on:
+                m.connect.side_effect = ConnectionRefusedError("nope")
+            made[pipe] = m
+            return m
+
+        monkeypatch.setattr("refrain.discord_rpc.Presence", fake_presence)
+        return DiscordRPC("123456789", all_clients=all_clients), made
+
+    return build
+
+
+def test_off_by_default_only_one_connection(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=False)
+
+    assert rpc._ensure_connected() is True
+    assert len(rpc._presences) == 1, "one client should be served by default"
+    assert list(rpc._presences) == [0], "the lowest live slot wins"
+
+
+def test_all_clients_connects_to_every_live_socket(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+
+    assert rpc._ensure_connected() is True
+    assert sorted(rpc._presences) == [0, 2]
+
+
+def test_update_reaches_every_client(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+    rpc._ensure_connected()
+
+    rpc.update(details="Song", state="Artist")
+
+    for pipe in (0, 2):
+        assert made[pipe].update.called, f"discord-ipc-{pipe} got no update"
+
+
+def test_one_dead_client_does_not_silence_the_others(rpc_factory):
+    """Closing one client mid-song must not take the status down."""
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+    rpc._ensure_connected()
+    made[0].update.side_effect = BrokenPipeError("client closed")
+
+    rpc.update(details="Song", state="Artist")
+
+    assert 0 not in rpc._presences, "the dead connection should be dropped"
+    assert 2 in rpc._presences, "the healthy connection must survive"
+    assert rpc.is_connected() is True
+    assert made[2].update.called
+
+
+def test_dedup_still_applies_across_clients(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+    rpc._ensure_connected()
+
+    rpc.update(details="Song")
+    rpc.update(details="Song")
+
+    for pipe in (0, 2):
+        assert made[pipe].update.call_count == 1, "identical payload resent"
+
+
+def test_a_client_that_refuses_is_skipped_not_fatal(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True, fail_on=(0,))
+
+    assert rpc._ensure_connected() is True
+    assert sorted(rpc._presences) == [2]
+
+
+def test_clear_reaches_every_client(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+    rpc._ensure_connected()
+
+    rpc.clear()
+
+    for pipe in (0, 2):
+        assert made[pipe].clear.called
+
+
+def test_close_shuts_every_client_down(rpc_factory):
+    rpc, made = rpc_factory([0, 2], all_clients=True)
+    rpc._ensure_connected()
+
+    rpc.close()
+
+    assert rpc._presences == {}
+    assert rpc.is_connected() is False
+    for pipe in (0, 2):
+        assert made[pipe].close.called
+
+
+def test_a_client_started_later_is_picked_up(rpc_factory, monkeypatch):
+    """Vencord opened after Refrain should still get the status."""
+    rpc, made = rpc_factory([0], all_clients=True)
+    rpc._ensure_connected()
+    assert sorted(rpc._presences) == [0]
+
+    monkeypatch.setattr("refrain.discord_rpc._scan_ipc_pipes", lambda: ([0, 2], []))
+    rpc._next_retry_ts = 0.0  # the retry window has passed
+
+    rpc._ensure_connected()
+
+    assert sorted(rpc._presences) == [0, 2]
+
+
+def test_single_client_mode_does_not_rescan_once_connected(rpc_factory, monkeypatch):
+    """The default path must stay as cheap as it was."""
+    rpc, made = rpc_factory([0], all_clients=False)
+    rpc._ensure_connected()
+
+    calls = []
+    monkeypatch.setattr(
+        "refrain.discord_rpc._scan_ipc_pipes", lambda: (calls.append(1), ([0], []))[1]
+    )
+    rpc._ensure_connected()
+
+    assert calls == [], "connected single-client mode should not sweep sockets"

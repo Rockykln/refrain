@@ -364,6 +364,18 @@ class SettingsWindow(QDialog):
         self.discord_per_source_box.toggled.connect(self._set_discord_overrides_visible)
         df.addRow(self.discord_per_source_box)
 
+        self.discord_all_clients_box = QCheckBox(
+            self.tr("Send the status to every running Discord client")
+        )
+        self.discord_all_clients_box.setToolTip(
+            self.tr(
+                "Discord and Vencord/Vesktop are separate programs with "
+                "separate connections, so a status sent to one does not show "
+                "in the other. With this on, Refrain publishes to all of them."
+            )
+        )
+        df.addRow(self.discord_all_clients_box)
+
         self.client_id_mpris_input = QLineEdit()
         self.client_id_mpris_input.setPlaceholderText(self.tr("(uses default Client ID)"))
         self.client_id_mpris_input.setFixedWidth(_INPUT_WIDE_WIDTH)
@@ -1057,6 +1069,7 @@ class SettingsWindow(QDialog):
         # and the rows hidden so the tab stays uncluttered.
         has_overrides = bool(c.discord.client_id_mpris or c.discord.client_id_bluetooth)
         self.discord_per_source_box.setChecked(has_overrides)
+        self.discord_all_clients_box.setChecked(c.discord.all_clients)
         self._set_discord_overrides_visible(has_overrides)
         self.autostart_box.setChecked(c.behavior.autostart)
         self.notifications_box.setChecked(c.behavior.notifications)
@@ -1140,6 +1153,7 @@ class SettingsWindow(QDialog):
         else:
             c.discord.client_id_mpris = ""
             c.discord.client_id_bluetooth = ""
+        c.discord.all_clients = self.discord_all_clients_box.isChecked()
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
         c.behavior.cover_art = self.cover_art_box.isChecked()

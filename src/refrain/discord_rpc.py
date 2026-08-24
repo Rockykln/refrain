@@ -144,9 +144,17 @@ def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
 
 
 class DiscordRPC:
-    def __init__(self, client_id: str):
+    def __init__(self, client_id: str, all_clients: bool = False):
         self.client_id = (client_id or "").strip()
-        self._presence: Presence | None = None
+        # One live Presence per Discord client we serve, keyed by the
+        # discord-ipc-N slot ("auto" when pypresence picked the socket
+        # itself). Normally holds exactly one entry; with `all_clients`
+        # the same status is published to every client that is listening,
+        # which is what a Discord + Vencord/Vesktop pair needs — each is
+        # a separate process with its own IPC socket, and a status sent
+        # to one is invisible in the other.
+        self._presences: dict[object, Presence] = {}
+        self.all_clients = all_clients
         self._next_retry_ts: float = 0.0
         self._backoff_s: float = 2.0
         # Memoise the last payload we sent so we don't hammer Discord
@@ -179,11 +187,31 @@ class DiscordRPC:
                 "Set one in Settings → General to enable Discord status."
             )
 
+    @property
+    def _presence(self) -> Presence | None:
+        """The primary connection.
+
+        Kept as a property so the single-connection call sites (and the
+        tests that inject a fake) keep working now that several
+        connections can be open at once.
+        """
+        return next(iter(self._presences.values()), None)
+
+    @_presence.setter
+    def _presence(self, value: Presence | None) -> None:
+        if value is None:
+            self._presences.clear()
+        else:
+            self._presences = {"primary": value}
+
     def is_connected(self) -> bool:
-        return self._presence is not None
+        return bool(self._presences)
 
     def _ensure_connected(self) -> bool:
-        if self._presence is not None:
+        # With all_clients we keep looking for newcomers (a second client
+        # started after us), but only on the retry cadence so a missing
+        # one cannot turn every tick into a socket sweep.
+        if self._presences and not self.all_clients:
             return True
         if not self.client_id:
             return False
@@ -214,54 +242,71 @@ class DiscordRPC:
             )
         if live != self._last_live_pipes:
             self._last_live_pipes = live
-        try:
-            # Pin the pipe we just proved is alive. Left to itself,
-            # pypresence rescans and can abort on a stale socket before
-            # reaching this one — see _scan_ipc_pipes. Falling back to
-            # its own discovery keeps the Snap/Flatpak paths it knows
-            # about working when nothing is visible in XDG_RUNTIME_DIR.
-            p = Presence(self.client_id, pipe=live[0]) if live else Presence(self.client_id)
-            p.connect()
-            self._presence = p
+        # Pin the pipes we just proved are alive. Left to itself,
+        # pypresence rescans and can abort on a stale socket before
+        # reaching a live one — see _scan_ipc_pipes. Falling back to its
+        # own discovery keeps the Snap/Flatpak paths it knows about
+        # working when nothing is visible in XDG_RUNTIME_DIR.
+        targets: list[object] = list(live) if live else ["auto"]
+        if not self.all_clients:
+            targets = targets[:1]
+        targets = [t for t in targets if t not in self._presences]
+        if not targets:
+            return bool(self._presences)
+
+        connected_now: list[object] = []
+        last_error: Exception | None = None
+        for target in targets:
+            try:
+                p = (
+                    Presence(self.client_id)
+                    if target == "auto"
+                    else Presence(self.client_id, pipe=target)
+                )
+                p.connect()
+                self._presences[target] = p
+                connected_now.append(target)
+            except ppx.DiscordError as e:
+                # Discord answered but refused the handshake — a bad
+                # Application ID or a signed-out client. Same verdict for
+                # every client, so stop here instead of retrying it once
+                # per socket.
+                self.status = "rejected"
+                self.status_detail = str(e)
+                log.info("Discord RPC handshake rejected: %s", e)
+                self._backoff_s = self._max_backoff_s
+                self._schedule_retry()
+                return bool(self._presences)
+            except Exception as e:
+                last_error = e
+                log.debug("Discord RPC connect failed on %s: %s", target, e)
+
+        if connected_now:
             self._backoff_s = 2.0
-            # A fresh IPC pipe carries no state on Discord's side —
-            # so the dedup cache from a *previous* presence object
-            # would wrongly skip the first update on the new
-            # connection (Discord would then keep showing nothing
-            # until the daemon picks up a metadata change).
+            # A fresh IPC pipe carries no state on Discord's side, so the
+            # dedup cache from a previous connection would wrongly skip
+            # the first update on the new one (Discord would then keep
+            # showing nothing until the daemon picks up a change).
             self._last_payload = None
             self.status = "connected"
-            self.status_detail = f"discord-ipc-{live[0]}" if live else "auto"
-            log.info("Discord RPC connected (%s)", self.status_detail)
+            self.status_detail = ", ".join(
+                "auto" if t == "auto" else f"discord-ipc-{t}"
+                for t in sorted(self._presences, key=str)
+            )
+            log.info(
+                "Discord RPC connected (%s)%s",
+                self.status_detail,
+                f" — {len(self._presences)} clients" if len(self._presences) > 1 else "",
+            )
             return True
-        except (
-            ppx.DiscordNotFound,
-            ppx.PipeClosed,
-            ConnectionRefusedError,
-            FileNotFoundError,
-            OSError,
-        ) as e:
-            self.status = "no_client"
-            self.status_detail = str(e)
-            log.debug("Discord RPC connect failed: %s", e)
-        except ppx.DiscordError as e:
-            # Discord accepted the IPC pipe but sent back an error
-            # response to the handshake. Common reasons:
-            #   - "User logged out": user signed out of Discord
-            #   - "Invalid Client ID": client_id is malformed / not a
-            #     Discord application (Settings → Discord input typo)
-            # These aren't bugs in Refrain — log at INFO and back off
-            # longer than the standard transient-error retry, since
-            # the user has to take action (sign back in, fix ID).
-            self.status = "rejected"
-            self.status_detail = str(e)
-            log.info("Discord RPC handshake rejected: %s", e)
-            self._backoff_s = self._max_backoff_s
-        except Exception as e:
-            self.status = "no_client"
-            self.status_detail = str(e)
-            log.exception("Discord RPC connect unexpected error")
-        self._presence = None
+
+        if self._presences:
+            # Already serving someone; a newcomer simply is not ready.
+            self._schedule_retry()
+            return True
+
+        self.status = "no_client"
+        self.status_detail = str(last_error) if last_error else "no client reachable"
         self._schedule_retry()
         return False
 
@@ -283,35 +328,50 @@ class DiscordRPC:
         # drift-resync, cover URL arrival, button URL change) re-pushes.
         if payload == self._last_payload:
             return
-        try:
-            self._presence.update(**payload)
+        # Fan out, and judge each connection on its own: one client being
+        # closed mid-song must not drop the status from the others.
+        failed: list[object] = []
+        delivered = 0
+        for target, presence in list(self._presences.items()):
+            try:
+                presence.update(**payload)
+                delivered += 1
+            except Exception as e:
+                log.warning("Discord RPC update failed on %s: %s", target, e)
+                failed.append(target)
+        for target in failed:
+            with contextlib.suppress(Exception):
+                self._presences.pop(target).close()
+        if delivered:
             self._last_payload = dict(payload)
-        except Exception as e:
-            log.warning("Discord RPC update failed: %s", e)
-            self._presence = None
+        else:
             self._last_payload = None
             self._schedule_retry()
 
     def clear(self) -> None:
-        if self._presence is None:
+        if not self._presences:
             return
         # Whatever the user just listened to is no longer current; the
         # next update() must push (don't dedupe against a previous
         # identical payload).
         self._last_payload = None
-        try:
-            self._presence.clear()
-        except Exception as e:
-            log.debug("Discord RPC clear failed: %s", e)
-            self._presence = None
+        for target, presence in list(self._presences.items()):
+            try:
+                presence.clear()
+            except Exception as e:
+                log.debug("Discord RPC clear failed on %s: %s", target, e)
+                with contextlib.suppress(Exception):
+                    self._presences.pop(target).close()
+        if not self._presences:
             self._schedule_retry()
 
     def close(self) -> None:
-        if self._presence is None:
+        if not self._presences:
             return
-        with contextlib.suppress(Exception):
-            self._presence.close()
-        self._presence = None
+        for presence in self._presences.values():
+            with contextlib.suppress(Exception):
+                presence.close()
+        self._presences.clear()
         self._last_payload = None
 
     def _schedule_retry(self) -> None:

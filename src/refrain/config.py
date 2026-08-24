@@ -138,6 +138,13 @@ class DiscordConfig:
     # Empty falls back to the default `client_id` above.
     client_id_mpris: str = ""
     client_id_bluetooth: str = ""
+    # Publish the same status to *every* Discord client that is running,
+    # not just the first one found. Discord and Vencord/Vesktop are
+    # separate processes with separate IPC sockets, so a status sent to
+    # one is invisible in the other. Off by default: one client is the
+    # normal case, and each extra connection is another IPC write per
+    # track change.
+    all_clients: bool = False
 
     def client_id_for(self, source: str) -> str:
         """Return the per-source client_id, falling back to the default."""
@@ -343,9 +350,7 @@ class Config:
                     e,
                 )
             except Exception:
-                log.exception(
-                    "Config: comment-preserving merge failed; rewriting from scratch"
-                )
+                log.exception("Config: comment-preserving merge failed; rewriting from scratch")
         # Atomic write: tmp file + os.replace. Without this, a crash or
         # power-cut between truncate-and-write would leave an empty or
         # half-written config — and refrain falls back to defaults on
@@ -446,11 +451,7 @@ def _merge_into_existing(existing: str, data: dict[str, Any]) -> str:
             out.append(line)
             continue
         m_key = _KEY_RE.match(line)
-        if (
-            m_key
-            and current in remaining
-            and m_key.group(2) in remaining[current]
-        ):
+        if m_key and current in remaining and m_key.group(2) in remaining[current]:
             indent, key = m_key.group(1), m_key.group(2)
             value = remaining[current].pop(key)
             out.append(f"{indent}{key} = {_format_value(value)}")

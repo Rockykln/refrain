@@ -241,7 +241,7 @@ class DaemonWorker(QObject):
         # `_rpc_client_id_for`). Start with the default; it's swapped in
         # `_update_rpc` the first time a source-specific override
         # applies.
-        self._rpc = DiscordRPC(config.discord.client_id)
+        self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
         self._rpc_active_client_id: str = config.discord.client_id
         self._cover_fetcher = CoverFetcher(max_cached_covers=config.advanced.cover_cache_size)
         # Last.fm scrobbling — opt-in, alongside (never replacing) the
@@ -361,7 +361,7 @@ class DaemonWorker(QObject):
             log.info("Discord client_id config changed, reconnecting RPC")
             with contextlib.suppress(Exception):
                 self._rpc.close()
-            self._rpc = DiscordRPC(config.discord.client_id)
+            self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
             self._rpc_active_client_id = config.discord.client_id
             # Eagerly establish the IPC pipe instead of waiting for the
             # next playing-state tick to do it. `_update_rpc` only
@@ -741,7 +741,7 @@ class DaemonWorker(QObject):
             )
             with contextlib.suppress(Exception):
                 self._rpc.close()
-            self._rpc = DiscordRPC(target_client_id)
+            self._rpc = DiscordRPC(target_client_id, self._config.discord.all_clients)
             self._rpc_active_client_id = target_client_id
             # Force a fresh start_ts on next compute, since pypresence
             # no longer has any state for the old activity.
