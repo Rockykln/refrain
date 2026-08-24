@@ -605,6 +605,20 @@ def main() -> int:
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)
 
+    # Wire dbus-python's dispatch into GLib *before anything opens the
+    # session bus*. `dbus.SessionBus()` is a process-wide singleton, so
+    # the first caller fixes whether that connection carries a main loop
+    # and everyone after gets the same object. The Last.fm keyring
+    # lookup below opens the bus, as do MPRISSource / BluetoothSource
+    # later — win that race or our MPRIS server can never export.
+    # No-op if PyGObject is missing; Discord RPC + tray keep working.
+    try:
+        from refrain.sources.mpris_server import _ensure_dbus_glib_loop
+
+        _ensure_dbus_glib_loop()
+    except Exception as e:
+        log.debug("dbus-glib loop init skipped: %s", e)
+
     config = Config.load()
     # Last.fm secrets live in the OS keyring, never in config.toml.
     # Overlay them onto the in-memory config (and migrate any legacy
@@ -620,23 +634,19 @@ def main() -> int:
     # else touches the filesystem.
     cleanup_orphan_downloads()
 
-    # Wire dbus-python's dispatch into a GLib main loop *before* anything
-    # touches the session bus. Has to happen before MPRISSource /
-    # BluetoothSource construct their first SessionBus, otherwise the
-    # bus connection won't have a main loop attached and our published
-    # MPRIS server fails to register ("D-Bus connections must be
-    # attached to a main loop"). No-op if PyGObject is missing — the
-    # Discord-RPC + tray sides keep working without it.
-    try:
-        from refrain.sources.mpris_server import _ensure_dbus_glib_loop
-
-        _ensure_dbus_glib_loop()
-    except Exception as e:
-        log.debug("dbus-glib loop init skipped: %s", e)
-
     _augment_qt_plugin_path()
 
     app = QApplication(sys.argv)
+    # Qt's glib dispatcher now owns the default GMainContext, so this is
+    # normally a no-op; it only spins our own loop when Qt isn't
+    # glib-backed. Must come after QApplication — starting a GLib loop
+    # first makes it grab the context and segfaults Qt's dispatcher.
+    try:
+        from refrain.sources.mpris_server import ensure_dbus_dispatch_pump
+
+        ensure_dbus_dispatch_pump()
+    except Exception as e:
+        log.debug("dbus dispatch pump skipped: %s", e)
     app.setApplicationName("Refrain")
     app.setApplicationDisplayName("Refrain")
     app.setApplicationVersion(__version__)

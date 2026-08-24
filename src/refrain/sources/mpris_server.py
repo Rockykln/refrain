@@ -42,17 +42,23 @@ _GLIB_THREAD: threading.Thread | None = None
 
 
 def _ensure_dbus_glib_loop() -> bool:
-    """Start the GLib main loop in a background thread so dbus-python
-    can deliver method calls / signals into our service objects.
+    """Attach dbus-python's dispatch to the GLib main loop.
 
-    Qt's event loop owns the main thread; dbus-python needs its own
-    GLib loop to pump messages. Running it in a daemon thread is the
-    documented workaround for "dbus-python in a Qt app". Returns True
-    on success, False if PyGObject isn't installed (in which case the
-    MPRIS server falls back to polling-only mode and Plasma controls
+    Must run **before the process opens its first session bus**.
+    ``dbus.SessionBus()`` is a process-wide singleton: whoever creates it
+    first decides whether that connection carries a main loop, and every
+    later caller gets the same object back. Register too late and
+    ``dbus.service.Object`` can never export ("D-Bus connections must be
+    attached to a main loop"), which silently costs us Plasma's media
+    controls.
+
+    This only wires up the dispatch; it deliberately does *not* spin a
+    GLib loop of its own — see ``ensure_dbus_dispatch_pump``. Returns
+    True on success, False if PyGObject isn't installed (in which case
+    the MPRIS server falls back to polling-only mode and Plasma controls
     won't reach us, but the rest of refrain keeps working).
     """
-    global _DBUS_LOOP_INITIALIZED, _DBUS_LOOP_INIT_FAILED, _GLIB_THREAD
+    global _DBUS_LOOP_INITIALIZED, _DBUS_LOOP_INIT_FAILED
     if _DBUS_LOOP_INITIALIZED:
         return True
     if _DBUS_LOOP_INIT_FAILED:
@@ -61,7 +67,7 @@ def _ensure_dbus_glib_loop() -> bool:
         # False instead of a duplicate WARNING in the log.
         return False
     try:
-        from gi.repository import GLib
+        import gi.repository.GLib  # noqa: F401  — availability probe only
     except ImportError as e:
         _DBUS_LOOP_INIT_FAILED = True
         log.warning(
@@ -73,15 +79,68 @@ def _ensure_dbus_glib_loop() -> bool:
         )
         return False
     DBusGMainLoop(set_as_default=True)
+    _DBUS_LOOP_INITIALIZED = True
+    log.debug("MPRIS server: dbus-python dispatch wired into GLib")
+    return True
+
+
+def _qt_pumps_glib_context() -> bool:
+    """Whether Qt's event dispatcher already runs the default GMainContext.
+
+    On Linux Qt normally uses ``QEventDispatcherGlib``, which pumps the
+    default context for us — that is exactly what dbus-python needs, so
+    no loop of our own is required. Builds with glib disabled (or
+    ``QT_NO_GLIB=1``) use ``QEventDispatcherUNIX`` instead and leave the
+    context unpumped.
+    """
+    try:
+        from PySide6.QtCore import QAbstractEventDispatcher, QCoreApplication
+
+        if QCoreApplication.instance() is None:
+            return False
+        dispatcher = QAbstractEventDispatcher.instance()
+        if dispatcher is None:
+            return False
+        # "QPAEventDispatcherGlib" / "QEventDispatcherGlib" vs
+        # "QEventDispatcherUNIX". className() is a str.
+        return "Glib" in dispatcher.metaObject().className()
+    except Exception as e:  # pragma: no cover - defensive; Qt should be importable
+        # Don't swallow silently: a wrong answer here costs Plasma's
+        # media controls or spins a loop we don't need.
+        log.debug("Could not classify Qt's event dispatcher (%s); assuming non-glib", e)
+        return False
+
+
+def ensure_dbus_dispatch_pump() -> None:
+    """Guarantee something actually pumps dbus-python's dispatch.
+
+    Call once ``QApplication`` exists. Normally a no-op: Qt's glib event
+    dispatcher already runs the default GMainContext on the main thread.
+    Only when Qt is *not* glib-backed do we fall back to our own GLib
+    loop in a daemon thread.
+
+    Starting that thread unconditionally — and worse, before
+    ``QApplication`` is constructed — makes the worker acquire the
+    default context first, so Qt's own dispatcher then trips
+    ``g_main_context_push_thread_default: assertion 'acquired_context'
+    failed`` and the process dies with a segfault once timers start
+    crossing threads.
+    """
+    global _GLIB_THREAD
+    if not _DBUS_LOOP_INITIALIZED or _GLIB_THREAD is not None:
+        return
+    if _qt_pumps_glib_context():
+        log.debug("MPRIS server: Qt's glib dispatcher pumps dbus; no extra loop")
+        return
+    from gi.repository import GLib
+
     _GLIB_THREAD = threading.Thread(
         target=GLib.MainLoop().run,
         name="refrain-glib-loop",
         daemon=True,
     )
     _GLIB_THREAD.start()
-    _DBUS_LOOP_INITIALIZED = True
-    log.debug("MPRIS server: GLib main loop started for dbus-python dispatch")
-    return True
+    log.debug("MPRIS server: Qt is not glib-backed; started our own GLib loop")
 
 
 _BUS_NAME = "org.mpris.MediaPlayer2.refrain"

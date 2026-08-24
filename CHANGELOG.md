@@ -9,6 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing here
 
+## [0.4.4] - 2026-08-24
+
+Fixed the MPRIS server never registering, so Plasma's media controls
+could not reach Refrain even on installs that had PyGObject.
+
+### Fixed
+
+- **MPRIS server never made it onto the session bus.** `dbus.SessionBus()`
+  is a process-wide singleton: whoever opens it first decides whether that
+  connection carries a main loop, and every later caller gets the same
+  object back. `main()` read the Last.fm credentials out of the Secret
+  Service — which opens the bus — *before* wiring dbus-python into GLib,
+  so `dbus.service.Object` could never export and every start logged
+  `MPRIS server start failed: ... D-Bus connections must be attached to a
+  main loop`. Plasma's media controls therefore never reached Refrain, and
+  installing the advertised `python-gobject` optional dependency made no
+  difference. The GLib wiring now runs before anything touches the bus.
+- **The GLib loop no longer races Qt for the default main context.**
+  `_ensure_dbus_glib_loop()` also started a GLib main loop in a daemon
+  thread before `QApplication` existed. That worker acquired the default
+  `GMainContext` first, so Qt's own glib dispatcher tripped
+  `g_main_context_push_thread_default: assertion 'acquired_context'
+  failed` and the process died with a segfault once timers started
+  crossing threads. Qt's dispatcher already pumps that context, so no
+  loop of our own is needed; one is started only when Qt is not
+  glib-backed (`QT_NO_GLIB=1`), and only once `QApplication` is up.
+
 ## [0.4.3] - 2026-08-24
 
 Fixed a startup crash on installs that run against the PySide6 wheel's
@@ -1263,7 +1290,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.4...HEAD
+[0.4.4]: https://github.com/Rockykln/refrain/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/Rockykln/refrain/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Rockykln/refrain/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Rockykln/refrain/compare/v0.4.0...v0.4.1
