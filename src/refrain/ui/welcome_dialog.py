@@ -26,7 +26,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, Signal
+from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
@@ -131,7 +131,18 @@ class WelcomeDialog(QDialog):
         # it doesn't feel like a settings window. The previous 580 px
         # height left a wide empty band between the input and the
         # action buttons.
-        self.setFixedSize(560, 470)
+        #
+        # A minimum plus an explicit resize, not a pinned size: the
+        # diagnostics rows word-wrap and carry whatever the probes report.
+        # The stretch below absorbs a normal failure message, but a very
+        # verbose one — or the same text in a wordier locale — needs more
+        # room than the box has, and Qt never grows an already-shown
+        # window on its own; it clips the wrapped labels instead, with no
+        # scrollbar to reach the rest. _grow_to_fit() adds the missing
+        # height when that happens. The dialog still opens at exactly
+        # 560x470 and stays there for everything that fits.
+        self.setMinimumSize(560, 470)
+        self.resize(560, 470)
 
         icon_path = assets_dir() / "icons" / "refrain.svg"
         if icon_path.exists():
@@ -259,6 +270,43 @@ class WelcomeDialog(QDialog):
         self._diag_worker.finished.connect(self._on_diag_finished)
         self._diag_thread.start()
 
+    def _grow_to_fit(self) -> None:
+        """Give the dialog the height its (now longer) content needs.
+
+        The two diagnostics rows word-wrap and are filled at runtime with
+        whatever the probes report. Qt never grows an already-shown window
+        on its own — it squeezes the wrapped labels instead, so a long
+        enough failure message loses its last lines. Realistic messages
+        fit in the shipped 560x470; a very verbose one (or the same text
+        in a wordier locale) does not, which is why the dialog is no
+        longer setFixedSize.
+
+        The deficit is measured on the labels themselves rather than from
+        the layout: with a stretch item in the box, the layout's own
+        heightForWidth keeps reporting "fits" while the labels are
+        already being clipped.
+
+        Height only, and never shrinking: the width is deliberate, and a
+        dialog that jumped smaller when a probe succeeded would be worse
+        than one that stays a little tall.
+        """
+        layout = self.layout()
+        if layout is None:
+            return
+        # activate() alone is not enough — the nested diagnostics box
+        # reflows a turn later — so this runs from a queued singleShot.
+        layout.activate()
+
+        deficit = 0
+        for label in (self._diag_discord, self._diag_itunes):
+            if not label.wordWrap() or label.width() <= 0:
+                continue
+            need = label.heightForWidth(label.width())
+            if need > label.height():
+                deficit += need - label.height()
+        if deficit > 0:
+            self.resize(self.width(), self.height() + deficit)
+
     def _on_diag_finished(self, d_ok: bool, d_msg: str, i_ok: bool, i_msg: str) -> None:
         d_mark = "✅" if d_ok else "⚠️"
         i_mark = "✅" if i_ok else "⚠️"
@@ -268,6 +316,11 @@ class WelcomeDialog(QDialog):
         self._diag_itunes.setText(
             self.tr("{mark} <b>Cover-art lookup:</b> {msg}").format(mark=i_mark, msg=i_msg)
         )
+        # Let the wrapped labels settle into the layout first — the
+        # diagnostics box only reflows on the next turns of the event
+        # loop, and measuring before that reports a deficit the layout
+        # was about to absorb by itself.
+        QTimer.singleShot(0, self._grow_to_fit)
         if self._diag_thread is not None:
             self._diag_thread.quit()
             with contextlib.suppress(Exception):
