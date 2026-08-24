@@ -96,6 +96,13 @@ _IPC_SLOTS = 10
 # A live socket answers immediately; this only guards against a peer that
 # accepts the connection but never completes it.
 _IPC_PROBE_TIMEOUT_S = 0.5
+# How often to look for a client that appeared after we connected. Only
+# used with `all_clients`; the sweep costs one connect() per occupied
+# slot, and the daemon ticks twice a second, so this must not ride the
+# tick. Deliberately separate from the failure backoff: that one doubles
+# up to 15 s and is about a client we could not reach, not about noticing
+# a new one.
+_IPC_RESCAN_INTERVAL_S = 5.0
 
 
 def _runtime_dir() -> Path | None:
@@ -216,7 +223,11 @@ class DiscordRPC:
         if not self.client_id:
             return False
         if time.monotonic() < self._next_retry_ts:
-            return False
+            # Still connected to whoever answered — the pending retry is
+            # only about clients we have *not* reached yet. Answering
+            # False here froze the status for everyone during the backoff
+            # window, because update() bails on a False.
+            return bool(self._presences)
         # Sandbox-aware socket bridging — cheap (a few stat calls when
         # the standard path already works) and handles the
         # Snap/Flatpak Discord case without per-user manual symlinks.
@@ -252,7 +263,14 @@ class DiscordRPC:
             targets = targets[:1]
         targets = [t for t in targets if t not in self._presences]
         if not targets:
-            return bool(self._presences)
+            if self._presences:
+                # Everyone visible is already served. Push the next sweep
+                # out so watching for newcomers does not run on every
+                # tick — that was a socket sweep twice a second.
+                self._next_retry_ts = time.monotonic() + _IPC_RESCAN_INTERVAL_S
+                return True
+            self._schedule_retry()
+            return False
 
         connected_now: list[object] = []
         last_error: Exception | None = None

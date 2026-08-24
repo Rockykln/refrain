@@ -146,3 +146,46 @@ def test_single_client_mode_does_not_rescan_once_connected(rpc_factory, monkeypa
     rpc._ensure_connected()
 
     assert calls == [], "connected single-client mode should not sweep sockets"
+
+
+def test_backoff_window_does_not_freeze_an_established_status(rpc_factory):
+    """A pending retry must not stop updates to clients already served.
+
+    With all_clients on, _ensure_connected keeps looking for newcomers,
+    so it no longer returns early when connected. The retry gate then has
+    to answer "yes, we are connected" rather than "no" — otherwise every
+    update() during the backoff window bailed out and the status froze on
+    whatever was playing when the last client failed to appear.
+    """
+    import time
+
+    rpc, made = rpc_factory([0], all_clients=True)
+    rpc._ensure_connected()
+    assert sorted(rpc._presences) == [0]
+
+    rpc._next_retry_ts = time.monotonic() + 60  # a newcomer was not ready
+
+    assert rpc._ensure_connected() is True
+    rpc.update(details="Next song")
+    assert made[0].update.called, "status stopped while the retry window was open"
+
+
+def test_watching_for_newcomers_does_not_sweep_every_tick(rpc_factory, monkeypatch):
+    """The daemon ticks twice a second; the sweep must not ride it.
+
+    Each sweep is one connect() per occupied slot. Without its own
+    cadence, all_clients turned "keep an eye out for a second client"
+    into ten socket connects, twice a second, forever.
+    """
+    rpc, made = rpc_factory([0], all_clients=True)
+    rpc._ensure_connected()
+
+    calls = []
+    monkeypatch.setattr(
+        "refrain.discord_rpc._scan_ipc_pipes", lambda: (calls.append(1), ([0], []))[1]
+    )
+    for i in range(20):  # 20 ticks == 10 s at the default poll interval
+        rpc.update(details=f"Song {i}")
+
+    assert len(calls) <= 2, f"swept the sockets {len(calls)} times in 20 ticks"
+    assert made[0].update.call_count == 20, "updates must still go out"
