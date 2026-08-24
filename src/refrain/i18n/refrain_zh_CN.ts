@@ -656,73 +656,103 @@ After confirming, click Apply at the bottom of the Settings window to save the r
 </context><context>
     <name>TrayIcon</name>
     <message>
-        <location filename="../ui/tray.py" line="255" />
+        <location filename="../ui/tray.py" line="297" />
         <location filename="../ui/tray.py" line="83" />
         <source>(nothing playing)</source>
         <translation>(未在播放)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="239" />
         <location filename="../ui/tray.py" line="96" />
         <source>Discord: not connected</source>
         <translation>Discord: 未连接</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="108" />
+        <location filename="../ui/tray.py" line="102" />
+        <source>Last.fm: not connected</source>
+        <translation>Last.fm：未连接</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="115" />
         <source>Previous</source>
         <translation>上一首</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="214" />
-        <location filename="../ui/tray.py" line="111" />
+        <location filename="../ui/tray.py" line="222" />
+        <location filename="../ui/tray.py" line="118" />
         <source>Play</source>
         <translation>播放</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="114" />
+        <location filename="../ui/tray.py" line="121" />
         <source>Next</source>
         <translation>下一首</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="223" />
-        <location filename="../ui/tray.py" line="134" />
+        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="142" />
         <source>Update available</source>
         <translation>有可用更新</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="141" />
+        <location filename="../ui/tray.py" line="149" />
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="144" />
+        <location filename="../ui/tray.py" line="152" />
         <source>Live log…</source>
         <translation>实时日志…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="148" />
+        <location filename="../ui/tray.py" line="156" />
         <source>Restart Refrain</source>
         <translation>重启 Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="151" />
+        <location filename="../ui/tray.py" line="159" />
         <source>Quit Refrain</source>
         <translation>退出 Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="211" />
+        <location filename="../ui/tray.py" line="219" />
         <source>Pause</source>
         <translation>暂停</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="220" />
+        <location filename="../ui/tray.py" line="228" />
         <source>Update available — v{version}</source>
         <translation>有可用更新 — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="228" />
+        <location filename="../ui/tray.py" line="236" />
         <source>Discord: connected</source>
         <translation>Discord: 已连接</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="255" />
+        <source>Discord: rejected — check Application ID</source>
+        <translation>Discord：被拒绝 — 请检查应用 ID</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="264" />
+        <source>Last.fm: connected as {user}</source>
+        <translation>Last.fm：已作为 {user} 连接</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="266" />
+        <source>Last.fm: connected</source>
+        <translation>Last.fm：已连接</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="270" />
+        <source>Last.fm: session expired — reconnect</source>
+        <translation>Last.fm：会话已失效 — 请重新连接</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="273" />
+        <source>Last.fm: could not be verified</source>
+        <translation>Last.fm：无法验证</translation>
     </message>
     <message>
         <source>⬆  Update available</source>
@@ -833,77 +863,77 @@ After confirming, click Apply at the bottom of the Settings window to save the r
         <translation>欢迎</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="155" />
+        <location filename="../ui/welcome_dialog.py" line="166" />
         <source>Welcome to Refrain</source>
         <translation>欢迎使用 Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="158" />
+        <location filename="../ui/welcome_dialog.py" line="169" />
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Linux 上 Apple Music 的 Discord Rich Presence。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173" />
+        <location filename="../ui/welcome_dialog.py" line="184" />
         <source>Lives in the tray. &lt;b&gt;Right-click&lt;/b&gt; for player controls; &lt;b&gt;click&lt;/b&gt; to open Settings.</source>
         <translation>驻留在托盘中。&lt;b&gt;右键单击&lt;/b&gt;使用播放器控件; &lt;b&gt;单击&lt;/b&gt;打开设置。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="193" />
+        <location filename="../ui/welcome_dialog.py" line="204" />
         <source>Live diagnostics</source>
         <translation>实时诊断</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="196" />
+        <location filename="../ui/welcome_dialog.py" line="207" />
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord — 检查中…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="197" />
+        <location filename="../ui/welcome_dialog.py" line="208" />
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ 封面查找 — 检查中…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="205" />
+        <location filename="../ui/welcome_dialog.py" line="216" />
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="210" />
+        <location filename="../ui/welcome_dialog.py" line="221" />
         <source>Register a free app on the &lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as "Listening to &amp;lt;name&amp;gt;" in your status.</source>
         <translation>在 &lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; 上注册一个免费应用 — 你选择的名字会以「Listening to &amp;lt;名字&amp;gt;」的形式出现在你的状态中。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="225" />
+        <location filename="../ui/welcome_dialog.py" line="236" />
         <source>e.g. 1234567890123456789</source>
         <translation>例如: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="236" />
+        <location filename="../ui/welcome_dialog.py" line="247" />
         <source>Skip for now</source>
         <translation>暂时跳过</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="242" />
+        <location filename="../ui/welcome_dialog.py" line="253" />
         <source>Apply</source>
         <translation>应用</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266" />
+        <location filename="../ui/welcome_dialog.py" line="314" />
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="269" />
+        <location filename="../ui/welcome_dialog.py" line="317" />
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;封面查找:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="304" />
+        <location filename="../ui/welcome_dialog.py" line="357" />
         <source>Skip Discord setup?</source>
         <translation>跳过 Discord 设置?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="305" />
+        <location filename="../ui/welcome_dialog.py" line="358" />
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -912,24 +942,24 @@ Continue without Discord status?</source>
 是否继续而不显示 Discord 状态?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="318" />
+        <location filename="../ui/welcome_dialog.py" line="371" />
         <source>Invalid Application ID</source>
         <translation>无效的 Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="319" />
+        <location filename="../ui/welcome_dialog.py" line="372" />
         <source>The Discord Application ID is a numeric snowflake (17–19 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID 是一个数字 snowflake (17–19 位)。请仔细核对从 Developer Portal 复制的值。</translation>
     </message>
 </context><context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="971" />
+        <location filename="../app.py" line="1007" />
         <source>Updates</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../app.py" line="972" />
+        <location filename="../app.py" line="1008" />
         <source>No update information available yet. Try again in a moment.</source>
         <translation>暂无更新信息。请稍后重试。</translation>
     </message>

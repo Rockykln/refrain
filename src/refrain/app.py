@@ -732,6 +732,42 @@ def main() -> int:
     tray.nextRequested.connect(daemon.worker.control_next)
     tray.previousRequested.connect(daemon.worker.control_previous)
     tray.quitRequested.connect(app.quit)
+
+    # One-shot credential check, a few seconds in so the daemon has had a
+    # chance to reach Discord first. Runs on its own thread — the Last.fm
+    # half is a network round-trip and must never sit on the UI thread —
+    # and only ever reports; nothing here can stop startup. Results are
+    # logged with a [startup-check] marker and shown in the tray menu.
+    #
+    # Both objects are parked in a list: a QObject referenced only by its
+    # signal connections is garbage-collected out from under the running
+    # QThread, which is silent (the check simply never reports) until Qt
+    # aborts at shutdown with "QThread: Destroyed while thread is still
+    # running".
+    _startup_check_refs: list = []
+
+    def _run_startup_check() -> None:
+        from refrain.startup_check import StartupCheckWorker
+
+        thread = QThread()
+        thread.setObjectName("refrain-startup-check")
+        worker = StartupCheckWorker(config.lastfm, daemon.worker._rpc)
+        worker.moveToThread(thread)
+        _startup_check_refs.extend((thread, worker))
+        thread.started.connect(worker.run)
+        worker.finished.connect(tray.set_startup_check)
+        worker.finished.connect(thread.quit)
+        thread.start()
+
+    def _stop_startup_check() -> None:
+        for obj in _startup_check_refs:
+            if isinstance(obj, QThread) and obj.isRunning():
+                obj.quit()
+                obj.wait(2000)
+
+    app.aboutToQuit.connect(_stop_startup_check)
+    QTimer.singleShot(5000, _run_startup_check)
+
     # Two connections: worker.update_config gets queued onto the worker thread,
     # _sync_autostart runs on the main thread (file I/O, OK).
     settings.applied.connect(daemon.worker.update_config)

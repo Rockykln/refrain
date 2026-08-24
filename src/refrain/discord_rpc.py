@@ -160,6 +160,12 @@ class DiscordRPC:
         self._last_payload: dict | None = None
         # Remembered so a changing client line-up is logged once, not per tick.
         self._last_live_pipes: list[int] = []
+        # Why we are not connected, for the startup check and the tray.
+        # "disabled" (no client_id) / "no_client" (nothing listening) /
+        # "rejected" (Discord answered but refused the handshake — a bad
+        # Application ID or a signed-out client) / "connected".
+        self.status: str = "disabled" if not self.client_id else "no_client"
+        self.status_detail: str = ""
         # Cap retry backoff at 15 s instead of 60 s — autostart launches
         # refrain before Discord is ready, and a 60 s ceiling means the
         # user can sit there for almost a minute after Discord finishes
@@ -224,10 +230,9 @@ class DiscordRPC:
             # connection (Discord would then keep showing nothing
             # until the daemon picks up a metadata change).
             self._last_payload = None
-            log.info(
-                "Discord RPC connected (discord-ipc-%s)",
-                live[0] if live else "auto",
-            )
+            self.status = "connected"
+            self.status_detail = f"discord-ipc-{live[0]}" if live else "auto"
+            log.info("Discord RPC connected (%s)", self.status_detail)
             return True
         except (
             ppx.DiscordNotFound,
@@ -236,6 +241,8 @@ class DiscordRPC:
             FileNotFoundError,
             OSError,
         ) as e:
+            self.status = "no_client"
+            self.status_detail = str(e)
             log.debug("Discord RPC connect failed: %s", e)
         except ppx.DiscordError as e:
             # Discord accepted the IPC pipe but sent back an error
@@ -246,9 +253,13 @@ class DiscordRPC:
             # These aren't bugs in Refrain — log at INFO and back off
             # longer than the standard transient-error retry, since
             # the user has to take action (sign back in, fix ID).
+            self.status = "rejected"
+            self.status_detail = str(e)
             log.info("Discord RPC handshake rejected: %s", e)
             self._backoff_s = self._max_backoff_s
-        except Exception:
+        except Exception as e:
+            self.status = "no_client"
+            self.status_detail = str(e)
             log.exception("Discord RPC connect unexpected error")
         self._presence = None
         self._schedule_retry()

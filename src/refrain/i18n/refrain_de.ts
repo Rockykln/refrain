@@ -656,73 +656,103 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
 </context><context>
     <name>TrayIcon</name>
     <message>
-        <location filename="../ui/tray.py" line="255" />
+        <location filename="../ui/tray.py" line="297" />
         <location filename="../ui/tray.py" line="83" />
         <source>(nothing playing)</source>
         <translation>(nichts wird abgespielt)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="239" />
         <location filename="../ui/tray.py" line="96" />
         <source>Discord: not connected</source>
         <translation>Discord: nicht verbunden</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="108" />
+        <location filename="../ui/tray.py" line="102" />
+        <source>Last.fm: not connected</source>
+        <translation>Last.fm: nicht verbunden</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="115" />
         <source>Previous</source>
         <translation>Zurück</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="214" />
-        <location filename="../ui/tray.py" line="111" />
+        <location filename="../ui/tray.py" line="222" />
+        <location filename="../ui/tray.py" line="118" />
         <source>Play</source>
         <translation>Wiedergabe</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="114" />
+        <location filename="../ui/tray.py" line="121" />
         <source>Next</source>
         <translation>Weiter</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="223" />
-        <location filename="../ui/tray.py" line="134" />
+        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="142" />
         <source>Update available</source>
         <translation>Update verfügbar</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="141" />
+        <location filename="../ui/tray.py" line="149" />
         <source>Settings…</source>
         <translation>Einstellungen…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="144" />
+        <location filename="../ui/tray.py" line="152" />
         <source>Live log…</source>
         <translation>Protokoll…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="148" />
+        <location filename="../ui/tray.py" line="156" />
         <source>Restart Refrain</source>
         <translation>Refrain neu starten</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="151" />
+        <location filename="../ui/tray.py" line="159" />
         <source>Quit Refrain</source>
         <translation>Refrain beenden</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="211" />
+        <location filename="../ui/tray.py" line="219" />
         <source>Pause</source>
         <translation>Pause</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="220" />
+        <location filename="../ui/tray.py" line="228" />
         <source>Update available — v{version}</source>
         <translation>Update verfügbar — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="228" />
+        <location filename="../ui/tray.py" line="236" />
         <source>Discord: connected</source>
         <translation>Discord: verbunden</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="255" />
+        <source>Discord: rejected — check Application ID</source>
+        <translation>Discord: abgelehnt — Anwendungs-ID prüfen</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="264" />
+        <source>Last.fm: connected as {user}</source>
+        <translation>Last.fm: verbunden als {user}</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="266" />
+        <source>Last.fm: connected</source>
+        <translation>Last.fm: verbunden</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="270" />
+        <source>Last.fm: session expired — reconnect</source>
+        <translation>Last.fm: Sitzung abgelaufen — neu verbinden</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="273" />
+        <source>Last.fm: could not be verified</source>
+        <translation>Last.fm: nicht überprüfbar</translation>
     </message>
     <message>
         <source>⬆  Update available</source>
@@ -833,77 +863,77 @@ Nach dem Bestätigen unten im Einstellungen-Fenster auf „Übernehmen“ klicke
         <translation>Willkommen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="155" />
+        <location filename="../ui/welcome_dialog.py" line="166" />
         <source>Welcome to Refrain</source>
         <translation>Willkommen bei Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="158" />
+        <location filename="../ui/welcome_dialog.py" line="169" />
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Discord Rich Presence für Apple Music auf Linux.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173" />
+        <location filename="../ui/welcome_dialog.py" line="184" />
         <source>Lives in the tray. &lt;b&gt;Right-click&lt;/b&gt; for player controls; &lt;b&gt;click&lt;/b&gt; to open Settings.</source>
         <translation>Läuft im Tray. &lt;b&gt;Rechtsklick&lt;/b&gt; für die Wiedergabesteuerung; &lt;b&gt;Linksklick&lt;/b&gt; öffnet die Einstellungen.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="193" />
+        <location filename="../ui/welcome_dialog.py" line="204" />
         <source>Live diagnostics</source>
         <translation>Live-Diagnose</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="196" />
+        <location filename="../ui/welcome_dialog.py" line="207" />
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord – wird geprüft…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="197" />
+        <location filename="../ui/welcome_dialog.py" line="208" />
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ Cover-Suche – wird geprüft…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="205" />
+        <location filename="../ui/welcome_dialog.py" line="216" />
         <source>Discord Application ID</source>
         <translation>Discord-Anwendungs-ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="210" />
+        <location filename="../ui/welcome_dialog.py" line="221" />
         <source>Register a free app on the &lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as "Listening to &amp;lt;name&amp;gt;" in your status.</source>
         <translation>Kostenlos eine App im &lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; registrieren — der Name den du wählst erscheint als „hört &amp;lt;name&amp;gt;“ in deinem Status.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="225" />
+        <location filename="../ui/welcome_dialog.py" line="236" />
         <source>e.g. 1234567890123456789</source>
         <translation>z. B. 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="236" />
+        <location filename="../ui/welcome_dialog.py" line="247" />
         <source>Skip for now</source>
         <translation>Vorerst überspringen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="242" />
+        <location filename="../ui/welcome_dialog.py" line="253" />
         <source>Apply</source>
         <translation>Übernehmen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266" />
+        <location filename="../ui/welcome_dialog.py" line="314" />
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="269" />
+        <location filename="../ui/welcome_dialog.py" line="317" />
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Cover-Suche:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="304" />
+        <location filename="../ui/welcome_dialog.py" line="357" />
         <source>Skip Discord setup?</source>
         <translation>Discord-Einrichtung überspringen?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="305" />
+        <location filename="../ui/welcome_dialog.py" line="358" />
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -912,24 +942,24 @@ Continue without Discord status?</source>
 Ohne Discord-Status fortfahren?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="318" />
+        <location filename="../ui/welcome_dialog.py" line="371" />
         <source>Invalid Application ID</source>
         <translation>Ungültige Anwendungs-ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="319" />
+        <location filename="../ui/welcome_dialog.py" line="372" />
         <source>The Discord Application ID is a numeric snowflake (17–19 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Die Discord-Anwendungs-ID ist eine 17- bis 19-stellige Zahl. Prüfe den Wert, den du aus dem Developer Portal kopiert hast.</translation>
     </message>
 </context><context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="971" />
+        <location filename="../app.py" line="1007" />
         <source>Updates</source>
         <translation>Aktualisierungen</translation>
     </message>
     <message>
-        <location filename="../app.py" line="972" />
+        <location filename="../app.py" line="1008" />
         <source>No update information available yet. Try again in a moment.</source>
         <translation>Noch keine Update-Information vorhanden. Bitte gleich erneut versuchen.</translation>
     </message>

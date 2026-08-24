@@ -96,6 +96,13 @@ class TrayIcon(QObject):
         self._discord_action = QAction(self.tr("Discord: not connected"))
         self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
         self._discord_action.triggered.connect(self.settingsRequested.emit)
+        # Sits next to the Discord row and stays hidden until the startup
+        # check has something to say — an empty "Last.fm: —" line would
+        # just be noise for the majority who never enable scrobbling.
+        self._lastfm_action = QAction(self.tr("Last.fm: not connected"))
+        self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
+        self._lastfm_action.triggered.connect(self.settingsRequested.emit)
+        self._lastfm_action.setVisible(False)
 
         # Once any item in a QMenu has an icon, the menu reserves the
         # icon column for ALL items. Without icons here the playback /
@@ -120,6 +127,7 @@ class TrayIcon(QObject):
         menu.addAction(self._artist_action)
         menu.addAction(self._progress_action)
         menu.addAction(self._discord_action)
+        menu.addAction(self._lastfm_action)
         menu.addSeparator()
         menu.addAction(self._previous_action)
         menu.addAction(self._play_pause_action)
@@ -230,6 +238,40 @@ class TrayIcon(QObject):
         else:
             self._discord_action.setText(self.tr("Discord: not connected"))
             self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
+
+    def set_startup_check(self, lastfm, discord) -> None:
+        """Show what the startup credential check found.
+
+        Only a *rejected* credential changes what the row says: the user
+        has to go and fix something, and until now nothing told them —
+        Discord silently published nothing, Last.fm silently scrobbled
+        nothing. "Cannot reach it right now" is left alone, because the
+        normal connected/disconnected updates already cover that and will
+        correct themselves.
+        """
+        from refrain.startup_check import DISABLED, INVALID, OK
+
+        if discord.state == INVALID:
+            self._discord_action.setText(self.tr("Discord: rejected — check Application ID"))
+            self._discord_action.setIcon(QIcon.fromTheme("dialog-warning"))
+
+        if lastfm.state == DISABLED:
+            self._lastfm_action.setVisible(False)
+            return
+        self._lastfm_action.setVisible(True)
+        if lastfm.state == OK:
+            self._lastfm_action.setText(
+                self.tr("Last.fm: connected as {user}").format(user=lastfm.detail)
+                if lastfm.detail
+                else self.tr("Last.fm: connected")
+            )
+            self._lastfm_action.setIcon(QIcon.fromTheme("network-connect"))
+        elif lastfm.state == INVALID:
+            self._lastfm_action.setText(self.tr("Last.fm: session expired — reconnect"))
+            self._lastfm_action.setIcon(QIcon.fromTheme("dialog-warning"))
+        else:
+            self._lastfm_action.setText(self.tr("Last.fm: could not be verified"))
+            self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         if duration_ms <= 0:

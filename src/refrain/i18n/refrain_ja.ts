@@ -656,73 +656,103 @@ After confirming, click Apply at the bottom of the Settings window to save the r
 </context><context>
     <name>TrayIcon</name>
     <message>
-        <location filename="../ui/tray.py" line="255" />
+        <location filename="../ui/tray.py" line="297" />
         <location filename="../ui/tray.py" line="83" />
         <source>(nothing playing)</source>
         <translation>(再生なし)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="239" />
         <location filename="../ui/tray.py" line="96" />
         <source>Discord: not connected</source>
         <translation>Discord: 未接続</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="108" />
+        <location filename="../ui/tray.py" line="102" />
+        <source>Last.fm: not connected</source>
+        <translation>Last.fm: 未接続</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="115" />
         <source>Previous</source>
         <translation>前へ</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="214" />
-        <location filename="../ui/tray.py" line="111" />
+        <location filename="../ui/tray.py" line="222" />
+        <location filename="../ui/tray.py" line="118" />
         <source>Play</source>
         <translation>再生</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="114" />
+        <location filename="../ui/tray.py" line="121" />
         <source>Next</source>
         <translation>次へ</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="223" />
-        <location filename="../ui/tray.py" line="134" />
+        <location filename="../ui/tray.py" line="231" />
+        <location filename="../ui/tray.py" line="142" />
         <source>Update available</source>
         <translation>アップデートがあります</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="141" />
+        <location filename="../ui/tray.py" line="149" />
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="144" />
+        <location filename="../ui/tray.py" line="152" />
         <source>Live log…</source>
         <translation>ライブログ…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="148" />
+        <location filename="../ui/tray.py" line="156" />
         <source>Restart Refrain</source>
         <translation>Refrain を再起動</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="151" />
+        <location filename="../ui/tray.py" line="159" />
         <source>Quit Refrain</source>
         <translation>Refrain を終了</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="211" />
+        <location filename="../ui/tray.py" line="219" />
         <source>Pause</source>
         <translation>一時停止</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="220" />
+        <location filename="../ui/tray.py" line="228" />
         <source>Update available — v{version}</source>
         <translation>アップデートがあります — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="228" />
+        <location filename="../ui/tray.py" line="236" />
         <source>Discord: connected</source>
         <translation>Discord: 接続済み</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="255" />
+        <source>Discord: rejected — check Application ID</source>
+        <translation>Discord: 拒否されました — アプリケーション ID を確認</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="264" />
+        <source>Last.fm: connected as {user}</source>
+        <translation>Last.fm: {user} として接続済み</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="266" />
+        <source>Last.fm: connected</source>
+        <translation>Last.fm: 接続済み</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="270" />
+        <source>Last.fm: session expired — reconnect</source>
+        <translation>Last.fm: セッションが失効しました — 再接続してください</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="273" />
+        <source>Last.fm: could not be verified</source>
+        <translation>Last.fm: 確認できませんでした</translation>
     </message>
     <message>
         <source>⬆  Update available</source>
@@ -833,77 +863,77 @@ After confirming, click Apply at the bottom of the Settings window to save the r
         <translation>ようこそ</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="155" />
+        <location filename="../ui/welcome_dialog.py" line="166" />
         <source>Welcome to Refrain</source>
         <translation>Refrain へようこそ</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="158" />
+        <location filename="../ui/welcome_dialog.py" line="169" />
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Linux 向け Apple Music の Discord Rich Presence。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173" />
+        <location filename="../ui/welcome_dialog.py" line="184" />
         <source>Lives in the tray. &lt;b&gt;Right-click&lt;/b&gt; for player controls; &lt;b&gt;click&lt;/b&gt; to open Settings.</source>
         <translation>トレイに常駐します。&lt;b&gt;右クリック&lt;/b&gt;でプレイヤー操作、&lt;b&gt;クリック&lt;/b&gt;で設定を開きます。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="193" />
+        <location filename="../ui/welcome_dialog.py" line="204" />
         <source>Live diagnostics</source>
         <translation>ライブ診断</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="196" />
+        <location filename="../ui/welcome_dialog.py" line="207" />
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord — 確認中…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="197" />
+        <location filename="../ui/welcome_dialog.py" line="208" />
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ カバーアート検索 — 確認中…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="205" />
+        <location filename="../ui/welcome_dialog.py" line="216" />
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="210" />
+        <location filename="../ui/welcome_dialog.py" line="221" />
         <source>Register a free app on the &lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as "Listening to &amp;lt;name&amp;gt;" in your status.</source>
         <translation>&lt;a href="{url}"&gt;Discord Developer Portal&lt;/a&gt; で無料のアプリを登録してください — 選んだ名前があなたのステータスで「Listening to &amp;lt;名前&amp;gt;」として表示されます。</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="225" />
+        <location filename="../ui/welcome_dialog.py" line="236" />
         <source>e.g. 1234567890123456789</source>
         <translation>例: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="236" />
+        <location filename="../ui/welcome_dialog.py" line="247" />
         <source>Skip for now</source>
         <translation>今はスキップ</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="242" />
+        <location filename="../ui/welcome_dialog.py" line="253" />
         <source>Apply</source>
         <translation>適用</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266" />
+        <location filename="../ui/welcome_dialog.py" line="314" />
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="269" />
+        <location filename="../ui/welcome_dialog.py" line="317" />
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;カバーアート検索:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="304" />
+        <location filename="../ui/welcome_dialog.py" line="357" />
         <source>Skip Discord setup?</source>
         <translation>Discord のセットアップをスキップしますか?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="305" />
+        <location filename="../ui/welcome_dialog.py" line="358" />
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -912,24 +942,24 @@ Continue without Discord status?</source>
 Discord ステータスなしで続行しますか?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="318" />
+        <location filename="../ui/welcome_dialog.py" line="371" />
         <source>Invalid Application ID</source>
         <translation>無効な Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="319" />
+        <location filename="../ui/welcome_dialog.py" line="372" />
         <source>The Discord Application ID is a numeric snowflake (17–19 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID は数値の snowflake (17~19 桁) です。Developer Portal からコピーした値をもう一度確認してください。</translation>
     </message>
 </context><context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="971" />
+        <location filename="../app.py" line="1007" />
         <source>Updates</source>
         <translation>アップデート</translation>
     </message>
     <message>
-        <location filename="../app.py" line="972" />
+        <location filename="../app.py" line="1008" />
         <source>No update information available yet. Try again in a moment.</source>
         <translation>アップデート情報はまだありません。少し待って再試行してください。</translation>
     </message>

@@ -206,6 +206,25 @@ class LastfmClient:
         self.session_key = key
         return key, name
 
+    def validate_session(self) -> str:
+        """Confirm the stored session key is still accepted; return the user.
+
+        Last.fm session keys do not expire on their own, but they stop
+        working when the user revokes the application, changes their
+        password, or the key was restored from a stale copy. Nothing
+        noticed until the first scrobble of the session failed — which
+        can be an hour after startup — so the account looked connected
+        while silently scrobbling nothing.
+
+        Raises ``LastfmError``; check ``.invalid_session`` to tell "the
+        key is dead" apart from "Last.fm is unreachable right now".
+        """
+        if not self.session_key:
+            raise LastfmError("Last.fm not connected (no session key)")
+        data = self._call("user.getInfo", http_post=False, sk=self.session_key)
+        user = data.get("user") or {}
+        return str(user.get("name", "")).strip()
+
     # ---------------------------------------------------------- scrobbling
 
     def update_now_playing(
