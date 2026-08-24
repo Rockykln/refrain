@@ -9,6 +9,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing here
 
+## [0.4.5] - 2026-08-24
+
+Credential loss, a Discord connection that failed at random, an entire
+untranslated tab, and a legal notice that did not exist.
+
+### Fixed
+
+- **An empty Last.fm field deleted the stored credentials.** `save_from()`
+  treated a blank shared secret or session key as "forget this account".
+  Two very different situations produce that blank and the config object
+  cannot tell them apart: the user pressing Disconnect, and `load_into()`
+  having failed to read the values back at startup. The second happens
+  whenever the keyring goes away between sessions — a KWallet switched
+  off, a collection left locked — so the next Apply wiped the credentials
+  for good, including the `0600` file fallback holding them. From the
+  user's side the Last.fm login simply kept disappearing. Deletion is now
+  explicit and only follows an actual Disconnect.
+- **A stale IPC socket hid a running Discord.** pypresence's
+  `get_ipc_path()` probes candidates through `test_ipc_path()`, which
+  calls `socket.connect()` with no exception handling, so the first dead
+  `discord-ipc-N` it touches raises straight out of the scan and any live
+  socket behind it is never tried. The order comes from the filesystem,
+  so whether the connect worked was luck — and Discord leaves its socket
+  behind when it exits. Refrain now probes the slots itself, skips what
+  does not answer, and pins the proven slot.
+- **The welcome dialog clipped its live diagnostics.** It was
+  `setFixedSize`, and Qt never grows an already-shown window: a long
+  failure message lost its last lines with no scrollbar to reach them.
+  It now grows by exactly the missing height, and only when the layout
+  cannot absorb the text on its own.
+
+### Added
+
+- **A startup credential check.** Both credentials used to fail silently
+  and late — a rejected Discord Application ID only spoke up once there
+  was something to publish, a revoked Last.fm session only at the first
+  scrobble. A one-shot check now runs shortly after startup on its own
+  thread and reports in the tray, marking every log line with
+  `[startup-check]`. It separates what the user must act on from what
+  sorts itself out.
+- **Optional multi-client Discord support.** Discord and Vencord/Vesktop
+  are separate programs with separate IPC sockets, so a status sent to
+  one is invisible in the other. Settings → Discord can now publish to
+  every running client. Off by default; each connection is judged on its
+  own, so closing one client mid-song does not drop the status from the
+  rest.
+- **A legal notice**, in `LEGAL.md` and under Settings → Legal: no
+  affiliation with Apple, Discord, Last.fm or KDE, "Refrain" is not a
+  registered trademark, which licence applies, and what data leaves the
+  machine.
+
+### Changed
+
+- **46 strings are translated for the first time.** The `.ts` files
+  reflected a `lupdate` run from before the Last.fm feature landed, so an
+  entire tab shipped untranslated in all nine locales — nothing flagged
+  it because every file read as 100% complete. The strings simply were
+  not in them.
+
 ## [0.4.4] - 2026-08-24
 
 Fixed the MPRIS server never registering, so Plasma's media controls
@@ -1290,7 +1349,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/Rockykln/refrain/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/Rockykln/refrain/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/Rockykln/refrain/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Rockykln/refrain/compare/v0.4.1...v0.4.2
