@@ -11,6 +11,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
+import socket
 import time
 from pathlib import Path
 
@@ -90,6 +91,58 @@ def _bridge_sandboxed_ipc_socket() -> None:
             return
 
 
+# How many discord-ipc-N slots the RPC spec defines.
+_IPC_SLOTS = 10
+# A live socket answers immediately; this only guards against a peer that
+# accepts the connection but never completes it.
+_IPC_PROBE_TIMEOUT_S = 0.5
+
+
+def _runtime_dir() -> Path | None:
+    xdg = os.environ.get("XDG_RUNTIME_DIR")
+    if xdg:
+        return Path(xdg)
+    fallback = Path(f"/run/user/{os.getuid()}")
+    return fallback if fallback.is_dir() else None
+
+
+def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
+    """Return ``(live, stale)`` discord-ipc-N slot numbers.
+
+    pypresence cannot do this for us. Its ``get_ipc_path`` probes each
+    candidate with ``test_ipc_path``, which calls ``socket.connect()``
+    with no exception handling — so the *first* dead socket it happens to
+    touch raises ConnectionRefusedError straight out of the scan and the
+    live socket behind it is never tried. The order comes from
+    ``os.scandir``, i.e. the filesystem, so whether a connect succeeds is
+    luck. That is the "Discord was already running but Refrain didn't
+    connect" report: a ``discord-ipc-N`` left behind by a previous
+    Discord session shadows the running one. Several clients at once
+    (Discord plus Vencord/Vesktop) make it likelier still, because there
+    are simply more sockets to trip over.
+    """
+    runtime_dir = _runtime_dir()
+    if runtime_dir is None:
+        return [], []
+    live: list[int] = []
+    stale: list[int] = []
+    for n in range(_IPC_SLOTS):
+        path = runtime_dir / f"discord-ipc-{n}"
+        try:
+            if not path.is_socket():
+                continue
+        except OSError:
+            continue
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
+                probe.settimeout(_IPC_PROBE_TIMEOUT_S)
+                probe.connect(str(path))
+            live.append(n)
+        except OSError:
+            stale.append(n)
+    return live, stale
+
+
 class DiscordRPC:
     def __init__(self, client_id: str):
         self.client_id = (client_id or "").strip()
@@ -105,6 +158,8 @@ class DiscordRPC:
         # on a drift-resync), so most ticks would otherwise be
         # entirely redundant.
         self._last_payload: dict | None = None
+        # Remembered so a changing client line-up is logged once, not per tick.
+        self._last_live_pipes: list[int] = []
         # Cap retry backoff at 15 s instead of 60 s — autostart launches
         # refrain before Discord is ready, and a 60 s ceiling means the
         # user can sit there for almost a minute after Discord finishes
@@ -138,8 +193,28 @@ class DiscordRPC:
             _bridge_sandboxed_ipc_socket()
         except Exception as e:
             log.debug("Sandboxed-IPC bridge failed: %s", e)
+        live, stale = _scan_ipc_pipes()
+        if stale:
+            log.debug(
+                "Discord IPC: skipping stale socket(s) %s",
+                ", ".join(f"discord-ipc-{n}" for n in stale),
+            )
+        if len(live) > 1:
+            log.info(
+                "Discord IPC: %d clients listening (%s) — using discord-ipc-%d",
+                len(live),
+                ", ".join(f"discord-ipc-{n}" for n in live),
+                live[0],
+            )
+        if live != self._last_live_pipes:
+            self._last_live_pipes = live
         try:
-            p = Presence(self.client_id)
+            # Pin the pipe we just proved is alive. Left to itself,
+            # pypresence rescans and can abort on a stale socket before
+            # reaching this one — see _scan_ipc_pipes. Falling back to
+            # its own discovery keeps the Snap/Flatpak paths it knows
+            # about working when nothing is visible in XDG_RUNTIME_DIR.
+            p = Presence(self.client_id, pipe=live[0]) if live else Presence(self.client_id)
             p.connect()
             self._presence = p
             self._backoff_s = 2.0
@@ -149,7 +224,10 @@ class DiscordRPC:
             # connection (Discord would then keep showing nothing
             # until the daemon picks up a metadata change).
             self._last_payload = None
-            log.info("Discord RPC connected")
+            log.info(
+                "Discord RPC connected (discord-ipc-%s)",
+                live[0] if live else "auto",
+            )
             return True
         except (
             ppx.DiscordNotFound,
