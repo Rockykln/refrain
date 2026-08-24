@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Nothing here
 
+## [0.4.3] - 2026-08-24
+
+Fixed a startup crash on installs that run against the PySide6 wheel's
+bundled Qt while the distro ships a newer Qt patch release.
+
+### Fixed
+
+- **No Qt platform plugin could be initialized on a patch-version skew.**
+  `_augment_qt_plugin_path()` adds the distro's Qt plugin tree so a
+  pip / pipx / AppImage install can still find the system styles, and it
+  gated that on Qt's `MAJOR.MINOR` alone. That is not the rule Qt
+  enforces: Qt refuses any plugin built against a *newer* Qt than the one
+  running. On a rolling distro one patch ahead of the wheel (bundled Qt
+  6.11.1, system Qt 6.11.2) the check passed, and because
+  `addLibraryPath()` *prepends*, the rejected system `wayland` and `xcb`
+  plugins shadowed the wheel's own working copies instead of falling back
+  to them — the app aborted with "This application failed to start
+  because no Qt platform plugin could be initialized". Two guards now
+  apply: the version check mirrors Qt's actual rule (same `MAJOR.MINOR`
+  *and* the system Qt no newer than ours), and the plugin tree is
+  appended rather than prepended, so the bundled Qt keeps first claim on
+  the platform plugin. A mismatched system tree can now only cost the
+  themed style, never the ability to start. Installs running against the
+  distro PySide6 — the AUR and distro packages — were never affected;
+  they short-circuit before any of this.
+
 ## [0.4.2] - 2026-08-12
 
 Fixed Apple Music RPC URL handling and Discord buttons,
@@ -1237,7 +1263,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/Rockykln/refrain/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/Rockykln/refrain/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/Rockykln/refrain/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Rockykln/refrain/compare/v0.3.0...v0.4.0

@@ -51,6 +51,15 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.4.3" date="2026-08-24">
+      <description>
+        <p>
+          Fixed a startup crash on systems whose Qt is a patch release ahead
+          of the one bundled with PySide6, which left pip, pipx and AppImage
+          installs unable to initialise any Qt platform plugin.
+        </p>
+      </description>
+    </release>
     <release version="0.4.2" date="2026-08-12">
       <description>
         <p>

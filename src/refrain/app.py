@@ -123,6 +123,40 @@ def _detect_system_qt6_version() -> str | None:
     return None
 
 
+def _qt_version_tuple(version: str) -> tuple[int, ...]:
+    """Parse ``"6.11.2"`` into ``(6, 11, 2)``, stopping at the first
+    non-numeric component so suffixed versions still compare sanely."""
+    parts: list[int] = []
+    for chunk in version.split("."):
+        digits = ""
+        for ch in chunk:
+            if not ch.isdigit():
+                break
+            digits += ch
+        if not digits:
+            break
+        parts.append(int(digits))
+    return tuple(parts)
+
+
+def _system_qt_plugins_loadable(bundled: str, system: str) -> bool:
+    """Whether the system Qt's plugins can load into our bundled Qt.
+
+    Qt refuses a plugin built against a *newer* Qt than the one running,
+    so the system tree is only usable when it shares our MAJOR.MINOR and
+    is no newer at the patch level. A distro that is a single patch ahead
+    (bundled 6.11.1, system 6.11.2 — the common case on a rolling distro)
+    would otherwise hand us platform plugins Qt then rejects.
+    """
+    b = _qt_version_tuple(bundled)
+    s = _qt_version_tuple(system)
+    if len(b) < 2 or len(s) < 2:
+        return False
+    if b[:2] != s[:2]:
+        return False
+    return s <= b
+
+
 # Where distros put Qt 6 plugins. Order matters: try the
 # multiarch path first (Debian/Ubuntu derivatives), then lib64
 # (Fedora/RHEL/openSUSE), then the plain lib (Arch/CachyOS).
@@ -151,10 +185,11 @@ def _augment_qt_plugin_path() -> None:
     visibly different from the AUR / system build that runs against the
     distro PySide6.
 
-    If a system Qt 6 plugin tree exists and the system Qt's MAJOR.MINOR
-    matches ours, we prepend it so Qt finds the styles. We require a
-    minor-version match because mixing plugins across Qt minors risks
-    a silent ABI break.
+    If a system Qt 6 plugin tree exists and its plugins can actually load
+    into our Qt (see ``_system_qt_plugins_loadable``), we *append* it so
+    Qt finds the styles. Appending matters: the bundled Qt must keep first
+    claim on the platform plugin, otherwise a system plugin that Qt then
+    refuses takes the whole startup down with it.
 
     Must be called before ``QApplication`` is constructed — Qt resolves
     the platform/style plugin during construction.
@@ -174,13 +209,11 @@ def _augment_qt_plugin_path() -> None:
     if not system_version:
         log.debug("Could not determine system Qt 6 version; not augmenting plugin path")
         return
-    bundled_minor = ".".join(bundled_version.split(".")[:2])
-    system_minor = ".".join(system_version.split(".")[:2])
-    if bundled_minor != system_minor:
+    if not _system_qt_plugins_loadable(bundled_version, system_version):
         log.debug(
-            "Qt minor mismatch (bundled=%s system=%s); not augmenting plugin path",
-            bundled_version,
+            "System Qt %s cannot supply plugins for bundled Qt %s; not augmenting plugin path",
             system_version,
+            bundled_version,
         )
         return
     log.info(
@@ -189,7 +222,10 @@ def _augment_qt_plugin_path() -> None:
         bundled_version,
         system_version,
     )
-    QCoreApplication.addLibraryPath(str(system_plugins))
+    # Append, never prepend (``addLibraryPath`` prepends): the bundled Qt
+    # keeps first claim on the platform plugin, so a mismatched system tree
+    # can only cost us the styles, never the ability to start.
+    QCoreApplication.setLibraryPaths(QCoreApplication.libraryPaths() + [str(system_plugins)])
 
 
 def _user_apps_dir() -> Path:
