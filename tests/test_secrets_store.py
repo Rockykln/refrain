@@ -80,12 +80,40 @@ def test_save_from_persists_and_clears(file_store):
     save_from(cfg, store=file_store)
     assert file_store.get(LASTFM_SHARED_SECRET) == "a"
     assert file_store.get(LASTFM_SESSION_KEY) == "b"
-    # Emptying the fields (disconnect) must wipe them from storage.
+    # Pressing Disconnect empties the fields *and* asks for a wipe.
     cfg.shared_secret = ""
     cfg.session_key = ""
-    save_from(cfg, store=file_store)
+    save_from(cfg, store=file_store, clear_missing=True)
     assert file_store.get(LASTFM_SHARED_SECRET) is None
     assert file_store.get(LASTFM_SESSION_KEY) is None
+
+
+def test_save_from_keeps_secrets_when_the_config_never_loaded(file_store):
+    """Regression: an empty field is not consent to delete.
+
+    When the keyring goes away between sessions — a KWallet the user
+    switched off, a collection that stayed locked — ``load_into`` leaves
+    the config blank. Applying settings then used to call ``delete()``
+    and destroy the fallback copy too, turning a temporary read failure
+    into permanent credential loss.
+    """
+    file_store.set(LASTFM_SHARED_SECRET, "keep-me")
+    file_store.set(LASTFM_SESSION_KEY, "keep-me-too")
+
+    save_from(LastfmConfig(), store=file_store)  # blank, no intent to clear
+
+    assert file_store.get(LASTFM_SHARED_SECRET) == "keep-me"
+    assert file_store.get(LASTFM_SESSION_KEY) == "keep-me-too"
+
+
+def test_save_from_still_updates_one_field_while_keeping_the_other(file_store):
+    file_store.set(LASTFM_SHARED_SECRET, "old-secret")
+    file_store.set(LASTFM_SESSION_KEY, "keep-session")
+
+    save_from(LastfmConfig(shared_secret="new-secret"), store=file_store)
+
+    assert file_store.get(LASTFM_SHARED_SECRET) == "new-secret"
+    assert file_store.get(LASTFM_SESSION_KEY) == "keep-session"
 
 
 def test_config_to_dict_never_emits_secrets():

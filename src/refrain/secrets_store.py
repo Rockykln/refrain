@@ -338,19 +338,35 @@ def load_into(lastfm, store: SecretStore | None = None) -> None:
         log.exception("Loading Last.fm secrets failed; scrobbling may need a reconnect")
 
 
-def save_from(lastfm, store: SecretStore | None = None) -> None:
-    """Persist (or clear) the Last.fm secrets from a LastfmConfig into
-    secure storage. Called on Settings Apply, alongside Config.save().
+def save_from(lastfm, store: SecretStore | None = None, *, clear_missing: bool = False) -> None:
+    """Persist the Last.fm secrets from a LastfmConfig into secure storage.
+    Called on Settings Apply, alongside Config.save().
+
+    An empty field is **not** treated as "delete this" unless
+    ``clear_missing`` is set. The two are indistinguishable in the config
+    object but mean opposite things: the user pressing Disconnect, versus
+    ``load_into`` having failed to read the value back at startup. The
+    latter happens whenever the keyring goes away between sessions — a
+    KWallet that got disabled, a locked collection, a login keyring that
+    never got unlocked — and deleting on it turned a temporary read
+    failure into permanent credential loss. Callers that genuinely mean
+    "forget this account" pass ``clear_missing=True``.
+
     ``store`` is injectable for tests."""
     store = store or _default
     try:
         if lastfm.shared_secret:
             store.set(LASTFM_SHARED_SECRET, lastfm.shared_secret)
-        else:
+        elif clear_missing:
             store.delete(LASTFM_SHARED_SECRET)
+        else:
+            log.debug("Last.fm shared secret empty; keeping the stored copy")
+
         if lastfm.session_key:
             store.set(LASTFM_SESSION_KEY, lastfm.session_key)
-        else:
+        elif clear_missing:
             store.delete(LASTFM_SESSION_KEY)
+        else:
+            log.debug("Last.fm session key empty; keeping the stored copy")
     except Exception:
         log.exception("Saving Last.fm secrets failed")

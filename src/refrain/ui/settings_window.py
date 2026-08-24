@@ -269,6 +269,10 @@ class SettingsWindow(QDialog):
         self._lastfm_session_key = ""
         self._lastfm_username = ""
         self._lastfm_token = ""
+        # True only after the user actually pressed Disconnect. An empty
+        # session key otherwise means "we never managed to load it", and
+        # must not wipe the stored credentials — see secrets_store.save_from.
+        self._lastfm_disconnect_requested = False
         self._lastfm_client: LastfmClient | None = None
         self._lastfm_auth_thread: QThread | None = None
         self._lastfm_auth_worker: _LastfmAuthWorker | None = None
@@ -939,6 +943,7 @@ class SettingsWindow(QDialog):
         ):
             self._lastfm_session_key = ""
             self._lastfm_username = ""
+            self._lastfm_disconnect_requested = True
             self._refresh_lastfm_status()
             return
         if self._lastfm_auth_thread is not None:
@@ -1006,6 +1011,7 @@ class SettingsWindow(QDialog):
         self._finish_lastfm_thread()
         self._lastfm_token = ""
         self._lastfm_session_key = key
+        self._lastfm_disconnect_requested = False
         self._lastfm_username = name
         self._refresh_lastfm_status()
         if name:
@@ -1062,6 +1068,7 @@ class SettingsWindow(QDialog):
         self.lastfm_secret_input.setText(c.lastfm.shared_secret)
         self.lastfm_nowplaying_box.setChecked(c.lastfm.scrobble_now_playing)
         self._lastfm_session_key = c.lastfm.session_key
+        self._lastfm_disconnect_requested = False
         self._lastfm_username = c.lastfm.username
         self._refresh_lastfm_status()
 
@@ -1202,7 +1209,7 @@ class SettingsWindow(QDialog):
         # vice-versa.
         from refrain.secrets_store import save_from as _save_lastfm_secrets
 
-        _save_lastfm_secrets(c.lastfm)
+        _save_lastfm_secrets(c.lastfm, clear_missing=self._lastfm_disconnect_requested)
         self.applied.emit(c)
         # Apply triggers a restart automatically when the user changed
         # the UI language or the Discord client_id. Both need a fresh
