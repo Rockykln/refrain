@@ -414,3 +414,15 @@ Refrain is **source-available but not open source**. In short:
 
 Third-party dependencies (`PySide6`, `pypresence`, `dbus-python`) retain
 their original licenses (LGPL / MIT).
+
+## Legal
+
+Refrain is an independent project. It is **not affiliated with, sponsored
+by, or endorsed by** Apple, Discord, Last.fm or KDE, and **"Refrain" is not
+a registered trademark**. All product names and trademarks belong to their
+respective owners and are used only to describe what Refrain interoperates
+with.
+
+Full notice — trademarks, licence, third-party components, and what data
+leaves your machine — in [`LEGAL.md`](LEGAL.md). The same text is reachable
+inside the app under **Settings → Legal**.

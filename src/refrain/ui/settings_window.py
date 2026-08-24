@@ -305,9 +305,16 @@ class SettingsWindow(QDialog):
         github_btn.setToolTip(self.tr("View Refrain on GitHub"))
         github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(GITHUB_URL)))
 
+        legal_btn = QPushButton(self.tr("Legal"))
+        legal_btn.setFlat(True)
+        legal_btn.setCursor(Qt.PointingHandCursor)
+        legal_btn.setToolTip(self.tr("Licence, trademark and affiliation notices"))
+        legal_btn.clicked.connect(self._show_legal)
+
         version_row = QHBoxLayout()
         version_row.setContentsMargins(0, 0, 0, 0)
         version_row.addStretch()
+        version_row.addWidget(legal_btn)
         version_row.addWidget(version_label)
         version_row.addWidget(github_btn)
 
@@ -1026,6 +1033,13 @@ class SettingsWindow(QDialog):
     # ====================================================================
     # Form load + save
     # ====================================================================
+
+    def _show_legal(self) -> None:
+        """Open the legal notice. Imported lazily — it is a rarely used
+        dialog and there is no reason to build it on every settings open."""
+        from refrain.ui.legal_dialog import LegalDialog
+
+        LegalDialog(self).exec()
 
     def _load_into_form(self) -> None:
         c = self._config
