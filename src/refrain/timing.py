@@ -7,6 +7,7 @@ suite can exercise it in isolation without the GUI runtime installed.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from enum import StrEnum
 
 
 def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
@@ -91,191 +92,178 @@ def compute_rpc_start_ts(
     return prev_start_ts, False
 
 
+class PositionTier(StrEnum):
+    """Which of the three position sources produced the current value."""
+
+    REPORTED = "reported"  # the source's own Position, believed
+    COMPUTED = "computed"  # our clock, anchored at a track start we saw
+    UNKNOWN = "unknown"  # neither is trustworthy — render nothing
+
+
 @dataclass
 class PositionState:
-    """Rolling view of the source's reported ``Position`` for one track.
-
-    Owned by the daemon worker and handed back into
-    :func:`compensate_stalled_position` on every poll. Kept as a plain
-    dataclass (rather than worker attributes) so the stall logic stays
-    pure and unit-testable without a D-Bus or Qt runtime.
-    """
+    """Everything the resolver remembers between polls, for one track."""
 
     track_key: str = ""
-    # Last *source-reported* position, and the monotonic timestamp at
-    # which that value first showed up. Everything else is derived.
-    raw_position_ms: int = 0
-    anchor_at: float = 0.0
-    stalled: bool = False
+    # Our own clock: the monotonic instant this track is believed to have
+    # started, plus paused time to discount from the elapsed span.
+    started_at: float = 0.0
+    paused_ms: int = 0
+    paused_since: float = 0.0
+    # True once we know where this track began — either the source
+    # reported it near zero, or we witnessed the change from another
+    # track. False when Refrain came up mid-song: the clock has no zero
+    # to count from, and inventing one would be a lie.
+    anchored: bool = False
+    # Freshness of the source's own value: what it last read, and when it
+    # last actually moved.
+    last_reported_ms: int = 0
+    moved_at: float = 0.0
 
 
-def compensate_stalled_position(
+def resolve_position(
     state: PositionState,
     track_key: str,
-    position_ms: int,
+    reported_ms: int,
     duration_ms: int,
     is_playing: bool,
     now: float,
     stall_after_s: float = 4.0,
     tolerance_ms: int = 250,
-) -> tuple[int, PositionState]:
-    """Detect a frozen ``Position`` on a still-playing source and keep
-    the clock running from wall time.
-
-    Apple Music's MPRIS surface intermittently stops updating
-    ``Position`` mid-track while ``PlaybackStatus`` stays ``Playing``:
-    plasma-browser-integration's property cache goes stale, or the
-    browser-native player only refreshes Position on a seek event. The
-    song keeps playing in the tab, but every consumer that trusts
-    Position (tray progress label, Discord's elapsed timer, the MPRIS
-    server we publish to Plasma) sticks at the same second until the
-    user seeks manually or restarts the track.
-
-    The check: while the track is PLAYING and the same ``track_key``
-    keeps reporting a position that hasn't moved by more than
-    ``tolerance_ms`` for longer than ``stall_after_s`` seconds, the
-    source is considered stalled. From then on the returned position is
-    ``anchor position + wall-clock time since the anchor``, clamped to
-    ``duration_ms`` — i.e. we run the clock ourselves instead of
-    echoing a frozen number.
-
-    ``tolerance_ms`` (not "exactly equal") absorbs sources that update
-    Position coarsely: at a 250 ms poll interval a player refreshing
-    once per second legitimately reports the same value twice in a
-    row. Only a freeze that outlives ``stall_after_s`` counts.
-
-    Recovery is automatic: as soon as the source reports a position
-    that moved — a real tick, a seek, or the user's manual nudge — that
-    value re-anchors the state and is passed through untouched.
-
-    ``stall_after_s <= 0`` disables the whole mechanism (config knob
-    ``advanced.position_stall_s``), and any non-playing / trackless
-    poll resets the state, so a genuine pause is never extrapolated
-    over. The one case this cannot distinguish is a source that lies
-    about PlaybackStatus while actually paused; the clamp to
-    ``duration_ms`` bounds how far that can run, and idle detection
-    clears it from there.
-
-    Returns ``(effective_position_ms, new_state)``.
-    """
-    if stall_after_s <= 0 or not is_playing or not track_key:
-        return position_ms, PositionState()
-
-    fresh = PositionState(
-        track_key=track_key,
-        raw_position_ms=position_ms,
-        anchor_at=now,
-        stalled=False,
-    )
-    if track_key != state.track_key:
-        return position_ms, fresh
-    if abs(position_ms - state.raw_position_ms) > tolerance_ms:
-        # Source is alive — a normal tick, a seek, or the preview-clip
-        # 0→8s→0 loop. Re-anchor and pass the real value through.
-        return position_ms, fresh
-
-    frozen_s = now - state.anchor_at
-    if frozen_s <= stall_after_s:
-        # Not frozen long enough to call it: keep the existing anchor
-        # (so the freeze window keeps accumulating) and report as-is.
-        return position_ms, state
-
-    projected_ms = state.raw_position_ms + int(frozen_s * 1000)
-    if duration_ms > 0:
-        projected_ms = min(projected_ms, duration_ms)
-    return projected_ms, replace(state, stalled=True)
-
-
-@dataclass
-class QueueOffsetState:
-    """Where the current track begins on a queue-cumulative timeline."""
-
-    track_key: str = ""
-    # Queue position at which the current track started. 0 for a normal
-    # source, whose Position is already track-relative.
-    offset_ms: int = 0
-    # Last raw position seen on *any* track — the continuation check
-    # compares against it to tell "next track" from "position reset".
-    last_position_ms: int = 0
-    # Latched once the source has been observed continuing its position
-    # across a track change, so later transitions anchor even if we
-    # notice them a few polls late.
-    cumulative: bool = False
-    # Whether the mid-track rescue anchor below has already been spent
-    # on this track. Bounds it to once, so a track whose catalog length
-    # is too short can't loop the display 0→end→0.
-    rescued: bool = False
-
-
-def resolve_track_position(
-    state: QueueOffsetState,
-    track_key: str,
-    position_ms: int,
-    duration_ms: int,
-    continuation_tolerance_ms: int = 2_500,
     overrun_grace_ms: int = 5_000,
-) -> tuple[int, QueueOffsetState]:
-    """Convert a queue-cumulative ``Position`` into a track-relative one.
+) -> tuple[int | None, PositionTier, PositionState]:
+    """Resolve the current position through three tiers, in order.
 
-    Apple Music's web player does not restart ``Position`` at each
-    track. It exposes the whole listening session as one timeline:
-    ``mpris:length`` grows as the queue extends, and ``Position`` counts
-    up across track boundaries — the second song of a queue starts at
-    the first song's length, the third at the sum of the first two, and
-    so on. Observed live: three tracks in, Position read 11:08 on a song
-    whose real length is 2:25.
+    Sources lie about position in several different ways, and each lie
+    used to need its own patch. This is the single decision instead:
 
-    Everything downstream then breaks in the same direction. The tray
-    label clamps position to duration and pins at ``2:24 / 2:25
-    (-0:00)`` — the "elapsed time is stuck" report. Discord gets a
-    ``start`` hundreds of seconds in the past and an ``end`` that has
-    already gone by. Seeking or restarting the song "fixes" it only
-    because that drags Position back under the track's length.
+    1. **What the source reports**, when it holds up. It must be
+       non-negative, must not sit past the end of the track (Apple
+       Music's web player counts Position across the whole queue, so
+       three songs in it reads 11:08 on a 2:25 track), and — while
+       playing — must actually be moving (the same player stops
+       refreshing Position mid-track while still reporting Playing).
+       Accepting it also re-anchors our own clock to it, so tier 2 can
+       pick up from the last value known to be good.
 
-    So we anchor instead: when a track change arrives with a position
-    that *continued* from the previous track rather than resetting, the
-    source is queue-cumulative and that position is where this track
-    begins. Subtracting it yields the real in-track position.
+    2. **Our own clock**, when the reported value fails but we know when
+       the track started: wall-clock elapsed since that anchor, minus
+       time spent paused. This is what carries a queue-cumulative or
+       frozen source through to the end of the track.
 
-    A source whose Position is already track-relative — every normal
-    MPRIS player, Bluetooth AVRCP — resets to ~0 at each change, fails
-    the continuation test, and keeps an offset of 0. The conversion is
-    a no-op for them, which is why it can sit in the common path.
+    3. **Nothing.** No anchor to count from, or even our own clock has
+       run past the end of the track — the source has been claiming
+       "playing" for longer than the song lasts. The caller hides the
+       time entirely rather than showing a number known to be wrong.
 
-    One case has no recoverable anchor: a track already playing when
-    Refrain started, so its transition was never observed. The position
-    then runs past the track's real length, and once past
-    ``overrun_grace_ms`` we re-anchor to get a moving clock back — once
-    per track only. That single track reads low by however much of it
-    had already played; the next track change is exact again.
+    ``duration_ms <= 0`` means the source gave no length (common on
+    Bluetooth AVRCP): start and end are the same instant, so the two
+    end-of-track checks are skipped and only movement decides. The
+    caller renders elapsed-only in that case, as it always has.
 
-    Returns ``(track_relative_position_ms, new_state)``.
+    Returns ``(position_ms_or_None, tier, new_state)``.
     """
     if not track_key:
-        return position_ms, QueueOffsetState()
+        return None, PositionTier.UNKNOWN, PositionState()
 
     if track_key != state.track_key:
-        delta = position_ms - state.last_position_ms
-        continued = (
-            bool(state.track_key)
-            and position_ms > continuation_tolerance_ms
-            and -500 <= delta <= continuation_tolerance_ms
-        )
-        cumulative = continued or state.cumulative
-        state = QueueOffsetState(
-            track_key=track_key,
-            offset_ms=position_ms if cumulative else 0,
-            last_position_ms=position_ms,
-            cumulative=cumulative,
-        )
+        state, moved = _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms), True
     else:
-        state = replace(state, last_position_ms=position_ms)
+        state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
+    state = _track_pause(state, is_playing, now)
 
-    relative_ms = position_ms - state.offset_ms
-    if duration_ms > 0 and not state.rescued and relative_ms > duration_ms + overrun_grace_ms:
-        # No usable anchor for this track (Refrain came up mid-song, or
-        # a transition slipped past). Re-anchor here: a clock that runs
-        # from the wrong zero still beats one frozen at the end.
-        state = replace(state, offset_ms=position_ms, rescued=True)
-        return 0, state
-    return max(0, relative_ms), state
+    # -- tier 1: the source's own value -------------------------------
+    # `stall_after_s <= 0` disables the freshness check entirely, which
+    # is what `advanced.position_stall_s = 0` is documented to do.
+    frozen = stall_after_s > 0 and is_playing and (now - state.moved_at) > stall_after_s
+    past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
+    if reported_ms >= 0 and not frozen and not past_end:
+        if not moved:
+            # Believed, but standing still — inside the stall window, or
+            # paused. Re-syncing the clock to a value that isn't moving
+            # would drag its zero along with it and quietly swallow the
+            # seconds the source spent stuck.
+            return reported_ms, PositionTier.REPORTED, state
+        # Believed and moving — so make it our clock's zero as well. If
+        # the source goes bad later in this track, tier 2 resumes here.
+        return (
+            reported_ms,
+            PositionTier.REPORTED,
+            replace(
+                state,
+                started_at=now - reported_ms / 1000.0,
+                paused_ms=0,
+                paused_since=now if not is_playing else 0.0,
+                anchored=True,
+            ),
+        )
+
+    # -- tier 2: our own clock ----------------------------------------
+    if state.anchored:
+        elapsed_ms = int((now - state.started_at) * 1000) - state.paused_ms
+        if state.paused_since:
+            elapsed_ms -= int((now - state.paused_since) * 1000)
+        if elapsed_ms >= 0 and (duration_ms <= 0 or elapsed_ms <= duration_ms + overrun_grace_ms):
+            return elapsed_ms, PositionTier.COMPUTED, state
+
+    # -- tier 3: no honest answer -------------------------------------
+    return None, PositionTier.UNKNOWN, state
+
+
+def _anchor_new_track(
+    state: PositionState,
+    track_key: str,
+    reported_ms: int,
+    now: float,
+    tolerance_ms: int,
+) -> PositionState:
+    """Start a fresh clock for a track, anchored if we can place its start.
+
+    Two ways to know where the track began: the source restarted its
+    position for it (every ordinary MPRIS player, Bluetooth AVRCP), or
+    we were already watching another track and saw this one take over —
+    which places the boundary within one poll, whatever the source's
+    numbers say. Neither applies to the track that was already playing
+    when Refrain started, and that one stays unanchored.
+    """
+    # A negative position is garbage, not a track start — it must not
+    # place a zero the clock would then count from.
+    reset_by_source = 0 <= reported_ms <= max(tolerance_ms, 2_000)
+    witnessed_change = bool(state.track_key)
+    anchored = reset_by_source or witnessed_change
+    return PositionState(
+        track_key=track_key,
+        started_at=now - (reported_ms / 1000.0 if reset_by_source else 0.0),
+        anchored=anchored,
+        last_reported_ms=reported_ms,
+        moved_at=now,
+    )
+
+
+def _track_movement(
+    state: PositionState, reported_ms: int, now: float, tolerance_ms: int
+) -> tuple[PositionState, bool]:
+    """Remember when the source's value last actually changed.
+
+    The tolerance rather than exact equality absorbs players that
+    refresh Position coarsely: at a 250 ms poll a source updating once
+    per second legitimately repeats itself.
+
+    Returns ``(new_state, moved_this_poll)``.
+    """
+    if abs(reported_ms - state.last_reported_ms) > tolerance_ms:
+        return replace(state, last_reported_ms=reported_ms, moved_at=now), True
+    return state, False
+
+
+def _track_pause(state: PositionState, is_playing: bool, now: float) -> PositionState:
+    """Accumulate paused time so our own clock doesn't run through a pause."""
+    if is_playing and state.paused_since:
+        return replace(
+            state,
+            paused_ms=state.paused_ms + int((now - state.paused_since) * 1000),
+            paused_since=0.0,
+        )
+    if not is_playing and not state.paused_since:
+        return replace(state, paused_since=now)
+    return state

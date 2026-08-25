@@ -30,11 +30,10 @@ from refrain.sources.mpris import MPRISSource
 from refrain.sources.mpris_server import MPRISServer
 from refrain.timing import (
     PositionState,
-    QueueOffsetState,
-    compensate_stalled_position,
+    PositionTier,
     compute_rpc_start_ts,
     pick_effective_duration_ms,
-    resolve_track_position,
+    resolve_position,
 )
 
 log = logging.getLogger(__name__)
@@ -292,17 +291,17 @@ class DaemonWorker(QObject):
         # clear playback state in `_poll` once that window expires.
         self._idle_track_key = ""
         self._idle_seen_at: float = 0.0
-        # Frozen-position detection: some MPRIS sources stop updating
-        # `Position` mid-track while still reporting PLAYING, which
-        # freezes the tray label, Discord's elapsed timer and the MPRIS
-        # server we publish. `_apply_stall_compensation` takes over the
-        # clock from wall time once that happens.
+        # Position resolution. Sources misreport position in several
+        # ways (a queue-cumulative timeline, a Position that stops
+        # refreshing mid-track), so `_resolve_position` runs one tiered
+        # decision per poll: the source's own value when it holds up,
+        # our own clock when it doesn't, and nothing at all when neither
+        # is honest. `_position_known` carries that last case to the
+        # tray, Discord and the MPRIS server so they hide the time
+        # instead of rendering a wrong one.
         self._position_state = PositionState()
-        # Queue-cumulative sources: Apple Music's web player counts
-        # Position across track boundaries instead of restarting it per
-        # track. `_apply_queue_offset` anchors each track so everything
-        # downstream sees a real in-track position.
-        self._queue_offset = QueueOffsetState()
+        self._position_tier = PositionTier.UNKNOWN
+        self._position_known = False
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
@@ -480,8 +479,7 @@ class DaemonWorker(QObject):
 
     def _poll(self) -> TrackInfo:
         track = self._poll_sources()
-        track = self._apply_queue_offset(track)
-        track = self._apply_stall_compensation(track)
+        track = self._resolve_position(track)
         return self._apply_idle_detection(track)
 
     def _poll_sources(self) -> TrackInfo:
@@ -520,50 +518,19 @@ class DaemonWorker(QObject):
         )
         return pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
 
-    def _apply_queue_offset(self, track: TrackInfo) -> TrackInfo:
-        """Turn a queue-cumulative `Position` into a track-relative one.
+    def _resolve_position(self, track: TrackInfo) -> TrackInfo:
+        """Decide what this track's position actually is — or that we don't know.
 
-        Runs first in the poll pipeline, ahead of stall compensation and
-        idle detection, so every consumer — and every later stage of the
-        pipeline — works with a position that actually belongs to the
-        current track. Sitting upstream of idle detection also means the
-        anchor survives an idle clear: the source keeps reporting the
-        track, so the next real transition is still recognised as one.
+        Runs first in the poll pipeline so every stage below it, and
+        every consumer in `_dispatch`, works from the same answer.
+        Sitting upstream of idle detection also keeps the clock's anchor
+        alive across an idle clear, since the source itself carries on
+        reporting the track.
         """
         track_key = (
             f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
         )
-        was_cumulative = self._queue_offset.cumulative
-        position_ms, new_state = resolve_track_position(
-            self._queue_offset,
-            track_key,
-            track.position_ms,
-            self._effective_duration_ms(track),
-        )
-        self._queue_offset = new_state
-        if new_state.cumulative and not was_cumulative:
-            log.info(
-                "Source reports a queue-cumulative position (track starts at %.1fs on the "
-                "queue timeline) — reporting positions relative to the track from here",
-                new_state.offset_ms / 1000.0,
-            )
-        if position_ms == track.position_ms:
-            return track
-        return dataclasses.replace(track, position_ms=position_ms)
-
-    def _apply_stall_compensation(self, track: TrackInfo) -> TrackInfo:
-        """Keep the track clock moving when the source's `Position` freezes.
-
-        Runs before idle detection and before `_dispatch`, so the tray
-        label, the Discord RPC `start` timestamp and the MPRIS server we
-        publish all see the same corrected position — the user no longer
-        has to seek manually or restart the song to unstick the timer.
-        """
-        track_key = (
-            f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
-        )
-        was_stalled = self._position_state.stalled
-        position_ms, new_state = compensate_stalled_position(
+        position_ms, tier, new_state = resolve_position(
             self._position_state,
             track_key,
             track.position_ms,
@@ -573,21 +540,23 @@ class DaemonWorker(QObject):
             stall_after_s=float(self._config.advanced.position_stall_s),
         )
         self._position_state = new_state
-        # Log only the two transitions, never per tick — a stall lasts
-        # for hundreds of polls and would otherwise flood the live log
-        # the same way un-suppressed idle detection used to.
-        if new_state.stalled and not was_stalled:
+        self._position_known = position_ms is not None
+        # Log the tier transitions only — a degraded source stays
+        # degraded for hundreds of polls, and per-tick logging would
+        # drown the live log the way un-suppressed idle detection did.
+        if tier != self._position_tier and track.has_track:
             log.info(
-                "Source position frozen at %.1fs while still PLAYING — "
-                "running the track clock from wall time instead",
-                new_state.raw_position_ms / 1000.0,
+                "Position: %s → %s%s",
+                self._position_tier.value,
+                tier.value,
+                {
+                    PositionTier.REPORTED: " (source's own value)",
+                    PositionTier.COMPUTED: " (source unusable; counting from the track start)",
+                    PositionTier.UNKNOWN: " (no honest value — hiding the time)",
+                }[tier],
             )
-        elif was_stalled and not new_state.stalled:
-            log.info(
-                "Source position updating again (%.1fs) — back on reported values",
-                position_ms / 1000.0,
-            )
-        if position_ms == track.position_ms:
+        self._position_tier = tier
+        if position_ms is None or position_ms == track.position_ms:
             return track
         return dataclasses.replace(track, position_ms=position_ms)
 
@@ -654,13 +623,19 @@ class DaemonWorker(QObject):
         )
         effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
 
-        # Tray progress label: emit on every tick while playing.
+        # Tray progress label: emit on every tick while playing. A zero
+        # duration is the tray's cue to hide the line, which is how an
+        # unresolvable position reaches it — better an absent line than
+        # one counting wrong.
         if track.status == PlaybackStatus.PLAYING and effective_dur_ms > 0:
-            # Clamp position to duration so the tray doesn't show a
-            # nonsensical "2:30 / 0:14 (-0:00)" line during a brief
-            # MPRIS preview-clip glitch on a longer song.
-            display_pos = min(max(0, track.position_ms), effective_dur_ms)
-            self.progressTick.emit(display_pos, effective_dur_ms)
+            if self._position_known:
+                # Clamp position to duration so the tray doesn't show a
+                # nonsensical "2:30 / 0:14 (-0:00)" line during a brief
+                # MPRIS preview-clip glitch on a longer song.
+                display_pos = min(max(0, track.position_ms), effective_dur_ms)
+                self.progressTick.emit(display_pos, effective_dur_ms)
+            else:
+                self.progressTick.emit(0, 0)
 
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 
@@ -687,7 +662,15 @@ class DaemonWorker(QObject):
                 if self._config.behavior.cover_art
                 else None
             )
-            self._mpris_server.update(track, cover_for_mpris, effective_dur_ms)
+            # Publishing a length with no position to go with it leaves
+            # Plasma's applet showing a progress bar pinned at 0:00, so
+            # an unresolvable position drops the length too and the
+            # applet renders the track without a bar.
+            self._mpris_server.update(
+                track,
+                cover_for_mpris,
+                effective_dur_ms if self._position_known else 0,
+            )
 
         # Surface RPC connect/disconnect transitions so the tray can show
         # an at-a-glance "● Discord connected" indicator.
@@ -943,6 +926,11 @@ class DaemonWorker(QObject):
         # on that instead of dropping them just because MPRIS said
         # "14 s" for one poll.
         is_short_track = 0 < effective_duration_ms < 30_000
+        # `start`/`end` are what Discord renders the elapsed timer and
+        # progress bar from. With no trustworthy position there is no
+        # honest pair to send, so they're dropped and Discord shows the
+        # track without a timer.
+        send_timing = not is_short_track and self._position_known
 
         payload: dict = {
             "details": details[:128],
@@ -956,7 +944,7 @@ class DaemonWorker(QObject):
         # Refrain" instead of "Playing Refrain", and accept that the
         # small-icon corner stays empty. The cover_url already
         # carries the visual identity in the large slot.
-        if not is_short_track:
+        if send_timing:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it
         # as a third visible line for LISTENING activity, and an
@@ -964,7 +952,7 @@ class DaemonWorker(QObject):
         if album_for_display and album_for_display.lower() != state.lower():
             payload["large_text"] = album_for_display[:128]
 
-        if not is_short_track and effective_duration_ms > 0:
+        if send_timing and effective_duration_ms > 0:
             payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
 
         # Prefer the iTunes-resolved song URL (links to the *specific* track)

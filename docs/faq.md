@@ -99,29 +99,27 @@ That's intentional — pausing is implicitly "not listening". If you want
 the status to persist while paused, tell us in
 [a feature request](https://github.com/Rockykln/refrain/issues/new?template=feature_request.yml).
 
-## The elapsed time freezes mid-song.
+## The elapsed time freezes mid-song, or disappears.
 
-Usually the queue timeline. Apple Music's web player does not restart
-`Position` at each track — it counts across the whole listening session,
-so the third song of a queue reports a position far past its own length.
-The tray then clamps that to the track length and sits at `2:24 / 2:25
-(–0:00)`, and Discord gets an end time that has already passed. Seeking
-or restarting the song appears to fix it only because that drags the
-position back under the track's length. Refrain detects the cumulative
-timeline at the first track change it observes and anchors each track
-from there, so positions are track-relative again. A song that was
-already playing when Refrain started has no anchor to recover — it reads
-low until the next track change, then everything is exact.
+Apple Music's web player misreports position in two ways. It counts
+`Position` across the whole queue instead of restarting it per track, so
+the third song of a session reports a position far past its own length —
+which used to pin the tray at `2:24 / 2:25 (–0:00)`. And it sometimes
+stops refreshing `Position` altogether while still reporting the track as
+playing.
 
-The other cause is a genuinely frozen `Position`: the browser stops
-refreshing the property while still reporting the track as playing. Once
-a playing track's position has not moved for `advanced.position_stall_s`
-seconds (default 4), Refrain runs the track clock from wall time
-instead, and re-syncs the moment the browser reports a position that
-moved. Set `position_stall_s = 0` to switch that off.
+Refrain resolves the position in three tiers. It uses what the source
+reports while that holds up; when it doesn't, it counts from the start of
+the track itself, discounting pauses; and when it has no honest answer —
+a song that was already playing when Refrain started, so there is no
+witnessed start to count from — it hides the time rather than showing a
+wrong one. That is why the progress line and Discord's timer sometimes
+disappear for one track and come back at the next track change.
 
-Both show up in the log — *"Source reports a queue-cumulative position"*
-and *"Source position frozen …"* respectively.
+`advanced.position_stall_s` (default 4) is how many seconds a playing
+track's position may stand still before Refrain stops trusting it; 0
+switches that check off. The live log names the tier on every change:
+*"Position: reported → computed"*.
 
 ## How do I update?
 

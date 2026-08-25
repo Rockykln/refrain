@@ -9,40 +9,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The elapsed time stuck at the end of the track.** Apple Music's web
-  player does not restart `Position` per track: it exposes the whole
-  listening session as one timeline, so `mpris:length` grows as the queue
-  extends and `Position` counts on across track boundaries. Three songs
-  into a queue it read 11:08 on a track whose real length is 2:25.
-  Refrain clamped that to the track length, so the tray pinned at
-  `2:24 / 2:25 (–0:00)` and Discord got a `start` hundreds of seconds in
-  the past with an `end` already gone by — seeking or restarting the song
-  only "fixed" it by dragging the position back under the track length.
-  Refrain now recognises a position that continues across a track change
-  instead of resetting, and anchors each track to where it begins on the
-  queue timeline. Sources whose position is already track-relative — every
-  ordinary MPRIS player, Bluetooth AVRCP — reset at each change, fail that
-  test and are passed through untouched. A track that was already playing
-  at startup has no anchor to recover: it gets one re-anchor so the clock
-  moves, reads low for that track only, and is exact again from the next
-  track change.
+- **The elapsed time stuck mid-song, and Discord's timer with it.** Two
+  separate lies from the same source, both landing as a frozen clock.
+  Apple Music's web player does not restart `Position` per track — it
+  exposes the whole listening session as one timeline, so `mpris:length`
+  grows as the queue extends and `Position` counts on across track
+  boundaries. Three songs in it read 11:08 on a 2:25 track; Refrain
+  clamped that to the track length and pinned the tray at
+  `2:24 / 2:25 (–0:00)`, while Discord got a `start` hundreds of seconds
+  in the past and an `end` already gone by. The same player also stops
+  refreshing `Position` altogether mid-track while still reporting
+  `Playing`. Seeking or restarting the song "fixed" both only by
+  dragging the position back to something sane.
 
-- **The elapsed time froze mid-song on some tracks.** Apple Music's MPRIS
-  surface intermittently stops refreshing `Position` while still
-  reporting `PlaybackStatus = Playing` — plasma-browser-integration's
-  property cache goes stale, or the browser-native player only updates
-  Position on a seek. Refrain echoed the frozen number, so the tray
-  label, Discord's elapsed timer and the MPRIS view published to Plasma
-  all stuck at the same second until the user dragged the slider or
-  restarted the song. Refrain now watches for that: when a playing
-  track reports a position that has not moved for longer than
-  `advanced.position_stall_s` (default 4 s), it stops trusting the
-  source and runs the track clock from wall time instead, clamped to
-  the track's real length. The moment the source reports a position
-  that moved again — a normal tick, a seek, the user's own nudge — that
-  value re-anchors the clock. Pauses, track changes and the preview-clip
-  position loop are excluded, and `position_stall_s = 0` turns the whole
-  check off.
+  Position is now resolved through three tiers per poll. The source's
+  own value is used when it holds up — non-negative, not past the end of
+  the track, and actually moving while playing. When it doesn't, Refrain
+  counts from the track's start itself: wall-clock elapsed since a start
+  it witnessed, minus time spent paused. When there is no anchor to
+  count from either — a song already playing when Refrain started, or a
+  source claiming "playing" long past the end of the track — the time is
+  hidden entirely: no tray progress line, no `start`/`end` in the Discord
+  payload, no length published to Plasma's applet. A wrong clock is
+  worse than none. Sources that report position honestly, which is every
+  ordinary MPRIS player and Bluetooth AVRCP, stay on tier 1 throughout
+  and are unaffected. New config field `advanced.position_stall_s`
+  (default 4 s) sets how long a playing track's position may stand still
+  before the source loses tier 1; 0 disables that check.
 
 ## [0.4.5] - 2026-08-24
 
