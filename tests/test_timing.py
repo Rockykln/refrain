@@ -259,20 +259,21 @@ def test_duration_mpris_preview_clip_overridden_by_itunes_full_song():
     assert pick_effective_duration_ms(14_000, 131_000) == 131_000
 
 
-def test_duration_mpris_playlist_total_overridden_by_itunes():
-    # MPRIS reports 7:21 when track is 2:11 (catalogued).
-    assert pick_effective_duration_ms(441_000, 131_000) == 131_000
+def test_duration_keeps_mpris_when_the_two_disagree():
+    # The element's own length beats a catalog search that landed on a
+    # different record. Live case: MPRIS 164 s (the song is 165 s by the
+    # source's own timeline), iTunes 58 s from a wrong match — believing
+    # the catalog there let idle detection clear the track after 88 s.
+    assert pick_effective_duration_ms(164_041, 58_140) == 164_041
 
 
-def test_duration_within_15_percent_keeps_mpris():
-    # Slight rounding / encoding-vs-catalog drift should not flip.
-    # MPRIS 200 s vs iTunes 210 s is ~5 % — keep MPRIS.
+def test_duration_keeps_mpris_on_ordinary_catalog_drift():
+    # Rounding / encoding-vs-catalog drift should not flip either.
     assert pick_effective_duration_ms(200_000, 210_000) == 200_000
 
 
-def test_duration_outside_15_percent_uses_itunes():
-    # 200 s vs 250 s is 20 % — trust iTunes.
-    assert pick_effective_duration_ms(200_000, 250_000) == 250_000
+def test_duration_keeps_mpris_when_it_is_the_longer_one():
+    assert pick_effective_duration_ms(250_000, 200_000) == 250_000
 
 
 def test_duration_both_short_keeps_mpris():

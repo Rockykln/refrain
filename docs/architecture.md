@@ -48,6 +48,100 @@ The worker thread runs a Qt event loop (driven by `QTimer`, *not* a
 loop and prevents cross-thread slot invocations like Play/Pause from the
 tray menu from being delivered).
 
+## What a poll produces
+
+Each tick reads the sources, then puts the result through two stages
+before anything renders it:
+
+```
+_poll_sources()      MPRIS + BlueZ read, best candidate wins
+      │
+      ▼
+_resolve_position()  position, or a decision that we don't have one
+      │
+      ▼
+_apply_idle_detection()   drop a dangling source's stale track
+      │
+      ▼
+_dispatch()          tray · Discord RPC · published MPRIS · scrobbler
+```
+
+Both stages sit ahead of `_dispatch` so every consumer is handed the
+same answer, and `_resolve_position` sits ahead of idle detection so its
+anchor survives an idle clear — the source keeps reporting the track
+either way.
+
+### Position
+
+Sources misreport position, and Apple Music's web player misreports it
+in a way worth spelling out: it does not describe the track at all. Its
+`Position` counts the *stream* and carries on across track boundaries
+(the change from one song to the next arrives one poll after the
+previous song's start plus its length), and its `mpris:length` is a
+buffer marker — measured live, it grew by 135 s over 144 s of playback
+on one unchanging track. Three songs into a session that reads as 11:08
+elapsed of 6:52 on a 2:25 song. The same player also stops refreshing
+`Position` mid-track while still reporting `Playing`, and has been seen
+switching frames mid-track: counting the stream for one song, then the
+song itself, with no track change in between.
+
+`timing.resolve_position` answers in three tiers, in order:
+
+| Tier       | Used when                                                    |
+|------------|--------------------------------------------------------------|
+| `reported` | The source's value holds up: non-negative, not past the end of the track, moving while playing, and not from a source already caught carrying its position across a track change. |
+| `computed` | It doesn't, but we witnessed this track start: wall-clock elapsed since that anchor, minus time paused, following the stream's own timeline through seeks. |
+| `unknown`  | Neither. No anchor to count from, or our own clock has run past the end of the track. |
+
+`unknown` renders as nothing at all — no tray progress line, no
+`start`/`end` for Discord, no length published to Plasma's applet. A
+clock known to be wrong is worse than an absent one, and the next track
+change recovers it. `advanced.position_stall_s` (default 4 s) is the
+window a playing track's position may stand still before the first tier
+is withdrawn; 0 disables that check.
+
+Ordinary sources — every other MPRIS player, Bluetooth AVRCP — stay on
+`reported` throughout, and the machinery costs them nothing.
+
+### Duration
+
+Two parties can answer and either can be wrong. `mpris:length` describes
+the element actually playing, so it normally wins; the catalog duration
+comes from an artist-and-title search that can match the wrong record —
+58 s for a 2:45 song, observed live. The catalog fills gaps rather than
+overruling: no length reported, or a length under 30 s where the catalog
+says otherwise (Apple Music's preview-clip representation).
+
+Which one to believe depends on what the source has been shown to be:
+
+| Source established as | Length used                            |
+|-----------------------|----------------------------------------|
+| track-relative        | the player's, catalog filling gaps      |
+| stream-relative       | the catalog's — the player's describes its buffer |
+| not yet established   | the player's, unless the two disagree — then neither |
+
+That last row is the startup-mid-track case, and the disagreement there
+is genuinely undecidable: a position past the catalog length fits "the
+catalog matched the wrong record" and "this position belongs to a
+stream" equally well. Refrain says so instead of picking, and
+`resolve_position` withholds tier 1 from a track whose start it didn't
+see, so the time is hidden until the next track change settles it.
+
+The boundary worth knowing: when the catalog has no match at all, there
+is nothing to contradict the source, and its numbers are used as
+reported. On a stream-relative player that means one track may render a
+stream position before the next track change — or the length growing —
+gives it away.
+
+### Idle detection
+
+Its job is the dangling handle — a browser tab closed without releasing
+MPRIS, still reporting `Playing` forever. The deadline is the track's
+own duration plus `advanced.idle_grace_s`, but it only measures silence:
+a position that moved recently is proof the source is alive and pushes
+the anchor forward. Without that gate, any duration that came out too
+short took the playing track down with it.
+
 ## Cross-thread message flow
 
 | From → To              | Mechanism                                  |

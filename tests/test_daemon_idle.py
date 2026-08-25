@@ -181,3 +181,57 @@ def test_effective_duration_preview_clip_skip_uses_effective():
     )
     assert out.source == "none"
     assert key.startswith("__refrain_idle_logged__:")
+
+
+def test_moving_position_keeps_the_track_however_short_the_duration():
+    """A wrong catalog length must not clear a track that is playing.
+
+    The live case: iTunes returned 58 s for a 2:45 song, which handed
+    idle detection an 88-second deadline. The status vanished a minute
+    into the song while the source's position was still advancing.
+    """
+    track = TrackInfo(
+        source="mpris",
+        title="No Broke Boys",
+        artist="Disco Lines",
+        duration_ms=58_140,
+        status=PlaybackStatus.PLAYING,
+    )
+    _, key, _ = compute_idle_state(track, "", 0.0, grace_s=30, now=1000.0)
+    out, key, seen = compute_idle_state(
+        track, key, 1000.0, grace_s=30, now=1240.0, source_alive=True
+    )
+    assert out.has_track
+    assert seen == 1240.0  # the anchor follows the proof of life
+
+
+def test_a_dangling_handle_still_gets_cleared():
+    """The case idle detection exists for: nothing is moving any more."""
+    track = TrackInfo(
+        source="mpris",
+        title="Song",
+        artist="Artist",
+        duration_ms=180_000,
+        status=PlaybackStatus.PLAYING,
+    )
+    _, key, _ = compute_idle_state(track, "", 0.0, grace_s=30, now=1000.0)
+    out, _, _ = compute_idle_state(track, key, 1000.0, grace_s=30, now=1400.0, source_alive=False)
+    assert not out.has_track
+
+
+def test_liveness_only_delays_the_deadline_it_does_not_disable_it():
+    track = TrackInfo(
+        source="mpris",
+        title="Song",
+        artist="Artist",
+        duration_ms=180_000,
+        status=PlaybackStatus.PLAYING,
+    )
+    _, key, _ = compute_idle_state(track, "", 0.0, grace_s=30, now=1000.0)
+    # Alive for a while, then the position stops moving.
+    _, key, seen = compute_idle_state(track, key, 1000.0, grace_s=30, now=2000.0, source_alive=True)
+    assert seen == 2000.0
+    out, _, _ = compute_idle_state(track, key, seen, grace_s=30, now=2100.0)
+    assert out.has_track  # deadline measured from the last movement
+    out, _, _ = compute_idle_state(track, key, seen, grace_s=30, now=2400.0)
+    assert not out.has_track

@@ -11,37 +11,36 @@ from enum import StrEnum
 
 
 def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
-    """Choose the more trustworthy of MPRIS-reported and iTunes-catalog
-    durations.
+    """Choose between the source-reported and iTunes-catalog track lengths.
 
-    Apple Music's MPRIS surface (chromium / firefox / plasma-browser-
-    integration) is unreliable about ``mpris:length``:
+    The source's ``mpris:length`` describes the media element actually
+    playing, so it is the better answer whenever it is an answer at all.
+    The iTunes duration is a catalog guess reached by searching for an
+    artist and title, and a search can land on the wrong record: a live
+    session had it return 58 s for a 2:45 song, and the daemon believed
+    it — long enough for idle detection to clear a track a minute into
+    playing it.
 
-    - During a brief preview-clip representation it reports 8-15 s on a
-      track that's actually 2-5 minutes long.
-    - During a playlist transition it sometimes reports the playlist
-      total ("7:21" or "9:33") instead of the current track's length.
-    - On the first MPRIS event after a track change it occasionally
-      keeps the previous track's duration for a poll cycle.
+    So iTunes fills gaps rather than overruling:
 
-    iTunes Search returns the canonical track length in milliseconds.
-    When we have it (cover-art lookup populated the cache) and it
-    disagrees with MPRIS by more than 15 %, we trust iTunes — the
-    "0:14" / "7:21" total flickers users were seeing in Discord were
-    Refrain faithfully forwarding whichever wrong value MPRIS sent.
+    - No ``mpris:length`` at all (Bluetooth AVRCP mostly, and Apple
+      Music on some tracks) — the catalog is all there is.
+    - A length under 30 s where the catalog says otherwise. That's Apple
+      Music's preview-clip representation, which it reports for a few
+      seconds on a full-length song; the catalog is right there.
 
-    Falls back to the MPRIS value when iTunes has no match (search
-    returned no result for this artist+title), so songs outside the
-    catalog still get a progress bar.
+    Anything else keeps the source's own number. The one case that used
+    to need iTunes to overrule — Apple Music reporting a running total
+    instead of a track length — is not a length problem at all: that
+    player reports a position and a length for the *stream*, and both
+    are recognised as such by ``resolve_position``, whose caller then
+    asks for the catalog length directly.
     """
-    if itunes_dur_ms <= 0:
-        return mpris_dur_ms
     if mpris_dur_ms <= 0:
         return itunes_dur_ms
+    if itunes_dur_ms <= 0:
+        return mpris_dur_ms
     if mpris_dur_ms < 30_000 <= itunes_dur_ms:
-        return itunes_dur_ms
-    relative_delta = abs(mpris_dur_ms - itunes_dur_ms) / itunes_dur_ms
-    if relative_delta > 0.15:
         return itunes_dur_ms
     return mpris_dur_ms
 
@@ -115,10 +114,19 @@ class PositionState:
     # track. False when Refrain came up mid-song: the clock has no zero
     # to count from, and inventing one would be a lie.
     anchored: bool = False
-    # Latched when the source has been seen carrying its position across
-    # a track change. Such a position belongs to the stream, not to the
-    # track, so tier 1 is off the table for as long as it holds.
+    # Latched when the source has been seen describing something other
+    # than the current track — carrying its position across a track
+    # change, or changing the track's length underneath it. Tier 1 is
+    # off the table for as long as it holds.
     cumulative: bool = False
+    # Positive evidence of the opposite: the source restarted its
+    # position for a track, so it does describe tracks. Until one or the
+    # other is established, a source is an unknown quantity and its
+    # numbers are only as good as what corroborates them.
+    track_relative: bool = False
+    # Last length the source reported for this track. A track's length
+    # does not change; a stream's does.
+    last_length_ms: int = 0
     # Freshness of the source's own value: what it last read, when it was
     # read, and when it last actually moved.
     last_reported_ms: int = 0
@@ -133,6 +141,8 @@ def resolve_position(
     duration_ms: int,
     is_playing: bool,
     now: float,
+    reported_length_ms: int = 0,
+    duration_disputed: bool = False,
     stall_after_s: float = 4.0,
     tolerance_ms: int = 250,
     overrun_grace_ms: int = 5_000,
@@ -161,6 +171,26 @@ def resolve_position(
        "playing" for longer than the song lasts. The caller hides the
        time entirely rather than showing a number known to be wrong.
 
+    ``reported_length_ms`` is the source's *raw* length, as opposed to
+    the catalog-corrected ``duration_ms`` the tiers are judged against.
+    A length that changes while the same track plays is not a track
+    length — Apple Music's grows as its stream buffers, by 135 s over
+    144 s of playback in one measurement — and latches the source as
+    stream-relative on its own. Without it, a session that starts
+    mid-track has nothing to catch the source out with until the first
+    track change, and spends that time rendering a plausible-looking
+    wrong pair.
+
+    ``duration_disputed`` says the source's length and the catalog's
+    disagree and nothing yet establishes which to believe — the state at
+    startup mid-track, where a position past the catalog length is
+    equally consistent with "the catalog matched the wrong record" and
+    "this position belongs to a stream". Tier 1's end-of-track check is
+    meaningless then, so tier 1 is only offered for a track whose start
+    we actually saw. A merely *absent* length is not a dispute: nothing
+    contradicts the source, and Bluetooth AVRCP tracks keep their
+    elapsed count.
+
     ``duration_ms <= 0`` means the source gave no length (common on
     Bluetooth AVRCP): start and end are the same instant, so the two
     end-of-track checks are skipped and only movement decides. The
@@ -173,7 +203,9 @@ def resolve_position(
 
     if track_key != state.track_key:
         state, moved = _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms), True
+        state = replace(state, last_length_ms=reported_length_ms)
     else:
+        state = _track_length(state, reported_length_ms)
         if state.cumulative and 0 <= reported_ms <= max(tolerance_ms, 2_000):
             # The source just produced a plausible track start mid-track.
             # A seek can't do that on a stream-relative timeline — seeking
@@ -205,7 +237,14 @@ def resolve_position(
     # is what `advanced.position_stall_s = 0` is documented to do.
     frozen = stall_after_s > 0 and is_playing and (now - state.moved_at) > stall_after_s
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
-    if reported_ms >= 0 and not frozen and not past_end and not state.cumulative:
+    undecidable = duration_disputed and not state.anchored
+    if (
+        reported_ms >= 0
+        and not frozen
+        and not past_end
+        and not state.cumulative
+        and not undecidable
+    ):
         if not moved:
             # Believed, but standing still — inside the stall window, or
             # paused. Re-syncing the clock to a value that isn't moving
@@ -269,6 +308,7 @@ def _anchor_new_track(
         started_at=now - (reported_ms / 1000.0 if reset_by_source else 0.0),
         anchored=anchored,
         cumulative=cumulative,
+        track_relative=reset_by_source or (state.track_relative and not cumulative),
         last_reported_ms=reported_ms,
         last_seen_at=now,
         moved_at=now,
@@ -328,3 +368,30 @@ def _follow_seek(
     # Never past `now`: a start in the future would mean negative elapsed,
     # and no seek can put the track's beginning ahead of the clock.
     return replace(state, started_at=min(state.started_at - jump_ms / 1000.0, now))
+
+
+def _track_length(state: PositionState, reported_length_ms: int) -> PositionState:
+    """Latch the source as stream-relative if it moves the track's length.
+
+    A track is as long as it is. A length that shifts underneath an
+    unchanging track is describing something else — for Apple Music's
+    web player, how far its stream has buffered — and that is decisive
+    on its own, without waiting for a track change to prove it.
+
+    The tolerance absorbs a player re-reporting the same length with
+    microsecond rounding; the growth this catches is in whole seconds.
+    """
+    if reported_length_ms <= 0:
+        return state
+    if state.last_length_ms <= 0:
+        return replace(state, last_length_ms=reported_length_ms)
+    if abs(reported_length_ms - state.last_length_ms) <= 1_000:
+        return state
+    if state.cumulative:
+        return replace(state, last_length_ms=reported_length_ms)
+    # Latching for the first time also voids the anchor, because the only
+    # anchor that can exist at this point came from tier 1 believing a
+    # value we have just learned belongs to the stream. An anchor placed
+    # by a witnessed track start is safe from this: that path latches at
+    # the change itself, so it never reaches here un-latched.
+    return replace(state, last_length_ms=reported_length_ms, cumulative=True, anchored=False)

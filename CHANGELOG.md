@@ -53,6 +53,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loses the first tier; 0 disables that check. The window only runs
   while playing — a pause is not a source standing still.
 
+- **A wrong catalog match could clear a track that was still playing.**
+  The iTunes duration overruled the player's own `mpris:length` whenever
+  the two disagreed by more than 15 %. That rule was written for a player
+  reporting nonsense, but it also handed the decision to a catalog search
+  that can land on the wrong record — 58 s for a 2:45 song, in one live
+  session. Idle detection took that as an 88-second deadline and cleared
+  Discord and the tray a minute into the song. The player's own length now
+  wins wherever it reports one, and the catalog fills the gaps: no length
+  at all, or a length under 30 s where the catalog says otherwise (Apple
+  Music's preview-clip representation). The case that originally needed
+  the catalog to overrule — a length that describes the stream rather
+  than the song — is recognised as such now and asks for the catalog
+  directly.
+
+- **A length the two sources disagree on is no longer guessed at.** Which
+  of the player and the catalog to believe depends on what the player has
+  been shown to be, and until a track change settles that — the state at
+  startup mid-track — a disagreement is undecidable: a position past the
+  catalog length fits a wrong catalog match and a stream position equally
+  well. Refrain now treats that as no length rather than picking one, and
+  withholds the reported position for a track whose start it didn't see,
+  so the time is hidden until the next track change resolves it. A player
+  that changes a track's length underneath it — Apple Music's grows as
+  its stream buffers — gives itself away without waiting for that.
+
+- **Idle detection now measures silence, not playing time.** Its deadline
+  is still the track's duration plus `advanced.idle_grace_s`, but a
+  position that moved recently is proof the source is alive — a dangling
+  MPRIS handle cannot advance one — and pushes the deadline back. A
+  duration that comes out too short can no longer take a playing track
+  down with it.
+
 - **`--debug` stopped taking effect a few seconds into the run.** The
   log level is re-applied whenever settings are applied, and an ordinary
   startup config save does that too, so a `--debug` session dropped back

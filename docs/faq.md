@@ -126,6 +126,23 @@ track's position may stand still before Refrain stops trusting it; 0
 switches that check off. The live log names the tier on every change:
 *"Position: reported → computed"*.
 
+## The Discord status vanishes partway through a song.
+
+Idle detection clearing too early. It exists for a browser tab closed
+without releasing its MPRIS handle — the player keeps reporting
+`Playing` forever — and it fires when a track has been playing for
+longer than its own length plus `advanced.idle_grace_s`. That deadline is
+only as good as the length, and a catalog search that matches the wrong
+record can make it far too short: 58 s for a 2:45 song, in one live
+session, which cleared the status a minute in.
+
+Two things now prevent it. The song's length comes from the player
+itself wherever it reports one, with the catalog filling gaps rather
+than overruling. And the deadline only measures silence — a position
+that is still moving is proof the handle isn't dangling, and pushes the
+deadline back. Setting `idle_grace_s = 0` disables idle detection
+entirely, at the cost of a closed tab leaving a stale status behind.
+
 ## How do I update?
 
 | Install method | How to update                                      |

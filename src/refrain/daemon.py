@@ -54,6 +54,7 @@ def compute_idle_state(
     grace_s: int,
     now: float,
     effective_duration_ms: int | None = None,
+    source_alive: bool = False,
 ) -> tuple[TrackInfo, str, float]:
     """Pure-logic idle detection. Returns ``(track_or_empty, new_key, new_seen_at)``.
 
@@ -68,6 +69,15 @@ def compute_idle_state(
     obviously wrong so a 2:11 song doesn't get a 7:21 idle deadline
     just because Apple Music briefly reported a playlist total. None
     means "trust track.duration_ms as-is".
+
+    ``source_alive`` says the source's own position moved recently. A
+    dangling handle cannot do that — the tab is gone and nothing is
+    advancing — so a moving position is proof the deadline should not be
+    running yet, and it pushes the anchor forward. This is what keeps a
+    wrong duration from clearing a track mid-play: a catalog search that
+    returned 58 s for a 2:45 song used to hand idle detection an
+    88-second deadline, and the status vanished a minute into the song
+    while it was audibly still playing.
 
     Logs the detection exactly once per dangling-track instance: the
     returned ``new_key`` is prefixed with a sentinel so subsequent
@@ -94,6 +104,10 @@ def compute_idle_state(
     track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
     sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
     if track_key != prev_track_key and prev_track_key != sentinel_key:
+        return track, track_key, now
+    if source_alive:
+        # Demonstrably playing: keep the track and restart the clock from
+        # this proof of life, so the deadline only ever measures silence.
         return track, track_key, now
     deadline_s = (duration_ms / 1000.0) + grace_s
     if (now - prev_seen_at) > deadline_s:
@@ -501,30 +515,48 @@ class DaemonWorker(QObject):
             self._active_source = source
         return track
 
-    def _effective_duration_ms(self, track: TrackInfo) -> int:
-        """The track length every consumer should use this tick.
+    def _duration_for(self, track: TrackInfo) -> tuple[int, bool]:
+        """The track length every consumer should use, and whether it's disputed.
 
-        MPRIS' own `mpris:length` is unreliable on Apple Music (preview
-        clips, playlist totals, one-tick-stale values on a track
-        change), so we override it with the iTunes-catalog duration the
-        cover-art lookup already cached whenever the two disagree —
-        see `pick_effective_duration_ms`. Centralised here so stall
-        compensation, idle detection and `_dispatch` can't drift apart
-        on which length they believe.
+        Two parties can answer, and either can be wrong. The player's
+        `mpris:length` describes the element actually playing, so it
+        normally wins; the iTunes duration is a catalog search that can
+        match the wrong record. But a stream-relative player's length
+        describes its buffer rather than the song, and then only the
+        catalog knows.
+
+        Which case applies is what `resolve_position` establishes by
+        watching the source across a track change. Until it has, a
+        disagreement is genuinely undecidable — at startup mid-track, a
+        position past the catalog length fits "wrong catalog match" and
+        "this is a stream" equally well — and saying so is more use than
+        picking one. Centralised here so position resolution, idle
+        detection and `_dispatch` can't drift apart on the answer.
+
+        Returns ``(effective_ms, disputed)``.
         """
         itunes_dur_ms = (
             self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
             if self._config.behavior.cover_art
             else 0
         )
+        mpris_dur_ms = track.duration_ms
         if self._position_state.cumulative:
-            # This source's `mpris:length` is not a track length. It
-            # tracks the stream buffer — measured live, it grew by 135 s
-            # over 144 s of playback on one unchanging track — so the
-            # catalog is the only thing that knows how long the song is.
-            # Better no total than a 6:52 one on a 2:24 song.
-            return itunes_dur_ms
-        return pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+            # Measured live: this length grew by 135 s over 144 s of
+            # playback on one unchanging track. Better no total at all
+            # than a 6:52 one on a 2:24 song.
+            return itunes_dur_ms, False
+        if (
+            mpris_dur_ms > 0
+            and itunes_dur_ms > 0
+            and not self._position_state.track_relative
+            and abs(mpris_dur_ms - itunes_dur_ms) > max(5_000, itunes_dur_ms * 0.15)
+        ):
+            return 0, True
+        return pick_effective_duration_ms(mpris_dur_ms, itunes_dur_ms), False
+
+    def _effective_duration_ms(self, track: TrackInfo) -> int:
+        return self._duration_for(track)[0]
 
     def _resolve_position(self, track: TrackInfo) -> TrackInfo:
         """Decide what this track's position actually is — or that we don't know.
@@ -538,13 +570,16 @@ class DaemonWorker(QObject):
         track_key = (
             f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
         )
+        duration_ms, disputed = self._duration_for(track)
         position_ms, tier, new_state = resolve_position(
             self._position_state,
             track_key,
             track.position_ms,
-            self._effective_duration_ms(track),
+            duration_ms,
             track.status == PlaybackStatus.PLAYING,
             time.monotonic(),
+            reported_length_ms=track.duration_ms,
+            duration_disputed=disputed,
             stall_after_s=float(self._config.advanced.position_stall_s),
         )
         self._position_state = new_state
@@ -578,13 +613,20 @@ class DaemonWorker(QObject):
         # total 7:21 on a 2:11 song), the iTunes-catalog duration we
         # already cached for cover-art lookup is closer to truth.
         effective_dur_ms = self._effective_duration_ms(track)
+        now = time.monotonic()
+        # The source's position moving is proof the handle isn't
+        # dangling, whatever the duration says. Same window the position
+        # resolver uses to decide a source has gone stale.
+        stall_after_s = float(self._config.advanced.position_stall_s)
+        source_alive = stall_after_s > 0 and (now - self._position_state.moved_at) <= stall_after_s
         result, new_key, new_seen = compute_idle_state(
             track,
             self._idle_track_key,
             self._idle_seen_at,
             int(self._config.advanced.idle_grace_s),
-            time.monotonic(),
+            now,
             effective_duration_ms=effective_dur_ms,
+            source_alive=source_alive,
         )
         self._idle_track_key = new_key
         self._idle_seen_at = new_seen
@@ -622,18 +664,17 @@ class DaemonWorker(QObject):
             self.statusChanged.emit(track.status)
             self._last_status = track.status
 
-        # Compute the iTunes-corrected duration once per tick — every
-        # consumer downstream wants the same value (tray progress,
-        # Discord RPC payload, the published MPRIS server forwarded to
-        # Plasma). Doing it here keeps the three sites consistent and
-        # avoids three independent cache lookups when one would do.
-        # Falls back to MPRIS when iTunes has no match.
+        # Settle the track length once per tick — the tray label, the
+        # Discord payload and the MPRIS server we publish must all render
+        # the same number, and `_duration_for` is the one place that
+        # weighs the player's length against the catalog's. The raw
+        # catalog value is kept alongside it purely for the RPC log line.
         itunes_dur_ms = (
             self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
             if self._config.behavior.cover_art
             else 0
         )
-        effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+        effective_dur_ms = self._effective_duration_ms(track)
 
         # Tray progress label, emitted on every tick while playing. The
         # tray reads a negative position as "hide the line" and a

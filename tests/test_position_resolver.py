@@ -18,7 +18,11 @@ C = "mpris|Dior|MK|"
 DUR = 220_000
 
 
-def step(state, key, reported_ms, now, *, duration_ms=DUR, playing=True, **kw):
+def step(state, key, reported_ms, now, *, duration_ms=DUR, playing=True, length_ms=None, **kw):
+    """`length_ms` defaults to `duration_ms`: for most sources the raw
+    length and the effective one are the same number, and the tests that
+    care about them diverging say so explicitly."""
+    kw.setdefault("reported_length_ms", duration_ms if length_ms is None else length_ms)
     return resolve_position(state, key, reported_ms, duration_ms, playing, now, **kw)
 
 
@@ -291,3 +295,79 @@ def test_resuming_from_a_long_pause_is_not_read_as_a_freeze():
     # source was never expected to move during it.
     pos, tier, state = step(state, A, 30_200, 1060.5)
     assert (pos, tier) == (30_200, PositionTier.REPORTED)
+
+
+def test_a_length_that_grows_underneath_the_track_latches_the_source():
+    # Apple Music's `mpris:length` tracks how far its stream has
+    # buffered: measured live, it grew by 135 s across 144 s of playback
+    # on one unchanging track. A track's length does not do that, so
+    # this catches the source out without waiting for a track change —
+    # which matters for a session that starts mid-song, where there is
+    # nothing else to go on.
+    state = PositionState()
+    pos, tier, state = step(state, A, 454_260, 1000.0, duration_ms=632_166)
+    assert tier is PositionTier.REPORTED  # nothing says otherwise yet
+    pos, tier, state = step(state, A, 464_260, 1010.0, duration_ms=642_000)
+    assert state.cumulative is True
+    # No witnessed start to count from, so the honest answer is nothing.
+    assert (pos, tier) == (None, PositionTier.UNKNOWN)
+
+
+def test_a_stable_length_is_left_alone():
+    state = PositionState()
+    _, _, state = step(state, A, 1_000, 1000.0, duration_ms=180_000)
+    for i in range(1, 10):
+        pos, tier, state = step(state, A, 1_000 + i * 500, 1000.0 + i * 0.5, duration_ms=180_000)
+    assert state.cumulative is False
+    assert tier is PositionTier.REPORTED
+
+
+def test_a_length_arriving_late_is_not_growth():
+    # Metadata often lands a poll after the track change.
+    state = PositionState()
+    _, _, state = step(state, A, 0, 1000.0, duration_ms=0)
+    _, tier, state = step(state, A, 500, 1000.5, duration_ms=180_000)
+    assert state.cumulative is False
+    assert tier is PositionTier.REPORTED
+
+
+def test_microsecond_rounding_is_not_growth():
+    state = PositionState()
+    _, _, state = step(state, A, 0, 1000.0, duration_ms=180_000)
+    _, _, state = step(state, A, 500, 1000.5, duration_ms=180_400)
+    assert state.cumulative is False
+
+
+# ---------------------------------------- when the two lengths disagree
+
+
+def test_a_disputed_length_hides_a_track_we_did_not_see_start():
+    # Startup mid-track: position 5:39, the source says the thing is
+    # 10:03 long, the catalog says the song is 3:46. Both readings are
+    # internally consistent — a wrong catalog match, or a stream — and
+    # nothing yet distinguishes them. Guessing renders a confident wrong
+    # answer either way.
+    state = PositionState()
+    pos, tier, state = step(
+        state, A, 339_054, 1000.0, duration_ms=0, length_ms=603_153, duration_disputed=True
+    )
+    assert (pos, tier) == (None, PositionTier.UNKNOWN)
+
+
+def test_a_disputed_length_is_fine_once_we_saw_the_track_start():
+    # The wrong-catalog-match case: the track began at zero under our
+    # own eyes, so the source's position needs no corroboration.
+    state = PositionState()
+    pos, tier, state = step(state, A, 0, 1000.0, duration_ms=164_041)
+    assert tier is PositionTier.REPORTED
+    assert state.track_relative is True
+    pos, tier, state = step(state, A, 90_000, 1090.0, duration_ms=164_041, duration_disputed=True)
+    assert (pos, tier) == (90_000, PositionTier.REPORTED)
+
+
+def test_an_absent_length_is_not_a_dispute():
+    # Bluetooth AVRCP reports no length at all. Nothing contradicts the
+    # source, so its position still counts.
+    state = PositionState()
+    pos, tier, state = step(state, A, 45_000, 1000.0, duration_ms=0, length_ms=0)
+    assert (pos, tier) == (45_000, PositionTier.REPORTED)
