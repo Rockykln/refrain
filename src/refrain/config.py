@@ -227,6 +227,12 @@ class AdvancedConfig:
     # without releasing the MPRIS handle) and clears the Discord status.
     # Set to 0 to disable idle detection entirely.
     idle_grace_s: int = 30
+    # Frozen-position detection. When a PLAYING source keeps reporting
+    # the same MPRIS `Position` for longer than this many seconds,
+    # Refrain stops trusting it and runs the track clock from wall time
+    # instead (see refrain.timing.compensate_stalled_position). Set to 0
+    # to disable and always echo the source's value verbatim.
+    position_stall_s: int = 4
     # Override UI language. "system" follows QLocale.system(); explicit
     # codes ("en", "de", "fr", …) force a specific translation. Takes
     # effect after restarting Refrain — the QTranslator is installed

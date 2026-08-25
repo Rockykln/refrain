@@ -10,6 +10,7 @@ being delivered.
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import logging
 import re
 import shutil
@@ -27,7 +28,12 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
 from refrain.sources.mpris_server import MPRISServer
-from refrain.timing import compute_rpc_start_ts, pick_effective_duration_ms
+from refrain.timing import (
+    PositionState,
+    compensate_stalled_position,
+    compute_rpc_start_ts,
+    pick_effective_duration_ms,
+)
 
 log = logging.getLogger(__name__)
 
@@ -284,6 +290,12 @@ class DaemonWorker(QObject):
         # clear playback state in `_poll` once that window expires.
         self._idle_track_key = ""
         self._idle_seen_at: float = 0.0
+        # Frozen-position detection: some MPRIS sources stop updating
+        # `Position` mid-track while still reporting PLAYING, which
+        # freezes the tray label, Discord's elapsed timer and the MPRIS
+        # server we publish. `_apply_stall_compensation` takes over the
+        # clock from wall time once that happens.
+        self._position_state = PositionState()
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
@@ -461,6 +473,7 @@ class DaemonWorker(QObject):
 
     def _poll(self) -> TrackInfo:
         track = self._poll_sources()
+        track = self._apply_stall_compensation(track)
         return self._apply_idle_detection(track)
 
     def _poll_sources(self) -> TrackInfo:
@@ -481,17 +494,70 @@ class DaemonWorker(QObject):
             self._active_source = source
         return track
 
-    def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
-        # Idle detection's deadline keys off the track's *real* duration.
-        # When MPRIS reports a wonky value (preview-clip 14 s, playlist
-        # total 7:21 on a 2:11 song), the iTunes-catalog duration we
-        # already cached for cover-art lookup is closer to truth.
+    def _effective_duration_ms(self, track: TrackInfo) -> int:
+        """The track length every consumer should use this tick.
+
+        MPRIS' own `mpris:length` is unreliable on Apple Music (preview
+        clips, playlist totals, one-tick-stale values on a track
+        change), so we override it with the iTunes-catalog duration the
+        cover-art lookup already cached whenever the two disagree —
+        see `pick_effective_duration_ms`. Centralised here so stall
+        compensation, idle detection and `_dispatch` can't drift apart
+        on which length they believe.
+        """
         itunes_dur_ms = (
             self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
             if self._config.behavior.cover_art
             else 0
         )
-        effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+        return pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+
+    def _apply_stall_compensation(self, track: TrackInfo) -> TrackInfo:
+        """Keep the track clock moving when the source's `Position` freezes.
+
+        Runs before idle detection and before `_dispatch`, so the tray
+        label, the Discord RPC `start` timestamp and the MPRIS server we
+        publish all see the same corrected position — the user no longer
+        has to seek manually or restart the song to unstick the timer.
+        """
+        track_key = (
+            f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
+        )
+        was_stalled = self._position_state.stalled
+        position_ms, new_state = compensate_stalled_position(
+            self._position_state,
+            track_key,
+            track.position_ms,
+            self._effective_duration_ms(track),
+            track.status == PlaybackStatus.PLAYING,
+            time.monotonic(),
+            stall_after_s=float(self._config.advanced.position_stall_s),
+        )
+        self._position_state = new_state
+        # Log only the two transitions, never per tick — a stall lasts
+        # for hundreds of polls and would otherwise flood the live log
+        # the same way un-suppressed idle detection used to.
+        if new_state.stalled and not was_stalled:
+            log.info(
+                "Source position frozen at %.1fs while still PLAYING — "
+                "running the track clock from wall time instead",
+                new_state.raw_position_ms / 1000.0,
+            )
+        elif was_stalled and not new_state.stalled:
+            log.info(
+                "Source position updating again (%.1fs) — back on reported values",
+                position_ms / 1000.0,
+            )
+        if position_ms == track.position_ms:
+            return track
+        return dataclasses.replace(track, position_ms=position_ms)
+
+    def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
+        # Idle detection's deadline keys off the track's *real* duration.
+        # When MPRIS reports a wonky value (preview-clip 14 s, playlist
+        # total 7:21 on a 2:11 song), the iTunes-catalog duration we
+        # already cached for cover-art lookup is closer to truth.
+        effective_dur_ms = self._effective_duration_ms(track)
         result, new_key, new_seen = compute_idle_state(
             track,
             self._idle_track_key,

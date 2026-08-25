@@ -118,6 +118,7 @@ def test_dataclasses_have_expected_fields():
         "log_level",
         "cover_cache_size",
         "idle_grace_s",
+        "position_stall_s",
         "language",
     } == set(AdvancedConfig.__dataclass_fields__)
     from refrain.config import LastfmConfig

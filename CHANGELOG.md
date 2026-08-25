@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing here
+### Fixed
+
+- **The elapsed time froze mid-song on some tracks.** Apple Music's MPRIS
+  surface intermittently stops refreshing `Position` while still
+  reporting `PlaybackStatus = Playing` — plasma-browser-integration's
+  property cache goes stale, or the browser-native player only updates
+  Position on a seek. Refrain echoed the frozen number, so the tray
+  label, Discord's elapsed timer and the MPRIS view published to Plasma
+  all stuck at the same second until the user dragged the slider or
+  restarted the song. Refrain now watches for that: when a playing
+  track reports a position that has not moved for longer than
+  `advanced.position_stall_s` (default 4 s), it stops trusting the
+  source and runs the track clock from wall time instead, clamped to
+  the track's real length. The moment the source reports a position
+  that moved again — a normal tick, a seek, the user's own nudge — that
+  value re-anchors the clock. Pauses, track changes and the preview-clip
+  position loop are excluded, and `position_stall_s = 0` turns the whole
+  check off.
 
 ## [0.4.5] - 2026-08-24
 

@@ -164,6 +164,7 @@ poll_interval_ms = 500
 log_level = "INFO"
 cover_cache_size = 200             # disk cap for cached covers
 idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
+position_stall_s = 4               # run the clock from wall time when the source's position freezes; 0 disables
 language = "system"                # "system" follows QLocale; "en", "de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN" force a translation
 
 [lastfm]

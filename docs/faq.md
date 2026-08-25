@@ -99,6 +99,19 @@ That's intentional — pausing is implicitly "not listening". If you want
 the status to persist while paused, tell us in
 [a feature request](https://github.com/Rockykln/refrain/issues/new?template=feature_request.yml).
 
+## The elapsed time freezes mid-song.
+
+The browser stopped refreshing the MPRIS `Position` property while still
+reporting the track as playing — a known Apple Music quirk that hits
+plasma-browser-integration and the browser-native players alike. Refrain
+detects it: once a playing track's position has not moved for
+`advanced.position_stall_s` seconds (default 4), it stops trusting the
+source and runs the track clock from wall time, so the tray, Discord and
+Plasma's panel keep counting. The log line reads *"Source position frozen
+… running the track clock from wall time instead"*. It re-syncs the
+moment the browser reports a position that moved again. Set
+`position_stall_s = 0` in the config to switch the compensation off.
+
 ## How do I update?
 
 | Install method | How to update                                      |

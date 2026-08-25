@@ -6,6 +6,8 @@ suite can exercise it in isolation without the GUI runtime installed.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
+
 
 def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
     """Choose the more trustworthy of MPRIS-reported and iTunes-catalog
@@ -87,3 +89,98 @@ def compute_rpc_start_ts(
     if drift_s > drift_threshold_s:
         return int(now - actual_position_s), True
     return prev_start_ts, False
+
+
+@dataclass
+class PositionState:
+    """Rolling view of the source's reported ``Position`` for one track.
+
+    Owned by the daemon worker and handed back into
+    :func:`compensate_stalled_position` on every poll. Kept as a plain
+    dataclass (rather than worker attributes) so the stall logic stays
+    pure and unit-testable without a D-Bus or Qt runtime.
+    """
+
+    track_key: str = ""
+    # Last *source-reported* position, and the monotonic timestamp at
+    # which that value first showed up. Everything else is derived.
+    raw_position_ms: int = 0
+    anchor_at: float = 0.0
+    stalled: bool = False
+
+
+def compensate_stalled_position(
+    state: PositionState,
+    track_key: str,
+    position_ms: int,
+    duration_ms: int,
+    is_playing: bool,
+    now: float,
+    stall_after_s: float = 4.0,
+    tolerance_ms: int = 250,
+) -> tuple[int, PositionState]:
+    """Detect a frozen ``Position`` on a still-playing source and keep
+    the clock running from wall time.
+
+    Apple Music's MPRIS surface intermittently stops updating
+    ``Position`` mid-track while ``PlaybackStatus`` stays ``Playing``:
+    plasma-browser-integration's property cache goes stale, or the
+    browser-native player only refreshes Position on a seek event. The
+    song keeps playing in the tab, but every consumer that trusts
+    Position (tray progress label, Discord's elapsed timer, the MPRIS
+    server we publish to Plasma) sticks at the same second until the
+    user seeks manually or restarts the track.
+
+    The check: while the track is PLAYING and the same ``track_key``
+    keeps reporting a position that hasn't moved by more than
+    ``tolerance_ms`` for longer than ``stall_after_s`` seconds, the
+    source is considered stalled. From then on the returned position is
+    ``anchor position + wall-clock time since the anchor``, clamped to
+    ``duration_ms`` — i.e. we run the clock ourselves instead of
+    echoing a frozen number.
+
+    ``tolerance_ms`` (not "exactly equal") absorbs sources that update
+    Position coarsely: at a 250 ms poll interval a player refreshing
+    once per second legitimately reports the same value twice in a
+    row. Only a freeze that outlives ``stall_after_s`` counts.
+
+    Recovery is automatic: as soon as the source reports a position
+    that moved — a real tick, a seek, or the user's manual nudge — that
+    value re-anchors the state and is passed through untouched.
+
+    ``stall_after_s <= 0`` disables the whole mechanism (config knob
+    ``advanced.position_stall_s``), and any non-playing / trackless
+    poll resets the state, so a genuine pause is never extrapolated
+    over. The one case this cannot distinguish is a source that lies
+    about PlaybackStatus while actually paused; the clamp to
+    ``duration_ms`` bounds how far that can run, and idle detection
+    clears it from there.
+
+    Returns ``(effective_position_ms, new_state)``.
+    """
+    if stall_after_s <= 0 or not is_playing or not track_key:
+        return position_ms, PositionState()
+
+    fresh = PositionState(
+        track_key=track_key,
+        raw_position_ms=position_ms,
+        anchor_at=now,
+        stalled=False,
+    )
+    if track_key != state.track_key:
+        return position_ms, fresh
+    if abs(position_ms - state.raw_position_ms) > tolerance_ms:
+        # Source is alive — a normal tick, a seek, or the preview-clip
+        # 0→8s→0 loop. Re-anchor and pass the real value through.
+        return position_ms, fresh
+
+    frozen_s = now - state.anchor_at
+    if frozen_s <= stall_after_s:
+        # Not frozen long enough to call it: keep the existing anchor
+        # (so the freeze window keeps accumulating) and report as-is.
+        return position_ms, state
+
+    projected_ms = state.raw_position_ms + int(frozen_s * 1000)
+    if duration_ms > 0:
+        projected_ms = min(projected_ms, duration_ms)
+    return projected_ms, replace(state, stalled=True)
