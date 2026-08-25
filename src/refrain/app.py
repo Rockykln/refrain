@@ -436,13 +436,23 @@ def _sync_autostart(config: Config) -> None:
         autostart_disable()
 
 
+# Set for the whole process when --debug is on the command line. The flag
+# has to outrank the config: `settings.applied` fires on an ordinary
+# startup config save too, and without this a `--debug` run went back to
+# INFO a few seconds in, taking the diagnostics it was started for with
+# it.
+_forced_debug = False
+
+
 def _apply_log_level(config: Config) -> None:
     """Push the configured log level onto the running root logger.
 
     Wired to ``settings.applied`` so toggling between INFO/DEBUG in the
     Settings dialog takes effect immediately, instead of silently
-    waiting for the next restart.
+    waiting for the next restart. A ``--debug`` run ignores it.
     """
+    if _forced_debug:
+        return
     # Defensive str() coercion: a hand-edited config with
     # `log_level = 5` would otherwise AttributeError on .upper().
     raw = config.advanced.log_level
@@ -601,6 +611,8 @@ def main() -> int:
     # in particular emits "Created default config" and "Config unreadable"
     # messages we want captured in the file log. The level is adjusted to
     # whatever the user configured once the config is loaded.
+    global _forced_debug
+    _forced_debug = bool(args.debug)
     setup_logging("DEBUG" if args.debug else "INFO")
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)

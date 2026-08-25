@@ -174,10 +174,30 @@ def resolve_position(
     if track_key != state.track_key:
         state, moved = _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms), True
     else:
-        if state.cumulative and is_playing:
+        if state.cumulative and 0 <= reported_ms <= max(tolerance_ms, 2_000):
+            # The source just produced a plausible track start mid-track.
+            # A seek can't do that on a stream-relative timeline — seeking
+            # to the top of a song still lands hundreds of seconds into
+            # the stream — so the player has changed what it is counting.
+            # Believe the new frame and take the latch off.
+            state = replace(
+                state,
+                cumulative=False,
+                started_at=now - reported_ms / 1000.0,
+                paused_ms=0,
+                paused_since=now if not is_playing else 0.0,
+                anchored=True,
+            )
+        elif state.cumulative and is_playing:
             state = _follow_seek(state, reported_ms, now, tolerance_ms)
         state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
     state = replace(state, last_seen_at=now)
+    if not is_playing:
+        # The freshness clock only runs while playing. A paused source is
+        # supposed to stand still, and letting the stall window accrue
+        # through a pause made every resume from a pause longer than
+        # `stall_after_s` look like a freeze for one poll.
+        state = replace(state, moved_at=now)
     state = _track_pause(state, is_playing, now)
 
     # -- tier 1: the source's own value -------------------------------
@@ -305,4 +325,6 @@ def _follow_seek(
     jump_ms = delta_ms - int((now - state.last_seen_at) * 1000)
     if abs(jump_ms) <= max(tolerance_ms, 2_000):
         return state  # ordinary playback advance
-    return replace(state, started_at=state.started_at - jump_ms / 1000.0)
+    # Never past `now`: a start in the future would mean negative elapsed,
+    # and no seek can put the track's beginning ahead of the clock.
+    return replace(state, started_at=min(state.started_at - jump_ms / 1000.0, now))

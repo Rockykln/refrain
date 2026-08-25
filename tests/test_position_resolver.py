@@ -253,3 +253,41 @@ def test_a_source_that_resets_again_gets_tier_1_back():
     assert state.cumulative is False
     pos, tier, state = step(state, A, 1_000, 1201.0)
     assert (pos, tier) == (1_000, PositionTier.REPORTED)
+
+
+def test_source_switching_to_track_relative_mid_track_is_believed_again():
+    # Seen live: the player counted the stream for one track, then
+    # started counting the track itself without a track change in
+    # between. Read as a seek, that 700-second jump backwards put the
+    # clock's zero in the future and the time vanished.
+    state = PositionState()
+    _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
+    _, tier, state = step(state, C, 700_000, 1035.0, duration_ms=0)
+    assert (tier, state.cumulative) == (PositionTier.COMPUTED, True)
+    pos, tier, state = step(state, C, 500, 1040.0, duration_ms=158_000)
+    assert (pos, tier) == (500, PositionTier.REPORTED)
+    assert state.cumulative is False
+    pos, tier, state = step(state, C, 10_500, 1050.0, duration_ms=158_000)
+    assert (pos, tier) == (10_500, PositionTier.REPORTED)
+
+
+def test_a_seek_can_never_put_the_track_start_in_the_future():
+    state = PositionState()
+    _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)
+    # A jump backwards larger than everything played so far.
+    pos, tier, state = step(state, C, 3_000, 1036.0, duration_ms=0)
+    assert pos is not None
+    assert pos >= 0
+
+
+def test_resuming_from_a_long_pause_is_not_read_as_a_freeze():
+    state = PositionState()
+    _, _, state = step(state, A, 30_000, 1000.0)
+    for now in (1001.0, 1030.0, 1060.0):
+        _, tier, state = step(state, A, 30_000, now, playing=False)
+        assert tier is PositionTier.REPORTED
+    # Resumed after 60 s — far longer than the 4 s stall window, but the
+    # source was never expected to move during it.
+    pos, tier, state = step(state, A, 30_200, 1060.5)
+    assert (pos, tier) == (30_200, PositionTier.REPORTED)

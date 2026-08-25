@@ -302,6 +302,7 @@ class DaemonWorker(QObject):
         self._position_state = PositionState()
         self._position_tier = PositionTier.UNKNOWN
         self._position_known = False
+        self._last_rpc_timing: tuple | None = None
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
@@ -976,6 +977,22 @@ class DaemonWorker(QObject):
             if link.startswith("https://"):
                 payload["buttons"] = [{"label": "Listen on Apple Music", "url": link}]
 
+        # The timing pair is what both the "Discord shows no progress bar"
+        # and the "bar is already in the past" reports come down to, and
+        # it is assembled from four different sources. Logged whenever it
+        # changes — every poll would be twice a second of identical
+        # lines, since a stable track deliberately keeps the same pair.
+        timing = (payload.get("start"), payload.get("end"), self._position_tier)
+        if timing != self._last_rpc_timing:
+            log.debug(
+                "RPC timing: %s — start=%s end=%s (position tier %s, effective_dur=%dms)",
+                details[:40],
+                payload.get("start", "—"),
+                payload.get("end", "—"),
+                self._position_tier.value,
+                effective_duration_ms,
+            )
+            self._last_rpc_timing = timing
         self._rpc.update(**payload)
 
     def _notify(

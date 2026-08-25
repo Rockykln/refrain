@@ -42,9 +42,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own instead of dropping the line, which is also what Bluetooth AVRCP
   tracks without a length have always warranted.
 
+  The same player also switches frames mid-track — it counted the stream
+  for one song and then, without a track change, started counting the
+  song itself. A position that drops to near zero that way is taken as
+  the new frame rather than as a seek backwards, which is what it looked
+  like at first and what briefly parked the clock's zero in the future.
+
   New config field `advanced.position_stall_s` (default 4 s) sets how
   long a playing track's position may stand still before the source
-  loses the first tier; 0 disables that check.
+  loses the first tier; 0 disables that check. The window only runs
+  while playing — a pause is not a source standing still.
+
+- **`--debug` stopped taking effect a few seconds into the run.** The
+  log level is re-applied whenever settings are applied, and an ordinary
+  startup config save does that too, so a `--debug` session dropped back
+  to INFO before it had logged anything worth reading. The flag now
+  outranks the config for the life of the process.
 
 ### Changed
 
