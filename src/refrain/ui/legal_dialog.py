@@ -26,6 +26,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from refrain.ui.cursors import apply_interactive_cursors
+
 GITHUB_URL = "https://github.com/Rockykln/refrain"
 LEGAL_URL = f"{GITHUB_URL}/blob/main/LEGAL.md"
 LICENSE_URL = f"{GITHUB_URL}/blob/main/LICENSE"
@@ -166,6 +168,10 @@ class LegalDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(scroll)
         layout.addWidget(buttons)
+
+        # Every clickable child gets the pointing hand, in one place —
+        # see refrain.ui.cursors.
+        apply_interactive_cursors(self)
 
     @staticmethod
     def _open_link(url: str) -> None:

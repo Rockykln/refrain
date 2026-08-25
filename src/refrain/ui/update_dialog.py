@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__
 from refrain.paths import assets_dir
+from refrain.ui.cursors import apply_interactive_cursors
 from refrain.updater import (
     ReleaseInfo,
     UpdateResult,
@@ -119,6 +120,10 @@ class UpdateDialog(QDialog):
         button_row.addWidget(self.close_btn)
 
         layout.addLayout(button_row)
+
+        # Every clickable child gets the pointing hand, in one place —
+        # see refrain.ui.cursors.
+        apply_interactive_cursors(self)
 
     # ----------------------------------------------------------- helpers
 

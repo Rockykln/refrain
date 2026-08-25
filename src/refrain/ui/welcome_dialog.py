@@ -41,6 +41,7 @@ from PySide6.QtWidgets import (
 )
 
 from refrain.paths import assets_dir
+from refrain.ui.cursors import apply_interactive_cursors
 
 log = logging.getLogger(__name__)
 
@@ -260,6 +261,10 @@ class WelcomeDialog(QDialog):
 
         self._diag_thread: QThread | None = None
         self._diag_worker: _DiagnosticsWorker | None = None
+
+        # Every clickable child gets the pointing hand, in one place —
+        # see refrain.ui.cursors.
+        apply_interactive_cursors(self)
 
     def start_diagnostics(self) -> None:
         """Kick off Discord + iTunes probes on a background thread."""

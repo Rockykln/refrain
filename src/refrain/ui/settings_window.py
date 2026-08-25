@@ -34,6 +34,7 @@ from refrain.config import Config
 from refrain.paths import assets_dir, config_path, state_dir
 from refrain.scrobble import API_ACCOUNT_URL, LastfmClient, LastfmError
 from refrain.sources.bluetooth import BluetoothSource
+from refrain.ui.cursors import apply_interactive_cursors
 from refrain.updater import ReleaseInfo, prepare_release_notes
 
 GITHUB_URL = "https://github.com/Rockykln/refrain"
@@ -305,13 +306,11 @@ class SettingsWindow(QDialog):
         github_btn.setIcon(QIcon(str(assets_dir() / "icons" / "github-mark.svg")))
         github_btn.setIconSize(QSize(16, 16))
         github_btn.setAutoRaise(True)
-        github_btn.setCursor(Qt.PointingHandCursor)
         github_btn.setToolTip(self.tr("View Refrain on GitHub"))
         github_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(GITHUB_URL)))
 
         legal_btn = QPushButton(self.tr("Legal"))
         legal_btn.setFlat(True)
-        legal_btn.setCursor(Qt.PointingHandCursor)
         legal_btn.setToolTip(self.tr("Licence, trademark and affiliation notices"))
         legal_btn.clicked.connect(self._show_legal)
 
@@ -328,6 +327,10 @@ class SettingsWindow(QDialog):
         layout.addLayout(version_row)
 
         self._load_into_form()
+
+        # Every clickable child gets the pointing hand, in one place —
+        # see refrain.ui.cursors.
+        apply_interactive_cursors(self)
 
     # ====================================================================
     # General tab

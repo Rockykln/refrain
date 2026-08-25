@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 )
 
 from refrain.paths import assets_dir
+from refrain.ui.cursors import apply_interactive_cursors
 
 _LEVEL_COLORS = {
     logging.DEBUG: "#888888",
@@ -97,6 +98,10 @@ class LogWindow(QDialog):
         layout.addWidget(self.view, 1)
 
         bridge.log_record.connect(self._append)
+
+        # Every clickable child gets the pointing hand, in one place —
+        # see refrain.ui.cursors.
+        apply_interactive_cursors(self)
 
     # --------------------------------------------------------------- handlers
 

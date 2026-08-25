@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and are unaffected. New config field `advanced.position_stall_s`
   (default 4 s) sets how long a playing track's position may stand still
   before the source loses tier 1; 0 disables that check.
+### Changed
+
+- **Clickable controls now show the pointing-hand cursor throughout.** It
+  was set per widget at construction, which meant it was set almost
+  nowhere — two buttons in the whole UI had it and everything else kept
+  the arrow. Each dialog now makes one `apply_interactive_cursors(self)`
+  call that covers every button, checkbox, combo box and tab in it, so a
+  control added later is covered by default rather than by remembering.
+  Text fields keep their I-beam, and a disabled control drops the hand
+  while it is disabled instead of inviting a click it will ignore.
 
 ## [0.4.5] - 2026-08-24
 
