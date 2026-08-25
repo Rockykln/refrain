@@ -30,9 +30,11 @@ from refrain.sources.mpris import MPRISSource
 from refrain.sources.mpris_server import MPRISServer
 from refrain.timing import (
     PositionState,
+    QueueOffsetState,
     compensate_stalled_position,
     compute_rpc_start_ts,
     pick_effective_duration_ms,
+    resolve_track_position,
 )
 
 log = logging.getLogger(__name__)
@@ -296,6 +298,11 @@ class DaemonWorker(QObject):
         # server we publish. `_apply_stall_compensation` takes over the
         # clock from wall time once that happens.
         self._position_state = PositionState()
+        # Queue-cumulative sources: Apple Music's web player counts
+        # Position across track boundaries instead of restarting it per
+        # track. `_apply_queue_offset` anchors each track so everything
+        # downstream sees a real in-track position.
+        self._queue_offset = QueueOffsetState()
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
@@ -473,6 +480,7 @@ class DaemonWorker(QObject):
 
     def _poll(self) -> TrackInfo:
         track = self._poll_sources()
+        track = self._apply_queue_offset(track)
         track = self._apply_stall_compensation(track)
         return self._apply_idle_detection(track)
 
@@ -511,6 +519,37 @@ class DaemonWorker(QObject):
             else 0
         )
         return pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
+
+    def _apply_queue_offset(self, track: TrackInfo) -> TrackInfo:
+        """Turn a queue-cumulative `Position` into a track-relative one.
+
+        Runs first in the poll pipeline, ahead of stall compensation and
+        idle detection, so every consumer — and every later stage of the
+        pipeline — works with a position that actually belongs to the
+        current track. Sitting upstream of idle detection also means the
+        anchor survives an idle clear: the source keeps reporting the
+        track, so the next real transition is still recognised as one.
+        """
+        track_key = (
+            f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
+        )
+        was_cumulative = self._queue_offset.cumulative
+        position_ms, new_state = resolve_track_position(
+            self._queue_offset,
+            track_key,
+            track.position_ms,
+            self._effective_duration_ms(track),
+        )
+        self._queue_offset = new_state
+        if new_state.cumulative and not was_cumulative:
+            log.info(
+                "Source reports a queue-cumulative position (track starts at %.1fs on the "
+                "queue timeline) — reporting positions relative to the track from here",
+                new_state.offset_ms / 1000.0,
+            )
+        if position_ms == track.position_ms:
+            return track
+        return dataclasses.replace(track, position_ms=position_ms)
 
     def _apply_stall_compensation(self, track: TrackInfo) -> TrackInfo:
         """Keep the track clock moving when the source's `Position` freezes.

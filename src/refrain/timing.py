@@ -184,3 +184,98 @@ def compensate_stalled_position(
     if duration_ms > 0:
         projected_ms = min(projected_ms, duration_ms)
     return projected_ms, replace(state, stalled=True)
+
+
+@dataclass
+class QueueOffsetState:
+    """Where the current track begins on a queue-cumulative timeline."""
+
+    track_key: str = ""
+    # Queue position at which the current track started. 0 for a normal
+    # source, whose Position is already track-relative.
+    offset_ms: int = 0
+    # Last raw position seen on *any* track — the continuation check
+    # compares against it to tell "next track" from "position reset".
+    last_position_ms: int = 0
+    # Latched once the source has been observed continuing its position
+    # across a track change, so later transitions anchor even if we
+    # notice them a few polls late.
+    cumulative: bool = False
+    # Whether the mid-track rescue anchor below has already been spent
+    # on this track. Bounds it to once, so a track whose catalog length
+    # is too short can't loop the display 0→end→0.
+    rescued: bool = False
+
+
+def resolve_track_position(
+    state: QueueOffsetState,
+    track_key: str,
+    position_ms: int,
+    duration_ms: int,
+    continuation_tolerance_ms: int = 2_500,
+    overrun_grace_ms: int = 5_000,
+) -> tuple[int, QueueOffsetState]:
+    """Convert a queue-cumulative ``Position`` into a track-relative one.
+
+    Apple Music's web player does not restart ``Position`` at each
+    track. It exposes the whole listening session as one timeline:
+    ``mpris:length`` grows as the queue extends, and ``Position`` counts
+    up across track boundaries — the second song of a queue starts at
+    the first song's length, the third at the sum of the first two, and
+    so on. Observed live: three tracks in, Position read 11:08 on a song
+    whose real length is 2:25.
+
+    Everything downstream then breaks in the same direction. The tray
+    label clamps position to duration and pins at ``2:24 / 2:25
+    (-0:00)`` — the "elapsed time is stuck" report. Discord gets a
+    ``start`` hundreds of seconds in the past and an ``end`` that has
+    already gone by. Seeking or restarting the song "fixes" it only
+    because that drags Position back under the track's length.
+
+    So we anchor instead: when a track change arrives with a position
+    that *continued* from the previous track rather than resetting, the
+    source is queue-cumulative and that position is where this track
+    begins. Subtracting it yields the real in-track position.
+
+    A source whose Position is already track-relative — every normal
+    MPRIS player, Bluetooth AVRCP — resets to ~0 at each change, fails
+    the continuation test, and keeps an offset of 0. The conversion is
+    a no-op for them, which is why it can sit in the common path.
+
+    One case has no recoverable anchor: a track already playing when
+    Refrain started, so its transition was never observed. The position
+    then runs past the track's real length, and once past
+    ``overrun_grace_ms`` we re-anchor to get a moving clock back — once
+    per track only. That single track reads low by however much of it
+    had already played; the next track change is exact again.
+
+    Returns ``(track_relative_position_ms, new_state)``.
+    """
+    if not track_key:
+        return position_ms, QueueOffsetState()
+
+    if track_key != state.track_key:
+        delta = position_ms - state.last_position_ms
+        continued = (
+            bool(state.track_key)
+            and position_ms > continuation_tolerance_ms
+            and -500 <= delta <= continuation_tolerance_ms
+        )
+        cumulative = continued or state.cumulative
+        state = QueueOffsetState(
+            track_key=track_key,
+            offset_ms=position_ms if cumulative else 0,
+            last_position_ms=position_ms,
+            cumulative=cumulative,
+        )
+    else:
+        state = replace(state, last_position_ms=position_ms)
+
+    relative_ms = position_ms - state.offset_ms
+    if duration_ms > 0 and not state.rescued and relative_ms > duration_ms + overrun_grace_ms:
+        # No usable anchor for this track (Refrain came up mid-song, or
+        # a transition slipped past). Re-anchor here: a clock that runs
+        # from the wrong zero still beats one frozen at the end.
+        state = replace(state, offset_ms=position_ms, rescued=True)
+        return 0, state
+    return max(0, relative_ms), state

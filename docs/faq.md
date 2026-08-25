@@ -101,16 +101,27 @@ the status to persist while paused, tell us in
 
 ## The elapsed time freezes mid-song.
 
-The browser stopped refreshing the MPRIS `Position` property while still
-reporting the track as playing — a known Apple Music quirk that hits
-plasma-browser-integration and the browser-native players alike. Refrain
-detects it: once a playing track's position has not moved for
-`advanced.position_stall_s` seconds (default 4), it stops trusting the
-source and runs the track clock from wall time, so the tray, Discord and
-Plasma's panel keep counting. The log line reads *"Source position frozen
-… running the track clock from wall time instead"*. It re-syncs the
-moment the browser reports a position that moved again. Set
-`position_stall_s = 0` in the config to switch the compensation off.
+Usually the queue timeline. Apple Music's web player does not restart
+`Position` at each track — it counts across the whole listening session,
+so the third song of a queue reports a position far past its own length.
+The tray then clamps that to the track length and sits at `2:24 / 2:25
+(–0:00)`, and Discord gets an end time that has already passed. Seeking
+or restarting the song appears to fix it only because that drags the
+position back under the track's length. Refrain detects the cumulative
+timeline at the first track change it observes and anchors each track
+from there, so positions are track-relative again. A song that was
+already playing when Refrain started has no anchor to recover — it reads
+low until the next track change, then everything is exact.
+
+The other cause is a genuinely frozen `Position`: the browser stops
+refreshing the property while still reporting the track as playing. Once
+a playing track's position has not moved for `advanced.position_stall_s`
+seconds (default 4), Refrain runs the track clock from wall time
+instead, and re-syncs the moment the browser reports a position that
+moved. Set `position_stall_s = 0` to switch that off.
+
+Both show up in the log — *"Source reports a queue-cumulative position"*
+and *"Source position frozen …"* respectively.
 
 ## How do I update?
 

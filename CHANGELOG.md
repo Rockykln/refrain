@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The elapsed time stuck at the end of the track.** Apple Music's web
+  player does not restart `Position` per track: it exposes the whole
+  listening session as one timeline, so `mpris:length` grows as the queue
+  extends and `Position` counts on across track boundaries. Three songs
+  into a queue it read 11:08 on a track whose real length is 2:25.
+  Refrain clamped that to the track length, so the tray pinned at
+  `2:24 / 2:25 (–0:00)` and Discord got a `start` hundreds of seconds in
+  the past with an `end` already gone by — seeking or restarting the song
+  only "fixed" it by dragging the position back under the track length.
+  Refrain now recognises a position that continues across a track change
+  instead of resetting, and anchors each track to where it begins on the
+  queue timeline. Sources whose position is already track-relative — every
+  ordinary MPRIS player, Bluetooth AVRCP — reset at each change, fail that
+  test and are passed through untouched. A track that was already playing
+  at startup has no anchor to recover: it gets one re-anchor so the clock
+  moves, reads low for that track only, and is exact again from the next
+  track change.
+
 - **The elapsed time froze mid-song on some tracks.** Apple Music's MPRIS
   surface intermittently stops refreshing `Position` while still
   reporting `PlaybackStatus = Playing` — plasma-browser-integration's
