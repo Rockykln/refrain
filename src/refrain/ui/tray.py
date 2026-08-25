@@ -274,7 +274,15 @@ class TrayIcon(QObject):
             self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
-        if duration_ms <= 0:
+        """Render the progress line. A negative position hides it.
+
+        A zero or absent duration means the source gave no track length —
+        common on Bluetooth AVRCP, and the case on a streaming source
+        whose catalog lookup found nothing. The elapsed count is still
+        worth showing on its own; only a position we don't trust at all
+        takes the line away, which the daemon signals with -1.
+        """
+        if position_ms < 0:
             self._progress_action.setText("")
             self._progress_action.setVisible(False)
             self._current_progress_line = ""
@@ -282,11 +290,14 @@ class TrayIcon(QObject):
             return
         pos = max(0, position_ms) // 1000
         dur = max(0, duration_ms) // 1000
-        rem = max(0, dur - pos)
-        progress = (
-            f"{pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
-            f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
-        )
+        if dur <= 0:
+            progress = f"{pos // 60}:{pos % 60:02d}"
+        else:
+            rem = max(0, dur - pos)
+            progress = (
+                f"{pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
+                f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
+            )
         self._progress_action.setText(progress)
         self._progress_action.setVisible(True)
         self._current_progress_line = progress

@@ -516,6 +516,13 @@ class DaemonWorker(QObject):
             if self._config.behavior.cover_art
             else 0
         )
+        if self._position_state.cumulative:
+            # This source's `mpris:length` is not a track length. It
+            # tracks the stream buffer — measured live, it grew by 135 s
+            # over 144 s of playback on one unchanging track — so the
+            # catalog is the only thing that knows how long the song is.
+            # Better no total than a 6:52 one on a 2:24 song.
+            return itunes_dur_ms
         return pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
 
     def _resolve_position(self, track: TrackInfo) -> TrackInfo:
@@ -556,9 +563,13 @@ class DaemonWorker(QObject):
                 }[tier],
             )
         self._position_tier = tier
-        if position_ms is None or position_ms == track.position_ms:
+        if position_ms == track.position_ms:
             return track
-        return dataclasses.replace(track, position_ms=position_ms)
+        # An unresolvable position is zeroed rather than left as the
+        # source reported it: the MPRIS server publishes whatever is on
+        # the track, and forwarding a value we have just declared
+        # dishonest would put it in front of every other MPRIS client.
+        return dataclasses.replace(track, position_ms=position_ms or 0)
 
     def _apply_idle_detection(self, track: TrackInfo) -> TrackInfo:
         # Idle detection's deadline keys off the track's *real* duration.
@@ -623,19 +634,21 @@ class DaemonWorker(QObject):
         )
         effective_dur_ms = pick_effective_duration_ms(track.duration_ms, itunes_dur_ms)
 
-        # Tray progress label: emit on every tick while playing. A zero
-        # duration is the tray's cue to hide the line, which is how an
-        # unresolvable position reaches it — better an absent line than
-        # one counting wrong.
-        if track.status == PlaybackStatus.PLAYING and effective_dur_ms > 0:
-            if self._position_known:
+        # Tray progress label, emitted on every tick while playing. The
+        # tray reads a negative position as "hide the line" and a
+        # zero/absent duration as "elapsed only" — an unknown total is no
+        # reason to drop an elapsed count we do trust.
+        if track.status == PlaybackStatus.PLAYING:
+            if not self._position_known:
+                self.progressTick.emit(-1, 0)
+            elif effective_dur_ms > 0:
                 # Clamp position to duration so the tray doesn't show a
                 # nonsensical "2:30 / 0:14 (-0:00)" line during a brief
                 # MPRIS preview-clip glitch on a longer song.
                 display_pos = min(max(0, track.position_ms), effective_dur_ms)
                 self.progressTick.emit(display_pos, effective_dur_ms)
             else:
-                self.progressTick.emit(0, 0)
+                self.progressTick.emit(max(0, track.position_ms), 0)
 
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 

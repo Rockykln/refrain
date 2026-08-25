@@ -84,3 +84,26 @@ def test_tray_set_methods_dont_crash(app):
     tray.set_progress(42_000, 180_000)
     tray.set_discord_connected(True)
     tray.set_update_available(True, "1.0.0")
+
+
+def test_progress_line_shows_elapsed_only_without_a_duration(app):
+    """A source with no track length still gets an elapsed count.
+
+    Bluetooth AVRCP often reports no length, and neither does a
+    streaming source whose catalog lookup came up empty. Hiding the line
+    there threw away a number we do trust.
+    """
+    tray = TrayIcon()
+    tray.set_progress(83_000, 0)
+    assert tray._progress_action.text() == "1:23"
+    assert tray._progress_action.isVisible()
+
+
+def test_negative_position_hides_the_progress_line(app):
+    """-1 is how the daemon says the position isn't trustworthy at all."""
+    tray = TrayIcon()
+    tray.set_progress(42_000, 180_000)
+    assert tray._progress_action.isVisible()
+    tray.set_progress(-1, 0)
+    assert not tray._progress_action.isVisible()
+    assert tray._progress_action.text() == ""

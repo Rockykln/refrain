@@ -101,20 +101,25 @@ the status to persist while paused, tell us in
 
 ## The elapsed time freezes mid-song, or disappears.
 
-Apple Music's web player misreports position in two ways. It counts
-`Position` across the whole queue instead of restarting it per track, so
-the third song of a session reports a position far past its own length —
-which used to pin the tray at `2:24 / 2:25 (–0:00)`. And it sometimes
-stops refreshing `Position` altogether while still reporting the track as
-playing.
+Apple Music's web player doesn't report a per-track position. It reports
+a position in the *stream*, which carries on across track boundaries, and
+its `mpris:length` is a buffer marker rather than a song length. Three
+songs into a session that reads as 11:08 elapsed of 6:52 on a 2:25
+track — which used to pin the tray at `2:24 / 2:25 (–0:00)`. It also
+sometimes stops refreshing the position altogether while still reporting
+the track as playing.
 
 Refrain resolves the position in three tiers. It uses what the source
 reports while that holds up; when it doesn't, it counts from the start of
-the track itself, discounting pauses; and when it has no honest answer —
-a song that was already playing when Refrain started, so there is no
-witnessed start to count from — it hides the time rather than showing a
-wrong one. That is why the progress line and Discord's timer sometimes
-disappear for one track and come back at the next track change.
+the track itself, discounting pauses and following seeks; and when it has
+no honest answer — a song that was already playing when Refrain started,
+so there is no witnessed start to count from — it hides the time rather
+than show a wrong one. That is why the progress line and Discord's timer
+can be absent for one track and come back at the next track change.
+
+The song's total length then comes from the iTunes catalog, since the
+player's own number doesn't describe the song. When the catalog has no
+match, the tray shows the elapsed count on its own.
 
 `advanced.position_stall_s` (default 4) is how many seconds a playing
 track's position may stand still before Refrain stops trusting it; 0

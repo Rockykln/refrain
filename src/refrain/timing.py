@@ -115,9 +115,14 @@ class PositionState:
     # track. False when Refrain came up mid-song: the clock has no zero
     # to count from, and inventing one would be a lie.
     anchored: bool = False
-    # Freshness of the source's own value: what it last read, and when it
-    # last actually moved.
+    # Latched when the source has been seen carrying its position across
+    # a track change. Such a position belongs to the stream, not to the
+    # track, so tier 1 is off the table for as long as it holds.
+    cumulative: bool = False
+    # Freshness of the source's own value: what it last read, when it was
+    # read, and when it last actually moved.
     last_reported_ms: int = 0
+    last_seen_at: float = 0.0
     moved_at: float = 0.0
 
 
@@ -169,7 +174,10 @@ def resolve_position(
     if track_key != state.track_key:
         state, moved = _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms), True
     else:
+        if state.cumulative and is_playing:
+            state = _follow_seek(state, reported_ms, now, tolerance_ms)
         state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
+    state = replace(state, last_seen_at=now)
     state = _track_pause(state, is_playing, now)
 
     # -- tier 1: the source's own value -------------------------------
@@ -177,7 +185,7 @@ def resolve_position(
     # is what `advanced.position_stall_s = 0` is documented to do.
     frozen = stall_after_s > 0 and is_playing and (now - state.moved_at) > stall_after_s
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
-    if reported_ms >= 0 and not frozen and not past_end:
+    if reported_ms >= 0 and not frozen and not past_end and not state.cumulative:
         if not moved:
             # Believed, but standing still — inside the stall window, or
             # paused. Re-syncing the clock to a value that isn't moving
@@ -231,11 +239,18 @@ def _anchor_new_track(
     reset_by_source = 0 <= reported_ms <= max(tolerance_ms, 2_000)
     witnessed_change = bool(state.track_key)
     anchored = reset_by_source or witnessed_change
+    # A change the source didn't reset for means its position belongs to
+    # the stream rather than to the track. Latched here and cleared the
+    # moment a change does reset, so a source that starts behaving (or a
+    # different player taking over) gets tier 1 back.
+    cumulative = not reset_by_source and (witnessed_change or state.cumulative)
     return PositionState(
         track_key=track_key,
         started_at=now - (reported_ms / 1000.0 if reset_by_source else 0.0),
         anchored=anchored,
+        cumulative=cumulative,
         last_reported_ms=reported_ms,
+        last_seen_at=now,
         moved_at=now,
     )
 
@@ -267,3 +282,27 @@ def _track_pause(state: PositionState, is_playing: bool, now: float) -> Position
     if not is_playing and not state.paused_since:
         return replace(state, paused_since=now)
     return state
+
+
+def _follow_seek(
+    state: PositionState, reported_ms: int, now: float, tolerance_ms: int
+) -> PositionState:
+    """Shift our clock when the user seeks on a stream-relative source.
+
+    Its position is useless as an absolute in-track value, but it is
+    still a faithful *timeline*: over one poll it advances by exactly the
+    wall-clock time that passed, unless someone dragged the slider. The
+    excess is the seek, and our clock's zero moves by the same amount.
+
+    A frozen source looks superficially similar — its position also
+    fails to advance by the elapsed time — so this only acts on a value
+    that actually moved. A freeze moves nothing and is left to the
+    caller's stall handling.
+    """
+    delta_ms = reported_ms - state.last_reported_ms
+    if abs(delta_ms) <= tolerance_ms:
+        return state  # standing still: a freeze, not a seek
+    jump_ms = delta_ms - int((now - state.last_seen_at) * 1000)
+    if abs(jump_ms) <= max(tolerance_ms, 2_000):
+        return state  # ordinary playback advance
+    return replace(state, started_at=state.started_at - jump_ms / 1000.0)

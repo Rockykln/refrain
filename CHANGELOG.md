@@ -9,33 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **The elapsed time stuck mid-song, and Discord's timer with it.** Two
-  separate lies from the same source, both landing as a frozen clock.
-  Apple Music's web player does not restart `Position` per track — it
-  exposes the whole listening session as one timeline, so `mpris:length`
-  grows as the queue extends and `Position` counts on across track
-  boundaries. Three songs in it read 11:08 on a 2:25 track; Refrain
-  clamped that to the track length and pinned the tray at
-  `2:24 / 2:25 (–0:00)`, while Discord got a `start` hundreds of seconds
-  in the past and an `end` already gone by. The same player also stops
-  refreshing `Position` altogether mid-track while still reporting
+- **The elapsed time stuck mid-song, and Discord's timer with it.** Apple
+  Music's web player does not report a per-track position at all. It
+  reports a position in the *stream*: it carries on across track
+  boundaries (the change from one song to the next lands one poll tick
+  after the previous song's start plus its length), and `mpris:length`
+  is a buffer marker rather than a song length — measured live, it grew
+  by 135 s over 144 s of playback on one unchanging track. Three songs
+  into a session the position read 11:08 on a 2:25 track and the length
+  read 6:52. Refrain clamped that to the track length, pinning the tray
+  at `2:24 / 2:25 (–0:00)`, and gave Discord a `start` hundreds of
+  seconds in the past with an `end` already gone by. The same player
+  also stops refreshing its position mid-track while still reporting
   `Playing`. Seeking or restarting the song "fixed" both only by
-  dragging the position back to something sane.
+  dragging the position back to something plausible.
 
   Position is now resolved through three tiers per poll. The source's
-  own value is used when it holds up — non-negative, not past the end of
-  the track, and actually moving while playing. When it doesn't, Refrain
-  counts from the track's start itself: wall-clock elapsed since a start
-  it witnessed, minus time spent paused. When there is no anchor to
-  count from either — a song already playing when Refrain started, or a
-  source claiming "playing" long past the end of the track — the time is
-  hidden entirely: no tray progress line, no `start`/`end` in the Discord
-  payload, no length published to Plasma's applet. A wrong clock is
-  worse than none. Sources that report position honestly, which is every
-  ordinary MPRIS player and Bluetooth AVRCP, stay on tier 1 throughout
-  and are unaffected. New config field `advanced.position_stall_s`
-  (default 4 s) sets how long a playing track's position may stand still
-  before the source loses tier 1; 0 disables that check.
+  own value is used while it holds up — non-negative, not past the end
+  of the track, actually moving while playing, and not from a source
+  already caught carrying its position across a track change. When it
+  doesn't hold up, Refrain counts from the track's start itself:
+  wall-clock elapsed since a start it witnessed, minus time spent
+  paused, following the stream's own timeline through seeks. When there
+  is no anchor to count from either — a song already playing when
+  Refrain started — the time is hidden entirely rather than shown wrong:
+  no tray progress line, no `start`/`end` for Discord, no length
+  published to Plasma's applet. The next track change recovers it.
+
+  A stream-relative source's `mpris:length` is no longer used as a song
+  length either, so the total comes from the catalog or not at all. When
+  the catalog has no match the tray now shows the elapsed count on its
+  own instead of dropping the line, which is also what Bluetooth AVRCP
+  tracks without a length have always warranted.
+
+  New config field `advanced.position_stall_s` (default 4 s) sets how
+  long a playing track's position may stand still before the source
+  loses the first tier; 0 disables that check.
+
 ### Changed
 
 - **Clickable controls now show the pointing-hand cursor throughout.** It

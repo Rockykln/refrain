@@ -183,3 +183,73 @@ def test_stall_check_disabled_keeps_believing_a_frozen_source():
     _, _, state = step(state, A, 60_000, 1000.0, stall_after_s=0)
     pos, tier, state = step(state, A, 60_000, 1600.0, stall_after_s=0)
     assert (pos, tier) == (60_000, PositionTier.REPORTED)
+
+
+# ------------------------------------------- a source that streams, not tracks
+
+
+def test_stream_relative_source_stops_being_believed_after_one_change():
+    # Apple Music's web player carries its position across track
+    # boundaries: the position belongs to the stream, so it is never an
+    # in-track value again once we have seen that happen.
+    state = PositionState()
+    _, tier, state = step(state, B, 234_299, 1000.0, duration_ms=0)
+    assert tier is PositionTier.REPORTED  # nothing yet says otherwise
+    pos, tier, state = step(state, C, 267_590, 1035.0, duration_ms=0)
+    assert (pos, tier) == (0, PositionTier.COMPUTED)
+    assert state.cumulative is True
+    # Even with no catalog length to catch it out, the reported value is
+    # not offered again — this is the regression that made the elapsed
+    # timer disappear one poll after every track change.
+    pos, tier, state = step(state, C, 297_590, 1065.0, duration_ms=0)
+    assert (pos, tier) == (30_000, PositionTier.COMPUTED)
+
+
+def test_a_late_catalog_length_does_not_poison_the_anchor():
+    # The exact live sequence: at the track change the only length known
+    # is the source's own (a stream buffer marker, far larger than the
+    # song), so nothing looks wrong yet. The catalog answers a second
+    # later with the real one.
+    state = PositionState()
+    _, _, state = step(state, B, 234_299, 1000.0, duration_ms=411_918)
+    pos, tier, state = step(state, C, 267_590, 1035.0, duration_ms=411_918)
+    assert (pos, tier) == (0, PositionTier.COMPUTED)
+    pos, tier, state = step(state, C, 268_090, 1035.5, duration_ms=200_000)
+    assert (pos, tier) == (500, PositionTier.COMPUTED)
+
+
+def test_seek_on_a_stream_relative_source_moves_our_clock():
+    state = PositionState()
+    _, _, state = step(state, B, 234_299, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 267_590, 1035.0, duration_ms=0)
+    pos, _, state = step(state, C, 297_590, 1065.0, duration_ms=0)
+    assert pos == 30_000
+    # User drags the slider 60 s forward: the stream position jumps by
+    # far more than the half-second that passed.
+    pos, tier, state = step(state, C, 358_090, 1065.5, duration_ms=0)
+    assert (pos, tier) == (90_500, PositionTier.COMPUTED)
+    # And keeps counting from there.
+    pos, _, state = step(state, C, 368_090, 1075.5, duration_ms=0)
+    assert pos == 100_500
+
+
+def test_a_frozen_stream_position_is_not_mistaken_for_a_seek():
+    state = PositionState()
+    _, _, state = step(state, B, 234_299, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 267_590, 1035.0, duration_ms=0)
+    # Source stops updating entirely; our clock must keep its zero.
+    for now in (1040.0, 1050.0, 1065.0):
+        pos, tier, state = step(state, C, 267_590, now, duration_ms=0)
+    assert (pos, tier) == (30_000, PositionTier.COMPUTED)
+
+
+def test_a_source_that_resets_again_gets_tier_1_back():
+    state = PositionState()
+    _, _, state = step(state, B, 234_299, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 267_590, 1035.0, duration_ms=0)
+    assert state.cumulative is True
+    # A different player takes over and reports per-track positions.
+    pos, tier, state = step(state, A, 0, 1200.0)
+    assert state.cumulative is False
+    pos, tier, state = step(state, A, 1_000, 1201.0)
+    assert (pos, tier) == (1_000, PositionTier.REPORTED)
