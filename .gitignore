@@ -52,3 +52,8 @@ reference/
 
 # Local-build variant of the Flatpak manifest (uses dir source instead of git tag)
 packaging/flatpak/*.test.yaml
+
+# Local screenshot tooling and the throwaway XDG dirs a capture run points
+# at, so it never touches the real config, cover cache or scrobble queue.
+tools/
+.screenshot-home/

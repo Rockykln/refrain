@@ -4,7 +4,7 @@
 
 There is no Apple Music desktop app on Linux. Refrain reads metadata from
 the **browser** (Apple Music Web at `music.apple.com`) and from
-**Bluetooth AVRCP** when an iPhone or other device is connected. Both are
+**Bluetooth AVRCP** when a phone or other device is connected. Both are
 detected automatically.
 
 ## My track shows in Discord, but the cover art is missing.
@@ -73,7 +73,20 @@ Enter a substring of the browser's MPRIS bus name. Find it via
 `playerctl -l` while a media tab is playing — e.g. for Floorp the
 substring is `floorp`. Save with *Apply*.
 
-## Bluetooth: how do I get my iPhone / phone showing up?
+## How do I know my Discord Application ID is right?
+
+Tick *Look up the application's name on Discord* in
+*Settings → General*. The application's name then appears next to the
+Client ID — the same name Discord puts after "Listening to". If it says
+*No such Discord application*, the ID is wrong; if it names something
+you don't recognise, you pasted a different app's ID.
+
+It is opt-in because it is the only thing Refrain would send to
+Discord's *servers* rather than to your local Discord client. When you
+switch it on it sends the Application ID and nothing else, and the
+answer is cached for four hours. See [`PRIVACY.md`](../PRIVACY.md).
+
+## Bluetooth: how do I get my phone showing up?
 
 See the dedicated walkthrough at [`docs/bluetooth.md`](bluetooth.md).
 Quick version: pair the phone in your desktop's Bluetooth manager,
@@ -99,7 +112,7 @@ That's intentional — pausing is implicitly "not listening". If you want
 the status to persist while paused, tell us in
 [a feature request](https://github.com/Rockykln/refrain/issues/new?template=feature_request.yml).
 
-## The elapsed time freezes mid-song, or disappears.
+## The elapsed time freezes mid-song, jumps back to the start, or disappears.
 
 Apple Music's web player doesn't report a per-track position. It reports
 a position in the *stream*, which carries on across track boundaries, and
@@ -109,13 +122,24 @@ track — which used to pin the tray at `2:24 / 2:25 (–0:00)`. It also
 sometimes stops refreshing the position altogether while still reporting
 the track as playing.
 
+On Plasma there is a second layer to it. Plasma's browser integration
+publishes its own MPRIS player, and Refrain prefers it because it is the
+one reporting a title and an artist at all — but it has its own version
+of the problem: its position and length describe the media *segment* the
+page has buffered, so the position falls back to zero every eight to
+eleven seconds. That is what made the elapsed time restart over and over
+mid-song.
+
 Refrain resolves the position in three tiers. It uses what the source
 reports while that holds up; when it doesn't, it counts from the start of
 the track itself, discounting pauses and following seeks; and when it has
 no honest answer — a song that was already playing when Refrain started,
 so there is no witnessed start to count from — it hides the time rather
-than show a wrong one. That is why the progress line and Discord's timer
-can be absent for one track and come back at the next track change.
+than show a wrong one. Where it *did* see the track start, that start
+wins over anything the source does with its position afterwards, which
+is what keeps a segment source's resets from dragging the clock back.
+That is why the progress line and Discord's timer can be absent for one
+track and come back at the next track change.
 
 The song's total length then comes from the iTunes catalog, since the
 player's own number doesn't describe the song. When the catalog has no

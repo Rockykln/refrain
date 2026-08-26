@@ -85,12 +85,21 @@ elapsed of 6:52 on a 2:25 song. The same player also stops refreshing
 switching frames mid-track: counting the stream for one song, then the
 song itself, with no track change in between.
 
+On Plasma, the player Refrain actually reads is usually not the browser
+itself but Plasma's browser integration, which publishes its own MPRIS
+player and is the one reporting a title and an artist at all. It
+misreports position differently again: its `Position` and `mpris:length`
+describe the media *segment* the page has buffered. Measured live, the
+position ran 0.5 s, 2.6 s, 1.1 s, 3.2 s, 5.0 s, 0 s while the length
+moved between 8433, 9999 and 11033 ms, over and over, on a track four
+minutes long.
+
 `timing.resolve_position` answers in three tiers, in order:
 
 | Tier       | Used when                                                    |
 |------------|--------------------------------------------------------------|
 | `reported` | The source's value holds up: non-negative, not past the end of the track, moving while playing, and not from a source already caught carrying its position across a track change. |
-| `computed` | It doesn't, but we witnessed this track start: wall-clock elapsed since that anchor, minus time paused, following the stream's own timeline through seeks. |
+| `computed` | It doesn't, but we witnessed this track start: wall-clock elapsed since that anchor, minus time paused. A stream-relative source's timeline is still followed through seeks; a source whose own reset gave us the anchor is not — see below. |
 | `unknown`  | Neither. No anchor to count from, or our own clock has run past the end of the track. |
 
 `unknown` renders as nothing at all — no tray progress line, no
@@ -99,6 +108,29 @@ clock known to be wrong is worse than an absent one, and the next track
 change recovers it. `advanced.position_stall_s` (default 4 s) is the
 window a playing track's position may stand still before the first tier
 is withdrawn; 0 disables that check.
+
+One question decides how much of a misbehaving source to believe: **did
+we watch this track start?** It holds when the source reset its position
+at the track change *and* that reset placed our clock's zero, and it
+governs three things at once:
+
+- A length that shifts mid-track latches the source as stream-relative.
+  That normally voids the anchor too, since the anchor at that point
+  came from having believed a stream position — but not when we watched
+  the start, because then the zero is real whatever the length does.
+- A mid-track return to zero is read as the player changing frames, and
+  the latch comes off. Only where we don't already know the start: a
+  segment source returns to zero every few seconds, and believing each
+  of those re-anchored the clock and dropped the elapsed time back to
+  0:00 all song long.
+- A jump backwards is followed as a seek, shifting our zero by the same
+  amount. That trusts the source's timeline while distrusting its
+  absolute value — worth doing when the timeline is all we have, wrong
+  when we timed the track's start ourselves.
+
+So a segment source lands on `computed` and stays there: our own clock,
+counting from a start we saw, ignoring everything the source does with
+its position afterwards.
 
 Ordinary sources — every other MPRIS player, Bluetooth AVRCP — stay on
 `reported` throughout, and the machinery costs them nothing.

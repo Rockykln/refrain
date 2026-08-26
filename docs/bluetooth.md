@@ -64,7 +64,7 @@ manager:
 3. In Refrain, open *Settings → Sources → Bluetooth*:
    - Toggle **Enable Bluetooth source** on.
    - Pick the device from the dropdown. It should show the phone's
-     Bluetooth name (e.g. *Rocky's iPhone*) and its MAC address.
+     Bluetooth name (e.g. *Alex's Phone*) and its MAC address.
    - Hit **Apply**.
 4. Within ~1 s, the tray menu shows the track title + artist.
    Within ~2 s, Discord renders the listening status.

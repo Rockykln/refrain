@@ -10,7 +10,7 @@
 
 Refrain shows what you're listening to on Apple Music as your Discord status
 — whether the audio is playing in a browser tab on `music.apple.com` or
-streaming from your iPhone over Bluetooth.
+streaming from your phone over Bluetooth.
 
 <p align="center">
   <img src="docs/screenshots/discord-rpc.png" alt="Refrain on Discord" width="600"/>
@@ -143,11 +143,14 @@ same file; you almost never need to touch it by hand.
 client_id = ""                     # default Application ID — paste yours here
 client_id_mpris = ""               # optional per-source override (browser / Apple Music)
 client_id_bluetooth = ""           # optional per-source override (Bluetooth headphones)
+all_clients = false                # send the status to every running Discord client, not just the first
+resolve_app_name = false           # opt-in: ask Discord what your Application ID is called, and show it in Settings
 
 [sources]
 mpris_enabled = true
 bluetooth_enabled = true
 bluetooth_device = ""              # empty = auto-detect, or "AA:BB:CC:DD:EE:FF"
+browser_hints = "firefox,chromium,…"  # which MPRIS players count as a browser; edit if yours isn't detected
 
 [privacy]
 mode = "full"                      # "full" | "minimal" | "off"
@@ -205,6 +208,8 @@ no unicode-glyph prefixes.
 | Artist • Album    | Currently playing artist + album (hidden when idle)       |
 | X:XX / Y:YY (–Z:ZZ) | Elapsed / track length / remaining (hidden when idle)   |
 | Discord: connected / not connected | Live Discord-RPC connection state        |
+| Discord: rejected — check Application ID | Discord accepted the socket but refused the Application ID |
+| Last.fm: connected as … / session expired | Scrobbling status (hidden unless Last.fm is enabled) |
 | Previous          | Skip backward on the active source                        |
 | Play / Pause      | Toggle on the active source (label follows playback state)|
 | Next              | Skip forward on the active source                         |
@@ -231,7 +236,7 @@ the background.
     <td align="center">
       <b>General</b><br/>
       <img src="docs/screenshots/settings-general.png" alt="Settings — General" width="420"/>
-      <br/><sub>Discord client ID, privacy, autostart, notifications, cover art</sub>
+      <br/><sub>Discord Client ID with the application's name beside it, privacy, autostart, notifications, cover art</sub>
     </td>
     <td align="center">
       <b>Sources</b><br/>
@@ -241,14 +246,26 @@ the background.
   </tr>
   <tr>
     <td align="center">
+      <b>Last.fm</b><br/>
+      <img src="docs/screenshots/settings-lastfm.png" alt="Settings — Last.fm" width="420"/>
+      <br/><sub>Opt-in scrobbling, API key + secret, connect / disconnect an account</sub>
+    </td>
+    <td align="center">
       <b>Updates</b><br/>
       <img src="docs/screenshots/settings-updates.png" alt="Settings — Updates" width="420"/>
       <br/><sub>Auto-check, last-checked, manual <i>Check for updates now</i></sub>
     </td>
+  </tr>
+  <tr>
     <td align="center">
       <b>Advanced</b><br/>
       <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
-      <br/><sub>Poll interval, notification delay, cover cache size, log level, live-log, restart</sub>
+      <br/><sub>Poll interval, notification delay, cover cache size, language, log level, restart, reset, uninstall</sub>
+    </td>
+    <td align="center">
+      <b>Legal</b><br/>
+      <img src="docs/screenshots/legal.png" alt="Legal notice" width="420"/>
+      <br/><sub>Licence, trademark and affiliation notices — the <i>Legal</i> button in the footer</sub>
     </td>
   </tr>
 </table>

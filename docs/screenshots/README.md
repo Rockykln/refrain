@@ -1,39 +1,62 @@
 # Screenshots
 
-The README references screenshots from this directory. To regenerate them:
+The README references the images in this directory. They are captured
+from the real windows, not mocked up, and they carry the version number
+in the settings footer — so **every release needs a fresh set**, along
+with anything else that changes what a window says (a new tab, a new
+control, a reworded hint).
 
-| File                       | What to capture                                      |
-|----------------------------|------------------------------------------------------|
-| `tray-menu.png`            | Right-click the Refrain tray icon while a track plays. Captures title / artist / progress / Discord-status info rows + Previous / Play-Pause / Next / Settings / Live log / Restart / Quit, all with theme icons. |
-| `settings-general.png`     | Settings window → *General* tab, showing Discord client ID, Privacy combo, autostart, notifications, cover art, buttons. |
-| `settings-sources.png`     | Settings window → *Sources* tab, showing MPRIS toggle, Bluetooth toggle, and the paired-device dropdown populated. |
-| `settings-updates.png`     | Settings window → *Updates* tab. Auto-check on, last-checked timestamp visible, the "Latest release notes" pane populated from CHANGELOG. |
-| `settings-advanced.png`    | Settings window → *Advanced* tab, showing the Language dropdown (11 entries: System default + 10 native endonyms), poll interval, log level, cover cache size, idle grace, and the Reset-all-settings button. |
-| `update-dialog.png`        | The update-available dialog (only appears when a new version is found). Trigger it locally by editing `__version__` to something older and clicking *Check for updates now*. |
-| `discord-rpc.png`          | Cropped section of your Discord profile showing the "Listening to" card with cover art + elapsed/total timer. |
-| `notification.png`         | A desktop notification fired by Refrain on track change. KDE Plasma's notification with the album cover at left. |
-| `live-log.png`             | The live-log window, opened via tray → *Live log…*, with at least 10 lines of streamed log. |
-| `welcome.png`              | First-run welcome wizard — shown when no `client_id` is configured yet. Diagnostics panel + Discord-app guidance. |
+| File                    | What it shows                                                                 |
+|-------------------------|-------------------------------------------------------------------------------|
+| `settings-general.png`  | Discord Client ID with the resolved application name beside it, per-source and all-clients toggles, Privacy, notifications, cover art, autostart |
+| `settings-sources.png`  | Browser source + the detected-browser picks, Bluetooth toggle and paired-device dropdown |
+| `settings-lastfm.png`   | Opt-in scrobbling, API key + shared secret, a connected account, "Now playing" |
+| `settings-updates.png`  | Auto-check, current / latest version, last-checked, the inline release-notes pane |
+| `settings-advanced.png` | Poll interval, notification delay, cover cache size, language, log level, restart / reset / uninstall |
+| `legal.png`             | The Legal notice behind the footer's *Legal* button                           |
+| `welcome.png`           | First-run wizard, with both live diagnostics resolved rather than mid-check    |
+| `update-dialog.png`     | The update-available popup                                                    |
+| `live-log.png`          | The live-log window with a real session's records in it                       |
+| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Settings, Live log, Restart, Quit |
+| `notification.png`      | A track-change desktop notification                                           |
+| `discord-rpc.png`       | Discord's "Listening to" card                                                 |
 
-## How to capture on KDE Plasma
+## Capturing
+
+On Wayland nothing may screenshot another window unattended, so these are
+taken by hand with Spectacle:
 
 ```sh
-# Spectacle, full screen, with delay so menus stay open.
-# Run from the repo root; <name> is one of the rows in the table above.
-spectacle -bnod 5 -o docs/screenshots/<name>.png
+# Rectangular region, 5 s delay — long enough to open a menu or a popup
+# and let it settle before the shutter fires.
+spectacle -bnro docs/screenshots/<name>.png
 ```
 
-For tray-menu screenshots, use spectacle's *Rectangular Region* mode with a
-3-5 second delay so you can right-click the tray icon and the menu remains
-visible when the screenshot fires.
+`tray-menu.png` and `notification.png` need the delay: right-click the
+tray icon, or trigger a track change, and let the shutter catch it.
+
+For `discord-rpc.png`, have Refrain running with a configured Application
+ID and play something so a status is actually published — pick a
+full-length track, since on a DJ-mix playlist each entry is under a
+minute and the card changes while you are still framing the shot. Then
+click your own avatar in Discord to open the profile popout.
 
 ## Image conventions
 
 - **Format**: PNG, lossless.
-- **Width**: 800 - 1200 px (HiDPI sources are fine; the README shrinks them).
-- **No real personal data** in screenshots: log lines, MAC addresses,
-  Discord usernames. Use a throwaway Discord profile or scrub IDs in
-  `gimp` before committing.
-- **Light or dark theme**: pick one and stay consistent across the set.
-  Refrain itself follows the system theme, so screenshots from KDE's
-  Breeze Dark are the canonical look.
+- **Theme**: KDE's Breeze Dark. Refrain follows the system theme, so
+  capture from a Breeze Dark session and the set stays consistent.
+- **Language**: English, to match the README. On a translated desktop,
+  set `advanced.language` to `en` *and* run with `LANGUAGE=en_US` — Qt's
+  own stock buttons ("Close", "Cancel") follow the locale rather than
+  Refrain's translator, and a German "Schließen" in an otherwise English
+  dialog is exactly the kind of thing that gets noticed.
+- **Cropping**: trim to the element itself, then give it an even margin
+  of its own background — roughly 24 px looks right at these sizes.
+  Nothing of the desktop behind it in frame.
+- **Consistency**: the tray menu, the live log, the notification and the
+  Discord card all show *the same track*. A set that disagrees with
+  itself about what is playing reads as a set of mockups.
+- **No real personal data.** No real Client ID, no Last.fm session, no
+  MAC address, no Discord username or avatar. The Discord popout carries
+  all three of the last — crop to the activity card alone.
