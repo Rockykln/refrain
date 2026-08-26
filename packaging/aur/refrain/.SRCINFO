@@ -15,6 +15,6 @@ pkgbase = refrain
 	depends = pyside6
 	optdepends = python-gobject: enables MPRIS-server publication so Plasma media controls reach Refrain
 	source = refrain-0.4.6.tar.gz::https://github.com/Rockykln/refrain/archive/v0.4.6.tar.gz
-	sha256sums = 0000000000000000000000000000000000000000000000000000000000000000
+	sha256sums = 320a40122519d60dfed3ed7b12a86535498e9cd37d1fe2a4d3280d055a27eae4
 
 pkgname = refrain
