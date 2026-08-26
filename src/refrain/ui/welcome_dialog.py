@@ -166,9 +166,7 @@ class WelcomeDialog(QDialog):
         title_block.setSpacing(4)
         title = QLabel(self.tr("Welcome to Refrain"))
         title.setStyleSheet("font-size: 20px; font-weight: 600;")
-        subtitle = QLabel(
-            self.tr("Discord Rich Presence for Apple Music on Linux.")
-        )
+        subtitle = QLabel(self.tr("Discord Rich Presence for Apple Music on Linux."))
         # palette(mid) renders almost-invisible on Plasma Breeze dark
         # themes — using palette(text) with a slight opacity reduction
         # via the alpha channel keeps the visual hierarchy without
@@ -357,18 +355,26 @@ class WelcomeDialog(QDialog):
         # silently saving "no Discord". The user can also explicitly skip
         # via the Skip button if they really meant it.
         if not client_id:
-            reply = QMessageBox.question(
-                self,
-                self.tr("Skip Discord setup?"),
+            # Built by hand rather than QMessageBox.question: the stock
+            # Yes/No come from the platform theme's own catalogs, which
+            # follow the process locale and not `advanced.language` — an
+            # English wizard was answering itself "Ja" / "Nein". Naming
+            # the action beats "Yes" anyway.
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Question)
+            msg.setWindowTitle(self.tr("Skip Discord setup?"))
+            msg.setText(
                 self.tr(
                     "No Application ID entered. Refrain will start without "
                     "Discord status (you can paste the ID later in "
                     "Settings → General).\n\nContinue without Discord status?"
-                ),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
+                )
             )
-            if reply != QMessageBox.StandardButton.Yes:
+            skip_btn = msg.addButton(self.tr("Continue without Discord"), QMessageBox.AcceptRole)
+            back_btn = msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+            msg.setDefaultButton(back_btn)
+            msg.exec()
+            if msg.clickedButton() is not skip_btn:
                 return
         if client_id and not client_id.isdigit():
             QMessageBox.warning(

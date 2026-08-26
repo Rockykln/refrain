@@ -162,6 +162,12 @@ class LegalDialog(QDialog):
         scroll.setFrameShape(QScrollArea.NoFrame)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        # Qt fills a standard button's text from the platform theme, and
+        # KDE's plugin takes it from KDE's own catalogs keyed to the
+        # process locale — it never consults the translator we install.
+        # So a German "Schließen" sat in an otherwise English window and
+        # no language setting could reach it. Our own text can.
+        buttons.button(QDialogButtonBox.Close).setText(self.tr("Close"))
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
 

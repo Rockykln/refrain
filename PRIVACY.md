@@ -49,6 +49,7 @@ Refrain never transmits any of the above over a network on its own.
 | Recipient | When | What is sent | Default | How to stop it |
 |---|---|---|---|---|
 | **Discord** (your local Discord client → Discord's servers) | Only if you set a Discord Application ID | Track title / artist / album, cover-art URL, optional "Listen on Apple Music" link | **Off** (no ID configured) | Leave the Client ID blank, or set *Privacy → Off*, or *Minimal* (only "Listening to music") |
+| **Discord** (`discord.com/api`, HTTPS — direct, **not** via your Discord client) | Only if you switch on *General → Look up the application's name on Discord*: then at startup and every 4 h | The **Application ID** you typed and your IP / User-Agent. No account, no token, no listening data | **Off** (opt-in) | Leave it unticked — it is off unless you turn it on; or set *Privacy → Off* |
 | **Apple** (`itunes.apple.com` + artwork CDN, HTTPS) | If "Fetch album cover art" is on **and** a track with artist+title plays | The **artist + track name** (to look up cover/duration/song URL) and your IP / User-Agent; then an image fetch. No account, no auth, no cookies | **On** | Untick *Notifications → Fetch album cover art from iTunes* |
 | **GitHub** (`api.github.com`, HTTPS) | If auto-update check is on: once per day on start, or a manual check | A `User-Agent` containing the Refrain version, and your IP. **No personal data, no account** | **On** | Untick *Updates → Automatically check on startup* |
 | **Last.fm** (`ws.audioscrobbler.com` / `last.fm`, HTTPS) | Only if you enable scrobbling **and** connect an account | Artist / track / album / timestamp, your Last.fm API key + session token + a request signature | **Off** (opt-in) | Don't enable it; or *Disconnect*; or set *Privacy → Off* |
@@ -64,8 +65,15 @@ Notes:
   even in `Off` mode, also untick "Fetch album cover art".
 - Discord itself then displays/broadcasts your status to your Discord
   contacts. That processing is Discord's, under your Discord account
-  and Discord's policy — Refrain only writes to the **local** Discord
-  IPC socket.
+  and Discord's policy — the status itself is only ever written to the
+  **local** Discord IPC socket.
+- The optional application-name lookup is the only thing Refrain would
+  ever send to Discord's servers directly, and it is **off until you
+  turn it on**. It exists because a mistyped Application ID is otherwise
+  completely invisible: Discord rejects it and the status simply never
+  appears, with nothing on screen to point at. When enabled it sends the
+  ID and nothing else — an ID that is public by construction, since it
+  travels in every status you publish.
 
 ### 3. Never collected at all
 

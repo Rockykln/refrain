@@ -15,6 +15,7 @@ import re
 import shutil
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -40,10 +41,12 @@ from refrain.autostart import is_enabled as autostart_is_enabled
 from refrain.autostart import resolve_exec_line
 from refrain.config import Config
 from refrain.daemon import Daemon
+from refrain.discord_app import NAME_TTL_S, refresh_application_name
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
 from refrain.paths import assets_dir
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable
 from refrain.single_instance import acquire as acquire_lock
+from refrain.ui.cursors import install_global_interactive_cursors
 from refrain.ui.log_window import LogWindow
 from refrain.ui.settings_window import SettingsWindow
 from refrain.ui.tray import TrayIcon
@@ -339,6 +342,21 @@ def run_uninstall_cli(assume_yes: bool = False) -> int:
     return 0
 
 
+def ui_locale(language_override: str = "system") -> QLocale:
+    """The locale the whole UI should speak.
+
+    ``"system"`` follows the desktop; anything else is the user's
+    explicit pick from Settings. Both Refrain's own catalogs and Qt's
+    built-in ones go through here — the Qt half used to read
+    ``QLocale.system()`` directly, so picking English on a German
+    desktop produced a window with our English labels and Qt's German
+    "Abbrechen" sitting in the same button row.
+    """
+    if language_override and language_override != "system":
+        return QLocale(language_override)
+    return QLocale.system()
+
+
 def _install_translators(app: QApplication, language_override: str = "system") -> list[QTranslator]:
     """Load Refrain's own .qm files plus Qt's built-in translations.
 
@@ -365,11 +383,7 @@ def _install_translators(app: QApplication, language_override: str = "system") -
     }
     log.debug("Available Refrain translations: %s", sorted(available))
 
-    if language_override and language_override != "system":
-        target = language_override
-    else:
-        sys_locale = QLocale.system()
-        target = sys_locale.name()  # e.g. "de_DE"
+    target = ui_locale(language_override).name()  # e.g. "de_DE"
 
     # Try the exact code first, then the language-only prefix
     # ("de_DE" → "de"), then give up cleanly (English source strings).
@@ -385,9 +399,12 @@ def _install_translators(app: QApplication, language_override: str = "system") -
         log.info("No translation for %r — using English source strings", target)
 
     # Qt's own translations for stock widgets (button labels, menus).
+    # These follow the same override: leaving them on QLocale.system()
+    # gave a German "Abbrechen" next to our English "Cancel" whenever
+    # the user picked a language other than their system one.
     qt_t = QTranslator(app)
     qt_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
-    if qt_t.load(QLocale.system(), "qtbase", "_", qt_path, ".qm"):
+    if qt_t.load(ui_locale(language_override), "qtbase", "_", qt_path, ".qm"):
         app.installTranslator(qt_t)
         keep_alive.append(qt_t)
     return keep_alive
@@ -673,6 +690,10 @@ def main() -> int:
     # created — strings are looked up at construction time.
     app._refrain_translators = _install_translators(app, config.advanced.language)
 
+    # Covers the message boxes below and everywhere else — including the
+    # ones Qt builds for us in QMessageBox.warning(...) and friends.
+    app._refrain_cursor_filter = install_global_interactive_cursors(app)
+
     _tr = QCoreApplication.translate
 
     try:
@@ -780,6 +801,28 @@ def main() -> int:
     app.aboutToQuit.connect(_stop_startup_check)
     QTimer.singleShot(5000, _run_startup_check)
 
+    # Keep the cached Discord application name current, so Settings can
+    # show it the instant it opens instead of pausing on a lookup. One
+    # HTTPS request, and only when the cache has aged out — the refresh
+    # decides that itself, so the timer can stay dumb. Off the GUI
+    # thread: it is a network call.
+    def _refresh_app_name_blocking() -> None:
+        # Nothing here is worth taking the app down for: the name is a
+        # convenience, and refresh_application_name already logs.
+        with contextlib.suppress(Exception):
+            refresh_application_name(config)
+
+    def _refresh_app_name() -> None:
+        threading.Thread(
+            target=_refresh_app_name_blocking, name="refrain-appname", daemon=True
+        ).start()
+
+    app_name_timer = QTimer(app)
+    app_name_timer.setInterval(int(NAME_TTL_S * 1000))
+    app_name_timer.timeout.connect(_refresh_app_name)
+    app_name_timer.start()
+    QTimer.singleShot(3000, _refresh_app_name)
+
     # Two connections: worker.update_config gets queued onto the worker thread,
     # _sync_autostart runs on the main thread (file I/O, OK).
     settings.applied.connect(daemon.worker.update_config)
@@ -851,8 +894,11 @@ def main() -> int:
             "itself, run:\n\n  {cmd}",
         ).format(cmd=cmd)
         if report.failed:
-            body += "\n\n" + _tr("app", "Some files could not be removed:") + "\n" + "\n".join(
-                f"  {f}" for f in report.failed
+            body += (
+                "\n\n"
+                + _tr("app", "Some files could not be removed:")
+                + "\n"
+                + "\n".join(f"  {f}" for f in report.failed)
             )
         QMessageBox.information(settings, _tr("app", "Uninstall"), body)
         app.quit()
@@ -980,9 +1026,7 @@ def main() -> int:
         # users would get an OSError traceback instead of a working
         # restart.
         is_runnable_script = binary and (
-            os.path.isabs(binary)
-            and os.access(binary, os.X_OK)
-            and not binary.endswith(".py")
+            os.path.isabs(binary) and os.access(binary, os.X_OK) and not binary.endswith(".py")
         )
         if not is_runnable_script:
             log.info(

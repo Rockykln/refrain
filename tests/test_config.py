@@ -100,6 +100,12 @@ def test_dataclasses_have_expected_fields():
         "client_id_mpris",
         "client_id_bluetooth",
         "all_clients",
+        # Cached display name for client_id, plus which id it describes
+        # and when it was last confirmed — see refrain.discord_app.
+        "app_name",
+        "app_name_for_id",
+        "app_name_checked_ts",
+        "resolve_app_name",
     } == set(DiscordConfig.__dataclass_fields__)
     assert {"mpris_enabled", "bluetooth_enabled", "bluetooth_device", "browser_hints"} == set(
         SourcesConfig.__dataclass_fields__

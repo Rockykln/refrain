@@ -145,6 +145,23 @@ class DiscordConfig:
     # normal case, and each extra connection is another IPC write per
     # track change.
     all_clients: bool = False
+    # Cached display name for `client_id` — the name Discord puts next
+    # to "Listening to", shown in Settings so a mistyped ID stops being
+    # invisible. Cached because it changes about never, and asking on
+    # every keystroke would be a request per digit. The ID it belongs to
+    # is stored with it: the name is wrong the moment the ID changes,
+    # and a stale name on a new ID would be worse than none. Refreshed
+    # at startup and every `refrain.discord_app.NAME_TTL_S`.
+    app_name: str = ""
+    app_name_for_id: str = ""
+    app_name_checked_ts: int = 0
+    # Whether to look the name up at all. Opt-in, and off by default:
+    # this is the only request Refrain would make to Discord's *servers*
+    # rather than to the local client, and "sends nothing anywhere on
+    # its own" is a promise worth keeping literally true out of the box.
+    # Switching it on is a deliberate act, in one checkbox, next to the
+    # field it explains.
+    resolve_app_name: bool = False
 
     def client_id_for(self, source: str) -> str:
         """Return the per-source client_id, falling back to the default."""
@@ -230,8 +247,8 @@ class AdvancedConfig:
     # Frozen-position detection. When a PLAYING source keeps reporting
     # the same MPRIS `Position` for longer than this many seconds,
     # Refrain stops trusting it and runs the track clock from wall time
-    # instead (see refrain.timing.compensate_stalled_position). Set to 0
-    # to disable and always echo the source's value verbatim.
+    # instead (see refrain.timing.resolve_position). Set to 0 to disable
+    # the freshness check entirely and always echo the source's value.
     position_stall_s: int = 4
     # Override UI language. "system" follows QLocale.system(); explicit
     # codes ("en", "de", "fr", …) force a specific translation. Takes

@@ -3,8 +3,20 @@
 from __future__ import annotations
 
 import logging
+import time
 
-from PySide6.QtCore import QDateTime, QLocale, QObject, QSize, Qt, QThread, QUrl, Signal
+from PySide6.QtCore import (
+    QCoreApplication,
+    QDateTime,
+    QLocale,
+    QObject,
+    QSize,
+    Qt,
+    QThread,
+    QTimer,
+    QUrl,
+    Signal,
+)
 from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -31,6 +43,14 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__
 from refrain.config import Config
+from refrain.discord_app import (
+    FOUND,
+    UNKNOWN_ID,
+    cached_name_is_fresh,
+    fetch_application_name,
+    looks_like_application_id,
+    remember_application_name,
+)
 from refrain.paths import assets_dir, config_path, state_dir
 from refrain.scrobble import API_ACCOUNT_URL, LastfmClient, LastfmError
 from refrain.sources.bluetooth import BluetoothSource
@@ -40,6 +60,65 @@ from refrain.updater import ReleaseInfo, prepare_release_notes
 GITHUB_URL = "https://github.com/Rockykln/refrain"
 
 log = logging.getLogger(__name__)
+
+
+def application_name_status(client_id: str, status: str, name: str) -> tuple[str, bool]:
+    """What the line under the Client ID should say, and whether it's good news.
+
+    Returns ``(text, ok)``. ``ok`` drives nothing but the colour: a green
+    line means Discord confirmed the ID and told us what it is called.
+
+    The four states a user can actually be in:
+
+    - No ID at all. Say nothing — an empty field is not an error, it is
+      the default, and Refrain runs perfectly well without Discord.
+    - An ID that cannot be a snowflake. Local knowledge, so say so
+      without asking Discord.
+    - Discord has no such application. This is the one the feature
+      exists for: a mistyped ID used to fail completely silently, with
+      the status simply never appearing and nothing to point at.
+    - We could not ask. Distinct from the above, because the user can do
+      nothing about it and should not go re-checking a correct ID.
+
+    Pure, and separate from the widget, so all four can be tested
+    without a Qt event loop.
+    """
+    client_id = client_id.strip()
+    if not client_id:
+        return "", False
+    if not looks_like_application_id(client_id):
+        return QCoreApplication.translate("SettingsWindow", "Expected 17-20 digits"), False
+    if status == FOUND:
+        return (
+            QCoreApplication.translate("SettingsWindow", "Application name: “{name}”").format(
+                name=name
+            ),
+            True,
+        )
+    if status == UNKNOWN_ID:
+        return QCoreApplication.translate("SettingsWindow", "No such Discord application"), False
+    return QCoreApplication.translate("SettingsWindow", "Could not reach Discord"), False
+
+
+def reset_to_defaults(current: Config) -> Config:
+    """Shipped defaults for every setting — but not for what isn't one.
+
+    Three things survive, and the Reset dialog names the first two:
+
+    - Every Discord client_id, the per-source overrides included. They
+      are the user's Discord identity, not a preference.
+    - The Last.fm credentials and the connected session, for the same
+      reason: a settings reset must not silently disconnect an account.
+    - Whether the welcome wizard has already run. That is a record of
+      something that happened, and the dialog offers no undo for the
+      setup — so a reset must not make the wizard reappear on the next
+      start, which is exactly what it used to do.
+    """
+    fresh = Config()
+    fresh.discord = current.discord
+    fresh.lastfm = current.lastfm
+    fresh.behavior.first_run_complete = current.behavior.first_run_complete
+    return fresh
 
 
 def lastfm_connection_state(session_key: str, api_key: str, shared_secret: str) -> str:
@@ -193,6 +272,30 @@ def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
     form.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
     form.setRowWrapPolicy(QFormLayout.DontWrapRows)
     return box, form
+
+
+class _AppNameWorker(QObject):
+    """Resolves one Discord Application ID off the GUI thread.
+
+    A settings dialog that freezes for five seconds because the network
+    is slow is worse than one that never showed the name at all, so the
+    lookup never runs on the GUI thread. One worker per lookup, torn
+    down when it finishes — the same shape as the Last.fm auth worker
+    below, and for the same reason.
+    """
+
+    resolved = Signal(str, str, str)  # (client_id, status, name)
+
+    def __init__(self, client_id: str) -> None:
+        super().__init__()
+        self._client_id = client_id
+
+    def run(self) -> None:
+        status, name = fetch_application_name(self._client_id)
+        # The id goes back with the answer: the user may have typed on
+        # while this was in flight, and a stale answer must not overwrite
+        # the label for an id they have since changed.
+        self.resolved.emit(self._client_id, status, name)
 
 
 class _LastfmAuthWorker(QObject):
@@ -352,10 +455,53 @@ class SettingsWindow(QDialog):
         self.client_id_input = QLineEdit()
         self.client_id_input.setPlaceholderText(self.tr("Discord Application Client ID"))
         self.client_id_input.setFixedWidth(_INPUT_WIDE_WIDTH)
-        df.addRow(self.tr("Client ID:"), self.client_id_input)
+
+        # The ID is nineteen digits and a wrong one fails silently, so
+        # the name Discord has on file is the only readable confirmation
+        # there is — and it is also the word that ends up next to
+        # "Listening to" on the card.
+        #
+        # Beside the field rather than under it: a row that appeared the
+        # moment you started typing would push everything below it down
+        # while you were still typing. Beside also means these texts
+        # have to earn their width, which is why they are as short as
+        # they are.
+        self.app_name_label = _hint("")
+        self.app_name_label.setWordWrap(False)
+        self.app_name_label.setVisible(False)
+        id_row = QHBoxLayout()
+        id_row.setContentsMargins(0, 0, 0, 0)
+        id_row.setSpacing(8)
+        id_row.addWidget(self.client_id_input)
+        id_row.addWidget(self.app_name_label, 1)
+        df.addRow(self.tr("Client ID:"), id_row)
+
+        # Typing nineteen digits would otherwise be nineteen requests.
+        # The pause is long enough to mean "done typing" and short
+        # enough that a paste feels immediate.
+        self._app_name_timer = QTimer(self)
+        self._app_name_timer.setSingleShot(True)
+        self._app_name_timer.setInterval(600)
+        self._app_name_timer.timeout.connect(self._lookup_application_name)
+        self.client_id_input.textChanged.connect(self._on_client_id_edited)
+        self._app_name_thread: QThread | None = None
+        self._app_name_worker: _AppNameWorker | None = None
 
         # Most users need exactly one Discord application, so the
         # per-source override fields are hidden behind this opt-in
+        self.resolve_app_name_box = QCheckBox(self.tr("Look up the application's name on Discord"))
+        self.resolve_app_name_box.setToolTip(
+            self.tr(
+                "Asks Discord what the Application ID is called, so a "
+                "mistyped ID is visible instead of silently publishing "
+                "nothing. This is the one request Refrain sends to "
+                "Discord's servers rather than to your local Discord "
+                "client; it carries the Application ID and nothing else."
+            )
+        )
+        self.resolve_app_name_box.toggled.connect(self._on_resolve_app_name_toggled)
+        df.addRow(self.resolve_app_name_box)
+
         # toggle (default off) instead of cluttering the tab. Ticking
         # it reveals separate Client IDs for Apple Music vs Bluetooth —
         # handy if you want each to render under its own Discord app
@@ -490,14 +636,10 @@ class SettingsWindow(QDialog):
         self.lastfm_connect_btn = QPushButton(self.tr("Connect…"))
         self.lastfm_connect_btn.clicked.connect(self._on_lastfm_connect)
         account_btn = QPushButton(self.tr("Create API account"))
-        account_btn.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl(API_ACCOUNT_URL))
-        )
+        account_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(API_ACCOUNT_URL)))
         lf.addRow(_row_with_buttons(self.lastfm_connect_btn, account_btn))
 
-        self.lastfm_nowplaying_box = QCheckBox(
-            self.tr("Also send a “Now playing” update")
-        )
+        self.lastfm_nowplaying_box = QCheckBox(self.tr("Also send a “Now playing” update"))
         lf.addRow(self.lastfm_nowplaying_box)
 
         lf.addRow(
@@ -838,6 +980,88 @@ class SettingsWindow(QDialog):
         return w
 
     # ====================================================================
+    # Discord application name
+    # ====================================================================
+
+    def _on_client_id_edited(self, _text: str) -> None:
+        """Restart the debounce, and clear a name that no longer applies."""
+        self._show_application_name("", "", "")
+        self._app_name_timer.start()
+
+    def _on_resolve_app_name_toggled(self, on: bool) -> None:
+        if on:
+            self._lookup_application_name()
+        else:
+            self._app_name_timer.stop()
+            self._show_application_name("", "", "")
+
+    def _lookup_application_name(self) -> None:
+        client_id = self.client_id_input.text().strip()
+        if not client_id or not looks_like_application_id(client_id):
+            # Either nothing to check, or something we can rule out
+            # locally — both answered without spending a request.
+            self._show_application_name(client_id, "", "")
+            return
+        d = self._config.discord
+        if d.app_name and cached_name_is_fresh(
+            client_id, d.app_name_for_id, d.app_name_checked_ts, time.time()
+        ):
+            # Known, and known recently enough. Opening Settings should
+            # not cost a round-trip for an answer that changes about
+            # never — see refrain.discord_app.NAME_TTL_S.
+            self._show_application_name(client_id, FOUND, d.app_name)
+            return
+        if not self.resolve_app_name_box.isChecked():
+            # Read from the widget, not the config: the switch should
+            # take effect while the user is looking at it, not after
+            # Apply.
+            self._show_application_name("", "", "")
+            return
+        if self._config.privacy.mode == "off":
+            # Privacy → Off is "do not talk to Discord". Checking a name
+            # is a small request, but it is still a request to Discord,
+            # and the switch would not mean much if it had exceptions.
+            self._show_application_name("", "", "")
+            return
+        self._show_application_name(client_id, "checking", "")
+        self._finish_app_name_thread()
+        self._app_name_thread = QThread(self)
+        self._app_name_worker = _AppNameWorker(client_id)
+        self._app_name_worker.moveToThread(self._app_name_thread)
+        self._app_name_thread.started.connect(self._app_name_worker.run)
+        self._app_name_worker.resolved.connect(self._on_application_name)
+        self._app_name_thread.start()
+
+    def _on_application_name(self, client_id: str, status: str, name: str) -> None:
+        self._finish_app_name_thread()
+        if status == FOUND:
+            remember_application_name(self._config, client_id, name)
+        if client_id != self.client_id_input.text().strip():
+            return  # the field moved on while we were asking
+        self._show_application_name(client_id, status, name)
+
+    def _show_application_name(self, client_id: str, status: str, name: str) -> None:
+        if status == "checking":
+            text, ok = self.tr("Checking…"), False
+        else:
+            text, ok = application_name_status(client_id, status, name)
+        self.app_name_label.setText(text)
+        self.app_name_label.setVisible(bool(text))
+        # Green only for a confirmed name; everything else keeps the
+        # ordinary hint colour rather than shouting in red at someone
+        # who is still typing.
+        colour = "palette(link)" if ok else "palette(text)"
+        self.app_name_label.setStyleSheet(f"color: {colour}; font-style: italic;")
+
+    def _finish_app_name_thread(self) -> None:
+        if self._app_name_thread is not None:
+            self._app_name_thread.quit()
+            self._app_name_thread.wait(2000)
+            self._app_name_thread.deleteLater()
+        self._app_name_thread = None
+        self._app_name_worker = None
+
+    # ====================================================================
     # Reset
     # ====================================================================
 
@@ -866,18 +1090,7 @@ class SettingsWindow(QDialog):
         msg.exec()
         if msg.clickedButton() is not reset_btn:
             return
-        # Preserve every Discord client_id the user has set — the dialog
-        # promises this explicitly, and per-source overrides
-        # (`client_id_mpris` / `client_id_bluetooth`) count as part of
-        # the user's Discord identity just as much as the default.
-        keep_discord = self._config.discord
-        # Last.fm credentials + the connected session are user identity
-        # just like the Discord IDs — a settings reset must not silently
-        # disconnect the account or wipe the API key/secret.
-        keep_lastfm = self._config.lastfm
-        self._config = Config()
-        self._config.discord = keep_discord
-        self._config.lastfm = keep_lastfm
+        self._config = reset_to_defaults(self._config)
         self._load_into_form()
 
     def _on_uninstall_clicked(self) -> None:
@@ -983,9 +1196,7 @@ class SettingsWindow(QDialog):
     def _start_lastfm_auth(self, phase: str) -> None:
         assert self._lastfm_client is not None
         self._lastfm_auth_thread = QThread(self)
-        self._lastfm_auth_worker = _LastfmAuthWorker(
-            self._lastfm_client, phase, self._lastfm_token
-        )
+        self._lastfm_auth_worker = _LastfmAuthWorker(self._lastfm_client, phase, self._lastfm_token)
         self._lastfm_auth_worker.moveToThread(self._lastfm_auth_thread)
         self._lastfm_auth_thread.started.connect(self._lastfm_auth_worker.run)
         self._lastfm_auth_worker.tokenReady.connect(self._on_lastfm_token)
@@ -1005,17 +1216,24 @@ class SettingsWindow(QDialog):
         self._lastfm_token = token
         assert self._lastfm_client is not None
         QDesktopServices.openUrl(QUrl(self._lastfm_client.authorize_url(token)))
-        proceed = QMessageBox.information(
-            self,
-            self.tr("Authorise Refrain"),
+        # Hand-built for the same reason as the Reset dialog below: the
+        # stock Ok/Cancel take their text from the platform theme, which
+        # reads the process locale rather than `advanced.language`, so an
+        # English window offered a German "Abbrechen".
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Information)
+        msg.setWindowTitle(self.tr("Authorise Refrain"))
+        msg.setText(
             self.tr(
                 "A Last.fm page opened in your browser. Approve access "
                 "for Refrain there, then click OK to finish connecting."
-            ),
-            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Ok,
+            )
         )
-        if proceed != QMessageBox.StandardButton.Ok:
+        ok_btn = msg.addButton(self.tr("OK"), QMessageBox.AcceptRole)
+        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        msg.setDefaultButton(ok_btn)
+        msg.exec()
+        if msg.clickedButton() is not ok_btn:
             self._lastfm_token = ""
             self._refresh_lastfm_status()
             return
@@ -1031,14 +1249,10 @@ class SettingsWindow(QDialog):
         self._refresh_lastfm_status()
         if name:
             done = self.tr(
-                "Connected as {user}. Click Apply to save — scrobbling "
-                "starts on the next track."
+                "Connected as {user}. Click Apply to save — scrobbling starts on the next track."
             ).format(user=name)
         else:
-            done = self.tr(
-                "Connected. Click Apply to save — scrobbling starts on "
-                "the next track."
-            )
+            done = self.tr("Connected. Click Apply to save — scrobbling starts on the next track.")
         QMessageBox.information(self, self.tr("Last.fm"), done)
 
     def _on_lastfm_auth_failed(self, message: str) -> None:
@@ -1064,6 +1278,9 @@ class SettingsWindow(QDialog):
 
     def _load_into_form(self) -> None:
         c = self._config
+        # setText fires textChanged, which starts the debounce — so an
+        # already-configured ID gets confirmed on open without a special
+        # case, and a window opened on an empty field asks nothing.
         self.client_id_input.setText(c.discord.client_id)
         self.client_id_mpris_input.setText(c.discord.client_id_mpris)
         self.client_id_bluetooth_input.setText(c.discord.client_id_bluetooth)
@@ -1072,6 +1289,7 @@ class SettingsWindow(QDialog):
         # and the rows hidden so the tab stays uncluttered.
         has_overrides = bool(c.discord.client_id_mpris or c.discord.client_id_bluetooth)
         self.discord_per_source_box.setChecked(has_overrides)
+        self.resolve_app_name_box.setChecked(c.discord.resolve_app_name)
         self.discord_all_clients_box.setChecked(c.discord.all_clients)
         self._set_discord_overrides_visible(has_overrides)
         self.autostart_box.setChecked(c.behavior.autostart)
@@ -1156,6 +1374,7 @@ class SettingsWindow(QDialog):
         else:
             c.discord.client_id_mpris = ""
             c.discord.client_id_bluetooth = ""
+        c.discord.resolve_app_name = self.resolve_app_name_box.isChecked()
         c.discord.all_clients = self.discord_all_clients_box.isChecked()
         c.behavior.autostart = self.autostart_box.isChecked()
         c.behavior.notifications = self.notifications_box.isChecked()
@@ -1247,8 +1466,10 @@ class SettingsWindow(QDialog):
         self.hide()
 
     def closeEvent(self, event) -> None:
-        # Join any in-flight Last.fm auth worker so app teardown doesn't
-        # hit "QThread: Destroyed while thread is still running". Brief
+        # Join any in-flight worker so app teardown doesn't hit
+        # "QThread: Destroyed while thread is still running". Brief
         # bounded wait, mirroring the welcome dialog's diagnostics thread.
         self._finish_lastfm_thread()
+        self._app_name_timer.stop()
+        self._finish_app_name_thread()
         super().closeEvent(event)
