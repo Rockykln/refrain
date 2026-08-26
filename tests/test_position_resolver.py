@@ -10,7 +10,12 @@ catalog length.
 
 from __future__ import annotations
 
-from refrain.timing import PositionState, PositionTier, resolve_position
+from refrain.timing import (
+    PositionState,
+    PositionTier,
+    resolve_position,
+    start_is_witnessed,
+)
 
 A = "mpris|No Broke Boys|Disco Lines|"
 B = "mpris|Blessings|Calvin Harris|"
@@ -371,3 +376,115 @@ def test_an_absent_length_is_not_a_dispute():
     state = PositionState()
     pos, tier, state = step(state, A, 45_000, 1000.0, duration_ms=0, length_ms=0)
     assert (pos, tier) == (45_000, PositionTier.REPORTED)
+
+
+def test_a_mid_track_frame_switch_also_proves_the_source_counts_tracks():
+    """Taking the latch off is only half the answer.
+
+    `cumulative` says "this source's numbers belong to a stream";
+    `track_relative` is the positive evidence of the opposite, and the
+    daemon consults it before it will publish a length at all. Clearing
+    the first without setting the second left the source in limbo: the
+    frame switch was believed for the position but the track's total
+    stayed hidden until the next track change.
+    """
+    state = PositionState()
+    _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)
+    assert state.track_relative is False
+    _, _, state = step(state, C, 500, 1040.0, duration_ms=158_000)
+    assert (state.cumulative, state.track_relative) == (False, True)
+
+
+# ------------------------------------------- the freshness window itself
+
+
+def test_a_zero_stall_window_never_calls_the_source_stale():
+    """`position_stall_s = 0` is documented as disabling the check."""
+    from refrain.timing import source_position_is_fresh
+
+    # Frozen for an hour, and still fresh: there is no window to fall out of.
+    assert source_position_is_fresh(1000.0, 4600.0, 0) is True
+    assert source_position_is_fresh(1000.0, 4600.0, -1) is True
+    # With a window, the ordinary rule applies.
+    assert source_position_is_fresh(1000.0, 1003.0, 4) is True
+    assert source_position_is_fresh(1000.0, 1005.0, 4) is False
+
+
+# ------------------------------- a source that counts media segments
+
+
+def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
+    """Plasma's browser integration reports the *segment*, not the track.
+
+    Measured live on Apple Music's web player: position ran 0.5 s, 2.6 s,
+    1.1 s, 3.2 s, 5.0 s, 0 s … while `mpris:length` moved between 8433,
+    9999 and 11033 ms — both describing whichever media segment the page
+    had buffered. Each shifting length latched the source as
+    stream-relative and each return to zero was read as the player
+    changing frames, which unlatched it and re-anchored the clock. The
+    elapsed time fell back to the start every few seconds, all song long.
+
+    A frame switch happens once and sticks. Repeated resets are a source
+    that does not describe tracks at all, and our own clock — anchored on
+    a track start we watched — outranks it.
+    """
+    state = PositionState()
+    # The track starts, and the source resets for it: a real anchor.
+    pos, tier, state = step(state, A, 1_591, 1000.0, duration_ms=157_594, length_ms=13_899)
+    assert (pos, tier) == (1_591, PositionTier.REPORTED)
+    assert (state.anchored, state.track_relative) == (True, True)
+
+    # Segment lengths and positions cycling underneath the same track.
+    reported = [(2.0, 5_043, 8_433), (4.0, 0, 9_999), (6.0, 2_645, 9_999), (8.0, 1_059, 11_033)]
+    for offset, ms, length in reported:
+        pos, tier, state = step(
+            state, A, ms, 1000.0 + offset, duration_ms=157_594, length_ms=length
+        )
+
+    assert state.cumulative is True, "a length that keeps moving is not a track's length"
+    assert tier is PositionTier.COMPUTED, "our own clock should have taken over"
+    assert pos is not None
+
+    # And it must keep climbing rather than snapping back to the source.
+    previous = pos
+    for offset, ms, length in [(10.0, 3_184, 8_433), (12.0, 0, 9_999), (14.0, 1_315, 9_999)]:
+        pos, tier, state = step(
+            state, A, ms, 1000.0 + offset, duration_ms=157_594, length_ms=length
+        )
+        assert pos >= previous, f"elapsed went backwards: {previous} → {pos}"
+        previous = pos
+    assert pos >= 13_000, "our clock should be near the 14 s that actually elapsed"
+
+
+def test_one_genuine_frame_switch_is_still_believed():
+    """The Apple Music case the switch was written for must keep working.
+
+    There the source carried its position across the track change, so we
+    never saw this track start — the frame switch is the first real zero
+    we get, and taking it is strictly better than not.
+    """
+    state = PositionState()
+    _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)
+    assert state.cumulative is True
+    assert start_is_witnessed(state) is False
+    pos, tier, state = step(state, C, 500, 1040.0, duration_ms=158_000)
+    assert (pos, tier) == (500, PositionTier.REPORTED)
+    # Now we do know where the track began, so a later return to zero is
+    # the source misbehaving, not another frame switch.
+    assert start_is_witnessed(state) is True
+    pos, tier, state = step(state, C, 10_500, 1050.0, duration_ms=158_000)
+    assert (pos, tier) == (10_500, PositionTier.REPORTED)
+
+
+def test_a_new_track_asks_the_question_again():
+    """Knowing where one track began says nothing about the next."""
+    state = PositionState()
+    _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)
+    _, _, state = step(state, C, 500, 1040.0, duration_ms=158_000)
+    assert start_is_witnessed(state) is True
+    # The next change carries the position across again: unknown start.
+    _, _, state = step(state, A, 900_000, 1200.0, duration_ms=0)
+    assert start_is_witnessed(state) is False

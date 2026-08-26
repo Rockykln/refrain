@@ -134,6 +134,36 @@ class PositionState:
     moved_at: float = 0.0
 
 
+def start_is_witnessed(state: PositionState) -> bool:
+    """Do we know where this track began, on the source's own evidence?
+
+    True when the source reset its position for this track *and* that
+    reset placed our clock's zero. Both halves matter: the reset is what
+    proves the source describes tracks at all, and the anchor is what
+    makes the zero ours to count from.
+
+    When it holds, our own clock is the better answer to anything the
+    source does with its position afterwards — a return to zero, a jump
+    backwards — because we watched the track start and it did not.
+    """
+    return state.anchored and state.track_relative
+
+
+def source_position_is_fresh(moved_at: float, now: float, stall_after_s: float) -> bool:
+    """Has the source's own position moved recently enough to be believed?
+
+    The one place that answers it, because two callers ask: the resolver
+    uses it to decide whether tier 1 is still on the table, and idle
+    detection uses the same movement as proof the source handle isn't
+    dangling. They disagreed on what `stall_after_s <= 0` meant — the
+    resolver read it as "never call it stale" (as documented) while idle
+    detection read it as "never call it fresh", which quietly took away
+    the proof-of-life and let a wrong catalog duration clear a track that
+    was playing perfectly well.
+    """
+    return stall_after_s <= 0 or (now - moved_at) <= stall_after_s
+
+
 def resolve_position(
     state: PositionState,
     track_key: str,
@@ -206,21 +236,41 @@ def resolve_position(
         state = replace(state, last_length_ms=reported_length_ms)
     else:
         state = _track_length(state, reported_length_ms)
-        if state.cumulative and 0 <= reported_ms <= max(tolerance_ms, 2_000):
+        if (
+            state.cumulative
+            and not start_is_witnessed(state)
+            and 0 <= reported_ms <= max(tolerance_ms, 2_000)
+        ):
             # The source just produced a plausible track start mid-track.
             # A seek can't do that on a stream-relative timeline — seeking
             # to the top of a song still lands hundreds of seconds into
             # the stream — so the player has changed what it is counting.
             # Believe the new frame and take the latch off.
+            #
+            # Only where we don't already know better. Plasma's browser
+            # integration reports the position and length of the media
+            # *segment* the page has buffered, so it returns to zero
+            # every eight to eleven seconds — and it does reset properly
+            # at a track change, which means we already have a real zero
+            # for this track. Reading each of those returns as a frame
+            # switch re-anchored the clock on them, and the elapsed time
+            # visibly fell back to the start all song long.
             state = replace(
                 state,
                 cumulative=False,
+                track_relative=True,
                 started_at=now - reported_ms / 1000.0,
                 paused_ms=0,
                 paused_since=now if not is_playing else 0.0,
                 anchored=True,
             )
-        elif state.cumulative and is_playing:
+        elif state.cumulative and is_playing and not start_is_witnessed(state):
+            # The same question gates this. Following a seek trusts the
+            # source's *timeline* while distrusting its absolute value —
+            # worth doing when the timeline is all we have, wrong when we
+            # watched the track start ourselves. A segment source's fall
+            # back to zero read as a seek backwards, which dragged the
+            # clock's zero up to `now` and put the elapsed time at 0:00.
             state = _follow_seek(state, reported_ms, now, tolerance_ms)
         state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
     state = replace(state, last_seen_at=now)
@@ -235,7 +285,7 @@ def resolve_position(
     # -- tier 1: the source's own value -------------------------------
     # `stall_after_s <= 0` disables the freshness check entirely, which
     # is what `advanced.position_stall_s = 0` is documented to do.
-    frozen = stall_after_s > 0 and is_playing and (now - state.moved_at) > stall_after_s
+    frozen = is_playing and not source_position_is_fresh(state.moved_at, now, stall_after_s)
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
     undecidable = duration_disputed and not state.anchored
     if (
@@ -389,9 +439,20 @@ def _track_length(state: PositionState, reported_length_ms: int) -> PositionStat
         return state
     if state.cumulative:
         return replace(state, last_length_ms=reported_length_ms)
-    # Latching for the first time also voids the anchor, because the only
-    # anchor that can exist at this point came from tier 1 believing a
-    # value we have just learned belongs to the stream. An anchor placed
-    # by a witnessed track start is safe from this: that path latches at
-    # the change itself, so it never reaches here un-latched.
-    return replace(state, last_length_ms=reported_length_ms, cumulative=True, anchored=False)
+    # Latching for the first time normally voids the anchor too, because
+    # the anchor that usually exists at this point came from tier 1
+    # believing a value we have just learned belongs to the stream.
+    #
+    # Not when the source reset its position for this track: then the
+    # zero we are counting from is a track start we watched happen, and
+    # it stays true however unreliable the length turns out to be. That
+    # is the difference between hiding the time and simply counting it
+    # ourselves — and this source is common enough (Plasma's browser
+    # integration, whose length is the current media segment's) that
+    # throwing the anchor away hid the elapsed time on every track.
+    return replace(
+        state,
+        last_length_ms=reported_length_ms,
+        cumulative=True,
+        anchored=start_is_witnessed(state),
+    )
