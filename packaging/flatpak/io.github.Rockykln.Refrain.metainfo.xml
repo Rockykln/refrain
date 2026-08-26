@@ -51,6 +51,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.4.6" date="2026-08-26">
+      <description>
+        <p>
+          Fixed the elapsed time sticking, vanishing, or falling back to the
+          start every few seconds on Apple Music's web player, resolved nine
+          further defects found in a pre-release audit, gave the stock dialog
+          buttons Refrain's own translations so a language setting reaches
+          them, and added an opt-in lookup that shows what your Discord
+          Application ID is actually called.
+        </p>
+      </description>
+    </release>
     <release version="0.4.5" date="2026-08-24">
       <description>
         <p>

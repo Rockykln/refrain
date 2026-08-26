@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.6] - 2026-08-26
+
+A release about the clock. Apple Music's web player and Plasma's browser
+integration each misreport position in a different way, and between them
+they made the elapsed time stick, vanish, or fall back to the start every
+few seconds. Position is now resolved in tiers, and the question that
+settles all of it is whether Refrain watched the track begin.
+
+Also: nine further defects from a pre-release audit, dialog buttons that
+had never followed the language setting in any locale, and an opt-in way
+to see what your Discord Application ID is actually called.
+
 ### Fixed
 
 - **The elapsed time stuck mid-song, and Discord's timer with it.** Apple
@@ -85,11 +97,130 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   duration that comes out too short can no longer take a playing track
   down with it.
 
+- **The elapsed time fell back to the start every few seconds.** Plasma's
+  browser integration is the MPRIS source Refrain picks for Apple Music's
+  web player — it is the one that reports a title and an artist at all —
+  but its `Position` and `mpris:length` describe the media *segment* the
+  page has buffered, not the song. Measured live: position running 0.5 s,
+  2.6 s, 1.1 s, 3.2 s, 5.0 s, 0 s while the length moved between 8433,
+  9999 and 11033 ms, over and over, on a track four minutes long.
+
+  Three things went wrong at once, and each on its own was defensible.
+  A length that shifts mid-track latched the source as stream-relative
+  and discarded the anchor with it, on the reasoning that any anchor at
+  that point came from having believed a stream position. A subsequent
+  return to zero was read as the player changing what it counts — the
+  one-off frame switch the web player really does perform — which
+  unlatched the source and re-anchored the clock on that zero. And in
+  between, each fall back to zero looked like a seek backwards, which
+  dragged the clock's own zero forward to the present.
+
+  All three now ask the same question first: did we watch this track
+  start? When the source reset its position at the track change, the
+  zero we count from is real and stays real however unreliable the
+  source's later numbers turn out to be — so the anchor survives the
+  latch, a mid-track return to zero is the source misbehaving rather
+  than a frame switch, and its jumps do not move our clock. The elapsed
+  time now counts up from the track's actual start. The frame switch is
+  still believed where it is the only zero on offer: a source that
+  carried its position across the track change, which is where that case
+  came from.
+
+- **Parts of the window stayed in the desktop's language.** Setting a
+  UI language moved Refrain's own strings but not the stock buttons: the
+  Legal notice closed with "Schließen" in an otherwise English window,
+  the welcome wizard's skip question answered itself "Ja" / "Nein", and
+  the Last.fm authorisation offered "Abbrechen". Those come from the
+  platform theme, which on KDE reads its text from KDE's own catalogs
+  keyed to the process locale — it never consults the translator Refrain
+  installs, so no language setting could ever have reached them. Those
+  three dialogs now carry Refrain's own translated labels.
+
+- **Setting `position_stall_s = 0` quietly took idle detection's safety
+  net away.** The value is documented as disabling the freshness check,
+  and the position resolver reads it that way. Idle detection read the
+  same value as "the source is never fresh", so the proof-of-life that
+  keeps a wrong catalog duration from clearing a playing track was gone
+  the moment the check was switched off — the opposite of what turning
+  it off asks for. Both now ask the same function.
+
+- **A frame switch mid-track left the song without a total.** When the
+  player stops counting the stream and starts counting the track, the
+  latch marking it stream-relative comes off — but nothing recorded the
+  positive fact that the source had just proved it counts tracks. The
+  daemon consults exactly that before it will publish a length, so the
+  position was believed again while the total stayed hidden until the
+  next track change.
+
+- **A disputed track length silently cost the scrobble.** When the
+  player and the catalog disagree about how long a track is, Refrain
+  shows no total — a confident wrong number is worse than a blank one.
+  That blank reached Last.fm too, where a length of zero falls under the
+  30-second floor, so the play was never scrobbled and nothing said why.
+  The scrobbler now gets the shorter of the two candidates: guessing
+  long loses the scrobble outright, guessing short only lands it early
+  on a track that demonstrably was playing.
+
+- **One offline minute cost a track its cover for the whole session.**
+  A failed iTunes lookup — a network error, a timeout — was written into
+  the cache as an empty result, and an empty result is indistinguishable
+  from "there is no cover". Every later poll read it back and never
+  asked again, so the track lost its artwork, its Apple Music link and
+  its catalog duration until Refrain was restarted. A failure is no
+  longer an answer: it is retried after a minute, which is also short of
+  the twice-a-second hammering that retrying on every poll would be. The
+  in-memory caches are bounded now as well.
+
+- **Picking a language left half the window in another one.** Refrain's
+  own strings followed `advanced.language`, but Qt's built-in
+  translations for stock widgets kept reading the system locale. On a
+  German desktop set to English, Qt's "Abbrechen" sat next to Refrain's
+  "Cancel" in the same button row. Both go through one locale now.
+
+- **Reset sent the user back through the welcome wizard.** The dialog
+  promises the Discord Application IDs and the connected Last.fm account
+  survive a reset, and they do. Whether setup had already run does not
+  survive — but that is a record of something that happened, not a
+  setting, and the dialog offers no undo for it. It is preserved now.
+
+- **The multi-client Discord notice repeated every five seconds.** The
+  set of live clients was recorded so the line could be logged on change
+  only; nothing ever read it back. Anyone running Discord and Vesktop
+  together got the same INFO line for the whole session, which is most
+  of what the live log had to show.
+
 - **`--debug` stopped taking effect a few seconds into the run.** The
   log level is re-applied whenever settings are applied, and an ordinary
   startup config save does that too, so a `--debug` session dropped back
   to INFO before it had logged anything worth reading. The flag now
   outranks the config for the life of the process.
+
+### Added
+
+- **Settings shows what your Discord Application ID is actually called.**
+  The Client ID is nineteen digits and the only setting nobody can check
+  by looking at it: paste a wrong one and nothing says so — Refrain
+  connects, Discord accepts the socket and rejects the application, and
+  the status simply never appears. The name Discord has on file now sits
+  beside the field, and it is the same word that ends up after
+  "Listening to" on the card, so it confirms both that the ID is real
+  and that it says what you meant. A malformed ID, an ID Discord doesn't
+  know, and a Discord we couldn't reach are three different lines,
+  because only the first two are yours to fix.
+
+  **Opt-in, and off until you turn it on** — one checkbox under the
+  field. It is the only thing Refrain would send to Discord's *servers*
+  rather than to your local Discord client, and "Refrain never transmits
+  anything over a network on its own" is a sentence worth keeping
+  literally true out of the box. When enabled it carries the Application
+  ID and nothing else, and *Privacy → Off* silences it as well.
+  `PRIVACY.md` gained a row for it.
+
+  The answer is cached against the ID it belongs to and re-checked at
+  startup and every four hours, so opening Settings costs nothing and
+  typing an ID costs one request rather than one per digit. An
+  unreachable Discord leaves a name already known in place, rather than
+  reporting "no such application" for an ID that is perfectly fine.
 
 ### Changed
 
@@ -100,7 +231,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   call that covers every button, checkbox, combo box and tab in it, so a
   control added later is covered by default rather than by remembering.
   Text fields keep their I-beam, and a disabled control drops the hand
-  while it is disabled instead of inviting a click it will ignore.
+  while it is disabled instead of inviting a click it will ignore. The
+  confirmation boxes are covered too — Reset and Uninstall each put a
+  real decision behind one, and several are built by Qt itself where
+  there is no widget to hand us.
 
 ## [0.4.5] - 2026-08-24
 
@@ -1442,7 +1576,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.6...HEAD
+[0.4.6]: https://github.com/Rockykln/refrain/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/Rockykln/refrain/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/Rockykln/refrain/compare/v0.4.3...v0.4.4
 [0.4.3]: https://github.com/Rockykln/refrain/compare/v0.4.2...v0.4.3
