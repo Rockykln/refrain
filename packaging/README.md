@@ -46,27 +46,46 @@ makepkg -si
 makepkg --printsrcinfo > .SRCINFO
 ```
 
-When tagging a new release, the AUR side needs:
+Both are pushed per release. `refrain-git` builds from `main` whatever
+its recorded `pkgver` says, but the AUR listing shows that recorded
+value, so leaving it stale makes the package look abandoned.
 
-1. Bump `pkgver` in `packaging/aur/refrain/PKGBUILD`.
-2. Recompute `sha256sums`:
-   ```sh
-   curl -sLO "https://github.com/Rockykln/refrain/archive/v${PKGVER}.tar.gz"
-   sha256sum "v${PKGVER}.tar.gz"
-   ```
-3. Push to AUR:
-   ```sh
-   git clone ssh://aur@aur.archlinux.org/refrain.git /tmp/aur-refrain
-   cp packaging/aur/refrain/PKGBUILD /tmp/aur-refrain/
-   cd /tmp/aur-refrain
-   makepkg --printsrcinfo > .SRCINFO
-   git add PKGBUILD .SRCINFO
-   git commit -m "Bump to ${PKGVER}"
-   git push
-   ```
+The tag has to exist first — the tarball it points at is what gets
+hashed. Then, in this repo:
 
-`refrain-git` does not need a touch per release — its `pkgver()` reads
-the version from `pyproject.toml` at build time.
+1. Bump `pkgver` in `packaging/aur/refrain/PKGBUILD`, and in
+   `packaging/aur/refrain-git/PKGBUILD` to `<version>.r<count>.g<short>`
+   (`git rev-list --count HEAD`, `git rev-parse --short=7 HEAD`).
+2. Recompute `sha256sums` for `refrain`. Let makepkg do it, rather than
+   hashing a file you downloaded yourself:
+   ```sh
+   cd packaging/aur/refrain
+   updpkgsums          # pacman-contrib; downloads, hashes, edits in place
+   makepkg --verifysource
+   ```
+   If you do fetch it by hand, use `curl -fL` and check the file is not
+   empty. `curl -sLO` writes a zero-byte file on a failed request and
+   `sha256sum` will happily hash it — the result,
+   `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+   is the hash of nothing at all and looks entirely plausible.
+3. Regenerate both `.SRCINFO` files and commit them alongside the
+   PKGBUILDs.
+
+Then push each package to the AUR, from a clone of that package's own
+repo — the AUR repo holds only `PKGBUILD`, `.SRCINFO` and a `.gitignore`:
+
+```sh
+git clone ssh://aur@aur.archlinux.org/refrain.git /tmp/aur-refrain
+cp packaging/aur/refrain/PKGBUILD /tmp/aur-refrain/
+cd /tmp/aur-refrain
+makepkg --printsrcinfo > .SRCINFO
+git add PKGBUILD .SRCINFO
+git commit -m "Update to ${PKGVER}"
+git push
+```
+
+The `aur.archlinux.org` RPC index lags the push by a minute or two, so
+the old version showing there straight afterwards is not a failed push.
 
 ## AppImage
 
