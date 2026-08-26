@@ -64,10 +64,7 @@ def test_merge_appends_wholly_missing_section():
 
 
 def test_merge_keeps_user_section_ordering():
-    existing = (
-        "[update]\nauto_check = false\nlast_check_ts = 0\n\n"
-        '[discord]\nclient_id = "z"\n'
-    )
+    existing = '[update]\nauto_check = false\nlast_check_ts = 0\n\n[discord]\nclient_id = "z"\n'
     out = _merge_into_existing(existing, Config().to_dict())
     # [update] header still appears before [discord] — file order kept.
     assert out.index("[update]") < out.index("[discord]")

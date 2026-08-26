@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import importlib
 import sys
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
 
 # dbus is a required runtime dep but these tests target the *dispatch*
 # logic against an in-memory player set. Forcefully replace `dbus`
@@ -48,14 +49,14 @@ MPRISSource = _mpris_mod.MPRISSource
     ],
 )
 def test_normalize_apple_url_converts_deep_links(url):
-    assert _mpris_mod._normalize_apple_url(url) == \
-        "https://music.apple.com/de/album/test"
+    assert _mpris_mod._normalize_apple_url(url) == "https://music.apple.com/de/album/test"
 
 
 def test_normalize_apple_url_is_case_insensitive():
-    assert _mpris_mod._normalize_apple_url(
-        "MUSIC://music.apple.com/de/album/test"
-    ) == "https://music.apple.com/de/album/test"
+    assert (
+        _mpris_mod._normalize_apple_url("MUSIC://music.apple.com/de/album/test")
+        == "https://music.apple.com/de/album/test"
+    )
 
 
 @pytest.mark.parametrize(

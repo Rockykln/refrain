@@ -34,6 +34,7 @@ from refrain.timing import (
     compute_rpc_start_ts,
     pick_effective_duration_ms,
     resolve_position,
+    source_position_is_fresh,
 )
 
 log = logging.getLogger(__name__)
@@ -45,6 +46,44 @@ _NOTIFY_BIN: str | None = shutil.which("notify-send")
 
 
 _IDLE_LOG_KEY_SENTINEL = "__refrain_idle_logged__:"
+
+
+def scrobble_duration_ms(
+    effective_ms: int, disputed: bool, reported_length_ms: int, catalog_ms: int
+) -> int:
+    """The length to hand Last.fm, which is not always the one we display.
+
+    When the source and the catalog disagree about how long a track is,
+    Refrain shows no total at all: a confident wrong number is worse
+    than an honest blank. Last.fm can't work that way — its rules are
+    written in terms of length (a 30-second floor, then half the track
+    or four minutes, whichever comes first), so withholding it doesn't
+    mean "we're not sure", it means the play never counts. Users lost
+    scrobbles to a disagreement they never saw.
+
+    So a disputed length falls back to a candidate, and among those that
+    clear Last.fm's 30-second floor it takes the shorter — which is the
+    direction the two mistakes point. Guess long and a real play never
+    reaches the half-way mark, and the scrobble is lost with nothing to
+    show for it. Guess short and the scrobble merely lands early, on a
+    track the user demonstrably was playing; Last.fm caps the wait at
+    four minutes anyway, so the difference is small and recoverable.
+
+    The floor is what makes "shorter" conditional rather than absolute.
+    Apple Music reports a 14-second preview-clip length for a few polls
+    on a full-length song, and simply taking the smaller number there
+    would hand the scrobbler a length below the floor — losing the play
+    exactly the way the disputed zero used to.
+    """
+    if not disputed:
+        return effective_ms
+    usable = [ms for ms in (reported_length_ms, catalog_ms) if ms >= 30_000]
+    if usable:
+        return min(usable)
+    # Neither candidate clears the floor, so the choice cannot rescue the
+    # scrobble and the track may genuinely be that short. Fall back to the
+    # ordinary pick rather than inventing a length.
+    return pick_effective_duration_ms(reported_length_ms, catalog_ms)
 
 
 def compute_idle_state(
@@ -615,10 +654,14 @@ class DaemonWorker(QObject):
         effective_dur_ms = self._effective_duration_ms(track)
         now = time.monotonic()
         # The source's position moving is proof the handle isn't
-        # dangling, whatever the duration says. Same window the position
-        # resolver uses to decide a source has gone stale.
-        stall_after_s = float(self._config.advanced.position_stall_s)
-        source_alive = stall_after_s > 0 and (now - self._position_state.moved_at) <= stall_after_s
+        # dangling, whatever the duration says — the same freshness the
+        # position resolver goes by, asked through the same function so
+        # the two can't drift apart on what `position_stall_s = 0` means.
+        source_alive = source_position_is_fresh(
+            self._position_state.moved_at,
+            now,
+            float(self._config.advanced.position_stall_s),
+        )
         result, new_key, new_seen = compute_idle_state(
             track,
             self._idle_track_key,
@@ -674,7 +717,7 @@ class DaemonWorker(QObject):
             if self._config.behavior.cover_art
             else 0
         )
-        effective_dur_ms = self._effective_duration_ms(track)
+        effective_dur_ms, duration_disputed = self._duration_for(track)
 
         # Tray progress label, emitted on every tick while playing. The
         # tray reads a negative position as "hide the line" and a
@@ -695,14 +738,17 @@ class DaemonWorker(QObject):
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 
         # Last.fm scrobbling. Fed the same iTunes-corrected duration the
-        # RPC + tray see. Gated on privacy "off" (the global no-external-
-        # broadcasting kill switch); the Scrobbler itself is inert until
-        # the user enables it and connects an account. Wrapped so a
-        # scrobble-side failure can never break the daemon tick.
+        # RPC + tray see, except where the two lengths disagree — see
+        # `scrobble_duration_ms`. Gated on privacy "off" (the global
+        # no-external-broadcasting kill switch); the Scrobbler itself is
+        # inert until the user enables it and connects an account.
+        # Wrapped so a scrobble-side failure can never break the tick.
         with contextlib.suppress(Exception):
             self._scrobbler.update(
                 track,
-                effective_dur_ms,
+                scrobble_duration_ms(
+                    effective_dur_ms, duration_disputed, track.duration_ms, itunes_dur_ms
+                ),
                 privacy_off=self._config.privacy.mode == "off",
             )
 

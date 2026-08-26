@@ -189,3 +189,44 @@ def test_watching_for_newcomers_does_not_sweep_every_tick(rpc_factory, monkeypat
 
     assert len(calls) <= 2, f"swept the sockets {len(calls)} times in 20 ticks"
     assert made[0].update.call_count == 20, "updates must still go out"
+
+
+def test_the_multi_client_notice_is_logged_once_not_every_sweep(rpc_factory, caplog):
+    """The sweep runs every few seconds; an unchanged set has no news.
+
+    ``_last_live_pipes`` was recorded but never consulted, so a user with
+    Discord and Vesktop both open got the same INFO line every five
+    seconds for the whole session — the live log was unreadable.
+    """
+    import logging
+
+    rpc, _made = rpc_factory([0, 2], all_clients=True)
+    caplog.set_level(logging.INFO, logger="refrain.discord_rpc")
+
+    def notices():
+        return [r for r in caplog.records if "clients listening" in r.getMessage()]
+
+    assert rpc._ensure_connected() is True
+    assert len(notices()) == 1
+
+    # Force the next sweep to run and find exactly the same clients.
+    rpc._next_retry_ts = 0.0
+    assert rpc._ensure_connected() is True
+    assert len(notices()) == 1, "an unchanged client set must not log again"
+
+
+def test_a_changed_client_set_is_worth_saying(rpc_factory, monkeypatch, caplog):
+    import logging
+
+    rpc, _made = rpc_factory([0, 2], all_clients=True)
+    caplog.set_level(logging.INFO, logger="refrain.discord_rpc")
+    assert rpc._ensure_connected() is True
+
+    # A third client shows up.
+    monkeypatch.setattr("refrain.discord_rpc._scan_ipc_pipes", lambda: ([0, 2, 3], []))
+    rpc._next_retry_ts = 0.0
+    assert rpc._ensure_connected() is True
+
+    notices = [r for r in caplog.records if "clients listening" in r.getMessage()]
+    assert len(notices) == 2
+    assert "3 clients" in notices[-1].getMessage()

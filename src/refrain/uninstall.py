@@ -35,14 +35,7 @@ def _user_apps_desktop() -> Path:
 
 def _user_icon_svg() -> Path:
     return (
-        Path.home()
-        / ".local"
-        / "share"
-        / "icons"
-        / "hicolor"
-        / "scalable"
-        / "apps"
-        / "refrain.svg"
+        Path.home() / ".local" / "share" / "icons" / "hicolor" / "scalable" / "apps" / "refrain.svg"
     )
 
 

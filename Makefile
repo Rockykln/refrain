@@ -1,11 +1,13 @@
 .PHONY: help install dev test lint format build clean clean-all wheel i18n i18n-update
 
-# Path to PySide6's `lupdate` / `lrelease`. Override via env if pyside6
-# is installed somewhere unusual:
+# `lupdate` / `lrelease`. PySide6 ships them in its own package directory
+# on PyPI, but distro packages (Arch's `pyside6`) leave that empty and put
+# Qt's own `lupdate6` / `lrelease6` on PATH instead — so look for both.
+# Override via env if yours is somewhere else again:
 #     make i18n LUPDATE=/path/to/lupdate LRELEASE=/path/to/lrelease
 PYSIDE_DIR := $(shell python -c 'import PySide6, os; print(os.path.dirname(PySide6.__file__))' 2>/dev/null)
-LUPDATE  ?= $(PYSIDE_DIR)/lupdate
-LRELEASE ?= $(PYSIDE_DIR)/lrelease
+LUPDATE  ?= $(shell test -x "$(PYSIDE_DIR)/lupdate" && echo "$(PYSIDE_DIR)/lupdate" || command -v lupdate6 || command -v lupdate)
+LRELEASE ?= $(shell test -x "$(PYSIDE_DIR)/lrelease" && echo "$(PYSIDE_DIR)/lrelease" || command -v lrelease6 || command -v lrelease)
 
 help:
 	@echo "Refrain — common dev tasks"

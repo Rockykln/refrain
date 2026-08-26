@@ -31,9 +31,7 @@ def test_argv_without_image_uses_themed_name_and_no_hint():
 
 
 def test_argv_replace_id_and_print_id():
-    argv = build_notify_argv(
-        "notify-send", "/c.jpg", "S", "B", replace_id=42, print_id=True
-    )
+    argv = build_notify_argv("notify-send", "/c.jpg", "S", "B", replace_id=42, print_id=True)
     assert "--replace-id" in argv
     assert argv[argv.index("--replace-id") + 1] == "42"
     assert "--print-id" in argv

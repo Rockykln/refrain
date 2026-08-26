@@ -201,9 +201,7 @@ def test_worker_never_raises(monkeypatch):
     """A crashing check must not take startup down with it."""
     import refrain.startup_check as sc
 
-    monkeypatch.setattr(
-        sc, "check_lastfm", lambda cfg: (_ for _ in ()).throw(RuntimeError("boom"))
-    )
+    monkeypatch.setattr(sc, "check_lastfm", lambda cfg: (_ for _ in ()).throw(RuntimeError("boom")))
     got = []
     worker = sc.StartupCheckWorker(FakeLastfmCfg(), FakeRPC())
     worker.finished.connect(lambda a, b: got.append((a, b)))

@@ -82,7 +82,8 @@ def test_detect_install_type_pipx(monkeypatch, updater):
     monkeypatch.delenv("FLATPAK_ID", raising=False)
     monkeypatch.delenv("container", raising=False)
     monkeypatch.setattr(
-        updater.sys, "executable",
+        updater.sys,
+        "executable",
         "/home/u/.local/share/pipx/venvs/refrain/bin/python",
     )
     monkeypatch.setattr(updater.sys, "prefix", "/home/u/.local/share/pipx/venvs/refrain")
@@ -100,7 +101,8 @@ class _Proc:
 def test_apply_pipx_success(updater, monkeypatch):
     monkeypatch.setattr(updater.shutil, "which", lambda _n: "/usr/bin/pipx")
     monkeypatch.setattr(
-        updater.subprocess, "run",
+        updater.subprocess,
+        "run",
         lambda *a, **kw: _Proc(0, "upgraded package refrain from 0.2.7 to 0.3.0\n"),
     )
     r = updater._apply_pipx()
@@ -111,7 +113,8 @@ def test_apply_pipx_success(updater, monkeypatch):
 def test_apply_pipx_already_latest_is_not_success(updater, monkeypatch):
     monkeypatch.setattr(updater.shutil, "which", lambda _n: "/usr/bin/pipx")
     monkeypatch.setattr(
-        updater.subprocess, "run",
+        updater.subprocess,
+        "run",
         lambda *a, **kw: _Proc(0, "refrain is already at latest version 0.3.0\n"),
     )
     r = updater._apply_pipx()
@@ -130,7 +133,8 @@ def test_apply_update_routes_pipx(updater, monkeypatch):
     info = updater.ReleaseInfo(tag="v0.3.1", version="0.3.1", name="x", body="", html_url="")
     called = {}
     monkeypatch.setattr(
-        updater, "_apply_pipx",
+        updater,
+        "_apply_pipx",
         lambda: called.setdefault("hit", True) or updater.UpdateResult(True, "ok"),
     )
     updater.apply_update(info, install_type="pipx")

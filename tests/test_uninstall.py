@@ -126,6 +126,7 @@ def test_purge_tolerates_unremovable_path(iso, monkeypatch):
     assert any("permission denied" in f for f in rep.failed)
     assert rep.removed  # the other paths still went
 
+
 def test_purge_secret_failure_is_non_fatal(iso, monkeypatch):
     _seed(iso)
 

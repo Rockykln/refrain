@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 
@@ -34,6 +35,18 @@ log = logging.getLogger(__name__)
 # Disk-cache cap: the busiest realistic listening sessions barely brush this.
 # At 50 KB-150 KB per cover, 200 covers ≈ 10-30 MB.
 _MAX_CACHED_COVERS = 200
+
+# In-memory memo cap. The dicts hold a few short strings per track, so
+# this is small in bytes; the point is that a daemon left running for
+# weeks shouldn't accumulate every track it has ever seen.
+_MAX_MEMO_ENTRIES = 500
+
+# How long a *failed* lookup (network error, timeout) is left alone
+# before the next poll may retry it. A lookup that succeeded and simply
+# found nothing is a real answer and stays cached for good; an error is
+# not an answer, and caching it meant one offline minute cost the track
+# its cover, its song link and its duration for the rest of the session.
+_RETRY_AFTER_S = 60.0
 
 
 def _prune_cover_cache(max_entries: int = _MAX_CACHED_COVERS) -> int:
@@ -90,6 +103,7 @@ class CoverFetcher:
         self._local_cache: dict[str, str] = {}  # key → local path ("" = no image)
         self._duration_cache: dict[str, int] = {}  # key → trackTimeMillis (0 = unknown)
         self._inflight: set[str] = set()
+        self._failed_at: dict[str, float] = {}  # key → monotonic ts of last error
 
     def get(self, artist: str, title: str, album: str = "") -> str | None:
         """Returns the iTunes cover URL or None.
@@ -105,6 +119,13 @@ class CoverFetcher:
                 return self._url_cache[key] or None
             if key in self._inflight:
                 return None
+            failed_at = self._failed_at.get(key)
+            if failed_at is not None:
+                if (time.monotonic() - failed_at) < _RETRY_AFTER_S:
+                    return None
+                # Cooldown is over — let this one through again rather
+                # than retrying on every poll tick while we're offline.
+                del self._failed_at[key]
             self._inflight.add(key)
         future = self._executor.submit(self._fetch_all, artist, title, album)
         future.add_done_callback(lambda f, k=key: self._on_done(k, f))
@@ -188,10 +209,40 @@ class CoverFetcher:
             cover_url, song_url, local, duration_ms = future.result()
         except Exception as e:
             log.debug("CoverFetcher background lookup failed: %s", e)
-            cover_url, song_url, local, duration_ms = "", "", "", 0
+            with self._lock:
+                now = time.monotonic()
+                # Drop the cooldowns that have already run out. They are
+                # only ever read to decide whether to retry, so an expired
+                # one is dead weight — and while we're offline no lookup
+                # succeeds, so this is the only place that gets to prune.
+                self._failed_at = {
+                    k: ts for k, ts in self._failed_at.items() if (now - ts) < _RETRY_AFTER_S
+                }
+                self._failed_at[key] = now
+                self._inflight.discard(key)
+            return
         with self._lock:
             self._url_cache[key] = cover_url
             self._song_url_cache[key] = song_url
             self._local_cache[key] = local
             self._duration_cache[key] = duration_ms
             self._inflight.discard(key)
+            self._failed_at.pop(key, None)
+            self._trim_locked()
+
+    def _trim_locked(self) -> None:
+        """Drop the oldest memo entries once the cache outgrows its cap.
+
+        Caller holds ``self._lock``. Insertion order is eviction order:
+        dicts keep it, and the track least recently *learned about* is
+        the one least likely to come round again. All four dicts share
+        one key space, so they are trimmed together.
+        """
+        excess = len(self._url_cache) - _MAX_MEMO_ENTRIES
+        if excess <= 0:
+            return
+        for key in list(self._url_cache)[:excess]:
+            self._url_cache.pop(key, None)
+            self._song_url_cache.pop(key, None)
+            self._local_cache.pop(key, None)
+            self._duration_cache.pop(key, None)

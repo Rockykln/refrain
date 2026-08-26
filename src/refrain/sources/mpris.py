@@ -70,7 +70,7 @@ def _normalize_apple_url(url: str) -> str:
     low = url.lower()
     for scheme in _APPLE_DEEPLINK_SCHEMES:
         if low.startswith(scheme):
-            return "https://" + url[len(scheme):]
+            return "https://" + url[len(scheme) :]
     return url
 
 

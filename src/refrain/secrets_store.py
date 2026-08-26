@@ -78,9 +78,7 @@ def _keyring_available(bus) -> bool:
         import dbus
 
         dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
-        return bool(
-            dbus.Interface(dbus_obj, "org.freedesktop.DBus").NameHasOwner(_SS_BUS)
-        )
+        return bool(dbus.Interface(dbus_obj, "org.freedesktop.DBus").NameHasOwner(_SS_BUS))
     except Exception as e:
         log.debug("Secret Service availability probe failed: %s", e)
         return False
@@ -104,9 +102,7 @@ def _open(bus):
             coll_path = _LOGIN_COLLECTION
 
         coll = bus.get_object(_SS_BUS, coll_path)
-        locked = bool(
-            dbus.Interface(coll, _PROPS_IFACE).Get(_SS_COLLECTION_IFACE, "Locked")
-        )
+        locked = bool(dbus.Interface(coll, _PROPS_IFACE).Get(_SS_COLLECTION_IFACE, "Locked"))
         if locked:
             _unlocked, prompt = svc_iface.Unlock([coll_path])
             if str(prompt) != "/":
@@ -126,14 +122,10 @@ def _keyring_set(bus, name: str, value: str) -> bool:
     svc_iface, session, coll_path = _open(bus)
     coll = bus.get_object(_SS_BUS, coll_path)
     coll_iface = dbus.Interface(coll, _SS_COLLECTION_IFACE)
-    attrs = dbus.Dictionary(
-        {"application": _APP_ATTR, "key": name}, signature="ss"
-    )
+    attrs = dbus.Dictionary({"application": _APP_ATTR, "key": name}, signature="ss")
     props = dbus.Dictionary(
         {
-            "org.freedesktop.Secret.Item.Label": dbus.String(
-                f"Refrain — {name}", variant_level=1
-            ),
+            "org.freedesktop.Secret.Item.Label": dbus.String(f"Refrain — {name}", variant_level=1),
             "org.freedesktop.Secret.Item.Attributes": dbus.Dictionary(
                 attrs, signature="ss", variant_level=1
             ),
@@ -157,9 +149,7 @@ def _keyring_get(bus, name: str) -> str | None:
     import dbus
 
     svc_iface, session, _coll_path = _open(bus)
-    attrs = dbus.Dictionary(
-        {"application": _APP_ATTR, "key": name}, signature="ss"
-    )
+    attrs = dbus.Dictionary({"application": _APP_ATTR, "key": name}, signature="ss")
     unlocked, locked = svc_iface.SearchItems(attrs)
     items = list(unlocked) or list(locked)
     if not items:
@@ -177,9 +167,7 @@ def _keyring_delete(bus, name: str) -> bool:
     import dbus
 
     svc_iface, _session, _coll = _open(bus)
-    attrs = dbus.Dictionary(
-        {"application": _APP_ATTR, "key": name}, signature="ss"
-    )
+    attrs = dbus.Dictionary({"application": _APP_ATTR, "key": name}, signature="ss")
     unlocked, locked = svc_iface.SearchItems(attrs)
     for path in list(unlocked) + list(locked):
         with contextlib.suppress(Exception):

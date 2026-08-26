@@ -97,15 +97,62 @@ def test_blank_input_does_not_trigger_lookup(fetcher_module):
         fetcher.shutdown()
 
 
-def test_exception_in_lookup_is_swallowed_and_caches_none(fetcher_module):
+def test_exception_in_lookup_is_swallowed_and_backs_off(fetcher_module):
     cf, calls = fetcher_module
     fetcher = cf.CoverFetcher()
     try:
         assert fetcher.get("FAILS", "X") is None
         assert _wait_for(lambda: not fetcher._inflight)
-        # Subsequent call still None, lookup not retried
+        # Still None, and not retried on the very next poll — the daemon
+        # asks twice a second and an outage must not become a hammer.
         assert fetcher.get("FAILS", "X") is None
         assert len(calls) == 1
+    finally:
+        fetcher.shutdown()
+
+
+def test_failed_lookup_is_retried_after_the_cooldown(fetcher_module):
+    """A network error is not an answer, so it must not be cached as one.
+
+    One offline minute used to cost a track its cover, its Apple Music
+    link and its catalog duration for the rest of the session — every
+    later poll read the "" that the failure had written into the cache
+    and never asked again.
+    """
+    cf, calls = fetcher_module
+    fetcher = cf.CoverFetcher()
+    try:
+        assert fetcher.get("FAILS", "X") is None
+        assert _wait_for(lambda: not fetcher._inflight)
+        assert len(calls) == 1
+        # A failure leaves no cache entry to read back — only a
+        # timestamp saying when to try again.
+        assert fetcher._key("FAILS", "X", "") not in fetcher._url_cache
+
+        # Wind the cooldown back and the next request goes out again.
+        key = fetcher._key("FAILS", "X", "")
+        fetcher._failed_at[key] = time.monotonic() - cf._RETRY_AFTER_S - 1
+        assert fetcher.get("FAILS", "X") is None
+        assert _wait_for(lambda: len(calls) == 2)
+    finally:
+        fetcher.shutdown()
+
+
+def test_memo_cache_is_bounded(fetcher_module, monkeypatch):
+    """A daemon left running for weeks must not remember every track."""
+    cf, _calls = fetcher_module
+    monkeypatch.setattr(cf, "_MAX_MEMO_ENTRIES", 3)
+    fetcher = cf.CoverFetcher()
+    try:
+        for i in range(6):
+            fetcher.get("Artist", f"Song {i}")
+        assert _wait_for(lambda: not fetcher._inflight and len(fetcher._url_cache) <= 3)
+        assert len(fetcher._url_cache) == 3
+        assert len(fetcher._song_url_cache) == 3
+        assert len(fetcher._duration_cache) == 3
+        # The newest survive; the oldest were evicted.
+        assert fetcher._key("Artist", "Song 5", "") in fetcher._url_cache
+        assert fetcher._key("Artist", "Song 0", "") not in fetcher._url_cache
     finally:
         fetcher.shutdown()
 
@@ -171,5 +218,35 @@ def test_get_song_url_none_for_empty_input(fetcher_module):
     try:
         assert fetcher.get_song_url("", "Title") is None
         assert fetcher.get_song_url("Artist", "") is None
+    finally:
+        fetcher.shutdown()
+
+
+def test_the_failure_cooldowns_do_not_pile_up(fetcher_module):
+    """The retry timestamps are a cache too, and caches need a ceiling.
+
+    While the network is down nothing succeeds, so the success path that
+    trims the other four dicts never runs — the cooldowns had no bound
+    at all. An expired one is dead weight the moment it expires.
+    """
+    cf, _calls = fetcher_module
+    fetcher = cf.CoverFetcher()
+    try:
+        for i in range(4):
+            fetcher.get("FAILS", f"X{i}")
+            assert _wait_for(lambda: not fetcher._inflight)
+        assert len(fetcher._failed_at) == 4
+
+        # Age the first three past the cooldown; the next failure sweeps them.
+        stale = time.monotonic() - cf._RETRY_AFTER_S - 1
+        for i in range(3):
+            fetcher._failed_at[fetcher._key("FAILS", f"X{i}", "")] = stale
+        fetcher.get("FAILS", "X9")
+        assert _wait_for(lambda: not fetcher._inflight)
+
+        assert set(fetcher._failed_at) == {
+            fetcher._key("FAILS", "X3", ""),
+            fetcher._key("FAILS", "X9", ""),
+        }
     finally:
         fetcher.shutdown()

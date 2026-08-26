@@ -106,7 +106,9 @@ def _play(sc, track, eff_dur, *, seconds, start_mono, start_wall, privacy_off=Fa
 
 def test_qualifying_track_queued_on_switch(tmp_path):
     sc, q = _scrobbler(tmp_path)
-    mono, wall = _play(sc, _t("A"), 200_000, seconds=110, start_mono=1000.0, start_wall=1_700_000_000)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=110, start_mono=1000.0, start_wall=1_700_000_000
+    )
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     pending = q.pending()
     assert len(pending) == 1
@@ -118,7 +120,9 @@ def test_qualifying_track_queued_on_switch(tmp_path):
 
 def test_short_play_not_queued(tmp_path):
     sc, q = _scrobbler(tmp_path)
-    mono, wall = _play(sc, _t("A"), 200_000, seconds=20, start_mono=1000.0, start_wall=1_700_000_000)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=20, start_mono=1000.0, start_wall=1_700_000_000
+    )
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     assert len(q) == 0
 
@@ -126,7 +130,9 @@ def test_short_play_not_queued(tmp_path):
 def test_preview_clip_never_scrobbled(tmp_path):
     sc, q = _scrobbler(tmp_path)
     # 20 s effective duration → below the 30 s floor, never a candidate.
-    mono, wall = _play(sc, _t("Clip"), 20_000, seconds=60, start_mono=1000.0, start_wall=1_700_000_000)
+    mono, wall = _play(
+        sc, _t("Clip"), 20_000, seconds=60, start_mono=1000.0, start_wall=1_700_000_000
+    )
     sc.update(_t("Next"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     assert len(q) == 0
 
@@ -180,7 +186,9 @@ def test_invalid_session_latches_and_keeps_queue(tmp_path):
     fake = FakeClient()
     fake.raise_invalid = True
     sc, q = _scrobbler(tmp_path, client=fake)
-    mono, wall = _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000
+    )
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     sc._executor.shutdown(wait=True)  # let the drain attempt run
     assert sc._session_invalid is True
@@ -196,8 +204,64 @@ def test_permanently_rejected_batch_is_dropped_not_head_of_line_blocking(tmp_pat
             raise LastfmError("Last.fm error 6: Invalid parameters", code=6)
 
     sc, q = _scrobbler(tmp_path, client=RejectClient())
-    mono, wall = _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000
+    )
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
     sc._executor.shutdown(wait=True)
     assert sc._session_invalid is False  # not a session problem
     assert len(q) == 0  # poison entry dropped, queue not blocked
+
+
+# --------------------------------------------------------------------------- #
+# scrobble_duration_ms — what Last.fm gets when the two lengths disagree       #
+# --------------------------------------------------------------------------- #
+
+
+def test_an_undisputed_length_is_passed_straight_through():
+    from refrain.daemon import scrobble_duration_ms
+
+    assert scrobble_duration_ms(164_041, False, 164_041, 164_041) == 164_041
+    # Including the honest zero of a source that reports no length at all.
+    assert scrobble_duration_ms(0, False, 0, 0) == 0
+
+
+def test_a_disputed_length_still_reaches_last_fm():
+    """The display shows nothing; the scrobbler must not get nothing.
+
+    `_duration_for` answers 0 when the source and the catalog disagree,
+    because a confident wrong total is worse than a blank one. That zero
+    reached the Scrobbler too, where it fell under the 30-second floor —
+    so a track whose length was merely *disputed* was silently never
+    scrobbled, and the user saw no reason why.
+    """
+    from refrain.daemon import scrobble_duration_ms
+
+    # Source says 10:03 (its stream buffer), catalog says 3:46. The
+    # shorter one wins: guessing long loses the scrobble outright,
+    # guessing short only makes it land early on a track that really
+    # was playing.
+    assert scrobble_duration_ms(0, True, 603_153, 226_000) == 226_000
+    assert scrobble_duration_ms(0, True, 226_000, 603_153) == 226_000
+    # One candidate is enough.
+    assert scrobble_duration_ms(0, True, 226_000, 0) == 226_000
+    assert scrobble_duration_ms(0, True, 0, 226_000) == 226_000
+    # Nothing to go on stays nothing — no length invented.
+    assert scrobble_duration_ms(0, True, 0, 0) == 0
+
+
+def test_shorter_wins_only_among_lengths_that_can_be_scrobbled():
+    """ "Take the smaller number" would have re-lost the preview-clip case.
+
+    Apple Music reports a 14-second preview-clip length for a few polls
+    on a full-length song. That is smaller than the catalog's answer, and
+    it is under Last.fm's 30-second floor — so preferring it would drop
+    the scrobble in exactly the way the disputed zero used to.
+    """
+    from refrain.daemon import scrobble_duration_ms
+
+    assert scrobble_duration_ms(0, True, 14_000, 165_832) == 165_832
+    assert scrobble_duration_ms(0, True, 165_832, 14_000) == 165_832
+    # A track both parties agree is genuinely too short stays too short:
+    # choosing cannot rescue it, and no length is invented.
+    assert scrobble_duration_ms(0, True, 14_000, 20_000) < 30_000

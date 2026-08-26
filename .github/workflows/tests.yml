@@ -55,7 +55,9 @@ jobs:
           cache: pip
 
       - name: Install ruff
-        run: pip install ruff
+        # Pinned: an unpinned ruff turns every release into a surprise
+        # red job on a PR that changed nothing about style.
+        run: pip install ruff==0.15.12
 
       - name: Lint with ruff
         run: ruff check . --output-format=github

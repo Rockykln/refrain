@@ -167,3 +167,39 @@ def test_update_dialog_covers_every_control(qapp, xdg_tmp):
     dlg = UpdateDialog(release)
     assert count(dlg) >= 3
     assert missed(dlg) == []
+
+
+# ------------------------------------- dialogs Refrain doesn't build itself
+
+
+def test_message_boxes_are_covered_too(qapp):
+    """The confirmations were the one place the hand never reached.
+
+    Reset and Uninstall both put a real decision behind a QMessageBox,
+    and several other paths use the static helpers
+    (`QMessageBox.warning(...)`), which never hand us a widget to walk.
+    The global filter catches them on their Show event instead, by which
+    point their buttons exist.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    from refrain.ui.cursors import install_global_interactive_cursors
+
+    filt = install_global_interactive_cursors(qapp)
+    try:
+        box = QMessageBox()
+        box.setText("Reset every setting to its default?")
+        box.addButton("Reset", QMessageBox.AcceptRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        # Not shown yet — nothing has covered it.
+        assert missed(box) != []
+        box.show()
+        qapp.processEvents()
+        assert count(box) >= 2
+        assert missed(box) == []
+        box.hide()
+        box.deleteLater()
+    finally:
+        qapp.removeEventFilter(filt)
+        filt.deleteLater()
+    qapp.processEvents()

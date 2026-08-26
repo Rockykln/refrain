@@ -244,14 +244,16 @@ class DiscordRPC:
                 "Discord IPC: skipping stale socket(s) %s",
                 ", ".join(f"discord-ipc-{n}" for n in stale),
             )
-        if len(live) > 1:
-            log.info(
-                "Discord IPC: %d clients listening (%s) — using discord-ipc-%d",
-                len(live),
-                ", ".join(f"discord-ipc-{n}" for n in live),
-                live[0],
-            )
         if live != self._last_live_pipes:
+            # Only on change: the sweep runs every few seconds, and an
+            # unchanged set of clients has nothing new to say.
+            if len(live) > 1:
+                log.info(
+                    "Discord IPC: %d clients listening (%s) — using discord-ipc-%d",
+                    len(live),
+                    ", ".join(f"discord-ipc-{n}" for n in live),
+                    live[0],
+                )
             self._last_live_pipes = live
         # Pin the pipes we just proved are alive. Left to itself,
         # pypresence rescans and can abort on a stale socket before

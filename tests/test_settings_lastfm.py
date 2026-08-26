@@ -127,9 +127,7 @@ def test_incomplete_connect_button_runs_connect_not_disconnect(win, monkeypatch)
     seen = {}
     import refrain.ui.settings_window as m
 
-    monkeypatch.setattr(
-        m.QMessageBox, "warning", lambda *a, **k: seen.setdefault("warned", True)
-    )
+    monkeypatch.setattr(m.QMessageBox, "warning", lambda *a, **k: seen.setdefault("warned", True))
     win._on_lastfm_connect()
     assert seen.get("warned") is True
     assert win._lastfm_session_key == "S"  # leftover NOT cleared as disconnect
