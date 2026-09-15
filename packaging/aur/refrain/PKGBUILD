@@ -23,9 +23,7 @@ makedepends=(
     'python-wheel'
 )
 source=("$pkgname-$pkgver.tar.gz::https://github.com/Rockykln/refrain/archive/v$pkgver.tar.gz")
-# Filled in once the v0.5.1 tarball exists (after the tag is pushed):
-#   updpkgsums && makepkg --printsrcinfo > .SRCINFO
-sha256sums=('0000000000000000000000000000000000000000000000000000000000000000')
+sha256sums=('faee9b9e8a9ad49d625120f1acb9ff7a3dfb5ed35bbe3a648369370c75791870')
 
 build() {
     cd "$pkgname-$pkgver"
