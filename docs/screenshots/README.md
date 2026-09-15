@@ -11,15 +11,18 @@ control, a reworded hint).
 | `settings-general.png`  | Discord Client ID with the resolved application name beside it, per-source and all-clients toggles, Privacy, notifications, cover art, autostart |
 | `settings-sources.png`  | Browser source + the detected-browser picks, Bluetooth toggle and paired-device dropdown |
 | `settings-lastfm.png`   | Opt-in scrobbling, API key + shared secret, a connected account, "Now playing" |
+| `settings-history.png`  | Recently played on/off and how many songs to keep                             |
 | `settings-updates.png`  | Auto-check, current / latest version, last-checked, the inline release-notes pane |
 | `settings-advanced.png` | Poll interval, notification delay, cover cache size, language, log level, restart / reset / uninstall |
 | `legal.png`             | The Legal notice behind the footer's *Legal* button                           |
 | `welcome.png`           | First-run wizard, with both live diagnostics resolved rather than mid-check    |
 | `update-dialog.png`     | The update-available popup                                                    |
 | `live-log.png`          | The live-log window with a real session's records in it                       |
-| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Settings, Live log, Restart, Quit |
+| `history.png`           | Recently played: covers, lengths, times, sources, the song playing on top, search and source filter |
+| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Recently played, Settings, Live log, Restart, Quit |
 | `notification.png`      | A track-change desktop notification                                           |
 | `discord-rpc.png`       | Discord's "Listening to" card                                                 |
+| `demo-cover.png`        | Not a screenshot: the cover of the demo track, drawn for these shots — see below |
 
 ## Capturing
 
@@ -35,11 +38,21 @@ spectacle -bnro docs/screenshots/<name>.png
 `tray-menu.png` and `notification.png` need the delay: right-click the
 tray icon, or trigger a track change, and let the shutter catch it.
 
-For `discord-rpc.png`, have Refrain running with a configured Application
-ID and play something so a status is actually published — pick a
-full-length track, since on a DJ-mix playlist each entry is under a
-minute and the card changes while you are still framing the shot. Then
-click your own avatar in Discord to open the profile popout.
+For `discord-rpc.png`, a status has to actually be published, with a
+configured Application ID. It shows the demo track — *Glass Tides* by
+Neon Harbor, from *Low Light* — like the rest of the set. Discord only
+shows covers it can fetch itself, so upload `demo-cover.png` to your
+application under Rich Presence → Art Assets (as `refrain-demo-cover`)
+and publish the status with that asset key. Then click your own avatar
+in Discord to open the profile popout.
+
+## The demo cover
+
+`demo-cover.png` is abstract art drawn for these screenshots, with no
+lettering and no one else's work in it. Real covers belong to their
+labels and artists, and the ones Refrain fetches from Apple are licensed
+for showing in the app, not for public screenshots. Every cover in the
+set is drawn the same way; this is the one the demo track wears.
 
 ## Image conventions
 

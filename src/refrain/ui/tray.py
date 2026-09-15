@@ -5,7 +5,7 @@ from __future__ import annotations
 import contextlib
 import logging
 
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
@@ -56,11 +56,21 @@ class TrayIcon(QObject):
     previousRequested = Signal()
     updateRequested = Signal()
     logRequested = Signal()
+    historyRequested = Signal()
+
+    # Apple Music reports "paused" for a poll or two between songs. The
+    # icon and the Play/Pause entry only follow a pause once it has lasted
+    # this long, so they don't flash at every song change.
+    _PAUSE_SHOWN_AFTER_MS = 2000
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self._icons_dir = assets_dir() / "icons"
         self._current_status: PlaybackStatus = PlaybackStatus.STOPPED
+        self._pending_status: PlaybackStatus | None = None
+        self._pause_timer = QTimer(self)
+        self._pause_timer.setSingleShot(True)
+        self._pause_timer.timeout.connect(self._apply_pending_status)
         self._icons = self._build_icons_for_current_theme()
         self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
         self._tray.setToolTip("Refrain")
@@ -146,6 +156,13 @@ class TrayIcon(QObject):
         self._update_action.setVisible(False)
         self._update_action.triggered.connect(self.updateRequested.emit)
         menu.addAction(self._update_action)
+        # Hidden while the history is switched off (set_history_enabled)
+        # — a menu entry that opens an empty "turned off" window is a
+        # dead end.
+        self._history_action = QAction(self.tr("Recently played…"))
+        self._history_action.setIcon(QIcon.fromTheme("document-open-recent"))
+        self._history_action.triggered.connect(self.historyRequested.emit)
+        menu.addAction(self._history_action)
         settings_action = menu.addAction(self.tr("Settings…"))
         settings_action.setIcon(QIcon.fromTheme("configure"))
         settings_action.triggered.connect(self.settingsRequested.emit)
@@ -211,6 +228,23 @@ class TrayIcon(QObject):
             self.playPauseRequested.emit()
 
     def set_status(self, status: PlaybackStatus) -> None:
+        if status != PlaybackStatus.PLAYING and self._current_status == PlaybackStatus.PLAYING:
+            # Leaving "playing": wait and see. Back to playing within the
+            # window cancels it; the end of playback shows after the delay.
+            self._pending_status = status
+            if not self._pause_timer.isActive():
+                self._pause_timer.start(self._PAUSE_SHOWN_AFTER_MS)
+            return
+        self._pause_timer.stop()
+        self._pending_status = None
+        self._apply_status(status)
+
+    def _apply_pending_status(self) -> None:
+        status, self._pending_status = self._pending_status, None
+        if status is not None:
+            self._apply_status(status)
+
+    def _apply_status(self, status: PlaybackStatus) -> None:
         self._current_status = status
         icon = self._icons.get(status)
         if icon is not None:
@@ -230,6 +264,9 @@ class TrayIcon(QObject):
         else:
             self._update_action.setText(self.tr("Update available"))
         self._update_action.setVisible(available)
+
+    def set_history_enabled(self, enabled: bool) -> None:
+        self._history_action.setVisible(enabled)
 
     def set_discord_connected(self, connected: bool) -> None:
         if connected:

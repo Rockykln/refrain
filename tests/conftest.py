@@ -39,6 +39,18 @@ def _no_network(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", _refuse)
 
 
+@pytest.fixture(autouse=True)
+def _private_state(tmp_path_factory, monkeypatch):
+    """No test reads or writes the real ``~/.local/state/refrain``.
+
+    The history, the scrobble queue and the play in progress all default
+    to it, and a test building a DaemonWorker or a Scrobbler without a
+    path of its own would otherwise pick up — and overwrite — the
+    user's. Tests that want the full tree use ``xdg_tmp``, which wins.
+    """
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path_factory.mktemp("state")))
+
+
 @pytest.fixture
 def xdg_tmp(tmp_path, monkeypatch):
     """Redirect every XDG_* env var Refrain reads to an isolated tmp tree.

@@ -42,7 +42,7 @@ from PySide6.QtWidgets import (
 )
 
 from refrain import __version__
-from refrain.config import Config
+from refrain.config import HISTORY_LIMIT_CHOICES, HISTORY_LIMIT_MAX, Config
 from refrain.discord_app import (
     FOUND,
     UNKNOWN_ID,
@@ -336,6 +336,7 @@ class SettingsWindow(QDialog):
     applied = Signal(object)
     checkUpdatesRequested = Signal()
     showLogRequested = Signal()
+    showHistoryRequested = Signal()
     restartRequested = Signal()
     uninstallRequested = Signal()
 
@@ -386,6 +387,7 @@ class SettingsWindow(QDialog):
         self.tabs.addTab(_scroll_wrap(self._build_general_tab()), self.tr("General"))
         self.tabs.addTab(_scroll_wrap(self._build_sources_tab()), self.tr("Sources"))
         self.tabs.addTab(_scroll_wrap(self._build_lastfm_tab()), self.tr("Last.fm"))
+        self.tabs.addTab(_scroll_wrap(self._build_history_tab()), self.tr("History"))
         self.tabs.addTab(_scroll_wrap(self._build_updates_tab()), self.tr("Updates"))
         self.tabs.addTab(_scroll_wrap(self._build_advanced_tab()), self.tr("Advanced"))
 
@@ -584,6 +586,79 @@ class SettingsWindow(QDialog):
 
         v.addStretch(1)
         return w
+
+    # ====================================================================
+    # History tab
+    # ====================================================================
+
+    def _build_history_tab(self) -> QWidget:
+        # Its own tab rather than a group under General: General was
+        # already as tall as the window allows, and a fourth group pushed
+        # it into the scroll-area fallback in every language.
+        w = QWidget()
+        v = _tab_layout(w)
+
+        history_group, hf = _new_group(self.tr("Recently played"))
+        self.history_box = QCheckBox(self.tr("Keep a list of recently played songs"))
+        self.history_box.toggled.connect(self._on_history_toggled)
+        hf.addRow(self.history_box)
+
+        # Plain numbers: "Songs to keep:" carries the noun, so no
+        # language has to agree a plural with each value.
+        self.history_limit_combo = QComboBox()
+        self.history_limit_combo.setFixedWidth(_INPUT_MAX_WIDTH)
+        for n in HISTORY_LIMIT_CHOICES:
+            self.history_limit_combo.addItem(str(n), n)
+        hf.addRow(self.tr("Songs to keep:"), self.history_limit_combo)
+
+        self.history_show_btn = QPushButton(self.tr("Show recently played…"))
+        self.history_show_btn.clicked.connect(self.showHistoryRequested.emit)
+        hf.addRow(_row_with_buttons(self.history_show_btn))
+        hf.addRow(
+            _hint(
+                self.tr(
+                    "Stored only on this computer and never sent anywhere, so "
+                    "privacy mode doesn't affect it. Turning it off deletes the "
+                    "list; a lower number drops the oldest songs."
+                )
+            )
+        )
+        v.addWidget(history_group)
+
+        v.addStretch(1)
+        return w
+
+    def _on_history_toggled(self, on: bool) -> None:
+        self.history_limit_combo.setEnabled(on)
+        self.history_show_btn.setEnabled(on)
+
+    def _select_history_limit(self, value: int) -> None:
+        """Select ``value`` in the combo, adding it if a hand-edit put an
+        unlisted count in config.toml — rounding it would silently change
+        a setting the user chose. Clamped the way the history itself
+        applies it, so the combo never offers a count that isn't used."""
+        value = max(1, min(HISTORY_LIMIT_MAX, int(value)))
+        index = self.history_limit_combo.findData(value)
+        if index < 0:
+            index = sum(1 for n in HISTORY_LIMIT_CHOICES if n < value)
+            self.history_limit_combo.insertItem(index, str(value), value)
+        self.history_limit_combo.setCurrentIndex(index)
+
+    def _confirm_history_off(self) -> bool:
+        """Ask before an Apply that deletes the history — the one change
+        in this window that destroys something with no way back."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(self.tr("Turn off history?"))
+        box.setText(self.tr("Turning the history off deletes the list of recently played songs."))
+        box.setInformativeText(self.tr("This cannot be undone."))
+        turn_off = box.addButton(
+            self.tr("Turn off and delete"), QMessageBox.ButtonRole.DestructiveRole
+        )
+        cancel = box.addButton(QMessageBox.StandardButton.Cancel)
+        box.setDefaultButton(cancel)
+        box.exec()
+        return box.clickedButton() is turn_off
 
     def _set_discord_overrides_visible(self, visible: bool) -> None:
         """Show/hide the per-source Client ID rows (label + field).
@@ -1296,6 +1371,9 @@ class SettingsWindow(QDialog):
         self.notifications_box.setChecked(c.behavior.notifications)
         self.cover_art_box.setChecked(c.behavior.cover_art)
         self.buttons_box.setChecked(c.behavior.show_buttons)
+        self.history_box.setChecked(c.history.enabled)
+        self._on_history_toggled(c.history.enabled)
+        self._select_history_limit(c.history.max_entries)
 
         self.lastfm_enabled_box.setChecked(c.lastfm.enabled)
         self.lastfm_api_key_input.setText(c.lastfm.api_key)
@@ -1351,6 +1429,14 @@ class SettingsWindow(QDialog):
 
     def _on_apply_clicked(self) -> None:
         c = self._config
+        # Asked before anything is written into `c`, so Cancel leaves
+        # both the config and the open form exactly as they were.
+        if (
+            c.history.enabled
+            and not self.history_box.isChecked()
+            and not self._confirm_history_off()
+        ):
+            return
         # Snapshot the language + client_id *before* we overwrite them so
         # we can detect a change and trigger an automatic restart. Both
         # require restart to take effect: the QTranslator is installed
@@ -1417,6 +1503,8 @@ class SettingsWindow(QDialog):
         c.advanced.cover_cache_size = self.cover_cache_spin.value()
         c.advanced.log_level = self.log_level_combo.currentData() or "INFO"
         c.advanced.language = self.language_combo.currentData() or "system"
+        c.history.enabled = self.history_box.isChecked()
+        c.history.max_entries = self.history_limit_combo.currentData() or c.history.max_entries
 
         try:
             c.save()

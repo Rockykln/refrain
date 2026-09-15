@@ -24,6 +24,8 @@ streaming from your phone over Bluetooth.
 - Optionally **scrobbles to Last.fm** alongside Discord (opt-in, with a
   crash-safe offline queue).
 - Lives in your **system tray** with Play/Pause/Next/Previous controls.
+- Keeps a **recently played** list — cover, time, source — of the last
+  30 songs by default, on your machine only.
 - Provides a **settings window** (PySide6) for everything users typically want
   to tweak — privacy mode, sources, autostart, Bluetooth device picker.
 
@@ -178,6 +180,12 @@ scrobble_now_playing = true        # also send the ephemeral "now playing" indic
 # NOTE: the Last.fm shared secret and session key are credentials and
 # are deliberately NOT stored here. They live in your OS keyring
 # (KWallet / GNOME Keyring), encrypted at rest — see "Last.fm" below.
+
+[history]
+enabled = true                     # the "Recently played" list; false also deletes what it stored
+max_entries = 30                   # songs kept, 1–100 (Settings offers 10, 20, 30, 50, 75, 100)
+window_width = 0                   # the history window's size when last closed; 0 = default
+window_height = 0
 ```
 
 Per-source `client_id_*` fields let Apple Music render under one Discord
@@ -190,7 +198,10 @@ another (with a generic Bluetooth glyph). Empty falls back to the default
 Refrain publishes itself as `org.mpris.MediaPlayer2.refrain` on the session
 bus, so KDE Plasma's panel media-controls applet (and KDE Connect, GNOME
 Shell, Mako, …) drive the same Play/Pause/Next/Previous as the tray and
-render the same track Discord renders.
+render the same track Discord renders. Plasma also offers these controls
+when you right-click Refrain in the task manager, including a *Stop*
+that it adds for every player — Apple Music has no stop, so there it
+pauses, and does nothing when the music is already paused.
 
 ## Tray
 
@@ -214,6 +225,7 @@ no unicode-glyph prefixes.
 | Play / Pause      | Toggle on the active source (label follows playback state)|
 | Next              | Skip forward on the active source                         |
 | Update available — vX.Y.Z | Only visible when a newer release exists          |
+| Recently played…  | Open the history window (hidden while the history is off) |
 | Settings…         | Open the settings window                                  |
 | Live log…         | Open the live-log window                                  |
 | Restart Refrain   | Cleanly stop and re-launch (release D-Bus name + RPC, exec the same binary) |
@@ -251,24 +263,63 @@ the background.
       <br/><sub>Opt-in scrobbling, API key + secret, connect / disconnect an account</sub>
     </td>
     <td align="center">
+      <b>History</b><br/>
+      <img src="docs/screenshots/settings-history.png" alt="Settings — History" width="420"/>
+      <br/><sub>Recently played on or off, how many songs to keep</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
       <b>Updates</b><br/>
       <img src="docs/screenshots/settings-updates.png" alt="Settings — Updates" width="420"/>
       <br/><sub>Auto-check, last-checked, manual <i>Check for updates now</i></sub>
     </td>
-  </tr>
-  <tr>
     <td align="center">
       <b>Advanced</b><br/>
       <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
       <br/><sub>Poll interval, notification delay, cover cache size, language, log level, restart, reset, uninstall</sub>
     </td>
+  </tr>
+  <tr>
     <td align="center">
       <b>Legal</b><br/>
       <img src="docs/screenshots/legal.png" alt="Legal notice" width="420"/>
       <br/><sub>Licence, trademark and affiliation notices — the <i>Legal</i> button in the footer</sub>
     </td>
+    <td></td>
   </tr>
 </table>
+
+## Recently played
+
+<p align="center">
+  <img src="docs/screenshots/history.png" alt="Recently played" width="520"/>
+</p>
+
+*Tray → Recently played…* lists the last songs Refrain saw — 30 by
+default, up to 100 — with cover, length, when each started, where it
+came from (which browser, which Bluetooth device) and whether it went to
+Last.fm. A song shows up the moment it plays and stays once it counts
+as listened: half its length or four minutes, the rule Last.fm uses, so
+skipping through a playlist leaves nothing behind. Restarting Refrain
+mid-song doesn't lose or duplicate it; a song heard through and played
+again is listed twice, once per play.
+
+- Click a song to open it in Apple Music — in the browser it played in,
+  while that one is still open; a search when the song's page isn't
+  known.
+- Right-click to copy artist and title or to remove the song from the
+  list; *Clear history…* empties it.
+- From ten songs on there's a search over title, artist and album —
+  blind to case and accents, found words marked — and with more than
+  one source a filter by source. <kbd>Ctrl</kbd>+<kbd>F</kbd> jumps into
+  the search, <kbd>Esc</kbd> clears it.
+- The window opens at the size you last left it.
+
+The list stays on your machine (`history.json`, readable only by you)
+and is never sent anywhere, so the privacy mode doesn't affect it.
+*Settings → History* turns it off — which deletes the file — or changes
+how many songs it keeps.
 
 ## Notifications
 
@@ -321,7 +372,9 @@ A track is scrobbled once you've played at least half of it, or four
 minutes (Last.fm's rule), and only if it's longer than 30 s. Scrobbles
 are queued to disk the instant they qualify, so being offline, a
 Last.fm outage, or quitting mid-song never loses them — they submit on
-the next opportunity. Privacy mode `Off` silences scrobbling too.
+the next opportunity. Restarting Refrain mid-song carries the play on
+instead of counting it again, and a song on repeat is scrobbled once per
+play. Privacy mode `Off` silences scrobbling too.
 
 Full walkthrough + troubleshooting: [`docs/lastfm.md`](docs/lastfm.md).
 
@@ -353,7 +406,10 @@ entry + icon.)
 |---------------|---------------------------------------------|
 | Config        | `$XDG_CONFIG_HOME/refrain/config.toml`      |
 | Scrobble queue| `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` |
+| Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` |
+| Recently played | `$XDG_STATE_HOME/refrain/history.json`    |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
+| Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes) |
 | Cover cache   | `$XDG_CACHE_HOME/refrain/covers/*.txt`      |
 | Autostart     | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (when enabled) |
 
@@ -386,7 +442,9 @@ directly to that provider:
   your **OS keyring** (encrypted at rest), never in `config.toml`.
 
 `Privacy → Off` is the global kill switch (no Discord status, no
-scrobbling) while keeping the tray + controls running.
+scrobbling) while keeping the tray + controls running. The *Recently
+played* list never leaves your machine, so it has its own switch in
+*Settings → History* instead.
 
 Full data-flow, retention and erasure details — written to GDPR
 transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).

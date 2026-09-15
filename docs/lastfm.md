@@ -48,6 +48,15 @@ if it's longer than 30 seconds. Pausing doesn't count toward that time;
 seeking around doesn't inflate it. Apple Music preview clips (under
 30 s) are never scrobbled.
 
+Every play counts on its own: a song on repeat, or played again from the
+top once it had counted, is scrobbled once per play. Restarting Refrain
+in the middle of a song is not a new play — the song being scrobbled is
+kept in `$XDG_STATE_HOME/refrain/scrobble_current.json`, and if it is
+still going (and further along) when Refrain comes back, counting
+carries on under the time it began. One that had counted before a crash
+is still scrobbled. Clicking **Apply** in Settings doesn't touch the
+song in progress unless the Last.fm account itself changed.
+
 If **“Also send a Now playing update”** is ticked (default), Refrain
 also sets the ephemeral "now playing" indicator on your Last.fm
 profile — the equivalent of the Discord status — as each track starts.

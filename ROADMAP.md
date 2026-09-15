@@ -536,16 +536,45 @@ were tracked internally as "v0.2.8" but never separately tagged.
   connected"; the Connect button no longer treats an incomplete
   leftover as Disconnect. +13 tests (pure + offscreen).
 
+## Done — v0.5.1
+
+- **Recently played.** A history window (tray → *Recently played…*)
+  with cover, length, start time, source and Last.fm state per song;
+  Last.fm's rule for what counts; a click opens the song in Apple
+  Music in the browser that played it; search and a source filter;
+  remove single songs; survives restarts and crashes mid-song without
+  losing or duplicating the song. Own settings tab: on/off (off
+  deletes) and 10–100 songs.
+- **The crash behind "Refrain was simply gone".** Two threads shared
+  one dbus-glib connection; the daemon's sources now keep private
+  connections, the published MPRIS player is only touched from its
+  dispatching thread, and `crash.log` records every thread's Python
+  stack if anything still crashes.
+- **Cover and length for far more songs.** The catalog lookup asks the
+  local store first, strips "feat." and remaster tags, falls back to
+  the first artist, checks artist *and* title, retries network
+  failures and lets misses expire.
+- **Plasma's Stop no longer starts playback**, and Play/Pause only act
+  towards the state they ask for.
+- **One play, one row, one scrobble.** A song on repeat counts once per
+  play — in the browser, over Bluetooth, and on any player that jumps
+  back to the start. A restart or a crash mid-song carries the play on,
+  for the history and Last.fm alike (`scrobble_current.json`), and
+  Settings → Apply no longer starts a song's Last.fm count over.
+- **Pausing in the browser is seen as a pause.** Plasma's browser
+  integration follows Apple Music's looping artwork video, not the
+  music; the tab's own MPRIS entry now decides playing or paused and
+  takes Play/Pause. Its segment positions are no longer shown, which
+  stops the elapsed time falling back every ten seconds.
+- **Every shipped translation complete**, plural forms included
+  (English now carries its own plural catalog).
+
 ## Up next — v0.5.x
 
 - **Stable-release AUR build** that doesn't rely on the GitHub
   release tarball — switch to a `git`-source PKGBUILD pinned to the
   signed tag, so AUR users get the exact same commit the release
   workflow ships.
-- **Complete the translation catalogs** for the newly-wrapped
-  strings: regenerate the `.ts` / `.qm` files and bring every
-  shipped language back to 100% coverage via community PRs (the
-  code-side `tr()` wrapping landed in v0.3.0).
 
 ## Maybe — v0.5+
 

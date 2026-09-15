@@ -12,19 +12,27 @@ detected automatically.
 Three things to check:
 
 1. *Settings → General → Fetch album cover art from iTunes* is on.
-2. The track exists in the iTunes catalog. Obscure releases sometimes
-   don't. Refrain caches negative results so it stops trying after the
-   first miss.
+2. The track exists in the iTunes catalog. Refrain asks the store of your
+   own country first, then the US store, with "feat." credits and
+   remaster tags left out of the search, and falls back to the first of
+   several credited artists. It only takes a result whose artist *and*
+   title match — no cover is better than a stranger's. A song the catalog
+   doesn't have is asked about again after three days; a lookup that
+   failed because iTunes couldn't be reached, after a minute. The log
+   says *"Cover lookup: no catalog match for …"* for a real miss.
 3. Your Discord client is running. Refrain only sends the URL; Discord
    fetches the actual image.
 
+The same lookup supplies the song's length, so a song without a cover
+usually shows no total time either.
+
 ## Notifications appear with the Refrain logo, not the cover.
 
-Refrain delays notifications by 1.5 s so the cover image has time to
-download. If the iTunes lookup is slower than that (rare on home internet,
-common on poor mobile tethering), the notification falls back to the
-themed icon. Subsequent plays of the same track will use the cached
-image.
+Refrain waits up to two seconds for the cover image to download before
+it shows the notification. If the iTunes lookup is slower than that
+(rare on home internet, common on poor mobile tethering), the
+notification appears with the themed icon and is swapped for the cover
+once it arrives. Later plays of the same track use the cached image.
 
 ## Does Refrain support Spotify / Tidal / YouTube Music?
 
@@ -125,10 +133,13 @@ the track as playing.
 On Plasma there is a second layer to it. Plasma's browser integration
 publishes its own MPRIS player, and Refrain prefers it because it is the
 one reporting a title and an artist at all — but it has its own version
-of the problem: its position and length describe the media *segment* the
-page has buffered, so the position falls back to zero every eight to
-eleven seconds. That is what made the elapsed time restart over and over
-mid-song.
+of the problem: its position and length describe the album's looping
+artwork video on the page, not the song, so the position falls back to
+zero every eight to sixteen seconds. That is what made the elapsed time
+restart over and over mid-song. Refrain never shows a position like that;
+it counts from the song's start itself — and after a restart in the
+middle of a song, when that start wasn't seen, it hides the time until
+the next song (or the next loop of this one) begins.
 
 Refrain resolves the position in three tiers. It uses what the source
 reports while that holds up; when it doesn't, it counts from the start of
@@ -167,6 +178,51 @@ that is still moving is proof the handle isn't dangling, and pushes the
 deadline back. Setting `idle_grace_s = 0` disables idle detection
 entirely, at the cost of a closed tab leaving a stale status behind.
 
+## Where is my listening history, and how do I get rid of it?
+
+*Tray → Recently played…* shows it; *Settings → History* switches it off
+or sets how many songs it keeps (10 to 100, 30 by default). It lives in
+`~/.local/state/refrain/history.json`, readable only by you, and is never
+sent anywhere — which is why the privacy mode doesn't affect it.
+Right-click a song to remove just that one, *Clear history…* empties the
+list, and switching the history off deletes the file.
+
+## A song I played isn't in the history.
+
+A song stays once it counts as listened — half its length or four
+minutes, the rule Last.fm uses. It's the time you actually heard that
+counts, not where the song is: listening ten seconds and skipping to the
+last ten is twenty seconds, and the song leaves again when the next one
+starts. Songs of 30 s or less never count. Restarting Refrain mid-song
+doesn't reset the count, as long as the same song is still playing when
+it comes back and has carried on from where it was.
+
+## A song is in the history twice.
+
+Every play that counts gets a row of its own — a song on repeat, or
+played again from the top once it had counted, is listed once per play,
+and Last.fm gets a scrobble per play too. A restart in the middle of a
+song is not a second play: Refrain saves where the song was, and if it
+is further on from there when Refrain comes back, it stays one row. Only
+if the song is back near the start — it ended and began again meanwhile
+— is it a new play.
+
+## Right-clicking Refrain in the task manager offers "Stop".
+
+That menu is Plasma's: it adds media controls for any application that
+publishes an MPRIS player, which Refrain does so Plasma's media widget
+can drive it. Plasma shows "Stop" for every controllable player. Apple
+Music has no stop, so there it pauses — and does nothing when the music
+is already paused.
+
+## Refrain was suddenly gone.
+
+Look at `~/.local/state/refrain/crash.log`. If Refrain died inside Qt or
+D-Bus, it holds the Python stack of every thread at that moment — attach
+it to a [bug report](https://github.com/Rockykln/refrain/issues/new?template=bug_report.yml)
+together with the end of `refrain.log`. `coredumpctl list` shows whether
+the system recorded a crash at the same time.
+
 ## How do I update?
 
 | Install method | How to update                                      |
@@ -183,7 +239,8 @@ when you're already on the latest version.
 
 `~/.local/state/refrain/refrain.log`. They rotate at 1 MiB with three
 backups. The live-log window (tray menu → *Live log…* or `--debug` flag)
-shows the same stream live.
+shows the same stream live. `crash.log` in the same folder only ever
+gets written when Refrain crashes.
 
 ## The Refrain process won't quit.
 

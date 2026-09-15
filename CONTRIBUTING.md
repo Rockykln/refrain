@@ -124,8 +124,19 @@ descriptions instead.
 
 User-visible strings live wrapped in `tr()` calls; translations are
 kept in `src/refrain/i18n/refrain_<lang>.ts` (Qt Linguist format).
-English is the source language. German is the only translation we
-ship complete right now.
+English is the source language; every shipped language is complete.
+
+Strings that contain a number use Qt's plural forms —
+`self.tr("Last %n song(s)", "", count)` — never a sentence assembled
+around the number, because Russian and Polish change the noun's ending
+with it. Two things follow:
+
+- Only `self.tr(…)` with the count as the third argument is extracted
+  as a plural. `QCoreApplication.translate(…, n)` isn't, and neither is
+  any call whose arguments contain `//`.
+- `refrain_en.ts` holds only the English plural forms (`lupdate
+  -pluralonly`, which `make i18n-update` runs for it) — without it
+  English would read "Last 12 song(s)".
 
 To add a new language end-to-end:
 

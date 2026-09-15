@@ -22,6 +22,7 @@ from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Sl
 from refrain.config import Config
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
+from refrain.history import HistorySnapshot, PlayHistory
 from refrain.paths import assets_dir
 from refrain.scrobble import Scrobbler
 from refrain.sources.base import PlaybackStatus, TrackInfo
@@ -29,6 +30,7 @@ from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
 from refrain.sources.mpris_server import MPRISServer
 from refrain.timing import (
+    CLIP_MAX_MS,
     PositionState,
     PositionTier,
     compute_rpc_start_ts,
@@ -291,6 +293,7 @@ class DaemonWorker(QObject):
     statusChanged = Signal(object)  # PlaybackStatus
     progressTick = Signal(int, int)  # position_ms, duration_ms (only when playing)
     discordConnectionChanged = Signal(bool)  # True = connected, False = disconnected
+    historyChanged = Signal(object)  # HistorySnapshot
 
     def __init__(self, config: Config):
         super().__init__()
@@ -308,7 +311,12 @@ class DaemonWorker(QObject):
         # Discord RPC. Constructed always; inert until the user enables
         # it + connects an account. All network work runs on its own
         # worker executor so the poll tick never blocks.
-        self._scrobbler = Scrobbler(config.lastfm)
+        # Recently played — see refrain.history. Loaded here, on the
+        # main thread, so the window has its first snapshot before the
+        # daemon thread starts; from then on only the worker touches it.
+        self._history = PlayHistory(config.history)
+        self._history_error_logged = False
+        self._scrobbler = Scrobbler(config.lastfm, on_queued=self._on_scrobble_queued)
         self._timer: QTimer | None = None
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
@@ -355,16 +363,23 @@ class DaemonWorker(QObject):
         self._position_state = PositionState()
         self._position_tier = PositionTier.UNKNOWN
         self._position_known = False
+        # True for the one tick in which the resolver saw the song begin
+        # again on the same track — a replay, for the history and Last.fm.
+        self._track_restarted = False
         self._last_rpc_timing: tuple | None = None
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
         # daemon is on its own thread, so a bus failure on construction
         # doesn't block the daemon coming up.
+        # Plasma's calls arrive on the thread that dispatches the server's
+        # connection — the main thread. Queue them over to this worker,
+        # which owns the sources and their D-Bus connections, instead of
+        # running the sources on two threads at once.
         self._mpris_server = MPRISServer(
-            on_play_pause=lambda: self._control("play_pause"),
-            on_next=lambda: self._control("next"),
-            on_previous=lambda: self._control("previous"),
+            on_play_pause=lambda: self._queue_control("control_play_pause"),
+            on_next=lambda: self._queue_control("control_next"),
+            on_previous=lambda: self._queue_control("control_previous"),
         )
 
     # ----------------------------------------------------------------- lifecycle
@@ -408,6 +423,10 @@ class DaemonWorker(QObject):
             # Banks a qualifying in-progress track to the on-disk queue
             # so quitting mid-song still scrobbles it next launch.
             self._scrobbler.shutdown()
+        with contextlib.suppress(Exception):
+            # After the Scrobbler, whose final scrobble may still mark a
+            # song. Keeps the song playing right now if it already counted.
+            self._history.shutdown()
         self._cover_fetcher.shutdown()
         log.info("Daemon stopped")
 
@@ -460,6 +479,60 @@ class DaemonWorker(QObject):
         # Discord client_id, the Scrobbler rebinds cleanly in place).
         with contextlib.suppress(Exception):
             self._scrobbler.reconfigure(config.lastfm)
+        # History: on/off (off deletes the stored list) and the song
+        # limit (a lower one drops the oldest songs) apply straight away.
+        with contextlib.suppress(Exception):
+            if self._history.reconfigure(config.history):
+                self._emit_history()
+
+    # ---------------------------------------------------------------- history
+
+    def history_snapshot(self) -> HistorySnapshot:
+        return self._history.snapshot()
+
+    @Slot()
+    def clear_history(self) -> None:
+        self._history.clear()
+        self._emit_history()
+
+    @Slot(object)
+    def remove_from_history(self, entry) -> None:
+        if self._history.remove(entry.started_at, entry.title, entry.artist):
+            self._emit_history()
+
+    def _emit_history(self) -> None:
+        self.historyChanged.emit(self._history.snapshot())
+
+    def _on_scrobble_queued(self, artist: str, title: str) -> None:
+        # Called by the Scrobbler on this thread, with its lock held.
+        if self._history.mark_scrobbled(artist, title):
+            self._emit_history()
+
+    def _update_history(
+        self, track: TrackInfo, duration_ms: int, position_ms: int | None, restarted: bool
+    ) -> None:
+        try:
+            cover_url = song_url = ""
+            if track.has_track and self._config.behavior.cover_art:
+                cover_url = self._cover_fetcher.get(track.artist, track.title, track.album) or ""
+                song_url = (
+                    self._cover_fetcher.get_song_url(track.artist, track.title, track.album) or ""
+                )
+            if self._history.update(
+                track,
+                duration_ms,
+                cover_url=cover_url,
+                song_url=song_url,
+                position_ms=position_ms,
+                restarted=restarted,
+            ):
+                self._emit_history()
+        except Exception:
+            # Once, not every tick: a history that can't update is worth
+            # one line in the log, not one every 500 ms.
+            if not self._history_error_logged:
+                self._history_error_logged = True
+                log.exception("History update failed")
 
     # --------------------------------------------------------------- controls
 
@@ -474,6 +547,9 @@ class DaemonWorker(QObject):
     @Slot()
     def control_previous(self) -> None:
         self._control("previous")
+
+    def _queue_control(self, slot: str) -> None:
+        QMetaObject.invokeMethod(self, slot, Qt.ConnectionType.QueuedConnection)
 
     def _control(self, action: str) -> None:
         active = self._active_source
@@ -589,6 +665,9 @@ class DaemonWorker(QObject):
             mpris_dur_ms > 0
             and itunes_dur_ms > 0
             and not self._position_state.track_relative
+            # A clip or a buffered segment is no rival length: the catalog
+            # is the song's, as pick_effective_duration_ms decides below.
+            and not mpris_dur_ms < CLIP_MAX_MS <= itunes_dur_ms
             and abs(mpris_dur_ms - itunes_dur_ms) > max(5_000, itunes_dur_ms * 0.15)
         ):
             return 0, True
@@ -620,7 +699,14 @@ class DaemonWorker(QObject):
             reported_length_ms=track.duration_ms,
             duration_disputed=disputed,
             stall_after_s=float(self._config.advanced.position_stall_s),
+            loop_track=track.loop_track,
         )
+        self._track_restarted = (
+            new_state.track_key == self._position_state.track_key
+            and new_state.restarts > self._position_state.restarts
+        )
+        if self._track_restarted:
+            log.info("Position: %s — %s began again", track.artist or "—", track.title)
         self._position_state = new_state
         self._position_known = position_ms is not None
         # Log the tier transitions only — a degraded source stays
@@ -737,19 +823,34 @@ class DaemonWorker(QObject):
 
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
 
-        # Last.fm scrobbling. Fed the same iTunes-corrected duration the
-        # RPC + tray see, except where the two lengths disagree — see
-        # `scrobble_duration_ms`. Gated on privacy "off" (the global
+        # Last.fm and the history judge "played" from the same length:
+        # the iTunes-corrected duration the RPC + tray see, except where
+        # the two lengths disagree — see `scrobble_duration_ms`.
+        played_dur_ms = scrobble_duration_ms(
+            effective_dur_ms, duration_disputed, track.duration_ms, itunes_dur_ms
+        )
+
+        # Recently played. Local only, so unlike Last.fm it keeps going
+        # with privacy "off" — `history.enabled` is its own switch. Fed
+        # before the Scrobbler, so a song the Scrobbler banks this tick
+        # is already in the list when the scrobbled mark arrives.
+        # The player's own position, which tells a replay — and a restart
+        # that carries on — from a new play. Only a reported one: a
+        # computed position starts again at zero along with Refrain.
+        player_pos_ms = track.position_ms if self._position_tier is PositionTier.REPORTED else None
+        self._update_history(track, played_dur_ms, player_pos_ms, self._track_restarted)
+
+        # Last.fm scrobbling. Gated on privacy "off" (the global
         # no-external-broadcasting kill switch); the Scrobbler itself is
         # inert until the user enables it and connects an account.
         # Wrapped so a scrobble-side failure can never break the tick.
         with contextlib.suppress(Exception):
             self._scrobbler.update(
                 track,
-                scrobble_duration_ms(
-                    effective_dur_ms, duration_disputed, track.duration_ms, itunes_dur_ms
-                ),
+                played_dur_ms,
                 privacy_off=self._config.privacy.mode == "off",
+                position_ms=player_pos_ms,
+                restarted=self._track_restarted,
             )
 
         # Push the same track + cover URL to the published MPRIS server

@@ -9,6 +9,18 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from enum import StrEnum
 
+# A source length below this, on a song the catalog knows to be longer,
+# describes a clip or a buffered media segment rather than the song.
+CLIP_MAX_MS = 30_000
+_CLIP_MAX_MS = CLIP_MAX_MS
+# A *start frame*: the player reporting the song itself — its full
+# length, give or take this — at a position no further in than this.
+_START_FRAME_LENGTH_SLACK_MS = 2_000
+_START_FRAME_MAX_POS_MS = 3_000
+# A start frame this far into the track is the song beginning again;
+# any sooner, it is the track change we already saw, reported twice.
+_RESTART_AFTER_MS = 30_000
+
 
 def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
     """Choose between the source-reported and iTunes-catalog track lengths.
@@ -40,7 +52,7 @@ def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
         return itunes_dur_ms
     if itunes_dur_ms <= 0:
         return mpris_dur_ms
-    if mpris_dur_ms < 30_000 <= itunes_dur_ms:
+    if mpris_dur_ms < _CLIP_MAX_MS <= itunes_dur_ms:
         return itunes_dur_ms
     return mpris_dur_ms
 
@@ -132,6 +144,17 @@ class PositionState:
     last_reported_ms: int = 0
     last_seen_at: float = 0.0
     moved_at: float = 0.0
+    # How often this track has begun again while we watched — a loop, or
+    # played again from the top. The daemon compares it between polls.
+    restarts: int = 0
+    # The last poll saw nothing playing. A track that appears after that,
+    # near zero, is a song somebody just started — the one case where a
+    # segment source's zero may place the clock (see _anchor_new_track).
+    after_idle: bool = False
+    # A start frame arrived while paused. It only counts once the song then
+    # plays on from there: an iPad pausing reports position 0 for a tenth
+    # of a second before its real position comes back.
+    start_pending: bool = False
 
 
 def start_is_witnessed(state: PositionState) -> bool:
@@ -176,6 +199,7 @@ def resolve_position(
     stall_after_s: float = 4.0,
     tolerance_ms: int = 250,
     overrun_grace_ms: int = 5_000,
+    loop_track: bool = False,
 ) -> tuple[int | None, PositionTier, PositionState]:
     """Resolve the current position through three tiers, in order.
 
@@ -226,18 +250,79 @@ def resolve_position(
     end-of-track checks are skipped and only movement decides. The
     caller renders elapsed-only in that case, as it always has.
 
+    A source length under ``_CLIP_MAX_MS`` on a song the catalog knows to
+    be longer is a *segment* source: Plasma's browser integration reports
+    the media segment the page has buffered, whose position runs 0 → 10 s
+    and starts over, all song long. Its position is never the song's, so
+    it is never shown, and its returns to zero are never a frame switch
+    or a seek. Its length need not move either — at a constant 10.4 s
+    nothing latched it, and after a restart mid-song the elapsed time
+    fell back to zero every ten seconds.
+
+    A song that begins again on the same track — repeat-one, or played
+    again from the top — shows as a *start frame*: the player reporting
+    the song's own length at a position near zero. A segment source does
+    that only when the song really starts, never in between. Well into
+    the track, a start frame places our clock's zero afresh and counts in
+    ``state.restarts``. ``loop_track`` says the player repeats this one
+    track; a Bluetooth phone on repeat-one keeps counting its position
+    across loops (5:13 into a 3:36 song), and then the song's own
+    position is what is left over after whole loops.
+
     Returns ``(position_ms_or_None, tier, new_state)``.
     """
     if not track_key:
-        return None, PositionTier.UNKNOWN, PositionState()
+        return None, PositionTier.UNKNOWN, PositionState(after_idle=True)
+    # Whatever the catalog says — for the first polls after a start it
+    # hasn't said anything yet, and a segment then passed for a very short
+    # song. A song that really is that short loses nothing: its time comes
+    # from our clock, anchored at the change, and reads the same.
+    segment = 0 < reported_length_ms < _CLIP_MAX_MS
+    if loop_track and duration_ms >= _CLIP_MAX_MS and reported_ms > duration_ms:
+        loop_ms = reported_length_ms if reported_length_ms >= _CLIP_MAX_MS else duration_ms
+        reported_ms %= loop_ms
 
     if track_key != state.track_key:
-        state, moved = _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms), True
+        state, moved = (
+            _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms, segment),
+            True,
+        )
         state = replace(state, last_length_ms=reported_length_ms)
     else:
+        start_frame = _is_start_frame(reported_ms, reported_length_ms, duration_ms)
+        # Arriving at the start, not sitting there: the position fell back
+        # from well into the song, or the length just turned from a
+        # segment's into the song's. A source frozen at zero does neither.
+        arrived = start_frame and (
+            state.last_reported_ms - reported_ms >= _RESTART_AFTER_MS
+            or abs(reported_length_ms - state.last_length_ms) > _START_FRAME_LENGTH_SLACK_MS
+        )
+        if not start_frame:
+            state = replace(state, start_pending=False)
+        elif arrived and not is_playing:
+            state = replace(state, start_pending=True)
+        if (
+            start_frame
+            and is_playing
+            and (arrived or state.start_pending)
+            and (not state.anchored or _elapsed_ms(state, now) >= _RESTART_AFTER_MS)
+        ):
+            # The song began again. The frame is the player's own track
+            # start, so it is our clock's new zero — unanchored or not.
+            state = replace(
+                state,
+                started_at=now - reported_ms / 1000.0,
+                paused_ms=0,
+                paused_since=now if not is_playing else 0.0,
+                anchored=True,
+                track_relative=True,
+                restarts=state.restarts + 1,
+                start_pending=False,
+            )
         state = _track_length(state, reported_length_ms)
         if (
             state.cumulative
+            and not segment
             and not start_is_witnessed(state)
             and 0 <= reported_ms <= max(tolerance_ms, 2_000)
         ):
@@ -264,7 +349,7 @@ def resolve_position(
                 paused_since=now if not is_playing else 0.0,
                 anchored=True,
             )
-        elif state.cumulative and is_playing and not start_is_witnessed(state):
+        elif state.cumulative and is_playing and not segment and not start_is_witnessed(state):
             # The same question gates this. Following a seek trusts the
             # source's *timeline* while distrusting its absolute value —
             # worth doing when the timeline is all we have, wrong when we
@@ -290,6 +375,7 @@ def resolve_position(
     undecidable = duration_disputed and not state.anchored
     if (
         reported_ms >= 0
+        and not segment
         and not frozen
         and not past_end
         and not state.cumulative
@@ -317,14 +403,29 @@ def resolve_position(
 
     # -- tier 2: our own clock ----------------------------------------
     if state.anchored:
-        elapsed_ms = int((now - state.started_at) * 1000) - state.paused_ms
-        if state.paused_since:
-            elapsed_ms -= int((now - state.paused_since) * 1000)
+        elapsed_ms = _elapsed_ms(state, now)
         if elapsed_ms >= 0 and (duration_ms <= 0 or elapsed_ms <= duration_ms + overrun_grace_ms):
             return elapsed_ms, PositionTier.COMPUTED, state
 
     # -- tier 3: no honest answer -------------------------------------
     return None, PositionTier.UNKNOWN, state
+
+
+def _elapsed_ms(state: PositionState, now: float) -> int:
+    """Our own clock: time since the anchor, less time spent paused."""
+    elapsed_ms = int((now - state.started_at) * 1000) - state.paused_ms
+    if state.paused_since:
+        elapsed_ms -= int((now - state.paused_since) * 1000)
+    return elapsed_ms
+
+
+def _is_start_frame(reported_ms: int, reported_length_ms: int, duration_ms: int) -> bool:
+    """Is the player reporting the song itself, right at its beginning?"""
+    return (
+        duration_ms >= _CLIP_MAX_MS
+        and abs(reported_length_ms - duration_ms) <= _START_FRAME_LENGTH_SLACK_MS
+        and 0 <= reported_ms <= _START_FRAME_MAX_POS_MS
+    )
 
 
 def _anchor_new_track(
@@ -333,6 +434,7 @@ def _anchor_new_track(
     reported_ms: int,
     now: float,
     tolerance_ms: int,
+    segment: bool = False,
 ) -> PositionState:
     """Start a fresh clock for a track, anchored if we can place its start.
 
@@ -342,11 +444,18 @@ def _anchor_new_track(
     which places the boundary within one poll, whatever the source's
     numbers say. Neither applies to the track that was already playing
     when Refrain started, and that one stays unanchored.
+
+    A segment source's position is near zero every ten seconds, so on
+    first sight it proves a track start only after a poll that saw
+    nothing playing. Right after Refrain starts mid-song it lands in a
+    segment's first two seconds far too often to be taken at its word.
     """
     # A negative position is garbage, not a track start — it must not
     # place a zero the clock would then count from.
     reset_by_source = 0 <= reported_ms <= max(tolerance_ms, 2_000)
     witnessed_change = bool(state.track_key)
+    if segment and not (witnessed_change or state.after_idle):
+        reset_by_source = False
     anchored = reset_by_source or witnessed_change
     # A change the source didn't reset for means its position belongs to
     # the stream rather than to the track. Latched here and cleared the

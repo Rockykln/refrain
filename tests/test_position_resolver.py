@@ -184,7 +184,8 @@ def test_no_track_resets_everything():
     pos, tier, state = step(state, "", 0, 1001.0)
     assert pos is None
     assert tier is PositionTier.UNKNOWN
-    assert state == PositionState()
+    # All forgotten but the one thing the next track needs to know.
+    assert state == PositionState(after_idle=True)
 
 
 def test_stall_check_disabled_keeps_believing_a_frozen_source():
@@ -429,10 +430,13 @@ def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
     that does not describe tracks at all, and our own clock — anchored on
     a track start we watched — outranks it.
     """
-    state = PositionState()
-    # The track starts, and the source resets for it: a real anchor.
+    # Refrain was running with nothing playing; then the track starts, and
+    # the source resets for it: a real anchor. The value itself is a
+    # segment's, so it comes from our clock — which reads the same here,
+    # having just been placed by it.
+    _, _, state = step(PositionState(), "", 0, 999.5)
     pos, tier, state = step(state, A, 1_591, 1000.0, duration_ms=157_594, length_ms=13_899)
-    assert (pos, tier) == (1_591, PositionTier.REPORTED)
+    assert (pos, tier) == (1_591, PositionTier.COMPUTED)
     assert (state.anchored, state.track_relative) == (True, True)
 
     # Segment lengths and positions cycling underneath the same track.
@@ -455,6 +459,143 @@ def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
         assert pos >= previous, f"elapsed went backwards: {previous} → {pos}"
         previous = pos
     assert pos >= 13_000, "our clock should be near the 14 s that actually elapsed"
+
+
+SEGMENT_MS = 10_416  # measured: Plasma's browser integration, constant all song
+
+
+def _segments(state, key, start_s, first_ms, seconds, *, duration_ms=215_867):
+    """A segment source for ``seconds``: position runs to 10.4 s and wraps."""
+    out = []
+    ms = first_ms
+    for i in range(seconds + 1):
+        pos, tier, state = step(
+            state, key, ms, start_s + i, duration_ms=duration_ms, length_ms=SEGMENT_MS
+        )
+        out.append((pos, tier))
+        ms = (ms + 1_000) % SEGMENT_MS
+    return out, state
+
+
+def test_a_constant_segment_length_never_drags_the_time_back():
+    """Refrain restarted mid-song, landing 0.8 s into a segment.
+
+    The segment's length never moves, so nothing latched the source, and
+    every wrap to zero was shown: the time fell back every ten seconds.
+    """
+    seen, _ = _segments(PositionState(), A, 1000.0, 792, 40)
+    # Not even that first zero is taken: straight after a start a segment
+    # source sits in a segment's first seconds far too often (twice in two
+    # live restarts), and counting from there ran 24 s ahead of the song.
+    assert all((pos, tier) == (None, PositionTier.UNKNOWN) for pos, tier in seen)
+
+
+def test_a_restart_mid_segment_hides_the_time_rather_than_guess():
+    # 5 s into a segment is no track start; nothing places the song's zero.
+    seen, _ = _segments(PositionState(), A, 1000.0, 5_000, 30)
+    assert all((pos, tier) == (None, PositionTier.UNKNOWN) for pos, tier in seen)
+
+
+def test_a_segment_source_after_a_track_change_counts_from_the_change():
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    seen, state = _segments(state, A, 1001.0, 300, 35)
+    shown = [pos for pos, _ in seen]
+    assert all(tier is PositionTier.COMPUTED for _, tier in seen)
+    assert shown == sorted(shown)
+    assert 34_000 <= shown[-1] <= 36_000
+
+
+# ------------------------------------------ a song that begins again
+
+
+def test_a_segment_source_shows_a_repeat_as_a_start_frame():
+    """Measured on Apple Music in the browser, repeat-one: mid-song the
+    source reports 10–16 s segments; as the song loops it reports the
+    song's own 215.9 s length at position 0 for a few seconds."""
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    seen, state = _segments(state, A, 1001.0, 300, 214)
+    assert seen[-1][0] >= 213_000
+    pos, tier, state = step(state, A, 400, 1216.0, duration_ms=215_867, length_ms=215_914)
+    assert state.restarts == 1
+    assert pos is not None and pos <= 1_000
+    # Back to segments: our clock counts on from the new zero.
+    seen, state = _segments(state, A, 1217.0, 800, 20)
+    shown = [p for p, _ in seen]
+    assert shown == sorted(shown) and 20_000 <= shown[-1] <= 22_500
+    assert state.restarts == 1
+
+
+def test_the_start_frames_of_a_track_change_are_not_a_repeat():
+    # Apple Music reports the new song's start more than once.
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    for i, ms in enumerate((0, 400, 900, 1_400)):
+        _, _, state = step(state, A, ms, 1001.0 + i * 0.5, duration_ms=215_867, length_ms=215_914)
+    assert state.restarts == 0
+
+
+def test_a_start_frame_places_the_zero_after_a_restart_mid_song():
+    seen, state = _segments(PositionState(), A, 1000.0, 5_000, 20)
+    assert seen[-1] == (None, PositionTier.UNKNOWN)
+    pos, _, state = step(state, A, 200, 1021.0, duration_ms=215_867, length_ms=215_914)
+    assert (pos, state.restarts, state.anchored) == (200, 1, True)
+    seen, state = _segments(state, A, 1022.0, 700, 10)
+    assert all(tier is PositionTier.COMPUTED for _, tier in seen)
+    assert 10_500 <= seen[-1][0] <= 12_000
+
+
+def test_bluetooth_repeat_one_wraps_the_position_back_into_the_song():
+    """Measured: a phone on repeat-one read 5:13 on a 3:36 song — AVRCP
+    kept counting across the loop."""
+    length = 215_914
+    state = PositionState()
+    shown = []
+    for s in range(0, 260):
+        pos, tier, state = step(
+            state, A, s * 1_000, 1000.0 + s, duration_ms=length, loop_track=True
+        )
+        shown.append((pos, tier))
+    assert all(tier is PositionTier.REPORTED for _, tier in shown)
+    assert shown[215][0] == 215_000
+    assert shown[216][0] == 216_000 - length
+    assert shown[259][0] == 259_000 - length
+    assert state.restarts == 1
+
+
+def test_a_pause_that_blips_to_zero_is_not_a_restart():
+    """Measured on an iPad: pausing at 0:43 it reported 0:00 for a tenth of
+    a second, then 0:43 again — a start frame, while paused."""
+    length = 215_914
+    state = PositionState()
+    for s in range(0, 44):
+        _, _, state = step(state, A, s * 1_000, 1000.0 + s, duration_ms=length)
+    _, _, state = step(state, A, 0, 1044.0, duration_ms=length, playing=False)
+    _, _, state = step(state, A, 43_400, 1044.2, duration_ms=length, playing=False)
+    pos, _, state = step(state, A, 43_500, 1047.0, duration_ms=length)
+    assert state.restarts == 0
+    assert pos == 43_500
+
+
+def test_a_start_frame_seen_while_paused_counts_once_it_plays_on():
+    # The browser: its tab can read "paused" for the poll the song loops on.
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 214)
+    _, _, state = step(state, A, 0, 1215.5, duration_ms=215_867, length_ms=215_914, playing=False)
+    assert state.restarts == 0
+    pos, _, state = step(state, A, 500, 1216.0, duration_ms=215_867, length_ms=215_914)
+    assert state.restarts == 1
+    assert pos is not None and pos <= 1_000
+
+
+def test_without_repeat_a_position_past_the_end_is_still_not_believed():
+    state = PositionState()
+    for s in range(0, 230):
+        pos, tier, state = step(state, A, s * 1_000, 1000.0 + s, duration_ms=215_914)
+    assert tier is not PositionTier.REPORTED
+    assert state.restarts == 0
 
 
 def test_one_genuine_frame_switch_is_still_believed():

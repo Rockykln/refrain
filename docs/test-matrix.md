@@ -89,8 +89,8 @@ These are documented as **unsupported** — don't open issues for them.
 
 ## Smoke checks
 
-Run all six on every Tier 1 row, in order. Each should take under a
-minute; the whole sweep is ≈ 5 minutes per system.
+Run all seven on every Tier 1 row, in order. Each should take under a
+minute; the whole sweep is ≈ 6 minutes per system.
 
 ### 1. Tray + theme parity
 
@@ -154,6 +154,28 @@ Triggered automatically when a newer version exists; or set
   fresh `Refrain ... starting` line — no duplicate D-Bus name
   errors.
 
+### 7. Recently played
+
+- Tray → *Recently played…* opens the window; the track playing
+  shows at the top as *Now playing* with its cover.
+- Skip to the next song within a few seconds: the skipped one leaves
+  the list again. Play one past half its length: it stays, and
+  `history.json` lists it.
+- Restart Refrain (check 6) while that song is still playing: it is
+  listed **once**, still as *Now playing*.
+- Put that song on repeat and let it run through once more: it is
+  listed **twice**, and the log says `History: … started over — a new
+  play`.
+- Click the song: its Apple Music page opens in the browser that is
+  playing it. Right-click → *Remove from history* takes it out.
+- Between two songs the row doesn't flash *Paused*.
+- Pause Apple Music in the browser: within a second the tray and the
+  row say *Paused*, and the elapsed time stops. Tray → *Play* starts
+  the music again.
+- Over Bluetooth, with the phone on repeat-one: the elapsed time starts
+  again from 0:00 at every loop instead of disappearing, and each loop
+  that counts is a row — and a scrobble — of its own.
+
 ## Failure-mode reference
 
 If a check fails, the most common causes:
@@ -163,7 +185,8 @@ If a check fails, the most common causes:
 | Refrain refuses to start with "No system tray" | Missing AppIndicator extension on GNOME, or bar with no tray on tiling WM |
 | Tray icon visible but no track shown when playing in browser | `plasma-browser-integration` not enabled in browser, or `mpris_enabled = false` |
 | Discord status never appears | No `client_id` set, or Discord IPC socket not reachable (Snap/Flatpak Discord can hide it) |
-| Cover art missing | iTunes Search has no match for that artist / title — fallback brand icon shown |
+| Cover art missing | iTunes has no song whose artist *and* title match (the log says `Cover lookup: no catalog match for …`) — fallback brand icon shown; asked again after three days |
+| Refrain gone without a trace | Look in `~/.local/state/refrain/crash.log` for the Python stack of every thread at the crash, and `coredumpctl list` |
 | Settings window has no icons / wrong style on pip/pipx install | Qt plugin-path augmentation didn't fire — check log for `Augmenting Qt plugin path` |
 | Duration shows as 0:14 or some too-short value | Pre-`pick_effective_duration_ms` build, or iTunes lookup hasn't resolved yet for that track |
 | AppImage fails with `failed to exec fusermount` (RHEL family) | `fuse-libs` alone is not enough — install the `fuse` package too, or run with `--appimage-extract-and-run` |

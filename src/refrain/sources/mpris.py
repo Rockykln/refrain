@@ -8,10 +8,13 @@ winning player is remembered so playback controls can target it.
 
 from __future__ import annotations
 
+import contextlib
+import dataclasses
 import logging
 import re
 
 import dbus
+import dbus.mainloop
 
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
@@ -118,6 +121,13 @@ class MPRISSource:
     def __init__(self, browser_hints: list[str] | None = None) -> None:
         self._last_player_name: str | None = None
         self._control_fallback_names: list[str] = []
+        # The browser's own MPRIS entries for an Apple Music tab — no URL,
+        # but the page title ends in "Apple Music". Unlike plasma-browser-
+        # integration they describe the audio; see `read` and `play_pause`.
+        self._native_apple_names: list[str] = []
+        # The state that tab overruled plasma with last poll, for logging
+        # the change once rather than twice a second.
+        self._overruled: PlaybackStatus | None = None
         self._browser_hints = list(browser_hints) if browser_hints else list(BROWSER_HINTS)
         # Per-player blacklist: bus-name → monotonic time when it
         # becomes eligible to retry. A single property timeout banishes
@@ -127,6 +137,7 @@ class MPRISSource:
         # under load; without this the daemon's poll cycle backed up
         # to ~50 s and notifications + Discord status froze with it.
         self._timeout_blacklist: dict[str, float] = {}
+        self._bus = None  # see _session_bus
 
     _BLACKLIST_S = 5.0
 
@@ -134,16 +145,41 @@ class MPRISSource:
         if hints:
             self._browser_hints = list(hints)
 
+    def _session_bus(self):
+        """This source's own session-bus connection, with no main loop.
+
+        Never ``dbus.SessionBus()``: that is the process-wide connection
+        the MPRIS server exports on, dispatched by dbus-glib on the main
+        thread. This source runs on the daemon thread, and dbus-glib keeps
+        its per-connection timeout bookkeeping without any locking — a
+        blocking call from here while the main thread dispatched on the
+        same connection corrupted the heap, and Refrain died with
+        "malloc(): unaligned tcache chunk detected". A private connection
+        without a main loop never reaches dbus-glib; polling only needs
+        blocking method calls, which work without one.
+        """
+        if self._bus is None:
+            self._bus = dbus.SessionBus(private=True, mainloop=dbus.mainloop.NULL_MAIN_LOOP)
+        return self._bus
+
+    def _drop_bus(self) -> None:
+        """Forget a connection that failed, so the next call opens a new one."""
+        bus, self._bus = self._bus, None
+        if bus is not None:
+            with contextlib.suppress(Exception):
+                bus.close()
+
     def read(self) -> TrackInfo:
         import time as _time
 
         try:
-            bus = dbus.SessionBus()
+            bus = self._session_bus()
             obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
             dbus_iface = dbus.Interface(obj, "org.freedesktop.DBus")
             names = list(dbus_iface.ListNames())
         except Exception as e:
             log.debug("MPRIS: ListNames failed: %s", e)
+            self._drop_bus()
             return TrackInfo.empty()
 
         now = _time.monotonic()
@@ -152,6 +188,7 @@ class MPRISSource:
         # apple-music URL filter — kept around so skip/next/prev fall back
         # onto them when the metadata player can't dispatch the action.
         fallbacks: list[str] = []
+        native: dict[str, str] = {}  # the Apple Music tab's own entries → "playing"/"paused"
         for raw in names:
             name = str(raw)
             if not name.startswith("org.mpris.MediaPlayer2."):
@@ -165,12 +202,15 @@ class MPRISSource:
             until = self._timeout_blacklist.get(name, 0.0)
             if now < until:
                 continue  # this player just timed out; skip until cooldown ends
-            ti, score, control_capable = self._read_player(bus, name)
+            ti, score, control_capable, native_status = self._read_player(bus, name)
             if ti is not None:
                 candidates.append((score, ti, name))
             elif control_capable:
                 fallbacks.append(name)
+            if native_status:
+                native[name] = native_status
 
+        self._native_apple_names = list(native)
         if not candidates:
             self._control_fallback_names = fallbacks
             return TrackInfo.empty()
@@ -187,13 +227,41 @@ class MPRISSource:
             if name not in fallbacks:
                 fallbacks.append(name)
         self._control_fallback_names = fallbacks
-        return best[1]
+        track = best[1]
+        if (
+            "plasma-browser-integration" in best[2]
+            and native
+            and track.status != PlaybackStatus.STOPPED
+        ):
+            # plasma-browser-integration takes its metadata from the page's
+            # media session but its state from whichever media element is
+            # playing — on Apple Music, the looping artwork video. Paused,
+            # the music went on "playing" there. The tab's own entry is the
+            # audio; its word on playing vs. paused wins. (Its "stopped"
+            # blip at a song change doesn't count — see the condition.)
+            status = (
+                PlaybackStatus.PLAYING if "playing" in native.values() else PlaybackStatus.PAUSED
+            )
+            if status != track.status:
+                if self._overruled != status:
+                    log.debug("MPRIS: %s per the Apple Music tab itself, not plasma", status.value)
+                self._overruled = status
+                track = dataclasses.replace(track, status=status)
+                return track
+        self._overruled = None
+        return track
 
     def play_pause(self) -> bool:
         # PlayPause is a TOGGLE — calling it twice is back to the
         # original state. Prefer the primary metadata player so a
         # single user click never races a fallback into double-toggling.
-        return self._dispatch_action("PlayPause", "CanPause", deprioritise_plasma=False)
+        # Except that the Apple Music tab's own entry goes first when there
+        # is one: plasma's toggle follows the artwork video, which keeps
+        # playing through a pause — so it could pause the music but never
+        # start it again.
+        return self._dispatch_action(
+            "PlayPause", "CanPause", deprioritise_plasma=False, prefer=self._native_apple_names
+        )
 
     def next(self) -> bool:
         # Next/Previous are idempotent for the user *intent* (skip one
@@ -213,6 +281,7 @@ class MPRISSource:
         capability_prop: str,
         *,
         deprioritise_plasma: bool,
+        prefer: list[str] | None = None,
     ) -> bool:
         """Call ``method`` on whichever known player advertises ``capability_prop``.
 
@@ -225,15 +294,16 @@ class MPRISSource:
         players.
         """
         try:
-            bus = dbus.SessionBus()
+            bus = self._session_bus()
         except Exception as e:
             log.debug("MPRIS dispatch %s: bus connect failed: %s", method, e)
+            self._drop_bus()
             return False
 
         # Build the try-list: primary first (if capable), then any
         # known fallbacks.
-        candidates: list[str] = []
-        if self._last_player_name:
+        candidates: list[str] = list(prefer or ())
+        if self._last_player_name and self._last_player_name not in candidates:
             candidates.append(self._last_player_name)
         for name in self._control_fallback_names:
             if name not in candidates:
@@ -275,13 +345,16 @@ class MPRISSource:
             log.exception("MPRIS %s on %s unexpected error", method, name)
             return False
 
-    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, bool]:
-        """Returns (track_info_or_None, score, is_browser_control_fallback).
+    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, bool, str]:
+        """Returns (track_info_or_None, score, is_browser_control_fallback,
+        apple_music_tab_status).
 
         The third element is True iff this player looks like a browser
         playing media but failed the apple-music URL filter — meaning
         we can use it as a control fallback for skip/play/pause when the
-        rich-metadata player can't dispatch those actions itself.
+        rich-metadata player can't dispatch those actions itself. The
+        fourth is that fallback's "playing"/"paused" when its title — the
+        page title — says it is the Apple Music tab, else "".
         """
         try:
             # introspect=False so a flaky MPRIS player (we're looking
@@ -351,7 +424,7 @@ class MPRISSource:
 
             is_browser = _looks_browser(name, identity, desktop_entry, self._browser_hints)
             if not is_browser:
-                return None, 0, False
+                return None, 0, False, ""
 
             if not _looks_apple_music(url):
                 # Browser is playing *something* — it might be the same Apple
@@ -360,7 +433,16 @@ class MPRISSource:
                 # Tag it as a control fallback so skip/play/pause have a
                 # capable player to dispatch onto.
                 control_capable = playback in ("playing", "paused")
-                return None, 0, control_capable
+                # split() folds every kind of space: the page title spells
+                # it "Apple\xa0Music", with a no-break space.
+                apple_tab = control_capable and "apple music" in " ".join(title.casefold().split())
+                return None, 0, control_capable, playback if apple_tab else ""
+
+            if not artist and "apple music" in " ".join(title.casefold().split()):
+                # The page's own title ("Apple Music – Webplayer"), reported
+                # while no song is loaded — not a track, however long it
+                # "plays". Kept as a candidate for its state and controls.
+                title = ""
 
             status = (
                 PlaybackStatus.PLAYING
@@ -390,14 +472,16 @@ class MPRISSource:
                     position_ms=position_ms,
                     status=status,
                     url=url,
+                    player=identity or desktop_entry,
                 ),
                 score,
                 False,
+                "",
             )
 
         except dbus.DBusException as e:
             log.debug("MPRIS player %s gone or unreadable: %s", name, e)
-            return None, 0, False
+            return None, 0, False, ""
         except Exception as e:
             log.debug("MPRIS player %s read error: %s", name, e)
-            return None, 0, False
+            return None, 0, False, ""

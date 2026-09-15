@@ -76,7 +76,7 @@ def _cfg(**kw):
 
 def _scrobbler(tmp_path, cfg=None, client=None):
     q = ScrobbleQueue(path=tmp_path / "q.jsonl")
-    sc = Scrobbler(cfg or _cfg(), queue=q)
+    sc = Scrobbler(cfg or _cfg(), queue=q, current_path=tmp_path / "current.json")
     sc._client = FakeClient() if client is None else client
     return sc, q
 
@@ -105,7 +105,8 @@ def _play(sc, track, eff_dur, *, seconds, start_mono, start_wall, privacy_off=Fa
 
 
 def test_qualifying_track_queued_on_switch(tmp_path):
-    sc, q = _scrobbler(tmp_path)
+    # Offline, so no drain empties the queue before it is looked at.
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
     mono, wall = _play(
         sc, _t("A"), 200_000, seconds=110, start_mono=1000.0, start_wall=1_700_000_000
     )
@@ -116,6 +117,196 @@ def test_qualifying_track_queued_on_switch(tmp_path):
     assert pending[0]["track"] == "A"
     assert pending[0]["duration"] == 200
     assert pending[0]["timestamp"] == 1_700_000_000
+
+
+def test_a_song_that_starts_over_is_scrobbled_again(tmp_path):
+    """Repeat-one: heard to the end, then from the top — two plays."""
+    sc, q = _scrobbler(tmp_path)
+    mono, wall = 1000.0, 1_700_000_000.0
+    for seconds in (196, 110):
+        for pos in range(0, seconds + 1, 2):
+            sc.update(
+                _t("A"),
+                200_000,
+                privacy_off=False,
+                now_wall=wall,
+                now_mono=mono,
+                position_ms=pos * 1000,
+            )
+            mono += 2
+            wall += 2
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    sc._executor.submit(lambda: None).result()  # let a drain finish
+    sent = [s["track"] for s in sc._client.scrobbled]
+    assert sorted(sent + [p["track"] for p in q.pending()]) == ["A", "A"]
+
+
+def test_a_restart_the_player_shows_is_scrobbled_again(tmp_path):
+    sc, q = _scrobbler(tmp_path)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=196, start_mono=1000.0, start_wall=1_700_000_000
+    )
+    sc.update(_t("A"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono, restarted=True)
+    mono, wall = _play(sc, _t("A"), 200_000, seconds=110, start_mono=mono + 2, start_wall=wall + 2)
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    sc._executor.submit(lambda: None).result()
+    sent = [s["track"] for s in sc._client.scrobbled]
+    assert sorted(sent + [p["track"] for p in q.pending()]) == ["A", "A"]
+
+
+def test_an_unknown_position_never_splits_a_play(tmp_path):
+    sc, q = _scrobbler(tmp_path)
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=300, start_mono=1000.0, start_wall=1_700_000_000
+    )
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    sc._executor.submit(lambda: None).result()
+    sent = [s["track"] for s in sc._client.scrobbled]
+    assert sent + [p["track"] for p in q.pending()] == ["A"]
+
+
+# ------------------------------------------------------ across a restart
+
+T0 = 1_700_000_000
+
+
+class _OfflineClient(FakeClient):
+    """Last.fm unreachable: every scrobble stays in the queue, where the
+    tests count it — nothing races a drain on another thread."""
+
+    def scrobble(self, batch):
+        raise LastfmError("offline")
+
+
+def _run(sc, track, seconds, clock, *, eff=200_000, start_pos=None, step=2.0):
+    """``seconds`` of playback; ``clock`` is [wall, mono] and moves on."""
+    pos = start_pos
+    for _ in range(int(seconds / step) + 1):
+        sc.update(
+            track,
+            eff,
+            privacy_off=False,
+            now_wall=clock[0],
+            now_mono=clock[1],
+            position_ms=None if pos is None else int(pos * 1000),
+        )
+        clock[0] += step
+        clock[1] += step
+        if pos is not None:
+            pos += step
+
+
+def _launch(tmp_path):
+    sc, _ = _scrobbler(tmp_path, client=_OfflineClient())
+    return sc
+
+
+def _relaunch(tmp_path, sc, clock, away_s=3.0):
+    sc.shutdown()
+    clock[0] += away_s
+    clock[1] += away_s
+    return _launch(tmp_path)
+
+
+def _queued(tmp_path):
+    return [
+        (p["track"], p["timestamp"]) for p in ScrobbleQueue(path=tmp_path / "q.jsonl").pending()
+    ]
+
+
+def _next_song(sc, clock):
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=clock[0], now_mono=clock[1])
+
+
+def test_a_restart_mid_song_never_scrobbles_it_twice(tmp_path):
+    """A ten-minute song counts at 4:00 (Last.fm's cap). Restarted at 5:00,
+    it was queued on quit — and again for the five minutes heard after."""
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("Long"), 300, clock, eff=600_000)
+    sc = _relaunch(tmp_path, sc, clock)
+    assert _queued(tmp_path) == [("Long", T0)], "queued on quit: never lost"
+    _run(sc, _t("Long"), 296, clock, eff=600_000)
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("Long", T0)]
+
+
+def test_a_restart_before_it_counted_carries_the_count_on(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 60, clock)
+    sc = _relaunch(tmp_path, sc, clock)
+    assert _queued(tmp_path) == []
+    _run(sc, _t("A"), 60, clock)  # 60 + 60 s of a 200 s song: past half
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("A", T0)], "one scrobble, at the time it began"
+
+
+def test_a_crash_after_it_counted_still_scrobbles_it(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 110, clock)  # counted; progress saved at 30/60/90 s — then a crash
+    assert (tmp_path / "current.json").stat().st_mode & 0o777 == 0o600
+    after = _launch(tmp_path)
+    _run(after, _t("B"), 4, clock)  # A ended while Refrain was down
+    assert _queued(tmp_path) == [("A", T0)]
+    assert not (tmp_path / "current.json").exists()
+
+
+def test_a_crash_before_it_counted_leaves_nothing(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 40, clock)
+    after = _launch(tmp_path)
+    _run(after, _t("B"), 4, clock)
+    assert _queued(tmp_path) == []
+
+
+def test_a_song_that_started_over_during_the_restart_is_a_new_play(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 150, clock, start_pos=0)
+    sc = _relaunch(tmp_path, sc, clock, away_s=60)
+    second = int(clock[0])
+    _run(sc, _t("A"), 110, clock, start_pos=10)  # back at 0:10 — it began again
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("A", T0), ("A", second)]
+
+
+def test_the_same_song_long_after_is_a_new_play(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 60, clock)
+    sc = _relaunch(tmp_path, sc, clock, away_s=3600)
+    second = int(clock[0])
+    _run(sc, _t("A"), 110, clock)
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("A", second)]
+
+
+def test_applying_settings_that_leave_last_fm_alone_keeps_the_play(tmp_path):
+    """Measured: Settings → Apply 33 s into a song — for another tab
+    entirely — started its Last.fm count again from zero."""
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 60, clock)
+    offline = sc._client
+    sc.reconfigure(_cfg(scrobble_now_playing=False))  # same account, one option changed
+    assert sc._client is offline, "nothing about Last.fm changed; nothing rebuilt"
+    _run(sc, _t("A"), 50, clock)  # 60 + 50 s of 200: past half
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("A", T0)]
+
+
+def test_switching_account_drops_the_play_in_progress(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 60, clock)
+    sc.reconfigure(_cfg(session_key="OTHER", username="bob"))
+    sc._client = _OfflineClient()  # the rebuilt client would reach the network
+    _run(sc, _t("A"), 50, clock)
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [], "not scrobbled under the new account"
 
 
 def test_short_play_not_queued(tmp_path):
@@ -167,7 +358,7 @@ def test_reconfigure_drops_in_progress(tmp_path):
 
 
 def test_shutdown_banks_qualifying_track(tmp_path):
-    sc, q = _scrobbler(tmp_path)
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
     _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
     sc.shutdown()  # quit mid-listen
     assert [p["track"] for p in q.pending()] == ["A"]

@@ -22,18 +22,23 @@ key — see ``scrobble_queue``).
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
+import os
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from refrain import __version__
 from refrain.config import LastfmConfig
+from refrain.paths import state_dir
 from refrain.scrobble_queue import ScrobbleQueue
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
@@ -113,6 +118,62 @@ def should_scrobble(played_ms: int, duration_ms: int) -> bool:
     if played_ms < 0:
         return False
     return played_ms * 2 >= duration_ms or played_ms >= _SCROBBLE_AFTER_MS
+
+
+# A play that has counted and then jumps back to the very start is the
+# song starting over — repeat-one, or played again from the top — and a
+# play of its own. Both bounds, so a seek of a few seconds near the
+# start never splits a play in two.
+_REPLAY_START_MS = 10_000
+_REPLAY_JUMP_MS = 30_000
+
+
+def is_replay(counted: bool, prev_position_ms: int | None, position_ms: int | None) -> bool:
+    """Has a play that already counted just started over from the beginning?
+
+    Positions are the player's own; ``None`` (unknown) never makes a
+    replay. Shared by the Scrobbler and the history, so a second play is
+    a second scrobble and a second row alike.
+    """
+    if not counted or prev_position_ms is None or position_ms is None:
+        return False
+    return position_ms < _REPLAY_START_MS and prev_position_ms - position_ms >= _REPLAY_JUMP_MS
+
+
+# A play saved when Refrain stopped is carried on after the restart only
+# while it can still be the same play: within its own length plus this,
+# of when it was saved.
+RESUME_GRACE_S = 5 * 60
+RESUME_UNKNOWN_LENGTH_S = 15 * 60
+# Where the player has the song after a restart may differ this much from
+# where it should be — a slow restart, a player that reports late.
+RESUME_POSITION_SLACK_MS = 15_000
+# How often the progress of a play is written, so a crash doesn't start
+# it over. Longer than a typical skip: skipping never touches the disk.
+PROGRESS_SAVE_EVERY_MS = 30_000
+
+
+def continues_play(
+    away_s: float, length_ms: int, saved_position_ms: int | None, position_ms: int | None
+) -> bool:
+    """Is the song playing after a restart the same play as the one saved?
+
+    Soon enough — within its own length plus ``RESUME_GRACE_S`` of the
+    save — and, where the player reported a position both times, one
+    that follows on from it: not behind where it was (it ended and began
+    again meanwhile) and no further on than the time away allows. Shared
+    by the history and the Scrobbler, so a restart keeps one row and one
+    scrobble alike. The caller has already checked it is the same song.
+    """
+    length_s = length_ms // 1000 or RESUME_UNKNOWN_LENGTH_S
+    if away_s > length_s + RESUME_GRACE_S:
+        return False
+    if saved_position_ms is None or position_ms is None:
+        return True
+    slack = RESUME_POSITION_SLACK_MS
+    return (
+        saved_position_ms - slack <= position_ms <= saved_position_ms + int(away_s * 1000) + slack
+    )
 
 
 class LastfmClient:
@@ -310,6 +371,16 @@ def accrue_play_ms(
 _DRAIN_INTERVAL_S = 60.0
 
 
+def _mmss(ms: int) -> str:
+    s = max(0, ms) // 1000
+    return f"{s // 60}:{s % 60:02d}"
+
+
+def current_play_path() -> Path:
+    """The play in progress, kept across a restart of Refrain."""
+    return state_dir() / "scrobble_current.json"
+
+
 class Scrobbler:
     """Drives Last.fm now-playing + scrobbling off the daemon tick.
 
@@ -320,9 +391,19 @@ class Scrobbler:
     offline window or a quit mid-listen never loses them.
     """
 
-    def __init__(self, cfg: LastfmConfig, queue: ScrobbleQueue | None = None) -> None:
+    def __init__(
+        self,
+        cfg: LastfmConfig,
+        queue: ScrobbleQueue | None = None,
+        on_queued: Callable[[str, str], None] | None = None,
+        current_path: Path | None = None,
+    ) -> None:
         self._lock = threading.Lock()
         self._cfg = cfg
+        # Told ``(artist, title)`` whenever a play is banked for Last.fm
+        # — how the history marks a song as scrobbled. Called with the
+        # lock held, so it must not call back into the Scrobbler.
+        self._on_queued = on_queued
         self._client = self._make_client(cfg)
         self._queue = queue if queue is not None else ScrobbleQueue()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="refrain-scrobble")
@@ -337,7 +418,20 @@ class Scrobbler:
         self._last_mono: float | None = None
         self._started_unix = 0
         self._duration_ms = 0
+        self._position_ms: int | None = None  # the player's, last tick
         self._nowplaying_key: str | None = None
+        # Across a restart. The play in progress is written to
+        # `_current_path` on quit and every PROGRESS_SAVE_EVERY_MS of play;
+        # `_resume` is that play as the last run left it, until the first
+        # poll says whether it is still going (_settle_resume_locked).
+        # `_banked` marks a play already in the queue — queued on quit
+        # because it counted — so carrying on with it never queues it twice.
+        self._current_path = current_path or current_play_path()
+        self._banked = False
+        self._saved_played_ms = 0
+        # Wall clock of the last poll: the moment the saved position is from.
+        self._last_wall = time.time()
+        self._resume: dict | None = self._load_current()
         # Drain bookkeeping.
         self._drain_inflight = False
         self._last_drain_mono = 0.0
@@ -372,9 +466,21 @@ class Scrobbler:
 
     # ----------------------------------------------------------- lifecycle
 
+    @staticmethod
+    def _identity(cfg: LastfmConfig) -> tuple:
+        """Who scrobbles, and whether: what a play in progress belongs to."""
+        return (bool(cfg.enabled), cfg.api_key, cfg.shared_secret, cfg.session_key, cfg.username)
+
     def reconfigure(self, cfg: LastfmConfig) -> None:
         with self._lock:
+            unchanged = self._identity(cfg) == self._identity(self._cfg)
             self._cfg = cfg
+            if unchanged:
+                # Apply on any tab of Settings sends the whole config. With
+                # Last.fm untouched, the play in progress carries on —
+                # dropping it made a song count from zero after every Apply,
+                # and one applied near its end was never scrobbled.
+                return
             self._client = self._make_client(cfg)
             # A fresh session key clears a previous "invalid" latch.
             self._session_invalid = False
@@ -384,14 +490,33 @@ class Scrobbler:
             # track under the new (or no) identity.
             self._key = None
             self._last_mono = None
+            self._banked = False
+            self._resume = None
+            self._clear_current_file()
 
     def shutdown(self) -> None:
-        # Persist a qualifying in-progress track so quitting mid-song
-        # still scrobbles it on the next run (the queue survives). No
-        # network here — the executor is torn down; the queue drains
-        # next launch.
+        # A play that already counts goes into the queue now, so quitting
+        # mid-song never loses it (the queue survives; no network here —
+        # the executor is torn down, the queue drains next launch). Either
+        # way the play is saved as it stands: if it is still going when
+        # Refrain comes back, counting carries on instead of starting over
+        # — which used to scrobble a long song a second time for what was
+        # heard after the restart.
         with self._lock:
-            self._finalize_current_locked()
+            if (
+                self._key is not None
+                and not self._banked
+                and should_scrobble(self._played_ms, self._duration_ms)
+            ):
+                self._enqueue_locked(
+                    self._cur_artist,
+                    self._cur_title,
+                    self._cur_album,
+                    self._started_unix,
+                    self._duration_ms,
+                )
+                self._banked = True
+            self._save_current_locked(self._last_wall)
         self._executor.shutdown(wait=False, cancel_futures=True)
 
     # ----------------------------------------------------------- core
@@ -403,23 +528,46 @@ class Scrobbler:
         privacy_off: bool,
         now_wall: float | None = None,
         now_mono: float | None = None,
+        position_ms: int | None = None,
+        restarted: bool = False,
     ) -> None:
+        """``position_ms`` is the player's own position, or None when the
+        daemon has none it trusts, and ``restarted`` says the player showed
+        the song beginning again this poll — both only tell a replay apart."""
         now_wall = time.time() if now_wall is None else now_wall
         now_mono = time.monotonic() if now_mono is None else now_mono
         with self._lock:
+            self._last_wall = now_wall
             # Gated: scrobbling disabled / not connected, or privacy is
             # the global "off" kill switch. Drop the in-progress track
             # (don't scrobble under a disabled/anonymised state) but
             # keep the persisted queue untouched.
             if self._client is None or privacy_off or self._session_invalid:
+                if self._key is not None or self._resume is not None:
+                    self._resume = None
+                    self._clear_current_file()
                 self._key = None
                 self._last_mono = None
+                self._position_ms = None
+                self._banked = False
                 return
 
             candidate = self._is_candidate(track, effective_duration_ms)
             key = self._content_key(track) if candidate else None
+            if self._resume is not None:
+                self._settle_resume_locked(
+                    key, effective_duration_ms, position_ms, now_wall, now_mono
+                )
+            # The same song again from the top, after it had counted.
+            counted = should_scrobble(self._played_ms, self._duration_ms)
+            replay = (
+                key is not None
+                and key == self._key
+                and (is_replay(counted, self._position_ms, position_ms) or (restarted and counted))
+            )
+            self._position_ms = position_ms
 
-            if key != self._key:
+            if key != self._key or replay:
                 # Track boundary: bank the previous one if it earned it,
                 # then start fresh accounting for the new one.
                 self._finalize_current_locked()
@@ -432,6 +580,8 @@ class Scrobbler:
                 self._started_unix = int(now_wall)
                 self._duration_ms = effective_duration_ms
                 self._nowplaying_key = None
+                self._banked = False
+                self._saved_played_ms = 0
             else:
                 is_playing = track.status == PlaybackStatus.PLAYING
                 self._played_ms, self._last_mono = accrue_play_ms(
@@ -441,6 +591,12 @@ class Scrobbler:
                 # bogus one; keep the most recent positive value.
                 if effective_duration_ms > 0:
                     self._duration_ms = effective_duration_ms
+                if self._key is not None and (
+                    self._played_ms - self._saved_played_ms >= PROGRESS_SAVE_EVERY_MS
+                    # And the moment it counts, so a crash right after keeps it.
+                    or (not counted and should_scrobble(self._played_ms, self._duration_ms))
+                ):
+                    self._save_current_locked(now_wall)
 
             # Now-playing: once per track, when it's actually playing.
             if (
@@ -465,21 +621,155 @@ class Scrobbler:
     def _finalize_current_locked(self) -> None:
         if self._key is None:
             return
-        if should_scrobble(self._played_ms, self._duration_ms):
-            stored = self._queue.enqueue(
-                {
-                    "artist": self._cur_artist,
-                    "track": self._cur_title,
-                    "album": self._cur_album,
-                    "timestamp": self._started_unix,
-                    "duration": int(self._duration_ms // 1000),
-                }
+        if not self._banked and should_scrobble(self._played_ms, self._duration_ms):
+            self._enqueue_locked(
+                self._cur_artist,
+                self._cur_title,
+                self._cur_album,
+                self._started_unix,
+                self._duration_ms,
             )
-            if stored:
-                log.info("Scrobble queued: %s — %s", self._cur_artist, self._cur_title)
-                self._maybe_drain_locked(time.monotonic(), force=True)
+        if self._saved_played_ms or self._banked:
+            self._clear_current_file()  # the saved progress of a play that is over
         self._key = None
         self._last_mono = None
+        self._banked = False
+        self._saved_played_ms = 0
+
+    def _enqueue_locked(
+        self, artist: str, title: str, album: str, started_unix: int, duration_ms: int
+    ) -> None:
+        stored = self._queue.enqueue(
+            {
+                "artist": artist,
+                "track": title,
+                "album": album,
+                "timestamp": started_unix,
+                "duration": int(duration_ms // 1000),
+            }
+        )
+        if stored:
+            log.info("Scrobble queued: %s — %s", artist, title)
+            if self._on_queued is not None:
+                try:
+                    self._on_queued(artist, title)
+                except Exception:
+                    log.debug("Scrobble on_queued hook failed", exc_info=True)
+            self._maybe_drain_locked(time.monotonic(), force=True)
+
+    def _settle_resume_locked(
+        self,
+        key: str | None,
+        duration_ms: int,
+        position_ms: int | None,
+        now_wall: float,
+        now_mono: float,
+    ) -> None:
+        """Carry on with the play the last run left, or close it.
+
+        Only the first poll after a start is compared. The same play still
+        going carries on — counting from where it was, under the time it
+        began, queued already if it was on quit. Otherwise it ended while
+        Refrain was away, and if it counted without being queued — a crash
+        — it is queued now, under the time it began.
+        """
+        r, self._resume = self._resume, None
+        away_s = max(0.0, now_wall - r["saved_at"])
+        if (
+            key is not None
+            and key == r["key"]
+            and continues_play(
+                away_s, r["duration_ms"] or duration_ms, r["position_ms"], position_ms
+            )
+        ):
+            self._key = key
+            self._cur_artist, self._cur_title, self._cur_album = r["artist"], r["title"], r["album"]
+            self._played_ms = self._saved_played_ms = r["played_ms"]
+            self._last_mono = now_mono
+            self._started_unix = r["started_unix"]
+            self._duration_ms = duration_ms or r["duration_ms"]
+            self._position_ms = position_ms
+            self._banked = r["banked"]
+            self._nowplaying_key = None
+            log.info(
+                "Scrobble: carrying on with %s — %s (%s heard before the restart%s)",
+                r["artist"],
+                r["title"],
+                _mmss(r["played_ms"]),
+                ", queued already" if r["banked"] else "",
+            )
+            return
+        if not r["banked"] and should_scrobble(r["played_ms"], r["duration_ms"]):
+            self._enqueue_locked(
+                r["artist"], r["title"], r["album"], r["started_unix"], r["duration_ms"]
+            )
+        self._clear_current_file()
+
+    def _load_current(self) -> dict | None:
+        try:
+            raw = json.loads(self._current_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError) as e:
+            log.debug("Scrobble: saved play in progress unreadable (%s) — ignored", e)
+            return None
+        try:
+            pos = raw.get("position_ms")
+            r = {
+                "key": str(raw["key"]),
+                "artist": str(raw["artist"]),
+                "title": str(raw["title"]),
+                "album": str(raw.get("album", "")),
+                "started_unix": int(raw["started_unix"]),
+                "played_ms": max(0, int(raw["played_ms"])),
+                "duration_ms": max(0, int(raw.get("duration_ms", 0))),
+                "position_ms": pos if type(pos) is int and pos >= 0 else None,
+                "saved_at": float(raw["saved_at"]),
+                "banked": raw.get("banked") is True,
+            }
+        except (AttributeError, KeyError, TypeError, ValueError):
+            log.debug("Scrobble: saved play in progress malformed — ignored")
+            return None
+        return r if r["key"] and r["artist"] and r["title"] else None
+
+    def _save_current_locked(self, now_wall: float) -> None:
+        """Best-effort: a failed write only costs the carry-on after a restart."""
+        if self._key is None:
+            self._clear_current_file()
+            return
+        self._saved_played_ms = self._played_ms
+        data = {
+            "key": self._key,
+            "artist": self._cur_artist,
+            "title": self._cur_title,
+            "album": self._cur_album,
+            "started_unix": self._started_unix,
+            "played_ms": self._played_ms,
+            "duration_ms": self._duration_ms,
+            "position_ms": self._position_ms,
+            "saved_at": now_wall,
+            "banked": self._banked,
+        }
+        tmp = self._current_path.with_suffix(self._current_path.suffix + ".tmp")
+        try:
+            self._current_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
+            # Owner-only, like the history: it says what someone is listening to.
+            with contextlib.suppress(OSError):
+                os.chmod(tmp, 0o600)
+            os.replace(tmp, self._current_path)
+        except OSError as e:
+            with contextlib.suppress(OSError):
+                tmp.unlink()
+            log.debug("Could not save the play in progress (%s)", e)
+
+    def _clear_current_file(self) -> None:
+        try:
+            self._current_path.unlink()
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            log.debug("Could not remove %s (%s)", self._current_path, e)
 
     def _maybe_drain_locked(self, now_mono: float, force: bool = False) -> None:
         if self._client is None or self._session_invalid or self._drain_inflight:

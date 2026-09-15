@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import faulthandler
 import logging
 import os
 import re
@@ -43,10 +44,11 @@ from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.discord_app import NAME_TTL_S, refresh_application_name
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
-from refrain.paths import assets_dir
+from refrain.paths import assets_dir, state_dir
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable
 from refrain.single_instance import acquire as acquire_lock
 from refrain.ui.cursors import install_global_interactive_cursors
+from refrain.ui.history_window import HistoryWindow
 from refrain.ui.log_window import LogWindow
 from refrain.ui.settings_window import SettingsWindow
 from refrain.ui.tray import TrayIcon
@@ -389,14 +391,18 @@ def _install_translators(app: QApplication, language_override: str = "system") -
     # ("de_DE" → "de"), then give up cleanly (English source strings).
     candidates = [target, target.split("_", 1)[0]]
     chosen = next((c for c in candidates if c in available), None)
+    if chosen is None:
+        log.info("No translation for %r — using English source strings", target)
+        # English is the source language, but its plural forms ("Last
+        # song" / "Last 12 songs") can only come from a catalog — without
+        # refrain_en.qm a %n string reads "Last 12 song(s)".
+        chosen = "en" if "en" in available else None
     if chosen is not None:
         refrain_t = QTranslator(app)
         if refrain_t.load(QLocale(chosen), "refrain", "_", str(package_i18n), ".qm"):
             app.installTranslator(refrain_t)
             keep_alive.append(refrain_t)
             log.info("Loaded Refrain translation: %s", chosen)
-    else:
-        log.info("No translation for %r — using English source strings", target)
 
     # Qt's own translations for stock widgets (button labels, menus).
     # These follow the same override: leaving them on QLocale.system()
@@ -612,6 +618,35 @@ class UpdateOrchestrator(QObject):
         self.updateAvailable.emit(release)
 
 
+# Kept open for the life of the process — faulthandler writes to the
+# file descriptor at crash time, when opening anything is off the table.
+_crash_log = None
+_CRASH_LOG_MAX_BYTES = 256 * 1024
+
+
+def _enable_crash_log() -> None:
+    """On a fatal signal, write every thread's Python stack to crash.log.
+
+    A segfault or abort inside Qt or libdbus otherwise leaves only a C
+    backtrace in coredumpctl: where the process died, never what Refrain
+    was doing at the time.
+    """
+    global _crash_log
+    path = state_dir() / "crash.log"
+    try:
+        state_dir().mkdir(parents=True, exist_ok=True)
+        too_big = path.exists() and path.stat().st_size > _CRASH_LOG_MAX_BYTES
+        _crash_log = open(path, "w" if too_big else "a", encoding="utf-8")  # noqa: SIM115
+        _crash_log.write(
+            f"--- Refrain {__version__}, pid {os.getpid()}, "
+            f"started {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        )
+        _crash_log.flush()
+        faulthandler.enable(file=_crash_log, all_threads=True)
+    except OSError as e:
+        log.debug("crash.log unavailable (%s) — crashes leave no Python stack", e)
+
+
 def main() -> int:
     args = _parse_args(sys.argv[1:])
 
@@ -631,6 +666,7 @@ def main() -> int:
     global _forced_debug
     _forced_debug = bool(args.debug)
     setup_logging("DEBUG" if args.debug else "INFO")
+    _enable_crash_log()
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)
 
@@ -753,6 +789,14 @@ def main() -> int:
     settings = SettingsWindow(config)
     updater = UpdateOrchestrator(config)
     log_window = LogWindow(log_bridge)
+    history_window = HistoryWindow(
+        ui_locale(config.advanced.language),
+        (config.history.window_width, config.history.window_height),
+    )
+    # First snapshot straight from the history the daemon loaded; every
+    # later one arrives through historyChanged, queued from its thread.
+    history_window.set_snapshot(daemon.worker.history_snapshot())
+    tray.set_history_enabled(config.history.enabled)
 
     daemon.worker.trackChanged.connect(tray.set_track)
     daemon.worker.statusChanged.connect(tray.set_status)
@@ -856,6 +900,45 @@ def main() -> int:
 
     tray.logRequested.connect(_show_log)
     settings.showLogRequested.connect(_show_log)
+
+    # History-window wireup. Clearing runs on the daemon thread (the
+    # worker owns the history); the fresh snapshot comes back through
+    # historyChanged like every other change.
+    def _show_history() -> None:
+        if not config.history.enabled:
+            return
+        history_window.show()
+        history_window.raise_()
+        history_window.activateWindow()
+
+    def _apply_history_settings(c: Config) -> None:
+        # "Reset to defaults" hands over a new Config object. Follow it, or
+        # _show_history would keep reading the old one and
+        # _remember_history_size keep saving it over the reset.
+        nonlocal config
+        config = c
+        tray.set_history_enabled(c.history.enabled)
+        if not c.history.enabled:
+            history_window.hide()
+
+    def _remember_history_size(width: int, height: int) -> None:
+        if (config.history.window_width, config.history.window_height) == (width, height):
+            return
+        config.history.window_width = width
+        config.history.window_height = height
+        try:
+            config.save()
+        except OSError as e:
+            log.warning("Could not remember the history window's size: %s", e)
+
+    history_window.sizeRemembered.connect(_remember_history_size)
+
+    daemon.worker.historyChanged.connect(history_window.set_snapshot)
+    history_window.clearRequested.connect(daemon.worker.clear_history)
+    history_window.removeRequested.connect(daemon.worker.remove_from_history)
+    tray.historyRequested.connect(_show_history)
+    settings.showHistoryRequested.connect(_show_history)
+    settings.applied.connect(_apply_history_settings)
 
     # Restart wireup — set a flag and quit; main() re-execs after the Qt
     # event loop returns so the daemon, RPC and DBus name release cleanly

@@ -287,6 +287,29 @@ class LastfmConfig:
     scrobble_now_playing: bool = True
 
 
+# Song counts offered in Settings → General → History. A hand-edited
+# value outside the list still works as long as it's within 1–100; the
+# settings combo adds it as an extra entry rather than rounding it.
+HISTORY_LIMIT_CHOICES = (10, 20, 30, 50, 75, 100)
+HISTORY_LIMIT_MAX = 100
+
+
+@dataclass
+class HistoryConfig:
+    # "Recently played": a list of the last songs heard, kept on this
+    # machine and never sent anywhere — which is why it's on by default
+    # and why privacy mode doesn't touch it. Turning it off is a hard
+    # off: nothing is recorded and the stored list is deleted.
+    enabled: bool = True
+    # How many songs are kept (and therefore shown). Lowering it drops
+    # the oldest songs straight away.
+    max_entries: int = 30
+    # The window's size when it was last closed; 0 means the default.
+    # Only the size — on Wayland the compositor places windows.
+    window_width: int = 0
+    window_height: int = 0
+
+
 @dataclass
 class Config:
     discord: DiscordConfig = field(default_factory=DiscordConfig)
@@ -296,6 +319,7 @@ class Config:
     advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
     update: UpdateConfig = field(default_factory=UpdateConfig)
     lastfm: LastfmConfig = field(default_factory=LastfmConfig)
+    history: HistoryConfig = field(default_factory=HistoryConfig)
 
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
@@ -328,6 +352,7 @@ class Config:
             advanced=_construct(AdvancedConfig, data.get("advanced")),
             update=_construct(UpdateConfig, data.get("update")),
             lastfm=_construct(LastfmConfig, data.get("lastfm")),
+            history=_construct(HistoryConfig, data.get("history")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -348,6 +373,7 @@ class Config:
             "advanced": asdict(self.advanced),
             "update": asdict(self.update),
             "lastfm": lastfm,
+            "history": asdict(self.history),
         }
 
     def save(self, path: Path | None = None) -> None:

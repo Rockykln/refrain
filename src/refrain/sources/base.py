@@ -22,6 +22,14 @@ class TrackInfo:
     position_ms: int = 0
     status: PlaybackStatus = PlaybackStatus.STOPPED
     url: str = ""
+    # Who is playing it, when the source says: the browser's MPRIS
+    # Identity ("Chromium"), or the Bluetooth device's name. Display
+    # only — deliberately not part of `fingerprint()`, so a browser
+    # that renames its player mid-song isn't a track change.
+    player: str = ""
+    # The player repeats this one track (AVRCP "singletrack"). A phone may
+    # then count its position on across loops — see resolve_position.
+    loop_track: bool = False
 
     @classmethod
     def empty(cls) -> TrackInfo:

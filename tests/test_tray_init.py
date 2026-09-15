@@ -56,11 +56,51 @@ def test_tray_init_creates_all_actions(app):
         "_play_pause_action",
         "_next_action",
         "_update_action",
+        "_history_action",
     ):
         assert hasattr(tray, attr), f"TrayIcon missing {attr} after __init__"
 
     # The QSystemTrayIcon should have a context menu attached.
     assert tray._tray.contextMenu() is not None
+
+
+def test_a_moment_of_pause_between_songs_does_not_flash(app):
+    """Apple Music reports "paused" for a poll between songs."""
+    from PySide6.QtTest import QTest
+
+    tray = TrayIcon()
+    tray._PAUSE_SHOWN_AFTER_MS = 40
+    tray.set_status(PlaybackStatus.PLAYING)
+    tray.set_status(PlaybackStatus.PAUSED)
+    assert tray._play_pause_action.text() == "Pause"  # still shown as playing
+    tray.set_status(PlaybackStatus.PLAYING)
+    QTest.qWait(120)
+    assert tray._play_pause_action.text() == "Pause"
+    assert tray._current_status == PlaybackStatus.PLAYING
+
+
+def test_a_real_pause_shows_after_the_delay(app):
+    from PySide6.QtTest import QTest
+
+    tray = TrayIcon()
+    tray._PAUSE_SHOWN_AFTER_MS = 40
+    tray.set_status(PlaybackStatus.PLAYING)
+    tray.set_status(PlaybackStatus.PAUSED)
+    QTest.qWait(120)
+    assert tray._play_pause_action.text() == "Play"
+    assert tray._current_status == PlaybackStatus.PAUSED
+    tray.set_status(PlaybackStatus.PLAYING)  # back to playing: at once
+    assert tray._play_pause_action.text() == "Pause"
+
+
+def test_history_entry_follows_the_switch(app):
+    """Hidden while the history is off — it would open a dead end."""
+    tray = TrayIcon()
+    assert tray._history_action.isVisible()
+    tray.set_history_enabled(False)
+    assert not tray._history_action.isVisible()
+    tray.set_history_enabled(True)
+    assert tray._history_action.isVisible()
 
 
 def test_tray_set_methods_dont_crash(app):

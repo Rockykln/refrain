@@ -26,7 +26,7 @@ from collections.abc import Callable
 
 import dbus
 import dbus.service
-from dbus.mainloop.glib import DBusGMainLoop
+from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
@@ -79,6 +79,11 @@ def _ensure_dbus_glib_loop() -> bool:
         )
         return False
     DBusGMainLoop(set_as_default=True)
+    # dbus-glib's own rule for any program with more than one thread. The
+    # daemon thread no longer talks over this connection (its sources
+    # keep private ones, the server defers to _on_bus_thread), so this
+    # is the second line of defence, not the first.
+    threads_init()
     _DBUS_LOOP_INITIALIZED = True
     log.debug("MPRIS server: dbus-python dispatch wired into GLib")
     return True
@@ -141,6 +146,37 @@ def ensure_dbus_dispatch_pump() -> None:
     )
     _GLIB_THREAD.start()
     log.debug("MPRIS server: Qt is not glib-backed; started our own GLib loop")
+
+
+def _bus_thread() -> threading.Thread:
+    """The thread that dispatches the shared session-bus connection."""
+    return _GLIB_THREAD if _GLIB_THREAD is not None else threading.main_thread()
+
+
+def _on_bus_thread(fn: Callable[..., object], *args) -> None:
+    """Run ``fn`` on the thread that dispatches the shared connection.
+
+    The exported MPRIS object lives on the process-wide session bus, and
+    dbus-glib dispatches that connection without locking its own
+    bookkeeping. The daemon thread calling in directly — to publish, or
+    to announce a new track — put two threads on one connection, which
+    corrupted the heap ("malloc(): unaligned tcache chunk detected").
+    ``GLib.idle_add`` is thread-safe and runs ``fn`` on that thread's
+    next loop pass instead.
+    """
+    if threading.current_thread() is _bus_thread():
+        fn(*args)
+        return
+    from gi.repository import GLib
+
+    def _once() -> bool:
+        try:
+            fn(*args)
+        except Exception:
+            log.exception("MPRIS server: deferred call failed")
+        return False  # GLib.SOURCE_REMOVE — run once
+
+    GLib.idle_add(_once)
 
 
 _BUS_NAME = "org.mpris.MediaPlayer2.refrain"
@@ -232,13 +268,23 @@ class MPRISServer(dbus.service.Object):
     # ----------------------------------------------------------- lifecycle
 
     def start(self) -> bool:
-        """Register on the bus. Returns True on success.
+        """Register on the bus. Returns True on success — or, called from
+        another thread (the daemon's), once registering is scheduled on
+        the bus thread; see ``_on_bus_thread``.
 
         Safe to call again after a failed start to retry."""
         if self._bus_name is not None:
             return True
         if not _ensure_dbus_glib_loop():
             return False
+        if threading.current_thread() is not _bus_thread():
+            _on_bus_thread(self._register)
+            return True
+        return self._register()
+
+    def _register(self) -> bool:
+        if self._bus_name is not None:
+            return True
         try:
             bus = dbus.SessionBus()
             # `do_not_queue=True` so two refrain instances can't end up
@@ -254,6 +300,10 @@ class MPRISServer(dbus.service.Object):
             return False
 
     def stop(self) -> None:
+        # Runs right here, even from the daemon's cleanup: the main thread
+        # is blocked waiting on that cleanup, so nothing else dispatches
+        # the connection meanwhile — and an idle callback would never run,
+        # the event loop having already ended.
         if self._bus_name is None:
             return
         try:
@@ -280,7 +330,21 @@ class MPRISServer(dbus.service.Object):
         Forwarded to ``_build_metadata`` so Plasma's panel widget
         shows the correct duration in the same situation Discord
         does.
+
+        Called on the daemon thread; the state change and the signal both
+        happen on the bus thread (``_on_bus_thread``), which is also where
+        Plasma's property reads are answered from that state.
         """
+        if self._bus_name is None:
+            return
+        _on_bus_thread(self._apply, track, cover_url, effective_duration_ms)
+
+    def _apply(
+        self,
+        track: TrackInfo,
+        cover_url: str | None,
+        effective_duration_ms: int | None,
+    ) -> None:
         if self._bus_name is None:
             return
         prev_track = self._track
@@ -342,24 +406,31 @@ class MPRISServer(dbus.service.Object):
         with self._safe("PlayPause"):
             self._on_play_pause()
 
+    # The sources only have a toggle, so Play, Pause and Stop each toggle
+    # only when that gets them where they ask to go — judged by the state
+    # this server last published, the same one Plasma is looking at. A
+    # blind toggle turned Plasma's "Stop" into "start playing" whenever
+    # the music was already paused.
+
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Play(self) -> None:
-        # Underlying sources only expose PlayPause; in practice Plasma
-        # only sends Play when it knows the player is paused, so the
-        # toggle has the same effect.
         with self._safe("Play"):
-            self._on_play_pause()
+            if self._track.status != PlaybackStatus.PLAYING:
+                self._on_play_pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Pause(self) -> None:
         with self._safe("Pause"):
-            self._on_play_pause()
+            if self._track.status == PlaybackStatus.PLAYING:
+                self._on_play_pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Stop(self) -> None:
-        # Same fallback as Pause — sources have no separate Stop.
+        # No real stop in the sources; pausing is the nearest thing, and
+        # Plasma offers "Stop" for every controllable player regardless.
         with self._safe("Stop"):
-            self._on_play_pause()
+            if self._track.status == PlaybackStatus.PLAYING:
+                self._on_play_pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Next(self) -> None:

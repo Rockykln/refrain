@@ -54,11 +54,18 @@ i18n:
 
 # Refresh the .ts source-string list from the current Python sources,
 # preserving existing translations. Use after wrapping new strings in tr().
+# English is the source language, so refrain_en.ts holds only the plural
+# forms of the %n strings (-pluralonly) — without it English would read
+# "Last 12 song(s)".
 i18n-update:
 	@"$(LUPDATE)" -no-obsolete \
 		src/refrain/app.py \
 		src/refrain/ui/*.py \
-		-ts $(wildcard src/refrain/i18n/refrain_*.ts)
+		-ts $(filter-out %_en.ts,$(wildcard src/refrain/i18n/refrain_*.ts))
+	@"$(LUPDATE)" -no-obsolete -pluralonly \
+		src/refrain/app.py \
+		src/refrain/ui/*.py \
+		-ts src/refrain/i18n/refrain_en.ts
 	@$(MAKE) i18n
 
 # Remove anything that pytest, ruff, hatch, pip, or coverage might leave

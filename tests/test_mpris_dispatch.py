@@ -33,6 +33,7 @@ class _FakeDBusException(Exception):
 
 _fake_dbus.DBusException = _FakeDBusException
 sys.modules["dbus"] = _fake_dbus
+sys.modules["dbus.mainloop"] = _fake_dbus.mainloop
 import refrain.sources.mpris as _mpris_mod  # noqa: E402
 
 _mpris_mod = importlib.reload(_mpris_mod)
@@ -109,7 +110,7 @@ class _FakePlayer:
 def _wire_bus(players: dict[str, _FakePlayer]):
     """Replace MPRISSource's bus access so it routes to our fake players."""
 
-    def fake_session_bus():
+    def fake_session_bus(*_args, **_kwargs):  # the source asks for a private connection
         bus = MagicMock()
 
         def get_object(name, _path, **_kw):
@@ -192,6 +193,122 @@ def test_play_pause_prefers_primary():
     assert src.play_pause() is True
     assert plasma.calls == ["PlayPause"]
     assert chromium.calls == []
+
+
+def test_play_pause_goes_to_the_apple_music_tab_itself_when_known():
+    """plasma's toggle follows the page's artwork video, which plays on
+    through a pause — it could pause the music but never start it again."""
+    plasma = _FakePlayer(can_pause=True)
+    chromium = _FakePlayer(can_pause=True)
+    _wire_bus(
+        {
+            "org.mpris.MediaPlayer2.plasma-browser-integration": plasma,
+            "org.mpris.MediaPlayer2.chromium.instance123": chromium,
+        }
+    )
+
+    src = MPRISSource()
+    src._last_player_name = "org.mpris.MediaPlayer2.plasma-browser-integration"
+    src._control_fallback_names = ["org.mpris.MediaPlayer2.chromium.instance123"]
+    src._native_apple_names = ["org.mpris.MediaPlayer2.chromium.instance123"]
+
+    assert src.play_pause() is True
+    assert chromium.calls == ["PlayPause"]
+    assert plasma.calls == [], "one click, one toggle"
+
+
+# ------------------------------------------------ reading: whose state counts
+
+PLASMA = "org.mpris.MediaPlayer2.plasma-browser-integration"
+CHROMIUM = "org.mpris.MediaPlayer2.chromium.instance10001"
+
+
+def _wire_read(players: dict[str, dict]):
+    """A bus for `read()`: ListNames plus each player's properties."""
+
+    def fake_session_bus(*_args, **_kwargs):
+        bus = MagicMock()
+
+        def get_object(name, _path, **_kw):
+            obj = MagicMock()
+            obj._name = name
+            return obj
+
+        bus.get_object.side_effect = get_object
+        return bus
+
+    def fake_interface(obj, iface_name):
+        proxy = MagicMock()
+        if iface_name == "org.freedesktop.DBus":
+            proxy.ListNames.return_value = list(players)
+        elif iface_name == "org.freedesktop.DBus.Properties":
+            props = players[obj._name]
+            proxy.Get.side_effect = lambda _ifc, prop, **_kw: props[prop]
+        return proxy
+
+    _fake_dbus.SessionBus.side_effect = fake_session_bus
+    _fake_dbus.Interface.side_effect = fake_interface
+
+
+def _plasma(status):
+    return {
+        "Identity": "Chromium",
+        "DesktopEntry": "chromium",
+        "PlaybackStatus": status,
+        "Position": 2_000_000,
+        "Metadata": {
+            "xesam:title": "Eifersucht",
+            "xesam:artist": ["Rammstein"],
+            "xesam:album": "Sehnsucht",
+            "xesam:url": "https://music.apple.com/de/album/sehnsucht/1390562159",
+            "mpris:length": 10_416_000,  # the artwork video, not the song
+        },
+    }
+
+
+# As the page spells it: left-to-right mark, no-break spaces, en dashes.
+def _tab(status, title="‎Sehnsucht\xa0– Album von Rammstein\xa0– Apple\xa0Music"):  # noqa: RUF001
+    return {
+        "Identity": "Chromium",
+        "DesktopEntry": "",
+        "PlaybackStatus": status,
+        "Position": 63_000_000,
+        "Metadata": {"xesam:title": title, "mpris:length": 215_914_000},
+    }
+
+
+def test_a_pause_is_read_from_the_apple_music_tab_not_plasma():
+    """Measured: paused in the browser, plasma kept saying Playing."""
+    _wire_read({PLASMA: _plasma("Playing"), CHROMIUM: _tab("Paused")})
+    src = MPRISSource()
+    track = src.read()
+    assert (track.title, track.status) == ("Eifersucht", _mpris_mod.PlaybackStatus.PAUSED)
+    assert src._native_apple_names == [CHROMIUM]
+
+
+def test_playing_is_read_from_the_apple_music_tab_too():
+    # The artwork video can stop (a background tab) while the music plays.
+    _wire_read({PLASMA: _plasma("Paused"), CHROMIUM: _tab("Playing")})
+    assert MPRISSource().read().status == _mpris_mod.PlaybackStatus.PLAYING
+
+
+def test_another_tab_playing_says_nothing_about_apple_music():
+    _wire_read({PLASMA: _plasma("Playing"), CHROMIUM: _tab("Paused", title="Some Video - YouTube")})
+    src = MPRISSource()
+    assert src.read().status == _mpris_mod.PlaybackStatus.PLAYING
+    assert src._native_apple_names == []
+
+
+def test_the_page_title_is_not_a_song():
+    """Measured: with no song loaded, plasma reported the page title as the
+    track — "Apple Music – Webplayer", no artist — and it "played"."""
+    page = _plasma("Playing")
+    page["Metadata"] = {
+        "xesam:title": "‎Apple Music\xa0– Webplayer",  # noqa: RUF001
+        "xesam:url": "https://music.apple.com/de/home",
+    }
+    _wire_read({PLASMA: page})
+    assert MPRISSource().read().has_track is False
 
 
 def test_returns_false_when_no_player_can():

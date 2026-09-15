@@ -1,36 +1,39 @@
 # Architecture
 
 Refrain is one process. Two long-lived Qt threads (main + daemon
-worker), an optional GLib thread, plus short-lived worker executors
-(cover fetch, Last.fm) — all feeding one Discord IPC socket and a few
-outbound HTTPS clients.
+worker), short-lived worker executors (cover fetch, Last.fm) and, only
+where Qt isn't built on GLib, a GLib thread — all feeding one Discord
+IPC socket and a few outbound HTTPS clients.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  refrain process                                                │
 │                                                                 │
-│  Main thread (Qt event loop)                                    │
+│  Main thread (Qt event loop, GLib-backed)                       │
 │  ├─ QApplication                                                │
 │  ├─ TrayIcon (QSystemTrayIcon)         <─── status / track      │
 │  ├─ SettingsWindow (QDialog, hidden after Apply)                │
 │  ├─ LogWindow (QDialog, on-demand)                              │
+│  ├─ HistoryWindow (QDialog, on-demand) <─── history snapshots   │
 │  ├─ WelcomeDialog (first-run only)                              │
 │  ├─ UpdateOrchestrator                                          │
-│  └─ UpdateDialog                                                │
+│  ├─ UpdateDialog                                                │
+│  └─ dispatches the shared session bus: the single-instance      │
+│     name and the published MPRISServer                          │
 │                                                                 │
 │  Worker thread (Qt event loop, QThread)                         │
 │  ├─ DaemonWorker                                                │
-│  │    ├─ MPRISSource         ──► Session DBus (read)            │
-│  │    ├─ BluetoothSource     ──► System DBus (org.bluez)        │
-│  │    ├─ CoverFetcher        ──► iTunes Search (HTTPS)          │
-│  │    ├─ DiscordRPC          ──► Discord IPC socket             │
-│  │    ├─ Scrobbler           ──► Last.fm API (HTTPS, opt-in)    │
-│  │    └─ MPRISServer         ──► Session DBus (publish own)     │
+│  │    ├─ MPRISSource     ──► Session DBus (own connection)      │
+│  │    ├─ BluetoothSource ──► System DBus (own connection)       │
+│  │    ├─ CoverFetcher    ──► iTunes Search (HTTPS)              │
+│  │    ├─ DiscordRPC      ──► Discord IPC socket                 │
+│  │    ├─ Scrobbler       ──► Last.fm API (HTTPS, opt-in)        │
+│  │    ├─ PlayHistory     ──► history.json (local only)          │
+│  │    └─ MPRISServer     ──► handed to the main thread          │
 │  └─ Timer (QTimer, 500 ms default poll, configurable)           │
 │                                                                 │
-│  GLib thread (only when PyGObject is available)                 │
-│  └─ GLib.MainLoop — pumps dbus-python signals so Plasma's panel │
-│     PlayPause / Next / Previous reach our MPRISServer methods.  │
+│  GLib thread (only when Qt is not GLib-backed)                  │
+│  └─ GLib.MainLoop — takes over dispatching the session bus      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -48,6 +51,34 @@ The worker thread runs a Qt event loop (driven by `QTimer`, *not* a
 loop and prevents cross-thread slot invocations like Play/Pause from the
 tray menu from being delivered).
 
+## D-Bus and threads
+
+dbus-python's GLib integration keeps each connection's timeout and
+watch bookkeeping without any locking, so **no connection may be used
+from two threads**. Everything below follows from that:
+
+- The process-wide session connection (`dbus.SessionBus()`) belongs to
+  whichever thread dispatches it — the main thread, through Qt's GLib
+  event dispatcher. The single-instance name and the published MPRIS
+  player live on it.
+- `MPRISSource` and `BluetoothSource` run on the daemon thread and open
+  private connections of their own with no main loop
+  (`private=True, mainloop=NULL_MAIN_LOOP`). Polling needs nothing but
+  blocking method calls, which work without one. A connection that
+  fails is closed and reopened on the next call.
+- The daemon never touches the published player itself: registering it
+  and every track change go through `mpris_server._on_bus_thread`,
+  which runs them on the dispatching thread via `GLib.idle_add`.
+- Plasma's Play/Pause/Next/Previous arrive on the main thread and are
+  queued to the daemon's `control_*` slots (`_queue_control`), which own
+  the sources.
+
+Two threads on one connection corrupted the heap, and Refrain aborted
+with `malloc(): unaligned tcache chunk detected` — the crash is only
+ever detected later, in whichever `malloc` trips over it. Should
+anything still crash inside Qt or libdbus, `faulthandler` writes every
+thread's Python stack to `crash.log` next to the log.
+
 ## What a poll produces
 
 Each tick reads the sources, then puts the result through two stages
@@ -63,7 +94,7 @@ _resolve_position()  position, or a decision that we don't have one
 _apply_idle_detection()   drop a dangling source's stale track
       │
       ▼
-_dispatch()          tray · Discord RPC · published MPRIS · scrobbler
+_dispatch()          tray · Discord RPC · published MPRIS · history · scrobbler
 ```
 
 Both stages sit ahead of `_dispatch` so every consumer is handed the
@@ -87,12 +118,39 @@ song itself, with no track change in between.
 
 On Plasma, the player Refrain actually reads is usually not the browser
 itself but Plasma's browser integration, which publishes its own MPRIS
-player and is the one reporting a title and an artist at all. It
-misreports position differently again: its `Position` and `mpris:length`
-describe the media *segment* the page has buffered. Measured live, the
-position ran 0.5 s, 2.6 s, 1.1 s, 3.2 s, 5.0 s, 0 s while the length
-moved between 8433, 9999 and 11033 ms, over and over, on a track four
-minutes long.
+player and is the one reporting a title and an artist at all. It takes
+those from the page's media session, but its `Position`,
+`mpris:length` and `PlaybackStatus` from whichever media element is
+playing — on Apple Music, most of the time, the album's looping artwork
+video. Measured live, the position ran 0.5 s, 2.6 s, 1.1 s, 3.2 s,
+5.0 s, 0 s while the length moved between 8433, 9999 and 11033 ms (or
+sat at 10416 ms throughout), over and over, on a track four minutes
+long; and paused in the browser, it kept saying `Playing`. Only as a
+song starts does it report the song itself — its real length, at
+position 0 — for a few seconds.
+
+What Refrain makes of that:
+
+- **Playing or paused** comes from the browser's own MPRIS entry for the
+  Apple Music tab when there is one (no URL, but a page title ending in
+  "Apple Music"), and Play/Pause goes to it first; plasma's toggle
+  followed the video and could pause the music but never start it again.
+- A source length under 30 s on a song the catalog knows to be longer is
+  a *segment* source: its position is never shown, never read as a seek
+  or a frame switch, and on first sight only places the clock's zero
+  after a poll that saw nothing playing. After a restart mid-song the
+  time stays hidden until the next start frame.
+- A **start frame** — the song's own length at a position near zero,
+  arriving there from well into the song or from a segment's length —
+  well into a track is the song beginning again (repeat-one, or played
+  again from the top). It places the zero afresh and counts in
+  `PositionState.restarts`, which the daemon turns into a replay for the
+  history and the Scrobbler. Seen while paused, it only counts once the
+  song plays on from there: an iPad pausing reports 0:00 for a tenth of
+  a second before its real position comes back.
+- A Bluetooth player on **repeat-one** (`Repeat` = `singletrack`) may
+  count its position on across loops — 5:13 into a 3:36 song — so there
+  the song's own position is what's left after whole loops.
 
 `timing.resolve_position` answers in three tiers, in order:
 
@@ -174,6 +232,45 @@ a position that moved recently is proof the source is alive and pushes
 the anchor forward. Without that gate, any duration that came out too
 short took the playing track down with it.
 
+### Recently played
+
+`PlayHistory` (`history.py`) is fed from `_dispatch` on every poll, with
+the same length the scrobbler is given — so "counts as listened" and a
+Last.fm scrobble are one decision: half the track or four minutes,
+nothing of 30 s or less. What counts is time actually played, accrued
+from the monotonic clock while the source says *playing*; pauses don't
+add to it and seeking doesn't either.
+
+- A song appears as "now playing" the moment it plays and is written to
+  `history.json` the moment it counts. One that is skipped first is
+  dropped without touching the disk.
+- The song playing right now is saved with how much of it was heard and
+  where the player had it — every 30 s of play, when it counts, and on
+  quit. The first song seen after a start is compared with it through
+  `scrobble.continues_play`, the same test the Scrobbler uses: the same
+  song, soon enough, and — where the player reports a position — further
+  along than it was, not back at the start. That carries on as the same
+  entry (its count continuing, or, if it had counted already, as the
+  list's newest song instead of a second copy); a song that ended and
+  began again meanwhile is a new play.
+- A song that begins again after it counted — the player's position
+  jumping back to the start, or a start frame — is a new play with an
+  entry of its own, and a scrobble of its own too.
+- Apple Music reports "paused" for a poll or two between songs, so a
+  pause only shows as one after 2 s, and a song that follows one that
+  was just playing starts even while it still reports "paused".
+- The window never touches `PlayHistory`: the daemon emits immutable
+  `HistorySnapshot` copies through `historyChanged`, and clearing or
+  removing a song is a queued slot on the daemon.
+
+A click on a song opens its Apple Music page — or a catalog search when
+the page isn't known — through `browser.open_url`: in the browser that
+played it while that browser is still running (it is the one signed in
+to Apple Music, often not the default browser), as a detached process
+with Refrain's Qt and Python paths removed from its environment.
+Anything else, including an AppImage or Flatpak Refrain, goes to the
+default browser.
+
 ## Cross-thread message flow
 
 | From → To              | Mechanism                                  |
@@ -181,6 +278,10 @@ short took the playing track down with it.
 | Tray → DaemonWorker    | Qt signal → `@Slot` (auto-queued)          |
 | DaemonWorker → Tray    | Qt signal → main-thread slot               |
 | SettingsWindow → DW    | `applied(Config)` → `update_config` slot   |
+| DaemonWorker → HistoryWindow | `historyChanged(HistorySnapshot)`    |
+| HistoryWindow → DW     | `clearRequested` / `removeRequested` → slots |
+| MPRISServer (Plasma) → DW | `QMetaObject.invokeMethod(Queued)` on `control_*` |
+| DW → MPRISServer       | `GLib.idle_add` (`_on_bus_thread`)         |
 | Daemon shutdown        | `QMetaObject.invokeMethod(BlockingQueued)` |
 
 Nothing else is shared; `Config` is treated as immutable after `Apply`.
@@ -189,14 +290,27 @@ Nothing else is shared; `Config` is treated as immutable after `Apply`.
 
 - **CoverFetcher** owns a 1-worker `ThreadPoolExecutor` for the iTunes
   lookup + image download. Results are cached in-memory + on-disk; the
-  daemon polls the cache via `get()` / `get_local_path()`.
+  daemon polls the cache via `get()` / `get_local_path()`. The lookup
+  asks the store of the desktop's country first, then the US store,
+  with "feat." and remaster tags stripped and, failing that, only the
+  first of several artists — and takes a result only when its artist
+  *and* title match. When iTunes can't be reached at all it raises
+  rather than returning a miss, so the fetcher retries after 60 s
+  instead of remembering "no cover".
 - **UpdateOrchestrator** spawns a one-shot QThread for the GitHub Releases
   API call so the GUI stays responsive.
 - **Scrobbler** owns a 1-worker `ThreadPoolExecutor` for Last.fm
   now-playing + scrobble submission. The daemon feeds it the current
   track every tick (pure pause/seek-aware accounting); qualifying
   tracks are written to a persistent on-disk queue and submitted in
-  the background. Inert until the user opts in + connects an account.
+  the background. The play in progress is kept in
+  `scrobble_current.json` (every 30 s of play, when it counts, on
+  quit): after a restart the same play — by `continues_play`, as for
+  the history — carries on under its own start time instead of counting
+  again, and one queued on quit is marked so it is never queued twice.
+  `reconfigure` only drops the play when the Last.fm identity changes,
+  not on every Settings → Apply. Inert until the user opts in +
+  connects an account.
 - **SettingsWindow** spawns a short-lived QThread per Last.fm auth
   step (`auth.getToken` / `auth.getSession`), joined before the next
   step and on window close.
@@ -215,9 +329,12 @@ name and exit. No lockfile in `/tmp`.
 | Credentials        | OS keyring via freedesktop Secret Service (KWallet / GNOME Keyring), encrypted at rest |
 | Credentials (fallback) | `$XDG_CONFIG_HOME/refrain/secrets.json` (`0600`, owner-only) — only when no keyring is reachable |
 | Logs (rotating)    | `$XDG_STATE_HOME/refrain/refrain.log{,.1,.2,.3}` |
-| Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt`          |
+| Crash stacks       | `$XDG_STATE_HOME/refrain/crash.log` (faulthandler; ≤ 256 KB, then started afresh) |
+| Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt` (versioned; a miss expires after 3 days) |
 | Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |
 | Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (1000-entry cap, atomic) |
+| Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` (`0600`, atomic; one play, kept across a restart) |
+| Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 10–100 songs, 30 by default) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |
 
 The user-installed desktop file (via `--install-desktop`) goes to
@@ -247,6 +364,12 @@ The MPRIS-server publication needs PyGObject (`gi`) for a GLib main loop
 to pump dbus-python signal dispatch. When PyGObject isn't installed,
 Refrain logs a warning at startup and falls back to read-only mode —
 the rest of the app works, but Plasma's panel can't drive playback.
+
+The sources only have a play/pause toggle, so the published `Play`,
+`Pause` and `Stop` toggle only when that gets them where they ask to go,
+judged by the state the server last published. Plasma offers "Stop" for
+every controllable player; here it pauses, and does nothing when the
+music is already paused.
 
 ## Discord IPC discovery
 
