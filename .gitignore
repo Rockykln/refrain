@@ -31,11 +31,6 @@ env/
 *.swo
 .DS_Store
 
-# AI assistants
-.claude*/
-.cursor/
-.aider*
-
 # Local config / runtime
 *.log
 .refrain.local.toml
