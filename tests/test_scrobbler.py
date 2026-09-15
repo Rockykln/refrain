@@ -158,6 +158,10 @@ def test_reconfigure_drops_in_progress(tmp_path):
     sc, q = _scrobbler(tmp_path)
     _play(sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000)
     sc.reconfigure(_cfg(username="bob"))  # account/settings changed
+    # reconfigure() builds a real LastfmClient from the config. Swap the
+    # fake back in before the next tick, or B's "now playing" goes out
+    # to Last.fm from the executor thread.
+    sc._client = FakeClient()
     sc.update(_t("B"), 200_000, privacy_off=False, now_wall=1_700_000_200, now_mono=1200.0)
     assert len(q) == 0
 

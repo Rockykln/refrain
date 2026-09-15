@@ -19,6 +19,26 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 
+@pytest.fixture(autouse=True)
+def _no_network(monkeypatch):
+    """No test reaches the internet — not even from a background thread.
+
+    Tests that exercise an HTTP path stub ``urlopen`` themselves, and
+    their monkeypatch wins over this one. Anything else gets the error an
+    offline machine would. Without this, a Scrobbler test that rebuilt a
+    real Last.fm client sent "now playing" to Last.fm from its executor
+    thread — the thread that was mid-request when a 3.12 CI run died
+    with a segfault.
+    """
+    import urllib.error
+    import urllib.request
+
+    def _refuse(*_args, **_kwargs):
+        raise urllib.error.URLError("network access is disabled in tests")
+
+    monkeypatch.setattr(urllib.request, "urlopen", _refuse)
+
+
 @pytest.fixture
 def xdg_tmp(tmp_path, monkeypatch):
     """Redirect every XDG_* env var Refrain reads to an isolated tmp tree.
