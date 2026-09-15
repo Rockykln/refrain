@@ -618,9 +618,6 @@ class UpdateOrchestrator(QObject):
         self.updateAvailable.emit(release)
 
 
-# Kept open for the life of the process — faulthandler writes to the
-# file descriptor at crash time, when opening anything is off the table.
-_crash_log_fd: int | None = None
 _CRASH_LOG_MAX_BYTES = 256 * 1024
 
 
@@ -651,21 +648,33 @@ def _open_crash_log(path: Path) -> int:
     return fd
 
 
-def _enable_crash_log() -> None:
-    """On a fatal signal, write every thread's Python stack to crash.log.
+@contextlib.contextmanager
+def _crash_log():
+    """While it lasts, a fatal signal writes every thread's Python stack
+    to crash.log.
 
     A segfault or abort inside Qt or libdbus otherwise leaves only a C
     backtrace in coredumpctl: where the process died, never what Refrain
-    was doing at the time.
+    was doing at the time. The file stays open for as long as Refrain
+    runs — at crash time, opening anything is off the table — and is
+    closed on the way out. A restart's exec closes it too: descriptors
+    Python opens aren't inherited.
     """
-    global _crash_log_fd
+    fd = None
     try:
         state_dir().mkdir(parents=True, exist_ok=True)
         fd = _open_crash_log(state_dir() / "crash.log")
-        faulthandler.enable(file=fd, all_threads=True)
-        _crash_log_fd = fd
     except OSError as e:
         log.debug("crash.log unavailable (%s) — crashes leave no Python stack", e)
+    if fd is None:
+        yield
+        return
+    try:
+        faulthandler.enable(file=fd, all_threads=True)
+        yield
+    finally:
+        faulthandler.disable()
+        os.close(fd)
 
 
 def main() -> int:
@@ -687,7 +696,12 @@ def main() -> int:
     global _forced_debug
     _forced_debug = bool(args.debug)
     setup_logging("DEBUG" if args.debug else "INFO")
-    _enable_crash_log()
+    with _crash_log():
+        return _run(args)
+
+
+def _run(args: argparse.Namespace) -> int:
+    """The app itself, from the config on — with logging and crash.log up."""
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)
 
