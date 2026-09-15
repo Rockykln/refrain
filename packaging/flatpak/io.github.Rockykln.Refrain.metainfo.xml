@@ -51,6 +51,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.1" date="2026-09-15">
+      <description>
+        <p>
+          Added a Recently played window with cover, time, source and Last.fm
+          state for the last songs, made every play one history entry and one
+          scrobble — on repeat, across a restart or through a crash — read
+          Apple Music's playing or paused state from the browser tab itself so
+          Play works again after a pause, and fixed the crash that made Refrain
+          vanish.
+        </p>
+      </description>
+    </release>
     <release version="0.4.6" date="2026-08-26">
       <description>
         <p>

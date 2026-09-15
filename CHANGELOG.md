@@ -7,6 +7,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-15
+
+A release about what you played. A new *Recently played* window lists the
+last songs Refrain saw, and every play is now one row and one scrobble —
+on repeat, across a restart of Refrain, or through a crash. Plasma's
+browser integration turned out to report Apple Music's looping artwork
+video rather than the music; Refrain now asks the Apple Music tab itself
+whether it is playing, which also makes Play work again after a pause.
+
+Also: the crash behind Refrain simply vanishing, Plasma's Stop starting
+playback, Settings → Apply restarting a song's Last.fm count, and covers
+and lengths for far more songs. (0.5.0 was never released.)
+
+### Added
+
+- **Recently played.** A new window, opened from the tray menu or from
+  Settings → History, lists the last songs Refrain saw: cover, title,
+  artist and album, the time and day each one started, where it came
+  from — Apple Music in which browser, or which Bluetooth device — its
+  length, and whether it went to Last.fm. Every song is a link to its
+  Apple Music page — or, where Refrain never learned the page, to an
+  Apple Music search for it — and opens in the browser it played in
+  while that browser is still running; a right-click takes a single song
+  out of the list. A song shows up the moment it
+  starts playing and stays once it counts as listened: half its length
+  or four minutes, the rule Last.fm uses, so skipping through a playlist
+  leaves nothing behind. The list lives on this machine only
+  (`$XDG_STATE_HOME/refrain/history.json`, owner-only), which is why it
+  keeps running with the privacy mode set to *Off*. Settings → History
+  turns it off entirely — deleting the stored list — and sets how many
+  songs to keep, from 10 to 100; 30 by default. The song playing when
+  Refrain stops — or crashes — is saved with how much of it was heard
+  and where it was, and carries on as the same row if it is still on,
+  further along, when Refrain comes back. A song heard through and
+  played again is listed once per play.
+
+### Fixed
+
+- **After a restart mid-song, the elapsed time fell back every ten
+  seconds.** Plasma's browser integration reports the media segment the
+  page has buffered — position 0 to 10 s, over and over — and at a
+  constant segment length nothing gave it away. A source length under
+  30 s on a song the catalog knows to be longer is now never taken as the
+  song's position: the time counts on from the song's start, or stays
+  hidden when Refrain came up in the middle of it.
+- **Paused in the browser, Apple Music still counted as playing — and
+  Play didn't start it again.** KDE's browser integration takes the
+  song's title from the page but its state from whatever video plays on
+  it: Apple Music's looping artwork. That kept "playing" through a pause,
+  so the time ran on, the history and Last.fm counted the pause as
+  listened, and its Play/Pause toggle could only pause. The browser's own
+  entry for the Apple Music tab now decides playing or paused, and gets
+  Play/Pause first.
+- **Settings → Apply started the song's Last.fm count over.** Apply
+  sends the whole configuration, and the Scrobbler dropped the play in
+  progress on every one of them — for a change on any tab. Applied near
+  the end of a song, the song was never scrobbled. The play in progress
+  is now only dropped when the Last.fm account itself changes.
+- **Restarting Refrain mid-song could scrobble the song twice.** A play
+  that counted was queued on quit, and after the restart the Scrobbler
+  counted the same song again from zero — a long song got a second
+  scrobble for what was heard afterwards, and a shorter one was
+  scrobbled under the time of the restart. The play in progress is now
+  kept across a restart (`scrobble_current.json`, like the history's):
+  the same play carries on, under the time it began, and is never
+  queued twice. One that counted before a crash is still scrobbled.
+- **"Apple Music – Webplayer" could pass for a song.** With no song
+  loaded, KDE's browser integration reports the page's title as the
+  track — no artist — and calls it playing. A title like that is no
+  longer taken for a song, so it can't reach Discord or the history.
+- **A song on repeat was scrobbled only once, and lost its time.**
+  Last.fm counts every play, but the Scrobbler saw one long play for as
+  long as the title stayed the same. A song that has counted and begins
+  again is now a new play, with a scrobble of its own. The player shows
+  it: an ordinary one jumps back to zero; Apple Music in the browser,
+  through Plasma, reports the song's own length at position zero for a
+  moment; a phone over Bluetooth set to repeat-one kept counting its
+  position on across the loop (5:13 into a 3:36 song), which hid the
+  elapsed time after the first play — it now counts from the start of
+  each loop.
+
+- **The tray icon flashed to "paused" at every song change.** Apple
+  Music's web player reports a pause for a moment between two songs.
+  The icon and the Play/Pause entry now only follow a pause that lasts
+  two seconds; going back to playing still shows at once.
+- **Plasma's "Stop" started the music when it was paused.** Right-click
+  Refrain in the task manager and Plasma offers its media controls;
+  Play, Pause and Stop all toggled playback blindly, so each one did the
+  opposite of what it said whenever the music was already in the state
+  it asked for. They now only act when that gets them there.
+- **Refrain could die out of nowhere.** The daemon thread polled the
+  players over the same D-Bus connection the main thread dispatches for
+  the published MPRIS player, and dbus-glib keeps that connection's
+  bookkeeping without locks. Two threads on it at once corrupted the
+  heap, and the process aborted with `malloc(): unaligned tcache chunk
+  detected` — the "Refrain was simply gone" that the log shows as a
+  start without a stop before it. The sources now keep private
+  connections of their own, the MPRIS player is only touched from the
+  thread that dispatches it, and Plasma's play/pause/skip requests are
+  handed to the daemon thread instead of running the sources from the
+  main one. Should a crash still happen, `crash.log` next to the log
+  now holds every thread's Python stack.
+- **About one song in ten had no cover and no length.** The catalog
+  lookup asked the US store only, with the title as given — "feat."
+  credits, remaster tags and all — and took the first result without
+  checking it. German releases missing from the US store, songs
+  crediting several artists and titles with a "(feat. …)" found
+  nothing; others got a stranger's cover (a Chinese ballad on a German
+  rap track). The lookup now asks the store of the desktop's own
+  country first, strips those tags, falls back to the first of several
+  artists, and only takes a result whose artist *and* title match. A
+  lookup that fails because iTunes can't be reached is retried a minute
+  later instead of leaving the song without a cover for the whole
+  session, a song the catalog doesn't have is asked about again after
+  three days instead of never, and covers cached by the old lookup are
+  looked up once more.
+
 ## [0.4.6] - 2026-08-26
 
 A release about the clock. Apple Music's web player and Plasma's browser
@@ -1576,7 +1693,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.4.6...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/Rockykln/refrain/compare/v0.4.6...v0.5.1
 [0.4.6]: https://github.com/Rockykln/refrain/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/Rockykln/refrain/compare/v0.4.4...v0.4.5
 [0.4.4]: https://github.com/Rockykln/refrain/compare/v0.4.3...v0.4.4

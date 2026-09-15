@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "refrain"
-version = "0.4.6"
+version = "0.5.1"
 description = "Discord Rich Presence for Apple Music on Linux"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -133,6 +133,8 @@ exclude_dirs = ["tests", ".venv", "reference"]
 # B404 (subprocess imp) — used only for notify-send, list-form, no shell=True
 # B603 (subprocess no-shell) — same as above
 # B607 (partial path) — notify-send is intentionally invoked by name (PATH lookup)
+# (Opening a history link in the browser that played it goes through
+#  QProcess, argument list only, https URLs only — see refrain.browser.)
 # B606 (start_process_with_no_shell) — os.execvp in app.py is the intended
 #                                       Restart implementation, no shell wanted
 # B310 (urlopen blacklist) — only called against hardcoded HTTPS URLs
