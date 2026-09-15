@@ -620,10 +620,35 @@ class UpdateOrchestrator(QObject):
 
 # Kept open for the life of the process — faulthandler writes to the
 # file descriptor at crash time, when opening anything is off the table.
-# A raw descriptor rather than a file object: it is never closed, by
-# design, and there is no object whose close() could go missing.
 _crash_log_fd: int | None = None
 _CRASH_LOG_MAX_BYTES = 256 * 1024
+
+
+def _open_crash_log(path: Path) -> int:
+    """Open crash.log for appending — afresh past its cap — and stamp it.
+
+    Owner-only: a Python stack carries paths and song titles. Returns the
+    descriptor for the caller to keep, and closes it itself if stamping
+    fails, so it never leaks on the way.
+    """
+    too_big = path.exists() and path.stat().st_size > _CRASH_LOG_MAX_BYTES
+    flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if too_big else os.O_APPEND)
+    fd = os.open(path, flags, 0o600)
+    try:
+        # The mode above only applies to a new file; a log an earlier
+        # version left world-readable is tightened as well.
+        os.fchmod(fd, 0o600)
+        os.write(
+            fd,
+            (
+                f"--- Refrain {__version__}, pid {os.getpid()}, "
+                f"started {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+            ).encode(),
+        )
+    except OSError:
+        os.close(fd)
+        raise
+    return fd
 
 
 def _enable_crash_log() -> None:
@@ -634,19 +659,9 @@ def _enable_crash_log() -> None:
     was doing at the time.
     """
     global _crash_log_fd
-    path = state_dir() / "crash.log"
     try:
         state_dir().mkdir(parents=True, exist_ok=True)
-        too_big = path.exists() and path.stat().st_size > _CRASH_LOG_MAX_BYTES
-        flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if too_big else os.O_APPEND)
-        fd = os.open(path, flags, 0o644)
-        os.write(
-            fd,
-            (
-                f"--- Refrain {__version__}, pid {os.getpid()}, "
-                f"started {time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            ).encode(),
-        )
+        fd = _open_crash_log(state_dir() / "crash.log")
         faulthandler.enable(file=fd, all_threads=True)
         _crash_log_fd = fd
     except OSError as e:

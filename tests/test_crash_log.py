@@ -30,6 +30,16 @@ def test_each_start_adds_a_line_and_arms_faulthandler(crash_log):
     assert os.path.samefile(f"/proc/self/fd/{app._crash_log_fd}", crash_log)
 
 
+def test_the_log_is_owner_only_even_if_it_was_not(crash_log):
+    # Python stacks carry paths and song titles. A log left world-readable
+    # by an earlier version is tightened, not just new ones created tight.
+    crash_log.parent.mkdir(parents=True)
+    crash_log.write_text("--- old\n", encoding="utf-8")
+    crash_log.chmod(0o644)
+    app._enable_crash_log()
+    assert crash_log.stat().st_mode & 0o777 == 0o600
+
+
 def test_a_log_past_its_cap_starts_afresh(crash_log):
     crash_log.parent.mkdir(parents=True)
     crash_log.write_text("x" * (app._CRASH_LOG_MAX_BYTES + 1), encoding="utf-8")

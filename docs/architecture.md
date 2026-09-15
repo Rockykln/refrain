@@ -329,7 +329,7 @@ name and exit. No lockfile in `/tmp`.
 | Credentials        | OS keyring via freedesktop Secret Service (KWallet / GNOME Keyring), encrypted at rest |
 | Credentials (fallback) | `$XDG_CONFIG_HOME/refrain/secrets.json` (`0600`, owner-only) — only when no keyring is reachable |
 | Logs (rotating)    | `$XDG_STATE_HOME/refrain/refrain.log{,.1,.2,.3}` |
-| Crash stacks       | `$XDG_STATE_HOME/refrain/crash.log` (faulthandler; ≤ 256 KB, then started afresh) |
+| Crash stacks       | `$XDG_STATE_HOME/refrain/crash.log` (faulthandler; `0600`; ≤ 256 KB, then started afresh) |
 | Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt` (versioned; a miss expires after 3 days) |
 | Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |
 | Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (1000-entry cap, atomic) |

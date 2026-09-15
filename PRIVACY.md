@@ -37,7 +37,7 @@ receiving service's own privacy policy and your account there.
 |---|---|---|
 | Now-playing metadata (title, artist, album, position) read from your media player via D-Bus / BlueZ AVRCP | Drive the tray, notifications, the published MPRIS player | In memory; reflected in the tray |
 | Listening history lines (track changes, scrobble events) | Diagnostics / live log | `$XDG_STATE_HOME/refrain/refrain.log` — rotating, ≤ 4 × 1 MB, plaintext, local only |
-| Start stamps, and Python stack traces if Refrain ever crashes | Diagnosing crashes inside Qt or D-Bus | `$XDG_STATE_HOME/refrain/crash.log` — ≤ 256 KB, then started afresh; local only |
+| Start stamps, and Python stack traces if Refrain ever crashes | Diagnosing crashes inside Qt or D-Bus | `$XDG_STATE_HOME/refrain/crash.log` — ≤ 256 KB, then started afresh; written **owner-only (`0600`)**; local only |
 | Album-cover images + iTunes URL/duration cache | Avoid re-fetching covers | `$XDG_CACHE_HOME/refrain/` — capped (default 200), oldest pruned |
 | Pending scrobbles (artist/track/album/timestamp) | Survive offline / restart until submitted to Last.fm | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` — capped at 1000, `0600` semantics, removed once submitted |
 | The song being scrobbled right now (artist/track/album, when it began, how much of it was heard, where the player had it) | Carry that play on across a restart of Refrain instead of counting it — or scrobbling it — twice | `$XDG_STATE_HOME/refrain/scrobble_current.json` — one song, written **owner-only (`0600`)**, removed when the song ends; only while Last.fm scrobbling is on |
