@@ -46,6 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quitting could wait on Last.fm for up to ten seconds**, and the
   scrobble queue was written readable by other users — it is owner-only
   now, like the history.
+- **Other apps couldn't read what Refrain was playing when the title had
+  an umlaut** — or any other letter beyond ASCII. Refrain's MPRIS track
+  ID kept it, which a D-Bus object path doesn't allow, and every read of
+  the metadata failed.
 - **A browser tab with "Apple Music" anywhere in its title counted as the
   Apple Music tab**, so a video about Apple Music could decide whether
   Refrain showed the music as playing or paused.

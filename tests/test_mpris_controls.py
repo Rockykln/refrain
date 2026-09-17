@@ -46,3 +46,12 @@ def test_toggle_only_towards_the_asked_state(method, status, toggled):
     server, toggles = _server(status)
     getattr(server, method)()
     assert bool(toggles) is toggled
+
+
+def test_a_title_beyond_ascii_still_makes_a_valid_track_id():
+    """Measured: "Wer weiß das schon" failed every read of Metadata."""
+    from refrain.sources.mpris_server import _track_id
+
+    for title in ("Wer weiß das schon", "Königin", "f**k dich (feat. dateツ & flippin'dope)", ""):
+        path = _track_id(TrackInfo(source="mpris", title=title))
+        assert path.startswith("/refrain/track/")

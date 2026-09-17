@@ -198,9 +198,11 @@ def _status_str(status: PlaybackStatus) -> str:
 def _track_id(track: TrackInfo) -> dbus.ObjectPath:
     """MPRIS requires `mpris:trackid` to be a non-empty object path. We
     derive a stable-per-track value from the title so KDE can detect a
-    track change. ``/`` reserved characters are replaced with `_`.
+    track change. Anything but ASCII letters and digits becomes `_`: an
+    object path allows nothing else, and an "ö" in the title failed every
+    read of the metadata.
     """
-    safe = "".join(c if c.isalnum() else "_" for c in (track.title or "unknown"))
+    safe = "".join(c if c.isascii() and c.isalnum() else "_" for c in (track.title or "unknown"))
     return dbus.ObjectPath(f"/refrain/track/{safe or 'unknown'}")
 
 
