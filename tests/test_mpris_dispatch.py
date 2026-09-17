@@ -32,12 +32,20 @@ class _FakeDBusException(Exception):
 
 
 _fake_dbus.DBusException = _FakeDBusException
+_real_dbus = {name: sys.modules.get(name) for name in ("dbus", "dbus.mainloop")}
 sys.modules["dbus"] = _fake_dbus
 sys.modules["dbus.mainloop"] = _fake_dbus.mainloop
 import refrain.sources.mpris as _mpris_mod  # noqa: E402
 
 _mpris_mod = importlib.reload(_mpris_mod)
 MPRISSource = _mpris_mod.MPRISSource
+# The reloaded module keeps the stub; every later import gets real dbus
+# again (dbus.service, which the MPRIS server needs, can't come from a stub).
+for _name, _module in _real_dbus.items():
+    if _module is None:
+        sys.modules.pop(_name, None)
+    else:
+        sys.modules[_name] = _module
 
 
 @pytest.mark.parametrize(
@@ -345,3 +353,15 @@ def test_no_primary_yet_uses_fallbacks_only():
 
     assert src.next() is True
     assert chromium.calls == ["Next"]
+
+
+def test_only_apple_musics_own_page_titles_count_as_its_tab():
+    from refrain.sources.mpris import _is_apple_music_page_title
+
+    assert _is_apple_music_page_title(
+        "\u200eSehnsucht\xa0\u2013 Album von Rammstein\xa0\u2013 Apple\xa0Music"
+    )
+    assert _is_apple_music_page_title("\u200eApple\xa0Music\xa0\u2013 Webplayer")
+    assert _is_apple_music_page_title("Listen Now - Apple Music")
+    assert not _is_apple_music_page_title("Apple Music review: worth it in 2026? - YouTube")
+    assert not _is_apple_music_page_title("Why I left Apple Music")

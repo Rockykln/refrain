@@ -62,6 +62,21 @@ def _looks_apple_music(url: str) -> bool:
     return any(h in u for h in APPLE_MUSIC_HOSTS)
 
 
+def _is_apple_music_page_title(title: str) -> bool:
+    """Is this a page title of Apple Music's own, like "Sehnsucht – Album von
+    Rammstein – Apple Music" or "Apple Music – Webplayer"?
+
+    Merely naming it is not enough: another tab can play a video called
+    "Apple Music review".
+    """
+    # split() folds every kind of space: the page title spells it
+    # "Apple\xa0Music", with a no-break space. Apple also puts a
+    # left-to-right mark in front.
+    t = " ".join(title.replace("\u200e", "").casefold().split())
+    t = t.replace("\u2013", "-").replace("\u2014", "-")
+    return t == "apple music" or t.endswith("- apple music") or t.startswith("apple music -")
+
+
 def _looks_browser(name: str, identity: str, desktop_entry: str, hints: list[str]) -> bool:
     hay = f"{name} {identity} {desktop_entry}".lower()
     return any(h in hay for h in hints)
@@ -433,12 +448,10 @@ class MPRISSource:
                 # Tag it as a control fallback so skip/play/pause have a
                 # capable player to dispatch onto.
                 control_capable = playback in ("playing", "paused")
-                # split() folds every kind of space: the page title spells
-                # it "Apple\xa0Music", with a no-break space.
-                apple_tab = control_capable and "apple music" in " ".join(title.casefold().split())
+                apple_tab = control_capable and _is_apple_music_page_title(title)
                 return None, 0, control_capable, playback if apple_tab else ""
 
-            if not artist and "apple music" in " ".join(title.casefold().split()):
+            if not artist and _is_apple_music_page_title(title):
                 # The page's own title ("Apple Music – Webplayer"), reported
                 # while no song is loaded — not a track, however long it
                 # "plays". Kept as a candidate for its state and controls.

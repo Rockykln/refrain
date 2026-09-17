@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quitting could wait on Last.fm for up to ten seconds**, and the
   scrobble queue was written readable by other users — it is owner-only
   now, like the history.
+- **A browser tab with "Apple Music" anywhere in its title counted as the
+  Apple Music tab**, so a video about Apple Music could decide whether
+  Refrain showed the music as playing or paused.
 
 ## [0.5.1] - 2026-09-15
 
