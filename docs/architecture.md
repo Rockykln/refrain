@@ -332,7 +332,7 @@ name and exit. No lockfile in `/tmp`.
 | Crash stacks       | `$XDG_STATE_HOME/refrain/crash.log` (faulthandler; `0600`; ≤ 256 KB, then started afresh) |
 | Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt` (versioned; a miss expires after 3 days) |
 | Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |
-| Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (1000-entry cap, atomic) |
+| Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (`0600`, atomic; 1000-entry cap; each entry names its Last.fm account) |
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` (`0600`, atomic; one play, kept across a restart) |
 | Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 10–100 songs, 30 by default) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |

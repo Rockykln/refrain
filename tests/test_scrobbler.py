@@ -309,6 +309,111 @@ def test_switching_account_drops_the_play_in_progress(tmp_path):
     assert _queued(tmp_path) == [], "not scrobbled under the new account"
 
 
+def _nothing(sc, clock, polls=2):
+    """Polls that see no song yet — the tab not back, a D-Bus hiccup."""
+    for _ in range(polls):
+        sc.update(
+            TrackInfo(source="mpris"), 0, privacy_off=False, now_wall=clock[0], now_mono=clock[1]
+        )
+        clock[0] += 2.0
+        clock[1] += 2.0
+
+
+def test_a_restart_whose_first_polls_see_nothing_still_carries_on(tmp_path):
+    """Measured with a probe: an empty first poll threw the saved play away,
+    so a long song counted from zero and was queued a second time."""
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("Long"), 250, clock, eff=600_000, start_pos=0)
+    sc = _relaunch(tmp_path, sc, clock)
+    _nothing(sc, clock)
+    _run(sc, _t("Long"), 250, clock, eff=600_000, start_pos=258)
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("Long", T0)]
+
+
+def test_a_restart_before_it_counted_survives_an_empty_first_poll(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 60, clock, start_pos=0)
+    sc = _relaunch(tmp_path, sc, clock)
+    _nothing(sc, clock)
+    _run(sc, _t("A"), 60, clock, start_pos=68)  # 60 + 60 s of a 200 s song
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == [("A", T0)]
+
+
+def test_quitting_before_the_first_poll_keeps_the_saved_play(tmp_path):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    _run(sc, _t("A"), 110, clock)  # counted, then a crash
+    _launch(tmp_path).shutdown()  # started and quit before any poll
+    after = _launch(tmp_path)
+    _run(after, _t("B"), 4, clock)
+    assert _queued(tmp_path) == [("A", T0)]
+
+
+def test_quitting_never_waits_on_last_fm(tmp_path):
+    sent = []
+
+    class Recording(FakeClient):
+        def scrobble(self, batch):
+            sent.extend(batch)
+            return len(batch)
+
+    clock = [float(T0), 1000.0]
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
+    _run(sc, _t("Long"), 250, clock, eff=600_000)
+    sc._client = Recording()
+    sc.shutdown()  # queues the play, which counts — and sends nothing
+    sc._executor.shutdown(wait=True)
+    assert sent == []
+    assert [p["track"] for p in q.pending()] == ["Long"]
+
+
+def test_plays_during_an_invalid_session_wait_in_the_queue(tmp_path):
+    """The log promises they submit after reconnecting; they were dropped."""
+    fake = FakeClient()
+    sc, q = _scrobbler(tmp_path, client=fake)
+    sc._session_invalid = True
+    clock = [float(T0), 1000.0]
+    _run(sc, _t("A"), 110, clock)
+    _run(sc, _t("C"), 110, clock)
+    _next_song(sc, clock)
+    sc._executor.shutdown(wait=True)
+    assert [p["track"] for p in q.pending()] == ["A", "C"]
+    assert fake.now_playing == [] and fake.scrobbled == []
+
+
+def test_the_queue_is_owner_only(tmp_path):
+    q = ScrobbleQueue(path=tmp_path / "q.jsonl")
+    assert q.enqueue({"artist": "Art", "track": "A", "timestamp": T0})
+    assert (tmp_path / "q.jsonl").stat().st_mode & 0o777 == 0o600
+
+
+def test_a_new_account_is_never_sent_the_old_ones_plays(tmp_path):
+    q = ScrobbleQueue(path=tmp_path / "q.jsonl")
+    q.enqueue({"artist": "Art", "track": "Alice's", "timestamp": T0, "account": "alice"})
+    q.enqueue({"artist": "Art", "track": "Unowned", "timestamp": T0 + 1})
+    q.enqueue({"artist": "Art", "track": "Bob's", "timestamp": T0 + 2, "account": "Bob"})
+    fake = FakeClient()
+    sc = Scrobbler(_cfg(username="bob"), queue=q, current_path=tmp_path / "current.json")
+    sc._client = fake
+    sc._do_drain()
+    assert [it["track"] for it in fake.scrobbled] == ["Unowned", "Bob's"]
+    assert len(q) == 0
+
+
+def test_queued_plays_remember_the_account(tmp_path):
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
+    clock = [float(T0), 1000.0]
+    _run(sc, _t("A"), 110, clock)
+    _next_song(sc, clock)
+    assert [p.get("account") for p in ScrobbleQueue(path=tmp_path / "q.jsonl").pending()] == [
+        "alice"
+    ]
+
+
 def test_short_play_not_queued(tmp_path):
     sc, q = _scrobbler(tmp_path)
     mono, wall = _play(

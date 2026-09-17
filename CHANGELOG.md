@@ -22,6 +22,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   theme.** Qt draws the logo's `currentColor` as black whatever the
   theme; it now takes the theme's text colour, like the version beside
   it, and follows a theme change while the window is open.
+- **A long song could be scrobbled twice after a restart.** If the first
+  poll after starting saw no song yet, the play saved on quit was thrown
+  away, the song counted again from zero and was queued a second time —
+  or, not having counted yet, was never scrobbled at all. Quitting
+  before that first poll also deleted the saved play.
+- **Scrobbles were lost while the Last.fm session was invalid.** The log
+  promised they would submit after reconnecting, but songs played in the
+  meantime were never queued. They are now.
+- **Queued scrobbles could go to the wrong account.** After connecting a
+  different Last.fm account, plays still in the offline queue were sent
+  to it; they now stay with the account they were heard under.
+- **Quitting could wait on Last.fm for up to ten seconds**, and the
+  scrobble queue was written readable by other users — it is owner-only
+  now, like the history.
 
 ## [0.5.1] - 2026-09-15
 

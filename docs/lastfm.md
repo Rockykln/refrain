@@ -94,7 +94,13 @@ click **Connect…** again.
 **Live log shows "Last.fm session invalid — reconnect in Settings".**
 The session was revoked on last.fm (or the API key changed). Open
 *Settings → Last.fm*, click **Connect…**, re-authorise, **Apply**.
-Queued scrobbles are kept and submit automatically once you reconnect.
+Queued scrobbles are kept, songs you play in the meantime are queued as
+well, and all of them submit automatically once you reconnect.
+
+**I connected a different Last.fm account and some queued scrobbles are gone.**
+Scrobbles still waiting in the queue belong to the account they were heard
+under. Refrain drops them rather than send them to the new account, and
+says so in the live log.
 
 **Scrobbles aren't showing up on my profile.**
 - Confirm the *Account* line shows your username and you clicked

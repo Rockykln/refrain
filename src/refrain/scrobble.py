@@ -496,12 +496,13 @@ class Scrobbler:
 
     def shutdown(self) -> None:
         # A play that already counts goes into the queue now, so quitting
-        # mid-song never loses it (the queue survives; no network here —
-        # the executor is torn down, the queue drains next launch). Either
-        # way the play is saved as it stands: if it is still going when
-        # Refrain comes back, counting carries on instead of starting over
-        # — which used to scrobble a long song a second time for what was
-        # heard after the restart.
+        # mid-song never loses it. The executor goes first: queueing would
+        # otherwise start a drain, and quitting would wait on Last.fm. The
+        # queue drains next launch. Either way the play is saved as it
+        # stands: if it is still going when Refrain comes back, counting
+        # carries on instead of starting over — which used to scrobble a
+        # long song a second time for what was heard after the restart.
+        self._executor.shutdown(wait=False, cancel_futures=True)
         with self._lock:
             if (
                 self._key is not None
@@ -516,8 +517,10 @@ class Scrobbler:
                     self._duration_ms,
                 )
                 self._banked = True
-            self._save_current_locked(self._last_wall)
-        self._executor.shutdown(wait=False, cancel_futures=True)
+            if self._key is not None or self._resume is None:
+                # Else the last run's play was never compared with a song:
+                # its file stays for the next launch to settle.
+                self._save_current_locked(self._last_wall)
 
     # ----------------------------------------------------------- core
 
@@ -542,7 +545,7 @@ class Scrobbler:
             # the global "off" kill switch. Drop the in-progress track
             # (don't scrobble under a disabled/anonymised state) but
             # keep the persisted queue untouched.
-            if self._client is None or privacy_off or self._session_invalid:
+            if self._client is None or privacy_off:
                 if self._key is not None or self._resume is not None:
                     self._resume = None
                     self._clear_current_file()
@@ -554,7 +557,9 @@ class Scrobbler:
 
             candidate = self._is_candidate(track, effective_duration_ms)
             key = self._content_key(track) if candidate else None
-            if self._resume is not None:
+            # Not before a song shows up: a first poll that sees nothing
+            # yet says nothing about whether the saved play is still going.
+            if self._resume is not None and key is not None:
                 self._settle_resume_locked(
                     key, effective_duration_ms, position_ms, now_wall, now_mono
                 )
@@ -603,6 +608,7 @@ class Scrobbler:
                 key is not None
                 and track.status == PlaybackStatus.PLAYING
                 and self._cfg.scrobble_now_playing
+                and not self._session_invalid
                 and self._nowplaying_key != key
             ):
                 self._nowplaying_key = key
@@ -646,6 +652,7 @@ class Scrobbler:
                 "album": album,
                 "timestamp": started_unix,
                 "duration": int(duration_ms // 1000),
+                "account": self._cfg.username,
             }
         )
         if stored:
@@ -804,9 +811,18 @@ class Scrobbler:
 
     def _do_drain(self) -> None:
         try:
-            client = self._client
+            with self._lock:
+                client, account = self._client, self._cfg.username
             if client is None:
                 return
+            # Here, on the one worker, since no drain can be halfway
+            # through the queue at the same time.
+            dropped = self._queue.drop_other_accounts(account)
+            if dropped:
+                log.warning(
+                    "Dropped %d queued scrobble(s) heard under another Last.fm account",
+                    dropped,
+                )
             n = self._queue.drain(self._submit_batch)
             if n:
                 log.info("Scrobbled %d queued track(s) to Last.fm", n)

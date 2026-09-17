@@ -72,13 +72,19 @@ def _normalize(item: dict) -> dict | None:
         duration = int(item.get("duration", 0) or 0)
     except (TypeError, ValueError):
         duration = 0
-    return {
+    norm = {
         "artist": artist,
         "track": track,
         "album": str(item.get("album", "")).strip(),
         "timestamp": timestamp,
         "duration": max(0, duration),
     }
+    # The Last.fm account it was heard under. Entries from before this
+    # was recorded carry none and go to whichever account is connected.
+    account = item.get("account")
+    if isinstance(account, str) and account.strip():
+        norm["account"] = account.strip()
+    return norm
 
 
 class ScrobbleQueue:
@@ -135,6 +141,9 @@ class ScrobbleQueue:
                 payload += "\n"
             try:
                 tmp.write_text(payload, encoding="utf-8")
+                # Owner-only, like the history: it says what someone listened to.
+                with contextlib.suppress(OSError):
+                    os.chmod(tmp, 0o600)
                 os.replace(tmp, self._path)
             except OSError:
                 if tmp.exists():
@@ -180,6 +189,21 @@ class ScrobbleQueue:
                 )
             self._save_locked()
         return True
+
+    def drop_other_accounts(self, account: str) -> int:
+        """Remove entries heard under a Last.fm account other than
+        ``account``, so switching accounts never scrobbles one's plays to
+        the other. Returns how many went."""
+        if not account:
+            return 0
+        wanted = account.casefold()
+        with self._lock:
+            kept = [it for it in self._items if it.get("account", account).casefold() == wanted]
+            dropped = len(self._items) - len(kept)
+            if dropped:
+                self._items = kept
+                self._save_locked()
+        return dropped
 
     def drain(self, submit: Callable[[list[dict]], int], batch_size: int = 50) -> int:
         """Submit queued scrobbles oldest-first in batches.
