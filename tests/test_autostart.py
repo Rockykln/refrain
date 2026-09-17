@@ -93,3 +93,69 @@ def test_resolve_exec_line_quotes_paths_with_spaces(monkeypatch, tmp_path):
     line = autostart.resolve_exec_line("--silent")
     assert line == f'"{fake_appimage}" --silent'
     assert line.startswith('"')
+
+
+def test_refresh_brings_an_old_entry_up_to_date_but_keeps_its_exec(xdg_tmp):
+    """An entry written by an older version carried invalid categories. The
+    launcher in it stays: a dev checkout running now must not take over."""
+    import refrain.paths
+
+    importlib.reload(refrain.paths)
+    import refrain.autostart as autostart
+
+    importlib.reload(autostart)
+
+    autostart_file = xdg_tmp["config"] / "autostart" / "refrain.desktop"
+    autostart_file.parent.mkdir(parents=True)
+    autostart_file.write_text(
+        "[Desktop Entry]\nType=Application\nName=Refrain\n"
+        "Exec=/usr/bin/refrain --silent\nCategories=Audio;Music;Network;\n",
+        encoding="utf-8",
+    )
+
+    assert autostart.refresh() is True
+    contents = autostart_file.read_text(encoding="utf-8")
+    assert "\nExec=/usr/bin/refrain --silent\n" in contents
+    assert "\nCategories=AudioVideo;Audio;Music;\n" in contents
+
+
+def test_refresh_leaves_a_current_entry_untouched(xdg_tmp):
+    import refrain.paths
+
+    importlib.reload(refrain.paths)
+    import refrain.autostart as autostart
+
+    importlib.reload(autostart)
+
+    autostart.enable()
+    autostart_file = xdg_tmp["config"] / "autostart" / "refrain.desktop"
+    before = autostart_file.stat().st_mtime_ns
+    assert autostart.refresh() is True
+    assert autostart_file.stat().st_mtime_ns == before
+
+
+def test_refresh_keeps_an_entry_the_desktop_switched_off(xdg_tmp):
+    """Session managers switch autostart off inside the file; refreshing the
+    categories must not switch it back on or drop the desktop's own keys."""
+    import refrain.paths
+
+    importlib.reload(refrain.paths)
+    import refrain.autostart as autostart
+
+    importlib.reload(autostart)
+
+    autostart_file = xdg_tmp["config"] / "autostart" / "refrain.desktop"
+    autostart_file.parent.mkdir(parents=True)
+    autostart_file.write_text(
+        "[Desktop Entry]\nType=Application\nName=Refrain\n"
+        "Exec=/usr/bin/refrain --silent\nCategories=Audio;Music;Network;\n"
+        "X-GNOME-Autostart-enabled=false\nHidden=true\nX-KDE-AutostartPhase=2\n",
+        encoding="utf-8",
+    )
+
+    assert autostart.refresh() is True
+    assert autostart_file.read_text(encoding="utf-8") == (
+        "[Desktop Entry]\nType=Application\nName=Refrain\n"
+        "Exec=/usr/bin/refrain --silent\nCategories=AudioVideo;Audio;Music;\n"
+        "X-GNOME-Autostart-enabled=false\nHidden=true\nX-KDE-AutostartPhase=2\n"
+    )

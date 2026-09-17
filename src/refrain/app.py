@@ -39,6 +39,7 @@ from refrain import __version__
 from refrain.autostart import disable as autostart_disable
 from refrain.autostart import enable as autostart_enable
 from refrain.autostart import is_enabled as autostart_is_enabled
+from refrain.autostart import refresh as autostart_refresh
 from refrain.autostart import resolve_exec_line
 from refrain.config import Config
 from refrain.daemon import Daemon
@@ -457,6 +458,8 @@ def _sync_autostart(config: Config) -> None:
         autostart_enable()
     elif not config.behavior.autostart and autostart_is_enabled():
         autostart_disable()
+    elif config.behavior.autostart:
+        autostart_refresh()
 
 
 # Set for the whole process when --debug is on the command line. The flag

@@ -32,10 +32,13 @@ Comment=Discord Rich Presence for Apple Music
 Exec={exec_line}
 Icon=refrain
 Terminal=false
-Categories=Audio;Music;Network;
+Categories=AudioVideo;Audio;Music;
 StartupNotify=false
 X-GNOME-Autostart-enabled=true
 """
+_CATEGORIES_LINE = next(
+    line for line in _DESKTOP_ENTRY_TEMPLATE.splitlines() if line.startswith("Categories=")
+)
 
 
 def _quote(path: str) -> str:
@@ -99,6 +102,33 @@ def enable() -> bool:
         log.warning("Could not enable autostart at %s: %s", p, e)
         return False
     log.info("Autostart enabled at %s", p)
+    return True
+
+
+def refresh() -> bool:
+    """Give an existing autostart entry the current categories.
+
+    Only that line changes. The launcher resolved when autostart was switched
+    on stays, and so does anything the desktop wrote into the entry — a
+    session manager switches autostart off with ``Hidden=true`` or
+    ``X-GNOME-Autostart-enabled=false`` rather than deleting the file.
+    """
+    p = autostart_path()
+    try:
+        current = p.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    wanted = "\n".join(
+        _CATEGORIES_LINE if line.startswith("Categories=") else line for line in current.split("\n")
+    )
+    if current == wanted:
+        return True
+    try:
+        p.write_text(wanted, encoding="utf-8")
+    except OSError as e:
+        log.warning("Could not update the autostart entry at %s: %s", p, e)
+        return False
+    log.info("Autostart entry at %s brought up to date", p)
     return True
 
 

@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The desktop entries named invalid categories.** `Audio` requires
+  `AudioVideo`, which was missing — `desktop-file-validate` reports that
+  as an error set to become fatal — and `Audio` next to `Network` put
+  Refrain in two main categories, so a menu could list it twice. The
+  menu entry, the Flatpak entry and the autostart entry now all say
+  `AudioVideo;Audio;Music;`, and an autostart entry written by an
+  earlier version gets the new categories on the next start. Nothing
+  else in it changes — not the launcher it points at, and not a switch
+  the desktop set to keep Refrain from starting with the session.
 - **The GitHub logo in the Settings footer was hard to see on a dark
   theme.** Qt draws the logo's `currentColor` as black whatever the
   theme; it now takes the theme's text colour, like the version beside
