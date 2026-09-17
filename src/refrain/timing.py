@@ -20,6 +20,10 @@ _START_FRAME_MAX_POS_MS = 3_000
 # A start frame this far into the track is the song beginning again;
 # any sooner, it is the track change we already saw, reported twice.
 _RESTART_AFTER_MS = 30_000
+# Polls that see nothing for no longer than this, followed by the same
+# track, are a hiccup of the source (D-Bus, a browser integration busy
+# for a few seconds) rather than the song stopping.
+_GONE_GRACE_S = 10.0
 
 
 def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
@@ -155,6 +159,8 @@ class PositionState:
     # plays on from there: an iPad pausing reports position 0 for a tenth
     # of a second before its real position comes back.
     start_pending: bool = False
+    # When polls stopped seeing this track, if they have (see _GONE_GRACE_S).
+    gone_at: float = 0.0
 
 
 def start_is_witnessed(state: PositionState) -> bool:
@@ -272,7 +278,15 @@ def resolve_position(
     Returns ``(position_ms_or_None, tier, new_state)``.
     """
     if not track_key:
+        if state.track_key and (not state.gone_at or now - state.gone_at <= _GONE_GRACE_S):
+            return None, PositionTier.UNKNOWN, replace(state, gone_at=state.gone_at or now)
         return None, PositionTier.UNKNOWN, PositionState(after_idle=True)
+    if state.gone_at:
+        state = (
+            replace(state, gone_at=0.0)
+            if track_key == state.track_key
+            else PositionState(after_idle=True)
+        )
     # Whatever the catalog says — for the first polls after a start it
     # hasn't said anything yet, and a segment then passed for a very short
     # song. A song that really is that short loses nothing: its time comes
@@ -282,6 +296,12 @@ def resolve_position(
         loop_ms = reported_length_ms if reported_length_ms >= _CLIP_MAX_MS else duration_ms
         reported_ms %= loop_ms
 
+    if track_key != state.track_key and _only_album_differs(track_key, state.track_key):
+        near_zero = not segment and 0 <= reported_ms <= max(tolerance_ms, 2_000)
+        if not near_zero:
+            # The same song with its album filled in late, not a new one:
+            # the source kept counting, so the clock does too.
+            state = replace(state, track_key=track_key)
     if track_key != state.track_key:
         state, moved = (
             _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms, segment),
@@ -373,8 +393,12 @@ def resolve_position(
     frozen = is_playing and not source_position_is_fresh(state.moved_at, now, stall_after_s)
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
     undecidable = duration_disputed and not state.anchored
+    # An iPad pausing reports 0 for a moment. Passed on as the player's
+    # own position, it looked like the song starting over.
+    unconfirmed_start = state.start_pending and not is_playing
     if (
         reported_ms >= 0
+        and not unconfirmed_start
         and not segment
         and not frozen
         and not past_end
@@ -409,6 +433,11 @@ def resolve_position(
 
     # -- tier 3: no honest answer -------------------------------------
     return None, PositionTier.UNKNOWN, state
+
+
+def _only_album_differs(key: str, other: str) -> bool:
+    """Do two track keys (``source|title|artist|album``) differ in the album alone?"""
+    return bool(other) and key.rsplit("|", 1)[0] == other.rsplit("|", 1)[0]
 
 
 def _elapsed_ms(state: PositionState, now: float) -> int:
@@ -521,7 +550,10 @@ def _follow_seek(
     delta_ms = reported_ms - state.last_reported_ms
     if abs(delta_ms) <= tolerance_ms:
         return state  # standing still: a freeze, not a seek
-    jump_ms = delta_ms - int((now - state.last_seen_at) * 1000)
+    # Measured from when that value was read as new, not from the last
+    # poll: a source that stood still for a while and then caught up has
+    # not been seeked.
+    jump_ms = delta_ms - int((now - state.moved_at) * 1000)
     if abs(jump_ms) <= max(tolerance_ms, 2_000):
         return state  # ordinary playback advance
     # Never past `now`: a start in the future would mean negative elapsed,

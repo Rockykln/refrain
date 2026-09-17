@@ -27,6 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   away, the song counted again from zero and was queued a second time —
   or, not having counted yet, was never scrobbled at all. Quitting
   before that first poll also deleted the saved play.
+- **Pausing on an iPad could split the play in two.** The iPad reports
+  0:00 for a moment when paused; that was passed to the history and to
+  Last.fm as the player's position, which read as the song starting over
+  — a second history entry, and on songs over eight minutes a second
+  scrobble.
+- **The elapsed time could run ahead or fall behind for a whole song.**
+  A stream position that stalled and then caught up was taken for a
+  seek; a single poll that saw no song made a browser source's next
+  segment look like the song's start; and an album that arrived a few
+  seconds after the title restarted the clock at 0:00.
 - **Scrobbles were lost while the Last.fm session was invalid.** The log
   promised they would submit after reconnecting, but songs played in the
   meantime were never queued. They are now.

@@ -178,14 +178,38 @@ def test_negative_reported_position_is_never_shown():
     assert tier is PositionTier.UNKNOWN
 
 
-def test_no_track_resets_everything():
+def test_no_track_for_a_while_resets_everything():
     state = PositionState()
     _, _, state = step(state, A, 30_000, 1000.0)
-    pos, tier, state = step(state, "", 0, 1001.0)
-    assert pos is None
-    assert tier is PositionTier.UNKNOWN
+    for now in (1001.0, 1006.0, 1012.0):
+        pos, tier, state = step(state, "", 0, now)
+        assert pos is None
+        assert tier is PositionTier.UNKNOWN
     # All forgotten but the one thing the next track needs to know.
     assert state == PositionState(after_idle=True)
+
+
+def test_another_track_after_a_moment_of_nothing_starts_as_after_idle():
+    state = PositionState()
+    _, _, state = step(state, A, 30_000, 1000.0)
+    _, _, state = step(state, "", 0, 1001.0)
+    pos, tier, state = step(state, B, 0, 1002.0)
+    assert (pos, tier) == (0, PositionTier.REPORTED)
+    assert (state.track_key, state.cumulative, state.anchored) == (B, False, True)
+
+
+def test_a_moment_of_nothing_mid_segment_keeps_the_clock():
+    """Probe: at 2:00 one empty poll (a D-Bus hiccup), then the segment
+    source came back 1.5 s into a segment — and that was taken for the
+    song's start, 2:00 behind for the rest of it."""
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    seen, state = _segments(state, A, 1001.0, 300, 120)
+    assert 119_000 <= seen[-1][0] <= 121_000
+    _, _, state = step(state, "", 0, 1121.5)
+    seen, state = _segments(state, A, 1122.0, 1_500, 20)
+    assert all(tier is PositionTier.COMPUTED for _, tier in seen)
+    assert 140_000 <= seen[-1][0] <= 142_000
 
 
 def test_stall_check_disabled_keeps_believing_a_frozen_source():
@@ -251,6 +275,42 @@ def test_a_frozen_stream_position_is_not_mistaken_for_a_seek():
     for now in (1040.0, 1050.0, 1065.0):
         pos, tier, state = step(state, C, 267_590, now, duration_ms=0)
     assert (pos, tier) == (30_000, PositionTier.COMPUTED)
+
+
+def test_a_stream_position_catching_up_after_a_stall_is_not_a_seek():
+    """Probe: stuck for 15 s, then right again — read as a 15 s seek, and
+    the time ran 15 s ahead until the next song."""
+    state = PositionState()
+    _, _, state = step(state, B, 234_299, 1000.0, duration_ms=0)
+    _, _, state = step(state, C, 267_590, 1035.0, duration_ms=0)
+    for now in (1036.0, 1037.0, 1038.0, 1039.0, 1040.0):
+        _, _, state = step(state, C, 267_590 + int((now - 1035.0) * 1000), now, duration_ms=0)
+    for now in (1041.0, 1045.0, 1050.0, 1055.0):
+        _, _, state = step(state, C, 272_590, now, duration_ms=0)
+    pos, tier, state = step(state, C, 288_590, 1056.0, duration_ms=0)
+    assert (pos, tier) == (21_000, PositionTier.COMPUTED)
+
+
+def test_an_album_filled_in_late_is_the_same_song():
+    """Probe: the album arrived 4 s in, the key changed, and the clock
+    started again at zero — 4 s behind, with tier 1 lost for the song."""
+    state = PositionState()
+    _, _, state = step(state, B, 0, 1000.0)
+    for s in range(1, 4):
+        _, _, state = step(state, B, s * 1_000, 1000.0 + s)
+    pos, tier, state = step(state, B + "Some Album", 4_000, 1004.0)
+    assert (pos, tier) == (4_000, PositionTier.REPORTED)
+    assert state.cumulative is False
+    pos, tier, state = step(state, B + "Some Album", 33_000, 1033.0)
+    assert (pos, tier) == (33_000, PositionTier.REPORTED)
+
+
+def test_the_same_title_on_another_album_from_the_top_is_a_new_track():
+    state = PositionState()
+    _, _, state = step(state, B, 200_000, 1000.0)
+    pos, tier, state = step(state, B + "Live", 0, 1001.0)
+    assert (pos, tier) == (0, PositionTier.REPORTED)
+    assert state.track_key == B + "Live"
 
 
 def test_a_source_that_resets_again_gets_tier_1_back():
@@ -576,6 +636,20 @@ def test_a_pause_that_blips_to_zero_is_not_a_restart():
     pos, _, state = step(state, A, 43_500, 1047.0, duration_ms=length)
     assert state.restarts == 0
     assert pos == 43_500
+
+
+def test_the_zero_of_a_pause_blip_is_never_passed_on_as_the_players_position():
+    """Probe: the blip's 0:00 went to the history and Last.fm as the
+    player's own position — which read as the song starting over."""
+    length = 215_914
+    state = PositionState()
+    for s in range(0, 151):
+        _, _, state = step(state, A, s * 1_000, 1000.0 + s, duration_ms=length)
+    pos, tier, state = step(state, A, 0, 1151.0, duration_ms=length, playing=False)
+    assert tier is not PositionTier.REPORTED
+    assert pos == 151_000
+    pos, tier, state = step(state, A, 150_400, 1151.2, duration_ms=length, playing=False)
+    assert (pos, tier) == (150_400, PositionTier.REPORTED)
 
 
 def test_a_start_frame_seen_while_paused_counts_once_it_plays_on():
