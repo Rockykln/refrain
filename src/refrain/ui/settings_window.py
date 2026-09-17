@@ -6,6 +6,7 @@ import logging
 import time
 
 from PySide6.QtCore import (
+    QByteArray,
     QCoreApplication,
     QDateTime,
     QLocale,
@@ -17,7 +18,8 @@ from PySide6.QtCore import (
     QUrl,
     Signal,
 )
-from PySide6.QtGui import QDesktopServices, QIcon
+from PySide6.QtGui import QColor, QDesktopServices, QIcon, QImage, QPainter, QPalette, QPixmap
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -330,6 +332,23 @@ class _LastfmAuthWorker(QObject):
             self.failed.emit(f"Unexpected Last.fm error: {e}")
 
 
+def themed_svg_icon(svg: bytes, color: QColor, size: int, scale: float = 2.0) -> QIcon:
+    """An SVG icon with its ``currentColor`` drawn as ``color``.
+
+    Qt's SVG renderer knows nothing of the widget's text colour and paints
+    ``currentColor`` black, which all but vanishes on a dark theme.
+    """
+    renderer = QSvgRenderer(QByteArray(svg.replace(b"currentColor", color.name().encode())))
+    px = round(size * scale)
+    image = QImage(px, px, QImage.Format.Format_ARGB32_Premultiplied)
+    image.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(image)
+    renderer.render(painter)
+    painter.end()
+    image.setDevicePixelRatio(scale)
+    return QIcon(QPixmap.fromImage(image))
+
+
 class SettingsWindow(QDialog):
     """Tabbed settings dialog. Emits `applied(Config)` when the user hits Apply."""
 
@@ -407,8 +426,8 @@ class SettingsWindow(QDialog):
         # Plasma Breeze Dark.
         version_label.setStyleSheet("color: palette(text);")
 
-        github_btn = QToolButton()
-        github_btn.setIcon(QIcon(str(assets_dir() / "icons" / "github-mark.svg")))
+        self._github_btn = github_btn = QToolButton()
+        self._apply_github_icon()
         github_btn.setIconSize(QSize(16, 16))
         github_btn.setAutoRaise(True)
         github_btn.setToolTip(self.tr("View Refrain on GitHub"))
@@ -659,6 +678,20 @@ class SettingsWindow(QDialog):
         box.setDefaultButton(cancel)
         box.exec()
         return box.clickedButton() is turn_off
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
+            self._apply_github_icon()
+
+    def _apply_github_icon(self) -> None:
+        # The same colour as the version label beside it.
+        button = getattr(self, "_github_btn", None)
+        if button is None:
+            return  # a theme change while the window is still being built
+        svg = (assets_dir() / "icons" / "github-mark.svg").read_bytes()
+        color = self.palette().color(QPalette.ColorRole.Text)
+        button.setIcon(themed_svg_icon(svg, color, 16, max(2.0, self.devicePixelRatioF())))
 
     def _set_discord_overrides_visible(self, visible: bool) -> None:
         """Show/hide the per-source Client ID rows (label + field).

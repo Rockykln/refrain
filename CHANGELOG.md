@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The GitHub logo in the Settings footer was hard to see on a dark
+  theme.** Qt draws the logo's `currentColor` as black whatever the
+  theme; it now takes the theme's text colour, like the version beside
+  it, and follows a theme change while the window is open.
+
 ## [0.5.1] - 2026-09-15
 
 A release about what you played. A new *Recently played* window lists the
