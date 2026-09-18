@@ -51,6 +51,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.2" date="2026-09-18">
+      <description>
+        <p>
+          Measured the length of songs the iTunes catalog doesn't know, so they
+          are scrobbled and show an end time again, left streams and videos
+          playing over Bluetooth out, fixed Discord showing nothing for some
+          songs, and kept Last.fm scrobbles whole across restarts, invalid
+          sessions and account switches.
+        </p>
+      </description>
+    </release>
     <release version="0.5.1" date="2026-09-15">
       <description>
         <p>

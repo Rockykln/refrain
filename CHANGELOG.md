@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-09-18
+
+A release about the gaps. Songs the iTunes catalog doesn't know — about
+one in ten here — were never scrobbled from the browser and had no end
+time on Discord; Refrain now measures their length from whole plays. A
+stream or video playing over Bluetooth no longer passes for a song,
+Discord no longer shows nothing when the tab's address has a space in
+it, and Last.fm neither scrobbles a long song twice nor loses one around
+a restart, an invalid session or an account switch.
+
 ### Fixed
 
 - **The desktop entries named invalid categories.** `Audio` requires
@@ -1759,7 +1769,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/Rockykln/refrain/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Rockykln/refrain/compare/v0.4.6...v0.5.1
 [0.4.6]: https://github.com/Rockykln/refrain/compare/v0.4.5...v0.4.6
 [0.4.5]: https://github.com/Rockykln/refrain/compare/v0.4.4...v0.4.5
