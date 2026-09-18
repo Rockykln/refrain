@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for it. A second Refrain that really is running is logged now, too.
 - **The AppStream metadata named an invalid developer ID** and a
   category the desktop entries no longer carry.
+- **The in-app update could install over a source checkout.** A checkout
+  installed editable into a virtual environment passed for a pip
+  install, so *Update* ran `pip install --upgrade refrain` over it and
+  Refrain went on running the release rather than the source. It is
+  recognised as a checkout first now, and the update leaves it alone.
 - **A development build never heard about a release.** The update check
   read a version like `0.5.3.dev0` as no version at all, so nothing was
   ever newer than it. A pre-release now sorts before the release of the

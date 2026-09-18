@@ -84,6 +84,13 @@ def detect_install_type() -> str:
     if os.environ.get("FLATPAK_ID") or os.environ.get("container") == "flatpak":  # noqa: SIM112
         return "flatpak"
 
+    # A source checkout, usually installed editable into a venv — before the
+    # venv→pip branch below, which took it for a pip install: the in-app
+    # update then ran `pip install --upgrade refrain` over the checkout.
+    project_root = Path(__file__).resolve().parents[2]
+    if (project_root / "pyproject.toml").exists() and (project_root / ".git").exists():
+        return "dev"
+
     # pipx MUST be checked before the generic venv→pip branch: a pipx
     # app lives in its own venv (sys.prefix != base_prefix) but that
     # venv has *no pip*, so `python -m pip install -U` fails with
@@ -119,10 +126,6 @@ def detect_install_type() -> str:
                     return "aur"
         return "system"
 
-    # Fallback: source checkout (editable install) or unknown
-    project_root = Path(__file__).resolve().parents[2]
-    if (project_root / "pyproject.toml").exists() and (project_root / ".git").exists():
-        return "dev"
     return "pip"
 
 

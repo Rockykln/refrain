@@ -97,6 +97,12 @@ def test_detect_install_type_pipx(monkeypatch, updater):
     )
     monkeypatch.setattr(updater.sys, "prefix", "/home/u/.local/share/pipx/venvs/refrain")
     monkeypatch.setattr(updater.sys, "base_prefix", "/usr")
+    # Installed into that venv, not run from this checkout.
+    monkeypatch.setattr(
+        updater,
+        "__file__",
+        "/home/u/.local/share/pipx/venvs/refrain/lib/python3.14/site-packages/refrain/updater.py",
+    )
     assert updater.detect_install_type() == "pipx"
 
 
@@ -327,3 +333,27 @@ def test_cleanup_orphan_downloads_no_orphan_is_idempotent(tmp_path, monkeypatch,
     updater.cleanup_orphan_downloads()
 
     assert appimage.exists()
+
+
+def test_a_source_checkout_in_a_venv_is_never_updated_by_pip(updater, tmp_path, monkeypatch):
+    """Measured: the in-app update ran pip over an editable checkout in a
+    venv, which then ran the released version instead of the source."""
+    checkout = tmp_path / "refrain"
+    (checkout / "src" / "refrain").mkdir(parents=True)
+    (checkout / "pyproject.toml").write_text("")
+    (checkout / ".git").mkdir()
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    monkeypatch.delenv("FLATPAK_ID", raising=False)
+    monkeypatch.setattr(updater, "__file__", str(checkout / "src" / "refrain" / "updater.py"))
+    assert updater.detect_install_type() == "dev"
+
+
+def test_a_pip_install_in_a_venv_is_still_pip(updater, tmp_path, monkeypatch):
+    site = tmp_path / "venv" / "lib" / "python3.14" / "site-packages" / "refrain"
+    site.mkdir(parents=True)
+    monkeypatch.delenv("APPIMAGE", raising=False)
+    monkeypatch.delenv("FLATPAK_ID", raising=False)
+    monkeypatch.setattr(updater, "__file__", str(site / "updater.py"))
+    monkeypatch.setattr(updater.sys, "prefix", str(tmp_path / "venv"))
+    monkeypatch.setattr(updater.sys, "base_prefix", "/usr")
+    assert updater.detect_install_type() == "pip"
