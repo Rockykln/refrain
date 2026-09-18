@@ -44,6 +44,11 @@ lists every version and why.
   lacked a library Qt's Wayland or X11 plugin needs, Qt aborted with
   "no Qt platform plugin could be initialized". Refrain now names the
   missing library and the command that installs it on your distro.
+- **With two Bluetooth devices connected, the one playing could go
+  unseen.** Without a device chosen in the settings, Refrain took the
+  first player BlueZ listed — an idle tablet, say, while music played on
+  a phone. It now prefers the device that is playing, then one that is
+  paused.
 - **Refrain's own restart could fail with "already running".** It
   replaces its own process, and the session bus may still hold the old
   one's name for a moment; the new one now waits up to three seconds

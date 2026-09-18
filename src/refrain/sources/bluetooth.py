@@ -265,15 +265,23 @@ class BluetoothSource:
 
         mac_token = self._device_mac.replace(":", "_").lower() if self._device_mac else ""
 
+        # With two devices connected, the first player listed may be the idle one.
+        rank = {"playing": 0, "paused": 1}
+        best: tuple[int, str, dict] | None = None
         for path, ifaces in objects.items():
             if "org.bluez.MediaPlayer1" not in ifaces:
                 continue
             path_str = str(path)
             if mac_token and mac_token not in path_str.lower():
                 continue
-            self._player_name = _device_name(objects, ifaces["org.bluez.MediaPlayer1"])
-            return path_str
-        return None
+            props = ifaces["org.bluez.MediaPlayer1"]
+            score = rank.get(str(props.get("Status", "")).lower(), 2)
+            if best is None or score < best[0]:
+                best = (score, path_str, props)
+        if best is None:
+            return None
+        self._player_name = _device_name(objects, best[2])
+        return best[1]
 
     @staticmethod
     def list_paired_devices() -> list[dict]:

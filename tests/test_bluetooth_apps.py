@@ -67,3 +67,41 @@ def test_the_music_app_still_plays(monkeypatch):
         "Live Stream",
         PlaybackStatus.PLAYING,
     )
+
+
+def _managed(*players):
+    objects = {}
+    for mac, status, alias in players:
+        device = f"/org/bluez/hci0/dev_{mac}"
+        objects[device] = {"org.bluez.Device1": {"Alias": alias}}
+        objects[f"{device}/avrcp/player0"] = {
+            "org.bluez.MediaPlayer1": {"Status": status, "Device": device}
+        }
+    return objects
+
+
+def _find(monkeypatch, objects, device_mac=""):
+    src = bluetooth.BluetoothSource(device_mac)
+
+    class Bus:
+        def get_object(self, *_a, **_k):
+            return type("M", (), {"GetManagedObjects": lambda self: objects})()
+
+    monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: obj)
+    return src._find_player(Bus()), src._player_name
+
+
+def test_the_playing_device_wins_over_an_idle_one(monkeypatch):
+    objects = _managed(("AA", "stopped", "tablet"), ("BB", "playing", "phone"))
+    path, name = _find(monkeypatch, objects)
+    assert "dev_BB" in path and name == "phone"
+
+
+def test_a_paused_device_wins_over_a_stopped_one(monkeypatch):
+    objects = _managed(("AA", "stopped", "tablet"), ("BB", "paused", "phone"))
+    assert "dev_BB" in _find(monkeypatch, objects)[0]
+
+
+def test_a_chosen_device_is_kept_even_when_another_plays(monkeypatch):
+    objects = _managed(("AA", "stopped", "tablet"), ("BB", "playing", "phone"))
+    assert "dev_AA" in _find(monkeypatch, objects, "AA")[0]
