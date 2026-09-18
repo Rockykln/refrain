@@ -137,6 +137,11 @@ class LearnedLengths:
             self._save_locked()
         return entry[1] >= CONFIRMATIONS_NEEDED
 
+    def forget(self, artist: str, title: str, album: str) -> None:
+        with self._lock:
+            if self._entries.pop(song_key(artist, title, album), None) is not None:
+                self._save_locked()
+
     def clear(self) -> None:
         with self._lock:
             self._entries = {}

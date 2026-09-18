@@ -112,6 +112,7 @@ def _worker(tmp_path, *, catalog_ms=0, tier=PositionTier.COMPUTED, control_at=0.
         _position_state=PositionState(track_key="mpris|x", anchored=True, started_at=1000.0),
         _position_tier=tier,
         _control_at=control_at,
+        _max_reported_ms=0,
         _cover_fetcher=SimpleNamespace(get_duration_ms=lambda *_: catalog_ms),
     )
     worker._catalog_duration_ms = lambda t: DaemonWorker._catalog_duration_ms(worker, t)
@@ -162,3 +163,58 @@ def test_a_measured_length_is_what_the_scrobbler_is_given(tmp_path):
     worker._known_duration_ms = lambda t: DaemonWorker._known_duration_ms(worker, t)
     assert worker._known_duration_ms(worker._prev_track) == 157_000
     assert DaemonWorker._duration_for(worker, worker._prev_track) == (157_000, False)
+
+
+def test_the_players_own_position_measures_better_than_our_clock(tmp_path):
+    """Our clock starts when the change is seen, up to 16 s late."""
+    worker, lengths = _worker(tmp_path)
+    worker._max_reported_ms = 156_000
+    _measure(worker, now=1150.0)
+    _measure(worker, now=1150.0)
+    assert lengths.get_ms(*A) == 156_000
+
+
+def test_a_length_the_player_plays_past_is_dropped(tmp_path):
+    worker, lengths = _worker(tmp_path)
+    lengths.observe(*A, 150_000)
+    lengths.observe(*A, 150_000)
+    state = PositionState(track_key="mpris|x", anchored=True, track_relative=True)
+    track = TrackInfo(
+        source="mpris",
+        title="f**k dich",
+        artist="moi",
+        album="LOVE IS A BITCH",
+        position_ms=151_000,
+    )
+    DaemonWorker._follow_reported_position(worker, track, state)
+    assert lengths.get_ms(*A) == 150_000, "within the tolerance"
+    DaemonWorker._follow_reported_position(
+        worker, track.__class__(**{**track.__dict__, "position_ms": 156_000}), state
+    )
+    assert lengths.get_ms(*A) == 0
+    assert worker._max_reported_ms == 156_000
+
+
+def test_a_segment_position_is_no_song_position(tmp_path):
+    worker, _ = _worker(tmp_path)
+    state = PositionState(track_key="mpris|x", anchored=True, track_relative=True)
+    track = TrackInfo(source="mpris", title="t", duration_ms=14_999, position_ms=14_000)
+    DaemonWorker._follow_reported_position(worker, track, state)
+    assert worker._max_reported_ms == 0
+
+
+def test_a_length_is_dropped_even_when_refrain_started_mid_song(tmp_path):
+    worker, lengths = _worker(tmp_path)
+    lengths.observe(*A, 150_000)
+    lengths.observe(*A, 150_000)
+    state = PositionState(track_key="mpris|x", anchored=False, track_relative=False)
+    track = TrackInfo(
+        source="mpris",
+        title="f**k dich",
+        artist="moi",
+        album="LOVE IS A BITCH",
+        position_ms=156_000,
+    )
+    DaemonWorker._follow_reported_position(worker, track, state)
+    assert lengths.get_ms(*A) == 0
+    assert worker._max_reported_ms == 0, "no zero to measure from"

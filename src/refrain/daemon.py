@@ -340,6 +340,7 @@ class DaemonWorker(QObject):
         # for — see refrain.song_lengths.
         self._song_lengths = LearnedLengths()
         self._prev_track: TrackInfo | None = None
+        self._max_reported_ms = 0
         # When we last skipped a song ourselves: a play we cut short says
         # nothing about how long the song is.
         self._control_at = 0.0
@@ -733,12 +734,34 @@ class DaemonWorker(QObject):
             return  # we skipped it
         if self._catalog_duration_ms(prev) > 0:
             return  # its length is known; measuring it changes nothing
-        if self._song_lengths.observe(prev.artist, prev.title, prev.album, elapsed_ms(state, now)):
+        # Our clock starts late when the change is reported late.
+        played = self._max_reported_ms or elapsed_ms(state, now)
+        if self._song_lengths.observe(prev.artist, prev.title, prev.album, played):
             log.info(
                 "Length: %s — %s runs %s, measured from whole plays",
                 prev.artist or "—",
                 prev.title,
                 mmss(self._song_lengths.get_ms(prev.artist, prev.title, prev.album)),
+            )
+
+    def _follow_reported_position(self, track: TrackInfo, state: PositionState) -> None:
+        """A measured length the player plays past was measured short."""
+        if not track.has_track or state.cumulative:
+            return
+        if 0 < track.duration_ms < CLIP_MAX_MS:
+            return  # a media segment's position, not the song's
+        if state.track_relative:
+            self._max_reported_ms = max(self._max_reported_ms, track.position_ms)
+        if self._catalog_duration_ms(track) > 0:
+            return
+        measured = self._song_lengths.get_ms(track.artist, track.title, track.album)
+        if measured and track.position_ms > measured + 2_000:
+            self._song_lengths.forget(track.artist, track.title, track.album)
+            log.info(
+                "Length: %s — %s plays past its measured %s; measuring again",
+                track.artist or "—",
+                track.title,
+                mmss(measured),
             )
 
     def _resolve_position(self, track: TrackInfo) -> TrackInfo:
@@ -778,13 +801,28 @@ class DaemonWorker(QObject):
             # A song starting over has just run its full length, the same
             # as one ending at a track change.
             self._measure_previous_song(now)
+        if new_state.track_key != self._position_state.track_key or self._track_restarted:
+            self._max_reported_ms = 0
         self._position_state = new_state
         self._prev_track = track if track.has_track else None
+        self._follow_reported_position(track, new_state)
         self._position_known = position_ms is not None
         # Log the tier transitions only — a degraded source stays
         # degraded for hundreds of polls, and per-tick logging would
         # drown the live log the way un-suppressed idle detection did.
         if tier != self._position_tier and track.has_track:
+            log.debug(
+                "Position inputs: reported=%s length=%s duration=%s disputed=%s playing=%s "
+                "cumulative=%s anchored=%s track_relative=%s",
+                track.position_ms,
+                track.duration_ms,
+                duration_ms,
+                disputed,
+                track.status == PlaybackStatus.PLAYING,
+                new_state.cumulative,
+                new_state.anchored,
+                new_state.track_relative,
+            )
             log.info(
                 "Position: %s → %s%s",
                 self._position_tier.value,

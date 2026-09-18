@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for it. A second Refrain that really is running is logged now, too.
 - **The AppStream metadata named an invalid developer ID** and a
   category the desktop entries no longer carry.
+- **A song length Refrain measured itself could come out a few seconds
+  short**, and the browser's time then vanished before the song ended.
+  Where the player reports its own position, that is what measures the
+  song now, and a length the player plays past is measured again.
 - **Plasma's media controls often showed no length.** The length a song
   gets from the catalog tends to arrive a poll after its title, and the
   MPRIS entry only announced changes to the title, cover or playing
