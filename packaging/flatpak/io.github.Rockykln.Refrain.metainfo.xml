@@ -29,14 +29,14 @@
   <url type="bugtracker">https://github.com/Rockykln/refrain/issues</url>
   <url type="vcs-browser">https://github.com/Rockykln/refrain</url>
 
-  <developer id="io.github.Rockykln">
+  <developer id="io.github.rockykln">
     <name>Rockykln</name>
   </developer>
 
   <categories>
+    <category>AudioVideo</category>
     <category>Audio</category>
     <category>Music</category>
-    <category>Network</category>
   </categories>
 
   <keywords>
