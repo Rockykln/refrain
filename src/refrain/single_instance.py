@@ -9,6 +9,7 @@ process so that the name does not get released.
 from __future__ import annotations
 
 import logging
+import time
 
 import dbus
 
@@ -35,19 +36,29 @@ class SessionBusUnavailable(Exception):
     """
 
 
-def acquire() -> dbus.SessionBus:
+def acquire(wait_s: float = 3.0, step_s: float = 0.2) -> dbus.SessionBus:
+    """Claim the bus name, waiting ``wait_s`` for a Refrain that is on its way out.
+
+    Refrain restarts itself by replacing its own process, and the bus
+    daemon may not yet have let go of the old one's name when the new one
+    asks — the restart then failed with "already running".
+    """
     try:
         bus = dbus.SessionBus()
     except dbus.DBusException as e:
         log.error("Session bus unreachable: %s", e)
         raise SessionBusUnavailable(str(e)) from e
-    try:
-        result = bus.request_name(BUS_NAME, _DO_NOT_QUEUE)
-    except dbus.DBusException as e:
-        log.error("Could not request bus name %s: %s", BUS_NAME, e)
-        raise SessionBusUnavailable(str(e)) from e
-
-    if result != _REPLY_PRIMARY_OWNER:
-        raise AlreadyRunning(f"{BUS_NAME} is already in use")
-    log.debug("Bus name acquired: %s", BUS_NAME)
-    return bus
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            result = bus.request_name(BUS_NAME, _DO_NOT_QUEUE)
+        except dbus.DBusException as e:
+            log.error("Could not request bus name %s: %s", BUS_NAME, e)
+            raise SessionBusUnavailable(str(e)) from e
+        if result == _REPLY_PRIMARY_OWNER:
+            log.debug("Bus name acquired: %s", BUS_NAME)
+            return bus
+        if time.monotonic() >= deadline:
+            log.info("Another Refrain owns %s — not starting a second one", BUS_NAME)
+            raise AlreadyRunning(f"{BUS_NAME} is already in use")
+        time.sleep(step_s)

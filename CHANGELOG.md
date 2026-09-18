@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Refrain's own restart could fail with "already running".** It
+  replaces its own process, and the session bus may still hold the old
+  one's name for a moment; the new one now waits up to three seconds
+  for it. A second Refrain that really is running is logged now, too.
 - **A development build never heard about a release.** The update check
   read a version like `0.5.3.dev0` as no version at all, so nothing was
   ever newer than it. A pre-release now sorts before the release of the
