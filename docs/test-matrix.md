@@ -80,8 +80,9 @@ track, position and length differently.
 |---|---|---|---|---|
 | ✓ | Apple Music in **Chromium** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | segment lengths; the tab's entry decides playing vs. paused |
 | ✓ | Apple Music in **Firefox** | Firefox's own MPRIS (no Plasma extension) | 2026-09-18 / v0.5.2 | no length reported — the catalog's or a measured one is used; position in whole seconds |
-| [ ] | Apple Music in **Google Chrome** / **Brave** | plasma-browser-integration | | |
-| [ ] | Apple Music in **Zen** | Zen's own MPRIS | | Firefox-based |
+| ✓ | Apple Music in **Google Chrome** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | as Chromium |
+| [ ] | Apple Music in **Brave** | plasma-browser-integration | | |
+| ✓ | Apple Music in **Zen** | Zen's own MPRIS | 2026-09-18 / v0.5.2 | as Firefox; position to the second |
 | ✓ | **Tablet** over Bluetooth (AVRCP) | BlueZ `MediaPlayer1` | 2026-09-18 / v0.5.2 | names the playing app; Twitch is left out |
 
 ## Out of scope (won't work)
