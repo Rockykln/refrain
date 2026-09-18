@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Connecting to Last.fm waits for your approval.** After *Connect…*
+  opened Last.fm's page, an OK clicked before approving there ended in
+  an error and the connect had to start over. Refrain now asks Last.fm
+  itself every few seconds and connects as soon as access is allowed,
+  with a button to open the page again.
+- **Disconnecting from Last.fm asks first**, and *Apply* warns when
+  scrobbling is switched on without a working connection — which used
+  to scrobble nothing, silently.
+
 ### Fixed
 
 - **A development build never heard about a release.** The update check

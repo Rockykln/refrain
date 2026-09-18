@@ -131,3 +131,99 @@ def test_incomplete_connect_button_runs_connect_not_disconnect(win, monkeypatch)
     win._on_lastfm_connect()
     assert seen.get("warned") is True
     assert win._lastfm_session_key == "S"  # leftover NOT cleared as disconnect
+
+
+# --------------------------------------------------------------------------- #
+# connecting: wait for the approval, confirm a disconnect, warn when unusable   #
+# --------------------------------------------------------------------------- #
+
+
+def test_disconnect_asks_first(win, monkeypatch):
+    _load(win, api_key="A", secret="K", session="S", username="Rockykln")
+    monkeypatch.setattr(win, "_confirm_lastfm_disconnect", lambda: False)
+    win._on_lastfm_connect()
+    assert win._lastfm_session_key == "S", "one click no longer disconnects"
+    monkeypatch.setattr(win, "_confirm_lastfm_disconnect", lambda: True)
+    win._on_lastfm_connect()
+    assert win._lastfm_session_key == ""
+
+
+def test_apply_warns_when_scrobbling_has_no_connection(win, monkeypatch):
+    _load(win)
+    win.lastfm_enabled_box.setChecked(True)
+    asked = []
+    monkeypatch.setattr(win, "_confirm_lastfm_unconnected", lambda: asked.append(1) or False)
+    applied = []
+    win.applied.connect(applied.append)
+    win._on_apply_clicked()
+    assert asked == [1]
+    assert applied == [], "Cancel leaves everything as it was"
+    win.lastfm_enabled_box.setChecked(False)
+
+
+class _SlowToApprove:
+    """Last.fm answering "not authorised yet" until the user has clicked."""
+
+    def __init__(self, answers):
+        self._answers = list(answers)
+
+    def get_session(self, token):
+        answer = self._answers.pop(0) if len(self._answers) > 1 else self._answers[0]
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+
+def _wait(dialog, ms=3000):
+    import time
+
+    from PySide6.QtWidgets import QDialog
+
+    dialog.open()
+    deadline = time.monotonic() + ms / 1000
+    while dialog.isVisible() and time.monotonic() < deadline:
+        QApplication.processEvents()
+        time.sleep(0.005)
+    return dialog.result() == QDialog.DialogCode.Accepted
+
+
+def test_the_approval_is_waited_for_not_clicked_for(win):
+    """Clicking OK before approving on Last.fm's page used to end in an
+    error; now Refrain asks Last.fm until the approval is there."""
+    from refrain.scrobble import LastfmError
+    from refrain.ui.settings_window import LastfmApprovalDialog
+
+    not_yet = LastfmError("Unauthorized Token", code=14)
+    client = _SlowToApprove([not_yet, not_yet, ("SK", "alice")])
+    dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10)
+    assert _wait(dialog)
+    assert (dialog.session_key, dialog.username) == ("SK", "alice")
+
+
+def test_being_offline_for_a_moment_keeps_waiting(win):
+    from refrain.scrobble import LastfmError
+    from refrain.ui.settings_window import LastfmApprovalDialog
+
+    client = _SlowToApprove([LastfmError("timed out"), ("SK", "alice")])
+    dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10)
+    assert _wait(dialog)
+
+
+def test_an_expired_page_stops_with_a_reason(win):
+    from refrain.scrobble import LastfmError
+    from refrain.ui.settings_window import LastfmApprovalDialog
+
+    client = _SlowToApprove([LastfmError("Token expired", code=15)])
+    dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10)
+    assert not _wait(dialog)
+    assert "expired" in dialog.error
+
+
+def test_it_gives_up_eventually(win):
+    from refrain.scrobble import LastfmError
+    from refrain.ui.settings_window import LastfmApprovalDialog
+
+    client = _SlowToApprove([LastfmError("Unauthorized Token", code=14)])
+    dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10, give_up_ms=100)
+    assert not _wait(dialog)
+    assert "No approval" in dialog.error

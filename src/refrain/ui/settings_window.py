@@ -54,7 +54,14 @@ from refrain.discord_app import (
     remember_application_name,
 )
 from refrain.paths import assets_dir, config_path, state_dir
-from refrain.scrobble import API_ACCOUNT_URL, LastfmClient, LastfmError
+from refrain.scrobble import (
+    API_ACCOUNT_URL,
+    ERR_INVALID_TOKEN,
+    ERR_TOKEN_EXPIRED,
+    ERR_TOKEN_NOT_AUTHORISED,
+    LastfmClient,
+    LastfmError,
+)
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.updater import ReleaseInfo, prepare_release_notes
@@ -311,7 +318,7 @@ class _LastfmAuthWorker(QObject):
 
     tokenReady = Signal(str)  # request token
     sessionReady = Signal(str, str)  # (session_key, username)
-    failed = Signal(str)  # human-readable error
+    failed = Signal(str, int)  # human-readable error, Last.fm's code or -1
 
     def __init__(self, client: LastfmClient, phase: str, token: str = "") -> None:
         super().__init__()
@@ -327,9 +334,112 @@ class _LastfmAuthWorker(QObject):
                 key, name = self._client.get_session(self._token)
                 self.sessionReady.emit(key, name)
         except LastfmError as e:
-            self.failed.emit(str(e))
+            self.failed.emit(str(e), -1 if e.code is None else e.code)
         except Exception as e:  # never let a worker exception escape the thread
-            self.failed.emit(f"Unexpected Last.fm error: {e}")
+            self.failed.emit(f"Unexpected Last.fm error: {e}", -1)
+
+
+class LastfmApprovalDialog(QDialog):
+    """Waits while the user allows Refrain on Last.fm's page.
+
+    It asks Last.fm itself every few seconds instead of taking an OK click
+    for the answer: clicked before the page was approved, OK ended in an
+    error and the whole connect had to start over.
+    """
+
+    def __init__(
+        self,
+        client: LastfmClient,
+        token: str,
+        open_page,
+        parent: QWidget | None = None,
+        poll_ms: int = 3000,
+        give_up_ms: int = 10 * 60 * 1000,
+    ) -> None:
+        super().__init__(parent)
+        self._client = client
+        self._token = token
+        self._thread: QThread | None = None
+        self._worker: _LastfmAuthWorker | None = None
+        self.session_key = ""
+        self.username = ""
+        self.error = ""
+        self.setWindowTitle(self.tr("Authorise Refrain"))
+        text = QLabel(
+            self.tr(
+                "A Last.fm page opened in your browser. Click “Yes, allow access” "
+                "there — Refrain connects by itself as soon as you have."
+            )
+        )
+        text.setWordWrap(True)
+        self._status = QLabel(self.tr("Waiting for you to allow access…"))
+        again = QPushButton(self.tr("Open the page again"))
+        again.clicked.connect(open_page)
+        cancel = QPushButton(self.tr("Cancel"))
+        cancel.clicked.connect(self.reject)
+        layout = QVBoxLayout(self)
+        layout.addWidget(text)
+        layout.addWidget(self._status)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(again)
+        buttons.addWidget(cancel)
+        layout.addLayout(buttons)
+        self._poll_timer = QTimer(self)
+        self._poll_timer.timeout.connect(self._poll)
+        self._poll_timer.start(poll_ms)
+        self._give_up = QTimer(self)
+        self._give_up.setSingleShot(True)
+        self._give_up.timeout.connect(self._on_timed_out)
+        self._give_up.start(give_up_ms)
+
+    def _poll(self) -> None:
+        if self._thread is not None:
+            return  # the last question is still on its way
+        self._thread = QThread(self)
+        self._worker = _LastfmAuthWorker(self._client, "session", self._token)
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.sessionReady.connect(self._on_session)
+        self._worker.failed.connect(self._on_failed)
+        self._thread.start()
+
+    def _finish_thread(self) -> None:
+        if self._thread is not None:
+            self._thread.quit()
+            self._thread.wait(2000)
+            self._thread = None
+            self._worker = None
+
+    def _on_session(self, key: str, name: str) -> None:
+        self._finish_thread()
+        self.session_key, self.username = key, name
+        self.accept()
+
+    def _on_failed(self, message: str, code: int) -> None:
+        self._finish_thread()
+        if code == ERR_TOKEN_NOT_AUTHORISED:
+            self._status.setText(self.tr("Waiting for you to allow access…"))
+        elif code == -1:
+            # Offline for a moment: the approval may already be given.
+            self._status.setText(self.tr("Can't reach Last.fm right now — still trying…"))
+        elif code in (ERR_TOKEN_EXPIRED, ERR_INVALID_TOKEN):
+            self._stop(self.tr("The Last.fm page has expired. Click Connect to start again."))
+        else:
+            self._stop(message)
+
+    def _on_timed_out(self) -> None:
+        self._stop(self.tr("No approval arrived. Click Connect to start again."))
+
+    def _stop(self, error: str) -> None:
+        self.error = error
+        self.reject()
+
+    def done(self, result: int) -> None:
+        self._poll_timer.stop()
+        self._give_up.stop()
+        self._finish_thread()
+        super().done(result)
 
 
 def themed_svg_icon(svg: bytes, color: QColor, size: int, scale: float = 2.0) -> QIcon:
@@ -678,6 +788,39 @@ class SettingsWindow(QDialog):
         box.setDefaultButton(cancel)
         box.exec()
         return box.clickedButton() is turn_off
+
+    def _confirm_lastfm_disconnect(self) -> bool:
+        """One click used to disconnect — easy to do by accident, and nothing
+        is scrobbled until the browser round-trip is done again."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(self.tr("Disconnect from Last.fm?"))
+        box.setText(self.tr("Nothing is scrobbled until you connect again."))
+        box.setInformativeText(self.tr("The disconnect takes effect when you click Apply."))
+        disconnect = box.addButton(self.tr("Disconnect"), QMessageBox.ButtonRole.DestructiveRole)
+        cancel = box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(cancel)
+        box.exec()
+        return box.clickedButton() is disconnect
+
+    def _confirm_lastfm_unconnected(self) -> bool:
+        """Scrobbling switched on without a working connection does nothing,
+        and says so nowhere — so say it before it is saved."""
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Warning)
+        box.setWindowTitle(self.tr("Last.fm isn't connected"))
+        box.setText(
+            self.tr(
+                "Scrobbling is switched on, but Refrain has no connection to "
+                "Last.fm — nothing will be scrobbled."
+            )
+        )
+        box.setInformativeText(self.tr("Click Connect… on the Last.fm tab to connect."))
+        apply = box.addButton(self.tr("Apply anyway"), QMessageBox.ButtonRole.AcceptRole)
+        box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(apply)
+        box.exec()
+        return box.clickedButton() is apply
 
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
@@ -1277,6 +1420,8 @@ class SettingsWindow(QDialog):
             )
             == "connected"
         ):
+            if not self._confirm_lastfm_disconnect():
+                return
             self._lastfm_session_key = ""
             self._lastfm_username = ""
             self._lastfm_disconnect_requested = True
@@ -1323,30 +1468,18 @@ class SettingsWindow(QDialog):
         self._finish_lastfm_thread()
         self._lastfm_token = token
         assert self._lastfm_client is not None
-        QDesktopServices.openUrl(QUrl(self._lastfm_client.authorize_url(token)))
-        # Hand-built for the same reason as the Reset dialog below: the
-        # stock Ok/Cancel take their text from the platform theme, which
-        # reads the process locale rather than `advanced.language`, so an
-        # English window offered a German "Abbrechen".
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Information)
-        msg.setWindowTitle(self.tr("Authorise Refrain"))
-        msg.setText(
-            self.tr(
-                "A Last.fm page opened in your browser. Approve access "
-                "for Refrain there, then click OK to finish connecting."
-            )
+        url = QUrl(self._lastfm_client.authorize_url(token))
+        QDesktopServices.openUrl(url)
+        dialog = LastfmApprovalDialog(
+            self._lastfm_client, token, lambda: QDesktopServices.openUrl(url), self
         )
-        ok_btn = msg.addButton(self.tr("OK"), QMessageBox.AcceptRole)
-        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
-        msg.setDefaultButton(ok_btn)
-        msg.exec()
-        if msg.clickedButton() is not ok_btn:
-            self._lastfm_token = ""
-            self._refresh_lastfm_status()
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._on_lastfm_session(dialog.session_key, dialog.username)
             return
-        self.lastfm_status_label.setText(self.tr("Completing sign-in…"))
-        self._start_lastfm_auth("session")
+        self._lastfm_token = ""
+        self._refresh_lastfm_status()
+        if dialog.error:
+            QMessageBox.warning(self, self.tr("Last.fm connection failed"), dialog.error)
 
     def _on_lastfm_session(self, key: str, name: str) -> None:
         self._finish_lastfm_thread()
@@ -1363,7 +1496,7 @@ class SettingsWindow(QDialog):
             done = self.tr("Connected. Click Apply to save — scrobbling starts on the next track.")
         QMessageBox.information(self, self.tr("Last.fm"), done)
 
-    def _on_lastfm_auth_failed(self, message: str) -> None:
+    def _on_lastfm_auth_failed(self, message: str, _code: int = -1) -> None:
         self._finish_lastfm_thread()
         self._lastfm_token = ""
         self._refresh_lastfm_status()
@@ -1468,6 +1601,17 @@ class SettingsWindow(QDialog):
             c.history.enabled
             and not self.history_box.isChecked()
             and not self._confirm_history_off()
+        ):
+            return
+        if (
+            self.lastfm_enabled_box.isChecked()
+            and lastfm_connection_state(
+                self._lastfm_session_key,
+                self.lastfm_api_key_input.text(),
+                self.lastfm_secret_input.text(),
+            )
+            != "connected"
+            and not self._confirm_lastfm_unconnected()
         ):
             return
         # Snapshot the language + client_id *before* we overwrite them so

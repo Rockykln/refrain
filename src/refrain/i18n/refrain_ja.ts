@@ -19,177 +19,221 @@
         <translation>不明なアーティスト</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="338"/>
-        <location filename="../ui/history_window.py" line="441"/>
+        <location filename="../ui/history_window.py" line="410"/>
+        <location filename="../ui/history_window.py" line="513"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm にスクロブル済み</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="343"/>
-        <location filename="../ui/history_window.py" line="859"/>
+        <location filename="../ui/history_window.py" line="415"/>
+        <location filename="../ui/history_window.py" line="961"/>
         <source>Now playing</source>
         <translation>再生中</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="345"/>
+        <location filename="../ui/history_window.py" line="417"/>
         <source>Paused</source>
         <translation>一時停止中</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="419"/>
+        <location filename="../ui/history_window.py" line="491"/>
         <source>Started: {when}</source>
         <translation>開始: {when}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="426"/>
+        <location filename="../ui/history_window.py" line="498"/>
         <source>Source: {source}</source>
         <translation>ソース: {source}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="434"/>
+        <location filename="../ui/history_window.py" line="506"/>
         <source>Length: {length}</source>
         <translation>長さ: {length}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="446"/>
+        <location filename="../ui/history_window.py" line="518"/>
         <source>Click to open in Apple Music.</source>
         <translation>クリックすると Apple Music で開きます。</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="507"/>
+        <location filename="../ui/history_window.py" line="579"/>
         <source>Copy artist and title</source>
         <translation>アーティストとタイトルをコピー</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="513"/>
+        <location filename="../ui/history_window.py" line="585"/>
         <source>Remove from history</source>
         <translation>履歴から削除</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="562"/>
+        <location filename="../ui/history_window.py" line="644"/>
         <source>Search title, artist or album…</source>
         <translation>タイトル、アーティスト、アルバムを検索…</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="652"/>
+        <location filename="../ui/history_window.py" line="741"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n 日前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="756"/>
+        <location filename="../ui/history_window.py" line="854"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%n 曲中 %1 曲</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="759"/>
+        <location filename="../ui/history_window.py" line="857"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>最近の %n 曲</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="503"/>
+        <location filename="../ui/history_window.py" line="575"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music で開く</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="644"/>
+        <location filename="../ui/history_window.py" line="733"/>
         <source>just now</source>
         <translation>たった今</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="647"/>
+        <location filename="../ui/history_window.py" line="736"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n 分前</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="650"/>
+        <location filename="../ui/history_window.py" line="739"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n 時間前</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="532"/>
+        <location filename="../ui/history_window.py" line="610"/>
         <source>Recently played</source>
         <translation>最近再生した曲</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="549"/>
+        <location filename="../ui/history_window.py" line="631"/>
         <source>Clear history…</source>
         <translation>履歴を消去…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="618"/>
+        <location filename="../ui/history_window.py" line="707"/>
         <source>Close</source>
         <translation>閉じる</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="764"/>
+        <location filename="../ui/history_window.py" line="862"/>
         <source>History is turned off</source>
         <translation>履歴はオフになっています</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="766"/>
+        <location filename="../ui/history_window.py" line="864"/>
         <source>Turn it on under Settings → History to see what you played.</source>
         <translation>設定 → 履歴 でオンにすると、聴いた曲を確認できます。</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="771"/>
+        <location filename="../ui/history_window.py" line="869"/>
         <source>No songs yet</source>
         <translation>まだ曲がありません</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="772"/>
+        <location filename="../ui/history_window.py" line="870"/>
         <source>Play something and it shows up here.</source>
         <translation>何か再生するとここに表示されます。</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="776"/>
+        <location filename="../ui/history_window.py" line="874"/>
         <source>No matches</source>
         <translation>一致する曲がありません</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="777"/>
+        <location filename="../ui/history_window.py" line="875"/>
         <source>Try a different search or source.</source>
         <translation>別の検索語かソースを試してください。</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="824"/>
+        <location filename="../ui/history_window.py" line="924"/>
         <source>All sources</source>
         <translation>すべてのソース</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="840"/>
+        <location filename="../ui/history_window.py" line="942"/>
         <source>Today</source>
         <translation>今日</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="842"/>
+        <location filename="../ui/history_window.py" line="944"/>
         <source>Yesterday</source>
         <translation>昨日</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="893"/>
-        <location filename="../ui/history_window.py" line="896"/>
+        <location filename="../ui/history_window.py" line="995"/>
+        <location filename="../ui/history_window.py" line="998"/>
         <source>Clear history</source>
         <translation>履歴を消去</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="894"/>
+        <location filename="../ui/history_window.py" line="996"/>
         <source>Remove every song from the history?</source>
         <translation>履歴からすべての曲を削除しますか?</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="895"/>
+        <location filename="../ui/history_window.py" line="997"/>
         <source>This cannot be undone.</source>
         <translation>この操作は元に戻せません。</translation>
+    </message>
+</context>
+<context>
+    <name>LastfmApprovalDialog</name>
+    <message>
+        <location filename="../ui/settings_window.py" line="367"/>
+        <source>Authorise Refrain</source>
+        <translation>Refrain を承認</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="370"/>
+        <source>A Last.fm page opened in your browser. Click “Yes, allow access” there — Refrain connects by itself as soon as you have.</source>
+        <translation>ブラウザで Last.fm のページが開きました。そこでアクセスを許可してください。許可すると Refrain が自動的に接続します。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="375"/>
+        <location filename="../ui/settings_window.py" line="418"/>
+        <source>Waiting for you to allow access…</source>
+        <translation>アクセスの許可を待っています…</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="376"/>
+        <source>Open the page again</source>
+        <translation>ページをもう一度開く</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="378"/>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="421"/>
+        <source>Can&apos;t reach Last.fm right now — still trying…</source>
+        <translation>現在 Last.fm に接続できません。再試行しています…</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="423"/>
+        <source>The Last.fm page has expired. Click Connect to start again.</source>
+        <translation>Last.fm のページの有効期限が切れました。「接続…」をクリックしてやり直してください。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="428"/>
+        <source>No approval arrived. Click Connect to start again.</source>
+        <translation>許可が届きませんでした。「接続…」をクリックしてやり直してください。</translation>
     </message>
 </context>
 <context>
@@ -246,567 +290,603 @@
 <context>
     <name>SettingsWindow</name>
     <message>
-        <location filename="../ui/settings_window.py" line="90"/>
+        <location filename="../ui/settings_window.py" line="99"/>
         <source>Expected 17-20 digits</source>
         <translation>17〜20 桁が必要です</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="93"/>
+        <location filename="../ui/settings_window.py" line="102"/>
         <source>Application name: “{name}”</source>
         <translation>アプリケーション名:「{name}」</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="99"/>
+        <location filename="../ui/settings_window.py" line="108"/>
         <source>No such Discord application</source>
         <translation>該当する Discord アプリケーションがありません</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="100"/>
+        <location filename="../ui/settings_window.py" line="109"/>
         <source>Could not reach Discord</source>
         <translation>Discord に接続できませんでした</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="348"/>
+        <location filename="../ui/settings_window.py" line="473"/>
         <source>Settings</source>
         <translation>設定</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="387"/>
+        <location filename="../ui/settings_window.py" line="512"/>
         <source>General</source>
         <translation>全般</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="388"/>
+        <location filename="../ui/settings_window.py" line="513"/>
         <source>Sources</source>
         <translation>ソース</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="389"/>
-        <location filename="../ui/settings_window.py" line="1257"/>
-        <location filename="../ui/settings_window.py" line="1329"/>
+        <location filename="../ui/settings_window.py" line="514"/>
+        <location filename="../ui/settings_window.py" line="1433"/>
+        <location filename="../ui/settings_window.py" line="1493"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="390"/>
+        <location filename="../ui/settings_window.py" line="515"/>
         <source>History</source>
         <translation>履歴</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="391"/>
+        <location filename="../ui/settings_window.py" line="516"/>
         <source>Updates</source>
         <translation>アップデート</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="392"/>
+        <location filename="../ui/settings_window.py" line="517"/>
         <source>Advanced</source>
         <translation>高度</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="394"/>
-        <location filename="../ui/settings_window.py" line="1161"/>
-        <location filename="../ui/settings_window.py" line="1194"/>
-        <location filename="../ui/settings_window.py" line="1306"/>
+        <location filename="../ui/settings_window.py" line="519"/>
+        <location filename="../ui/settings_window.py" line="797"/>
+        <location filename="../ui/settings_window.py" line="816"/>
+        <location filename="../ui/settings_window.py" line="1335"/>
+        <location filename="../ui/settings_window.py" line="1368"/>
         <source>Cancel</source>
         <translation>キャンセル</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="395"/>
+        <location filename="../ui/settings_window.py" line="520"/>
         <source>Apply</source>
         <translation>適用</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="414"/>
+        <location filename="../ui/settings_window.py" line="539"/>
         <source>View Refrain on GitHub</source>
         <translation>GitHub で Refrain を見る</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="417"/>
+        <location filename="../ui/settings_window.py" line="542"/>
         <source>Legal</source>
         <translation>法的情報</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="419"/>
+        <location filename="../ui/settings_window.py" line="544"/>
         <source>Licence, trademark and affiliation notices</source>
         <translation>ライセンス・商標・提携に関する通知</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="454"/>
+        <location filename="../ui/settings_window.py" line="579"/>
         <source>Discord</source>
         <translation>Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="458"/>
+        <location filename="../ui/settings_window.py" line="583"/>
         <source>Discord Application Client ID</source>
         <translation>Discord アプリケーションの Client ID</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="479"/>
+        <location filename="../ui/settings_window.py" line="604"/>
         <source>Client ID:</source>
         <translation>Client ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="494"/>
+        <location filename="../ui/settings_window.py" line="619"/>
         <source>Look up the application&apos;s name on Discord</source>
         <translation>アプリケーション名を Discord に問い合わせる</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="497"/>
+        <location filename="../ui/settings_window.py" line="622"/>
         <source>Asks Discord what the Application ID is called, so a mistyped ID is visible instead of silently publishing nothing. This is the one request Refrain sends to Discord&apos;s servers rather than to your local Discord client; it carries the Application ID and nothing else.</source>
         <translation>Application ID の名称を Discord に問い合わせます。入力ミスがあっても何も公開されないまま気づかない、という事態を防げます。Refrain がローカルの Discord クライアントではなく Discord のサーバーに送る唯一のリクエストで、Application ID 以外は含みません。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="513"/>
+        <location filename="../ui/settings_window.py" line="638"/>
         <source>Use a separate Discord application per source (advanced)</source>
         <translation>ソースごとに別々の Discord アプリケーションを使う（詳細設定）</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="519"/>
+        <location filename="../ui/settings_window.py" line="644"/>
         <source>Send the status to every running Discord client</source>
         <translation>実行中のすべての Discord クライアントにステータスを送信</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="523"/>
+        <location filename="../ui/settings_window.py" line="648"/>
         <source>Discord and Vencord/Vesktop are separate programs with separate connections, so a status sent to one does not show in the other. With this on, Refrain publishes to all of them.</source>
         <translation>Discord と Vencord/Vesktop は接続が別々の独立したプログラムなので、一方に送ったステータスは他方には表示されません。この設定を有効にすると、Refrain はすべてに送信します。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="531"/>
-        <location filename="../ui/settings_window.py" line="536"/>
+        <location filename="../ui/settings_window.py" line="656"/>
+        <location filename="../ui/settings_window.py" line="661"/>
         <source>(uses default Client ID)</source>
         <translation>(デフォルトの Client ID を使用)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="533"/>
+        <location filename="../ui/settings_window.py" line="658"/>
         <source>Apple Music Client ID:</source>
         <translation>Apple Music Client ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="538"/>
+        <location filename="../ui/settings_window.py" line="663"/>
         <source>Bluetooth Client ID:</source>
         <translation>Bluetooth Client ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="545"/>
+        <location filename="../ui/settings_window.py" line="670"/>
         <source>Full — title, artist, album, cover</source>
         <translation>完全 — タイトル、アーティスト、アルバム、カバー</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="546"/>
+        <location filename="../ui/settings_window.py" line="671"/>
         <source>Minimal — only &apos;Listening to music&apos;</source>
         <translation>最小 — 「音楽を聴いています」のみ</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="547"/>
+        <location filename="../ui/settings_window.py" line="672"/>
         <source>Off — disable Discord status entirely</source>
         <translation>オフ — Discord ステータスを完全に無効化</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="548"/>
+        <location filename="../ui/settings_window.py" line="673"/>
         <source>Privacy:</source>
         <translation>プライバシー:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="550"/>
+        <location filename="../ui/settings_window.py" line="675"/>
         <source>Show &apos;Listen on Apple Music&apos; button in Discord</source>
         <translation>Discord に「Apple Music で聴く」ボタンを表示</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="556"/>
+        <location filename="../ui/settings_window.py" line="681"/>
         <source>Open Discord Developer Portal</source>
         <translation>Discord Developer Portal を開く</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="564"/>
+        <location filename="../ui/settings_window.py" line="689"/>
         <source>Register a free Discord Application to get a Client ID. The application&apos;s name is what shows up next to &quot;Listening to&quot; in your Discord status.</source>
         <translation>Client ID を取得するには、無料の Discord Application を登録してください。アプリケーションの名前が Discord ステータスの「Listening to」の横に表示されます。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="574"/>
+        <location filename="../ui/settings_window.py" line="699"/>
         <source>Notifications</source>
         <translation>通知</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="575"/>
+        <location filename="../ui/settings_window.py" line="700"/>
         <source>Show desktop notification on track change</source>
         <translation>トラック変更時にデスクトップ通知を表示</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="577"/>
+        <location filename="../ui/settings_window.py" line="702"/>
         <source>Fetch album cover art from iTunes</source>
         <translation>iTunes からアルバムカバーを取得</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="582"/>
+        <location filename="../ui/settings_window.py" line="707"/>
         <source>Behavior</source>
         <translation>動作</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="583"/>
+        <location filename="../ui/settings_window.py" line="708"/>
         <source>Start Refrain automatically on login</source>
         <translation>ログイン時に Refrain を自動起動</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="601"/>
+        <location filename="../ui/settings_window.py" line="726"/>
         <source>Recently played</source>
         <translation>最近再生した曲</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="602"/>
+        <location filename="../ui/settings_window.py" line="727"/>
         <source>Keep a list of recently played songs</source>
         <translation>最近再生した曲のリストを保存する</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="612"/>
+        <location filename="../ui/settings_window.py" line="737"/>
         <source>Songs to keep:</source>
         <translation>保存する曲数:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="614"/>
+        <location filename="../ui/settings_window.py" line="739"/>
         <source>Show recently played…</source>
         <translation>最近再生した曲を表示…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="620"/>
+        <location filename="../ui/settings_window.py" line="745"/>
         <source>Stored only on this computer and never sent anywhere, so privacy mode doesn&apos;t affect it. Turning it off deletes the list; a lower number drops the oldest songs.</source>
         <translation>このコンピューターにのみ保存され、どこにも送信されないため、プライバシーモードの影響を受けません。オフにするとリストが削除され、数を減らすと古い曲から削除されます。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="650"/>
+        <location filename="../ui/settings_window.py" line="777"/>
         <source>Turn off history?</source>
         <translation>履歴をオフにしますか?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="651"/>
+        <location filename="../ui/settings_window.py" line="778"/>
         <source>Turning the history off deletes the list of recently played songs.</source>
         <translation>履歴をオフにすると、最近再生した曲のリストが削除されます。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="652"/>
+        <location filename="../ui/settings_window.py" line="779"/>
         <source>This cannot be undone.</source>
         <translation>この操作は元に戻せません。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="654"/>
+        <location filename="../ui/settings_window.py" line="781"/>
         <source>Turn off and delete</source>
         <translation>オフにして削除</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="690"/>
+        <location filename="../ui/settings_window.py" line="793"/>
+        <source>Disconnect from Last.fm?</source>
+        <translation>Last.fm から切断しますか?</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="794"/>
+        <source>Nothing is scrobbled until you connect again.</source>
+        <translation>再び接続するまで何もスクロブルされません。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="795"/>
+        <source>The disconnect takes effect when you click Apply.</source>
+        <translation>切断は「適用」をクリックしたときに有効になります。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="807"/>
+        <source>Last.fm isn&apos;t connected</source>
+        <translation>Last.fm に接続されていません</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="810"/>
+        <source>Scrobbling is switched on, but Refrain has no connection to Last.fm — nothing will be scrobbled.</source>
+        <translation>スクロブルは有効ですが、Refrain は Last.fm に接続されていません。何もスクロブルされません。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="814"/>
+        <source>Click Connect… on the Last.fm tab to connect.</source>
+        <translation>Last.fm タブの「接続…」をクリックして接続してください。</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="815"/>
+        <source>Apply anyway</source>
+        <translation>このまま適用</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="864"/>
         <source>Last.fm scrobbling</source>
         <translation>Last.fm のスクロブル</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="692"/>
+        <location filename="../ui/settings_window.py" line="866"/>
         <source>Enable Last.fm scrobbling</source>
         <translation>Last.fm のスクロブルを有効にする</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="696"/>
+        <location filename="../ui/settings_window.py" line="870"/>
         <source>Last.fm API key</source>
         <translation>Last.fm の API キー</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="698"/>
+        <location filename="../ui/settings_window.py" line="872"/>
         <source>API key:</source>
         <translation>API キー:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="701"/>
+        <location filename="../ui/settings_window.py" line="875"/>
         <source>Last.fm shared secret</source>
         <translation>Last.fm の共有シークレット</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="704"/>
+        <location filename="../ui/settings_window.py" line="878"/>
         <source>Shared secret:</source>
         <translation>共有シークレット:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="706"/>
-        <location filename="../ui/settings_window.py" line="1227"/>
+        <location filename="../ui/settings_window.py" line="880"/>
+        <location filename="../ui/settings_window.py" line="1401"/>
         <source>Not connected</source>
         <translation>未接続</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="707"/>
+        <location filename="../ui/settings_window.py" line="881"/>
         <source>Account:</source>
         <translation>アカウント:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="709"/>
-        <location filename="../ui/settings_window.py" line="1225"/>
-        <location filename="../ui/settings_window.py" line="1228"/>
+        <location filename="../ui/settings_window.py" line="883"/>
+        <location filename="../ui/settings_window.py" line="1399"/>
+        <location filename="../ui/settings_window.py" line="1402"/>
         <source>Connect…</source>
         <translation>接続…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="711"/>
+        <location filename="../ui/settings_window.py" line="885"/>
         <source>Create API account</source>
         <translation>API アカウントを作成</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="715"/>
+        <location filename="../ui/settings_window.py" line="889"/>
         <source>Also send a “Now playing” update</source>
         <translation>「再生中」の更新も送信する</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="721"/>
+        <location filename="../ui/settings_window.py" line="895"/>
         <source>Register a free API account, paste the key + secret, then Connect to authorise in your browser. Scrobbling runs alongside Discord and never replaces it; it&apos;s silenced while Privacy is set to Off. The shared secret and the session token are stored in your system keyring, never in plain text.</source>
         <translation>無料の API アカウントを登録し、キーとシークレットを貼り付けてから「接続」を押してブラウザーで承認してください。スクロブルは Discord と並行して動作し、置き換えることはありません。プライバシーが「オフ」の間は送信されません。共有シークレットとセッショントークンはシステムのキーリングに保存され、平文で保存されることはありません。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="744"/>
+        <location filename="../ui/settings_window.py" line="918"/>
         <source>Apple Music Web (browser)</source>
         <translation>Apple Music Web (ブラウザ)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="745"/>
+        <location filename="../ui/settings_window.py" line="919"/>
         <source>Enable browser source</source>
         <translation>ブラウザソースを有効化</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="751"/>
+        <location filename="../ui/settings_window.py" line="925"/>
         <source>Detected browsers:</source>
         <translation>検出されたブラウザ:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="791"/>
+        <location filename="../ui/settings_window.py" line="965"/>
         <source>e.g. waterfox, palemoon</source>
         <translation>例: waterfox, palemoon</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="792"/>
+        <location filename="../ui/settings_window.py" line="966"/>
         <source>Other (comma-separated):</source>
         <translation>その他 (カンマ区切り):</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="796"/>
+        <location filename="../ui/settings_window.py" line="970"/>
         <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use.</source>
         <translation>Refrain は、プロセス名またはデスクトップエントリにこれらの文字列を含むブラウザのみを認識します。使用するものをチェックしてください。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="804"/>
+        <location filename="../ui/settings_window.py" line="978"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="805"/>
+        <location filename="../ui/settings_window.py" line="979"/>
         <source>Enable Bluetooth source</source>
         <translation>Bluetooth ソースを有効化</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="811"/>
+        <location filename="../ui/settings_window.py" line="985"/>
         <source>Refresh</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="819"/>
+        <location filename="../ui/settings_window.py" line="993"/>
         <source>Device:</source>
         <translation>デバイス:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="823"/>
+        <location filename="../ui/settings_window.py" line="997"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>ペアリング済みデバイスを選択するか、自動検出のままにして、現在接続されている AVRCP 対応ソースを読み取ります。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="837"/>
-        <location filename="../ui/settings_window.py" line="1496"/>
+        <location filename="../ui/settings_window.py" line="1011"/>
+        <location filename="../ui/settings_window.py" line="1671"/>
         <source>(auto-detect)</source>
         <translation>(自動検出)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="839"/>
+        <location filename="../ui/settings_window.py" line="1013"/>
         <source>(unknown device)</source>
         <translation>（不明なデバイス）</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="842"/>
+        <location filename="../ui/settings_window.py" line="1016"/>
         <source>● {label} (connected)</source>
         <translation>● {label}（接続済み）</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="860"/>
+        <location filename="../ui/settings_window.py" line="1034"/>
         <source>never</source>
         <translation>なし</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="872"/>
+        <location filename="../ui/settings_window.py" line="1046"/>
         <source>Update checking</source>
         <translation>アップデートの確認</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="875"/>
+        <location filename="../ui/settings_window.py" line="1049"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>起動時に自動確認 (1 日 1 回まで)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="880"/>
+        <location filename="../ui/settings_window.py" line="1054"/>
         <source>Current version:</source>
         <translation>現在のバージョン:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="882"/>
+        <location filename="../ui/settings_window.py" line="1056"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="883"/>
+        <location filename="../ui/settings_window.py" line="1057"/>
         <source>Latest known:</source>
         <translation>最新の既知:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="886"/>
+        <location filename="../ui/settings_window.py" line="1060"/>
         <source>Last checked:</source>
         <translation>最終確認:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="890"/>
+        <location filename="../ui/settings_window.py" line="1064"/>
         <source>Check for updates now</source>
         <translation>今すぐアップデートを確認</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="897"/>
+        <location filename="../ui/settings_window.py" line="1071"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain は GitHub Releases API を照会します。アップデートの動作は Refrain のインストール方法 (AppImage / pip / Flatpak / AUR) に依存します。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="916"/>
+        <location filename="../ui/settings_window.py" line="1090"/>
         <source>Latest release notes</source>
         <translation>最新のリリースノート</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="921"/>
+        <location filename="../ui/settings_window.py" line="1095"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>**今すぐアップデートを確認** _をクリックして、GitHub から最新の changelog を取得します。_</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="942"/>
+        <location filename="../ui/settings_window.py" line="1116"/>
         <source>(check failed)</source>
         <translation>(確認に失敗)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="944"/>
+        <location filename="../ui/settings_window.py" line="1118"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_GitHub に接続できませんでした。ネットワークを確認して再試行してください。_</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="949"/>
+        <location filename="../ui/settings_window.py" line="1123"/>
         <source>{version} (update available)</source>
         <translation>{version} (アップデートあり)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="953"/>
+        <location filename="../ui/settings_window.py" line="1127"/>
         <source>{version} (up to date)</source>
         <translation>{version} (最新)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="955"/>
+        <location filename="../ui/settings_window.py" line="1129"/>
         <source>_No release notes provided._</source>
         <translation>_リリースノートはありません。_</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="967"/>
+        <location filename="../ui/settings_window.py" line="1141"/>
         <source>Performance</source>
         <translation>パフォーマンス</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="973"/>
+        <location filename="../ui/settings_window.py" line="1147"/>
         <source>Poll interval:</source>
         <translation>ポーリング間隔:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="980"/>
+        <location filename="../ui/settings_window.py" line="1154"/>
         <source>Notification delay:</source>
         <translation>通知の遅延:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="985"/>
+        <location filename="../ui/settings_window.py" line="1159"/>
         <source> covers</source>
         <translation> 件</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="987"/>
+        <location filename="../ui/settings_window.py" line="1161"/>
         <source>Cover cache size:</source>
         <translation>カバーキャッシュサイズ:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="995"/>
+        <location filename="../ui/settings_window.py" line="1169"/>
         <source>Localization</source>
         <translation>ローカライズ</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="998"/>
+        <location filename="../ui/settings_window.py" line="1172"/>
         <source>System default</source>
         <translation>システムのデフォルト</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1009"/>
+        <location filename="../ui/settings_window.py" line="1183"/>
         <source>Language:</source>
         <translation>言語:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1010"/>
+        <location filename="../ui/settings_window.py" line="1184"/>
         <source>Refrain restarts automatically after changing the language.</source>
         <translation>言語を変更すると Refrain は自動的に再起動します。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1014"/>
+        <location filename="../ui/settings_window.py" line="1188"/>
         <source>Logging</source>
         <translation>ログ</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1019"/>
+        <location filename="../ui/settings_window.py" line="1193"/>
         <source>Log level:</source>
         <translation>ログレベル:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1021"/>
+        <location filename="../ui/settings_window.py" line="1195"/>
         <source>Open live-log window</source>
         <translation>ライブログウィンドウを開く</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1023"/>
+        <location filename="../ui/settings_window.py" line="1197"/>
         <source>Open log folder</source>
         <translation>ログフォルダを開く</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1031"/>
+        <location filename="../ui/settings_window.py" line="1205"/>
         <source>Maintenance</source>
         <translation>メンテナンス</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1032"/>
+        <location filename="../ui/settings_window.py" line="1206"/>
         <source>Restart Refrain</source>
         <translation>Refrain を再起動</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1034"/>
+        <location filename="../ui/settings_window.py" line="1208"/>
         <source>Reset all settings to defaults</source>
         <translation>すべての設定をデフォルトにリセット</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1037"/>
+        <location filename="../ui/settings_window.py" line="1211"/>
         <source>Uninstall Refrain…</source>
         <translation>Refrain をアンインストール…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1043"/>
+        <location filename="../ui/settings_window.py" line="1217"/>
         <source>Deletes all Refrain data (config, logs, cache, autostart, menu entry) and the Last.fm credentials from your keyring, then tells you the one command to remove the program itself. This cannot be undone.</source>
         <translation>Refrain のすべてのデータ（設定、ログ、キャッシュ、自動起動、メニュー項目）とキーリング内の Last.fm 資格情報を削除し、プログラム本体を削除するためのコマンドを表示します。この操作は取り消せません。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1118"/>
+        <location filename="../ui/settings_window.py" line="1292"/>
         <source>Checking…</source>
         <translation>確認中…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1148"/>
+        <location filename="../ui/settings_window.py" line="1322"/>
         <source>Reset all settings</source>
         <translation>すべての設定をリセット</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1151"/>
+        <location filename="../ui/settings_window.py" line="1325"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source) and your connected Last.fm account stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 After confirming, click Apply at the bottom of the Settings window to save the reset.</source>
@@ -815,17 +895,17 @@ After confirming, click Apply at the bottom of the Settings window to save the r
 確認後、設定ウィンドウ下部の「適用」をクリックしてリセットを保存してください。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1160"/>
+        <location filename="../ui/settings_window.py" line="1334"/>
         <source>Reset</source>
         <translation>リセット</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1183"/>
+        <location filename="../ui/settings_window.py" line="1357"/>
         <source>Uninstall Refrain</source>
         <translation>Refrain をアンインストール</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1186"/>
+        <location filename="../ui/settings_window.py" line="1360"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -848,77 +928,59 @@ Refrain will close. This cannot be undone.</source>
 Refrain は終了します。この操作は取り消せません。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1193"/>
+        <location filename="../ui/settings_window.py" line="1367"/>
         <source>Uninstall</source>
         <translation>アンインストール</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1213"/>
+        <location filename="../ui/settings_window.py" line="1387"/>
         <source>Connected as {user}</source>
         <translation>{user} として接続済み</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1216"/>
+        <location filename="../ui/settings_window.py" line="1390"/>
         <source>Connected</source>
         <translation>接続済み</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1217"/>
+        <location filename="../ui/settings_window.py" line="796"/>
+        <location filename="../ui/settings_window.py" line="1391"/>
         <source>Disconnect</source>
         <translation>切断</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1223"/>
+        <location filename="../ui/settings_window.py" line="1397"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>未接続 — API キーとシークレットを入力し直してから「接続」してください</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1259"/>
+        <location filename="../ui/settings_window.py" line="1435"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>まず Last.fm の API キーと共有シークレットを入力してください。「API アカウントを作成」から無料で登録できます。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1266"/>
+        <location filename="../ui/settings_window.py" line="1442"/>
         <source>Requesting authorisation token…</source>
         <translation>認可トークンを要求しています…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1298"/>
-        <source>Authorise Refrain</source>
-        <translation>Refrain を承認</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1301"/>
-        <source>A Last.fm page opened in your browser. Approve access for Refrain there, then click OK to finish connecting.</source>
-        <translation>ブラウザーで Last.fm のページが開きました。そこで Refrain のアクセスを許可してから「OK」をクリックして接続を完了してください。</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1305"/>
-        <source>OK</source>
-        <translation>OK</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1313"/>
-        <source>Completing sign-in…</source>
-        <translation>サインインを完了しています…</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1325"/>
+        <location filename="../ui/settings_window.py" line="1489"/>
         <source>Connected as {user}. Click Apply to save — scrobbling starts on the next track.</source>
         <translation>{user} として接続しました。「適用」をクリックして保存してください。スクロブルは次の曲から始まります。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1328"/>
+        <location filename="../ui/settings_window.py" line="1492"/>
         <source>Connected. Click Apply to save — scrobbling starts on the next track.</source>
         <translation>接続しました。「適用」をクリックして保存してください。スクロブルは次の曲から始まります。</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1337"/>
+        <location filename="../ui/settings_window.py" line="1478"/>
+        <location filename="../ui/settings_window.py" line="1501"/>
         <source>Last.fm connection failed</source>
         <translation>Last.fm への接続に失敗しました</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1338"/>
+        <location filename="../ui/settings_window.py" line="1502"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -927,12 +989,12 @@ Refrain は終了します。この操作は取り消せません。</translatio
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1518"/>
+        <location filename="../ui/settings_window.py" line="1693"/>
         <source>Could not save settings</source>
         <translation>設定を保存できませんでした</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1520"/>
+        <location filename="../ui/settings_window.py" line="1695"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -948,106 +1010,106 @@ The settings you just changed will apply for this session but won&apos;t persist
 <context>
     <name>TrayIcon</name>
     <message>
-        <location filename="../ui/tray.py" line="84"/>
-        <location filename="../ui/tray.py" line="319"/>
+        <location filename="../ui/tray.py" line="93"/>
+        <location filename="../ui/tray.py" line="345"/>
         <source>(nothing playing)</source>
         <translation>(再生なし)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="97"/>
-        <location filename="../ui/tray.py" line="250"/>
+        <location filename="../ui/tray.py" line="106"/>
+        <location filename="../ui/tray.py" line="276"/>
         <source>Discord: not connected</source>
         <translation>Discord: 未接続</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="103"/>
+        <location filename="../ui/tray.py" line="112"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: 未接続</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="116"/>
+        <location filename="../ui/tray.py" line="125"/>
         <source>Previous</source>
         <translation>前へ</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="119"/>
-        <location filename="../ui/tray.py" line="230"/>
+        <location filename="../ui/tray.py" line="128"/>
+        <location filename="../ui/tray.py" line="256"/>
         <source>Play</source>
         <translation>再生</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="122"/>
+        <location filename="../ui/tray.py" line="131"/>
         <source>Next</source>
         <translation>次へ</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="143"/>
-        <location filename="../ui/tray.py" line="239"/>
+        <location filename="../ui/tray.py" line="152"/>
+        <location filename="../ui/tray.py" line="265"/>
         <source>Update available</source>
         <translation>アップデートがあります</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="153"/>
+        <location filename="../ui/tray.py" line="162"/>
         <source>Recently played…</source>
         <translation>最近再生した曲…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="157"/>
+        <location filename="../ui/tray.py" line="166"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="160"/>
+        <location filename="../ui/tray.py" line="169"/>
         <source>Live log…</source>
         <translation>ライブログ…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="164"/>
+        <location filename="../ui/tray.py" line="173"/>
         <source>Restart Refrain</source>
         <translation>Refrain を再起動</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="167"/>
+        <location filename="../ui/tray.py" line="176"/>
         <source>Quit Refrain</source>
         <translation>Refrain を終了</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="227"/>
+        <location filename="../ui/tray.py" line="253"/>
         <source>Pause</source>
         <translation>一時停止</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="236"/>
+        <location filename="../ui/tray.py" line="262"/>
         <source>Update available — v{version}</source>
         <translation>アップデートがあります — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="247"/>
+        <location filename="../ui/tray.py" line="273"/>
         <source>Discord: connected</source>
         <translation>Discord: 接続済み</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="266"/>
+        <location filename="../ui/tray.py" line="292"/>
         <source>Discord: rejected — check Application ID</source>
         <translation>Discord: 拒否されました — アプリケーション ID を確認</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="275"/>
+        <location filename="../ui/tray.py" line="301"/>
         <source>Last.fm: connected as {user}</source>
         <translation>Last.fm: {user} として接続済み</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="277"/>
+        <location filename="../ui/tray.py" line="303"/>
         <source>Last.fm: connected</source>
         <translation>Last.fm: 接続済み</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="281"/>
+        <location filename="../ui/tray.py" line="307"/>
         <source>Last.fm: session expired — reconnect</source>
         <translation>Last.fm: セッションが失効しました — 再接続してください</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="284"/>
+        <location filename="../ui/tray.py" line="310"/>
         <source>Last.fm: could not be verified</source>
         <translation>Last.fm: 確認できませんでした</translation>
     </message>
@@ -1256,12 +1318,12 @@ Discord ステータスなしで続行しますか?</translation>
 <context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="1126"/>
+        <location filename="../app.py" line="1184"/>
         <source>Updates</source>
         <translation>アップデート</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1127"/>
+        <location filename="../app.py" line="1185"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>アップデート情報はまだありません。少し待って再試行してください。</translation>
     </message>
