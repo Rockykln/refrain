@@ -24,7 +24,8 @@ from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
 from refrain.history import HistorySnapshot, PlayHistory
 from refrain.paths import assets_dir
-from refrain.scrobble import Scrobbler
+from refrain.scrobble import Scrobbler, mmss
+from refrain.song_lengths import LearnedLengths
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.sources.mpris import MPRISSource
@@ -34,6 +35,7 @@ from refrain.timing import (
     PositionState,
     PositionTier,
     compute_rpc_start_ts,
+    elapsed_ms,
     pick_effective_duration_ms,
     resolve_position,
     source_position_is_fresh,
@@ -315,6 +317,13 @@ class DaemonWorker(QObject):
         # main thread, so the window has its first snapshot before the
         # daemon thread starts; from then on only the worker touches it.
         self._history = PlayHistory(config.history)
+        # Lengths measured from whole plays, for songs the catalog has none
+        # for — see refrain.song_lengths.
+        self._song_lengths = LearnedLengths()
+        self._prev_track: TrackInfo | None = None
+        # When we last skipped a song ourselves: a play we cut short says
+        # nothing about how long the song is.
+        self._control_at = 0.0
         self._history_error_logged = False
         self._scrobbler = Scrobbler(config.lastfm, on_queued=self._on_scrobble_queued)
         self._timer: QTimer | None = None
@@ -585,6 +594,7 @@ class DaemonWorker(QObject):
             dispatched = True
 
         if dispatched:
+            self._control_at = time.monotonic()
             # Fast follow-up polls so we surface the new state (track
             # swap on Next/Previous, paused/playing flip on PlayPause)
             # in Discord, the tray, and the published MPRIS server as
@@ -630,6 +640,20 @@ class DaemonWorker(QObject):
             self._active_source = source
         return track
 
+    def _catalog_duration_ms(self, track: TrackInfo) -> int:
+        return (
+            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
+            if self._config.behavior.cover_art
+            else 0
+        )
+
+    def _known_duration_ms(self, track: TrackInfo) -> int:
+        """The song's length from outside the player: the iTunes catalog,
+        else what whole plays of it measured (see refrain.song_lengths)."""
+        return self._catalog_duration_ms(track) or self._song_lengths.get_ms(
+            track.artist, track.title, track.album
+        )
+
     def _duration_for(self, track: TrackInfo) -> tuple[int, bool]:
         """The track length every consumer should use, and whether it's disputed.
 
@@ -650,11 +674,7 @@ class DaemonWorker(QObject):
 
         Returns ``(effective_ms, disputed)``.
         """
-        itunes_dur_ms = (
-            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
-            if self._config.behavior.cover_art
-            else 0
-        )
+        itunes_dur_ms = self._known_duration_ms(track)
         mpris_dur_ms = track.duration_ms
         if self._position_state.cumulative:
             # Measured live: this length grew by 135 s over 144 s of
@@ -676,6 +696,32 @@ class DaemonWorker(QObject):
     def _effective_duration_ms(self, track: TrackInfo) -> int:
         return self._duration_for(track)[0]
 
+    def _measure_previous_song(self, now: float) -> None:
+        """Note how long the song that just ended ran, if that is its length.
+
+        Only a play we watched from its start to an end the player reached
+        itself measures the song — a track change, or the song beginning
+        again on repeat. Our own clock knows where it began and how much of
+        the time since was spent paused. A song we skipped, or one already
+        playing when Refrain started, says nothing.
+        """
+        prev, state = self._prev_track, self._position_state
+        if prev is None or not state.anchored or not state.track_key:
+            return
+        if self._position_tier is PositionTier.UNKNOWN:
+            return
+        if now - self._control_at <= 2.0:
+            return  # we skipped it
+        if self._catalog_duration_ms(prev) > 0:
+            return  # its length is known; measuring it changes nothing
+        if self._song_lengths.observe(prev.artist, prev.title, prev.album, elapsed_ms(state, now)):
+            log.info(
+                "Length: %s — %s runs %s, measured from whole plays",
+                prev.artist or "—",
+                prev.title,
+                mmss(self._song_lengths.get_ms(prev.artist, prev.title, prev.album)),
+            )
+
     def _resolve_position(self, track: TrackInfo) -> TrackInfo:
         """Decide what this track's position actually is — or that we don't know.
 
@@ -689,13 +735,16 @@ class DaemonWorker(QObject):
             f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
         )
         duration_ms, disputed = self._duration_for(track)
+        now = time.monotonic()
+        if track_key != self._position_state.track_key:
+            self._measure_previous_song(now)
         position_ms, tier, new_state = resolve_position(
             self._position_state,
             track_key,
             track.position_ms,
             duration_ms,
             track.status == PlaybackStatus.PLAYING,
-            time.monotonic(),
+            now,
             reported_length_ms=track.duration_ms,
             duration_disputed=disputed,
             stall_after_s=float(self._config.advanced.position_stall_s),
@@ -707,7 +756,11 @@ class DaemonWorker(QObject):
         )
         if self._track_restarted:
             log.info("Position: %s — %s began again", track.artist or "—", track.title)
+            # A song starting over has just run its full length, the same
+            # as one ending at a track change.
+            self._measure_previous_song(now)
         self._position_state = new_state
+        self._prev_track = track if track.has_track else None
         self._position_known = position_ms is not None
         # Log the tier transitions only — a degraded source stays
         # degraded for hundreds of polls, and per-tick logging would
@@ -798,11 +851,7 @@ class DaemonWorker(QObject):
         # the same number, and `_duration_for` is the one place that
         # weighs the player's length against the catalog's. The raw
         # catalog value is kept alongside it purely for the RPC log line.
-        itunes_dur_ms = (
-            self._cover_fetcher.get_duration_ms(track.artist, track.title, track.album)
-            if self._config.behavior.cover_art
-            else 0
-        )
+        itunes_dur_ms = self._known_duration_ms(track)
         effective_dur_ms, duration_disputed = self._duration_for(track)
 
         # Tray progress label, emitted on every tick while playing. The

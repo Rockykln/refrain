@@ -335,6 +335,7 @@ name and exit. No lockfile in `/tmp`.
 | Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (`0600`, atomic; 1000-entry cap; each entry names its Last.fm account) |
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` (`0600`, atomic; one play, kept across a restart) |
 | Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 10–100 songs, 30 by default) |
+| Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` (`0600`, atomic; 1000-song cap; hashed keys, one line each) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |
 
 The user-installed desktop file (via `--install-desktop`) goes to

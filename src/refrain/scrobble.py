@@ -371,7 +371,7 @@ def accrue_play_ms(
 _DRAIN_INTERVAL_S = 60.0
 
 
-def _mmss(ms: int) -> str:
+def mmss(ms: int) -> str:
     s = max(0, ms) // 1000
     return f"{s // 60}:{s % 60:02d}"
 
@@ -702,7 +702,7 @@ class Scrobbler:
                 "Scrobble: carrying on with %s — %s (%s heard before the restart%s)",
                 r["artist"],
                 r["title"],
-                _mmss(r["played_ms"]),
+                mmss(r["played_ms"]),
                 ", queued already" if r["banked"] else "",
             )
             return

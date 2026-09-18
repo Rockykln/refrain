@@ -325,7 +325,7 @@ def resolve_position(
             start_frame
             and is_playing
             and (arrived or state.start_pending)
-            and (not state.anchored or _elapsed_ms(state, now) >= _RESTART_AFTER_MS)
+            and (not state.anchored or elapsed_ms(state, now) >= _RESTART_AFTER_MS)
         ):
             # The song began again. The frame is the player's own track
             # start, so it is our clock's new zero — unanchored or not.
@@ -427,9 +427,9 @@ def resolve_position(
 
     # -- tier 2: our own clock ----------------------------------------
     if state.anchored:
-        elapsed_ms = _elapsed_ms(state, now)
-        if elapsed_ms >= 0 and (duration_ms <= 0 or elapsed_ms <= duration_ms + overrun_grace_ms):
-            return elapsed_ms, PositionTier.COMPUTED, state
+        elapsed = elapsed_ms(state, now)
+        if elapsed >= 0 and (duration_ms <= 0 or elapsed <= duration_ms + overrun_grace_ms):
+            return elapsed, PositionTier.COMPUTED, state
 
     # -- tier 3: no honest answer -------------------------------------
     return None, PositionTier.UNKNOWN, state
@@ -440,12 +440,12 @@ def _only_album_differs(key: str, other: str) -> bool:
     return bool(other) and key.rsplit("|", 1)[0] == other.rsplit("|", 1)[0]
 
 
-def _elapsed_ms(state: PositionState, now: float) -> int:
+def elapsed_ms(state: PositionState, now: float) -> int:
     """Our own clock: time since the anchor, less time spent paused."""
-    elapsed_ms = int((now - state.started_at) * 1000) - state.paused_ms
+    ms = int((now - state.started_at) * 1000) - state.paused_ms
     if state.paused_since:
-        elapsed_ms -= int((now - state.paused_since) * 1000)
-    return elapsed_ms
+        ms -= int((now - state.paused_since) * 1000)
+    return ms
 
 
 def _is_start_frame(reported_ms: int, reported_length_ms: int, duration_ms: int) -> bool:

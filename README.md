@@ -408,6 +408,7 @@ entry + icon.)
 | Scrobble queue| `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` |
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` |
 | Recently played | `$XDG_STATE_HOME/refrain/history.json`    |
+| Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
 | Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes) |
 | Cover cache   | `$XDG_CACHE_HOME/refrain/covers/*.txt`      |

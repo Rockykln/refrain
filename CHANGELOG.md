@@ -50,6 +50,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an umlaut** — or any other letter beyond ASCII. Refrain's MPRIS track
   ID kept it, which a D-Bus object path doesn't allow, and every read of
   the metadata failed.
+- **Songs the iTunes catalog doesn't know were never scrobbled from the
+  browser.** Since 0.5.1 the media segments plasma reports no longer pass
+  for a song's length, and without a catalog match that left none at all —
+  no scrobble, no end time on Discord, and nothing in the history under
+  four minutes. Refrain now measures such a song itself: a play it watched
+  from the start to an end the player reached on its own is as long as the
+  song, and two plays that agree settle it. Kept under a hash of the
+  title, artist and album, so the file holds no song titles.
 - **A browser tab with "Apple Music" anywhere in its title counted as the
   Apple Music tab**, so a video about Apple Music could decide whether
   Refrain showed the music as playing or paused.

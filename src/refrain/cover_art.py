@@ -111,7 +111,7 @@ def _primary_artist(artist: str) -> str:
     return artist.split(",")[0].strip() or artist.strip()
 
 
-def _norm(text: str) -> str:
+def normalize_name(text: str) -> str:
     """Case-, accent- and punctuation-blind form for comparing names.
 
     Letters of every script survive — dropping everything outside a-z
@@ -151,17 +151,17 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
         return None
     # Generous on purpose — the title has to match as well.
     names = [artist, *artist.split(","), *_split_artists(artist)]
-    want_artists = {a for a in (_norm(x) for x in names) if a}
-    want_title = _norm(clean_title(title))
-    want_album = _norm(clean_title(album)) if album else ""
+    want_artists = {a for a in (normalize_name(x) for x in names) if a}
+    want_title = normalize_name(clean_title(title))
+    want_album = normalize_name(clean_title(album)) if album else ""
     if not want_artists or not want_title:
         return None
     best, best_score = None, -1
     for r in results:
         if not isinstance(r, dict) or r.get("kind", "song") != "song":
             continue
-        got_artist = _norm(str(r.get("artistName", "") or ""))
-        got_title = _norm(clean_title(str(r.get("trackName", "") or "")))
+        got_artist = normalize_name(str(r.get("artistName", "") or ""))
+        got_title = normalize_name(clean_title(str(r.get("trackName", "") or "")))
         if not got_artist or not got_title:
             continue
         if not any(a in got_artist or got_artist in a for a in want_artists):
@@ -172,7 +172,7 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
         )
         if not (exact or close):
             continue
-        got_album = _norm(clean_title(str(r.get("collectionName", "") or "")))
+        got_album = normalize_name(clean_title(str(r.get("collectionName", "") or "")))
         score = (2 if exact else 0) + (1 if want_album and want_album == got_album else 0)
         if score > best_score:
             best, best_score = r, score
