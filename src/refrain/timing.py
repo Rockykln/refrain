@@ -156,7 +156,7 @@ class PositionState:
     # segment source's zero may place the clock (see _anchor_new_track).
     after_idle: bool = False
     # A start frame arrived while paused. It only counts once the song then
-    # plays on from there: an iPad pausing reports position 0 for a tenth
+    # plays on from there: a tablet pausing can report position 0 for a tenth
     # of a second before its real position comes back.
     start_pending: bool = False
     # When polls stopped seeing this track, if they have (see _GONE_GRACE_S).
@@ -393,7 +393,7 @@ def resolve_position(
     frozen = is_playing and not source_position_is_fresh(state.moved_at, now, stall_after_s)
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
     undecidable = duration_disputed and not state.anchored
-    # An iPad pausing reports 0 for a moment. Passed on as the player's
+    # A tablet pausing can report 0 for a moment. Passed on as the player's
     # own position, it looked like the song starting over.
     unconfirmed_start = state.start_pending and not is_playing
     if (

@@ -146,7 +146,7 @@ What Refrain makes of that:
   again from the top). It places the zero afresh and counts in
   `PositionState.restarts`, which the daemon turns into a replay for the
   history and the Scrobbler. Seen while paused, it only counts once the
-  song plays on from there: an iPad pausing reports 0:00 for a tenth of
+  song plays on from there: a tablet pausing can report 0:00 for a tenth of
   a second before its real position comes back.
 - A Bluetooth player on **repeat-one** (`Repeat` = `singletrack`) may
   count its position on across loops — 5:13 into a 3:36 song — so there

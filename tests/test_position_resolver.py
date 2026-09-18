@@ -625,7 +625,7 @@ def test_bluetooth_repeat_one_wraps_the_position_back_into_the_song():
 
 
 def test_a_pause_that_blips_to_zero_is_not_a_restart():
-    """Measured on an iPad: pausing at 0:43 it reported 0:00 for a tenth of
+    """Measured on a tablet: pausing at 0:43 it reported 0:00 for a tenth of
     a second, then 0:43 again — a start frame, while paused."""
     length = 215_914
     state = PositionState()

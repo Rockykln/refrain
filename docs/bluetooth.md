@@ -3,7 +3,7 @@
 Refrain's Bluetooth source reads playback metadata via BlueZ AVRCP —
 the standard Bluetooth audio metadata profile. Anything that pairs as
 an A2DP audio source and exposes `org.bluez.MediaPlayer1` over D-Bus
-will work: iPhones, Android phones, dedicated music players, even
+will work: phones, tablets, dedicated music players, even
 some car head-units.
 
 This guide walks through getting it set up the first time on KDE

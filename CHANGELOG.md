@@ -37,7 +37,7 @@ a restart, an invalid session or an account switch.
   away, the song counted again from zero and was queued a second time —
   or, not having counted yet, was never scrobbled at all. Quitting
   before that first poll also deleted the saved play.
-- **Pausing on an iPad could split the play in two.** The iPad reports
+- **Pausing on a tablet could split the play in two.** Some tablets report
   0:00 for a moment when paused; that was passed to the history and to
   Last.fm as the player's position, which read as the song starting over
   — a second history entry, and on songs over eight minutes a second
@@ -75,7 +75,7 @@ a restart, an invalid session or an account switch.
   The link is encoded now, and one that still isn't valid drops only the
   button.
 - **A stream or video playing over Bluetooth passed for a song.** A Twitch
-  stream on an iPad went to Discord and, four minutes in, into the history
+  stream on a tablet went to Discord and, four minutes in, into the history
   under its channel's name. Refrain now reads which app is playing and
   takes music apps only; an app it doesn't know counts when its track has
   a length, which a live stream doesn't.

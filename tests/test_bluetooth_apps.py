@@ -29,8 +29,8 @@ class _Player:
     def __init__(self, app):
         self._props = {
             "Track": {
-                "Title": "STAGE 02 2026: APL Groups - North Day 4",
-                "Artist": "Rainbow6",
+                "Title": "Live Stream",
+                "Artist": "Some Channel",
                 "Album": "Twitch",
                 "Duration": 0,
             },
@@ -57,14 +57,14 @@ def _read(monkeypatch, app):
 
 
 def test_a_twitch_stream_is_not_a_song(monkeypatch):
-    """Measured: an iPad playing Twitch put the stream on Discord and, four
-    minutes in, into the history as a song by "Rainbow6"."""
+    """Measured: a tablet playing Twitch put the stream on Discord and, four
+    minutes in, into the history as a song by the channel."""
     assert _read(monkeypatch, "Twitch").has_track is False
 
 
 def test_the_music_app_still_plays(monkeypatch):
     track = _read(monkeypatch, "Music")
     assert (track.title, track.status) == (
-        "STAGE 02 2026: APL Groups - North Day 4",
+        "Live Stream",
         PlaybackStatus.PLAYING,
     )
