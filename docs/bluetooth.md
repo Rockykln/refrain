@@ -60,7 +60,9 @@ manager:
    should show `Connected: yes`.
 2. Start music on the phone. Spotify, Apple Music, the iOS Music
    app, anything that publishes track metadata via the AVRCP
-   profile.
+   profile. Streams and videos — Twitch, YouTube, Netflix, podcasts —
+   are left out: the phone names the app playing, and Refrain only
+   shows music.
 3. In Refrain, open *Settings → Sources → Bluetooth*:
    - Toggle **Enable Bluetooth source** on.
    - Pick the device from the dropdown. It should show the phone's
@@ -106,6 +108,9 @@ arrives from Bluetooth.
   (tray → *Live log…*). Look for `Track change [bluetooth]: …` lines.
   If you see `[mpris]` instead, the browser is winning the source
   race — close the music tab so Bluetooth becomes the only candidate.
+- A line `Bluetooth: <app> is playing — not music, ignored` means the
+  phone names an app Refrain doesn't take for music. An app it doesn't
+  know counts as long as its track has a length; a live stream has none.
 
 ### `bluetoothd` D-Bus activation timeout warning in the log
 

@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   link, and Discord refused the whole activity over the malformed link.
   The link is encoded now, and one that still isn't valid drops only the
   button.
+- **A stream or video playing over Bluetooth passed for a song.** A Twitch
+  stream on an iPad went to Discord and, four minutes in, into the history
+  under its channel's name. Refrain now reads which app is playing and
+  takes music apps only; an app it doesn't know counts when its track has
+  a length, which a live stream doesn't.
 - **A browser tab with "Apple Music" anywhere in its title counted as the
   Apple Music tab**, so a video about Apple Music could decide whether
   Refrain showed the music as playing or paused.

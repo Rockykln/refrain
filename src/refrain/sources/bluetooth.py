@@ -49,6 +49,55 @@ def _device_name(objects, player_props) -> str:
         return ""
 
 
+# What a phone names the app playing over AVRCP, lower-cased. Refrain shows
+# music; a stream or a video playing through the same headphones is not a
+# song to put on Discord, in the history or on Last.fm.
+_MUSIC_APPS = frozenset(
+    {
+        "music",
+        "musik",
+        "apple music",
+        "spotify",
+        "deezer",
+        "tidal",
+        "youtube music",
+        "amazon music",
+        "soundcloud",
+        "qobuz",
+    }
+)
+_NOT_MUSIC_APPS = frozenset(
+    {
+        "twitch",
+        "youtube",
+        "netflix",
+        "prime video",
+        "disney+",
+        "podcasts",
+        "audible",
+        "tiktok",
+        "instagram",
+        "kick",
+    }
+)
+
+
+def is_music_app(app: str, duration_ms: int) -> bool:
+    """Does the app playing over Bluetooth play music?
+
+    Measured: an iPad names the app — "Music" for Apple Music, "Twitch" for
+    a stream, whose title and channel then passed for a song and its
+    artist. An app neither list knows counts when its track has a length:
+    a live stream has none.
+    """
+    name = app.strip().casefold()
+    if not name or name in _MUSIC_APPS:
+        return True
+    if name in _NOT_MUSIC_APPS:
+        return False
+    return duration_ms > 0
+
+
 class BluetoothSource:
     def __init__(self, device_mac: str = ""):
         self._device_mac = device_mac
@@ -57,6 +106,7 @@ class BluetoothSource:
         # read from the same GetManagedObjects reply, so it costs no
         # extra bus call.
         self._player_name = ""
+        self._ignored_app = ""  # logged once, not every poll
         self._bus = None  # see _system_bus
 
     def set_device(self, device_mac: str) -> None:
@@ -131,6 +181,17 @@ class BluetoothSource:
             )
 
             self._last_player_path = player_path
+
+            try:
+                app = str(props.Get("org.bluez.MediaPlayer1", "Name"))
+            except Exception:
+                app = ""  # optional in AVRCP
+            if not is_music_app(app, duration_ms):
+                if app != self._ignored_app:
+                    log.info("Bluetooth: %s is playing — not music, ignored", app)
+                    self._ignored_app = app
+                return TrackInfo.empty()
+            self._ignored_app = ""
 
             return TrackInfo(
                 source="bluetooth",
