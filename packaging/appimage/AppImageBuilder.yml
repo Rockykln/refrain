@@ -10,7 +10,10 @@ script:
   - rm -rf AppDir
   - /usr/bin/python3 -m pip install --no-deps --target AppDir/usr/lib/python3/dist-packages ../../
   # dbus-python and PyGObject come from apt, built for the bundled Python.
-  - /usr/bin/python3 -m pip install --target AppDir/usr/lib/python3/dist-packages "pypresence>=4.3" "PySide6>=6.6"
+  # PySide6-Essentials only: the PySide6 meta package also pulls in the Addons,
+  # some of which are GPL-only. Keep the pin in step with the tested Qt version.
+  - /usr/bin/python3 -m pip install --target AppDir/usr/lib/python3/dist-packages "pypresence>=4.3" "PySide6-Essentials==6.11.2"
+  - /usr/bin/python3 prune_qt.py AppDir/usr/lib/python3/dist-packages
   - install -Dm644 ../../src/refrain/assets/icons/refrain.svg
       AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg
 
@@ -27,7 +30,7 @@ AppDir:
     arch: amd64
     sources:
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ noble main universe'
-        key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
+        key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
       - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe'
     include:
       - python3
@@ -53,6 +56,7 @@ AppDir:
   # look for lib64/ in the runtime they are started from.
   after_runtime: |
     ln -sfn usr/lib64 AppDir/runtime/compat/lib64
+    /usr/bin/python3 third_party_notices.py AppDir appimage-build/apt/archives ../..
 
 AppImage:
   arch: x86_64

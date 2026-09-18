@@ -178,9 +178,11 @@ build dbus-python and refrain itself in Flathub's offline sandbox.
 
 Not currently submitted. The manifest under `flatpak/` is fully
 validated against `org.kde.Platform//6.10` and the
-`io.qt.PySide.BaseApp//6.10` BaseApp; a future submission will pin
-`tag:` + `commit:` in the manifest and add a matching `<release/>`
-entry to `metainfo.xml` per Flathub policy.
+`io.qt.PySide.BaseApp//6.10` BaseApp. The manifest pins only `tag:`:
+it is part of the tagged tree, so it can never name the commit the tag
+points to. A submission copies it into the Flathub repository, where the
+tag's `commit:` can be added, and needs a matching `<release/>` entry
+in `metainfo.xml` per Flathub policy.
 
 ## Files in this directory
 

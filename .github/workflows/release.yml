@@ -6,16 +6,15 @@ on:
     tags:
       - "v*.*.*"
 
+# Build tools are installed unpinned, so the job that runs them only gets
+# read access; the write and OIDC permissions sit on the two small
+# publishing jobs below.
 permissions:
-  contents: write   # required to create the release
-  id-token: write   # required by PyPA Trusted Publishers (OIDC) for PyPI upload
+  contents: read
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-24.04
-    environment:
-      name: pypi
-      url: https://pypi.org/project/refrain/
 
     steps:
       - name: Checkout (full history for changelog)
@@ -64,7 +63,7 @@ jobs:
           fi
 
       - name: Verify Flatpak manifest pins this tag
-        # The Flatpak build source is a pinned (tag, commit) — it isn't
+        # The Flatpak build source is a pinned tag — it isn't
         # rebuilt/published by this workflow (no live Flathub channel),
         # so nothing else catches it going stale. It silently sat on
         # v0.1.4 from then until v0.4.2. This gate makes a stale pin a
@@ -74,10 +73,6 @@ jobs:
           MANIFEST=packaging/flatpak/io.github.Rockykln.Refrain.yaml
           if ! grep -qE "^        tag: v${TAG}$" "$MANIFEST"; then
             echo "::error::$MANIFEST is not pinned to tag v${TAG}"
-            exit 1
-          fi
-          if ! grep -qE "^        commit: [0-9a-f]{40}$" "$MANIFEST"; then
-            echo "::error::$MANIFEST has no valid 40-character commit pin"
             exit 1
           fi
 
@@ -128,6 +123,28 @@ jobs:
           echo "$out"
           [ "$out" = "refrain ${TAG}" ]
 
+      - name: Check licence notices and Qt modules in the AppImage
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          tmp="$(mktemp -d)"
+          (cd "$tmp" && "$GITHUB_WORKSPACE/dist/Refrain-${TAG}-x86_64.AppImage" --appimage-extract >/dev/null)
+          doc="$tmp/squashfs-root/usr/share/doc/refrain"
+          grep -q "^  PySide6_Essentials " "$doc/THIRD-PARTY-NOTICES"
+          grep -q "^  python3.12 " "$doc/THIRD-PARTY-NOTICES"
+          test -s "$doc/LICENSE" && test -s "$doc/LICENSES/LGPL-3" && test -s "$doc/LICENSES/GPL-3"
+          gpl_only="$(find "$tmp/squashfs-root" -iregex '.*\(Lottie\|WaylandCompositor\|VirtualKeyboard\|Charts\|DataVisualization\|Quick3D\|pyside6_addons\).*')"
+          if [ -n "$gpl_only" ]; then
+            echo "::error::GPL-only Qt parts in the AppImage:"; echo "$gpl_only"; exit 1
+          fi
+          rm -rf "$tmp"
+
+      # The in-app updater refuses an AppImage whose checksum doesn't match.
+      - name: Checksums for the in-app updater
+        run: |
+          cd dist
+          sha256sum *.AppImage > SHA256SUMS
+          cat SHA256SUMS
+
       # Extract the matching `## [X.Y.Z]` section from CHANGELOG.md
       # and feed it into the GitHub release body. Without this we'd
       # fall back to GitHub's auto-generated "Full Changelog: …"
@@ -152,6 +169,33 @@ jobs:
             exit 1
           fi
 
+      - name: Hand the release files to the publishing jobs
+        uses: actions/upload-artifact@v7
+        with:
+          name: release
+          path: |
+            dist/
+            release-notes.md
+          if-no-files-found: error
+
+      - name: Hand the PyPI files to the publishing job
+        uses: actions/upload-artifact@v7
+        with:
+          name: pypi-dist
+          path: pypi-dist/
+          if-no-files-found: error
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write   # required to create the release
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
@@ -168,6 +212,23 @@ jobs:
             dist/*.tar.gz
             dist/*.AppImage
             dist/*.AppImage.zsync
+            dist/SHA256SUMS
+
+  pypi:
+    # After the GitHub release, as before the jobs were split.
+    needs: github-release
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/project/refrain/
+    permissions:
+      id-token: write   # required by PyPA Trusted Publishers (OIDC) for PyPI upload
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: pypi-dist
+          path: pypi-dist/
 
       # PyPI upload via Trusted Publishers (OIDC). No API token needed; the
       # one-time setup is on pypi.org → Manage → Publishing → Add a new
@@ -182,6 +243,3 @@ jobs:
           skip-existing: true
           verbose: true
           attestations: true
-        # Don't let an upload hiccup wipe out the GitHub release that
-        # already succeeded above — reruns can fix PyPI later.
-        continue-on-error: true

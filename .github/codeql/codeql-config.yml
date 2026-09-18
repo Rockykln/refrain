@@ -9,7 +9,7 @@ queries:
   - uses: security-and-quality
 
 query-filters:
-  # Empty `except` blocks are deliberate in best-effort cleanup paths
+  # Empty `except` blocks are deliberate in cleanup paths
   # (DBus disconnects, Discord IPC, tray icon teardown). Each site has
   # context in surrounding code; the CodeQL note here would be repeated
   # ~10× without adding signal.
