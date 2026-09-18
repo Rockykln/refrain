@@ -16,6 +16,12 @@ lists every version and why.
   an error and the connect had to start over. Refrain now asks Last.fm
   itself every few seconds and connects as soon as access is allowed,
   with a button to open the page again.
+- **Installing from PyPI now goes through pipx.** `pip install refrain`
+  fails on current distros, which no longer let pip into the system
+  Python, and the headers it listed for building dbus-python were not
+  enough. The README now gives one tested command per distro: pipx plus
+  the distro's dbus-python and PyGObject, which also brings Plasma's
+  media controls to pip installs.
 - **Disconnecting from Last.fm asks first**, and *Apply* warns when
   scrobbling is switched on without a working connection — which used
   to scrobble nothing, silently.

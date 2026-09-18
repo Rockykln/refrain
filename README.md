@@ -59,7 +59,7 @@ streaming from your phone over Bluetooth.
 
 | Channel | Install |
 |---------|---------|
-| **PyPI** *(any distro with Python ≥ 3.11)* | `pip install refrain` |
+| **PyPI** *(any distro with Python ≥ 3.11)* | `pipx install --system-site-packages refrain` — see [below](#from-pypi) |
 | **AUR** *(Arch / CachyOS / Manjaro / EndeavourOS)* | `yay -S refrain` *(stable)* or `yay -S refrain-git` *(latest main)* |
 | **AppImage** *(portable single-file, any glibc-based distro)* | Returns with 0.5.3 — earlier AppImages never started and were removed |
 | **From source** | See below |
@@ -71,6 +71,30 @@ currently active. Build files for the live channels live under
 See [`packaging/README.md`](packaging/README.md) for build instructions.
 Which versions can still be downloaded, and why the others were taken
 down: [`docs/releases.md`](docs/releases.md).
+
+### From PyPI
+
+Current distros no longer let `pip install` into the system Python, so
+install with [pipx](https://pipx.pypa.io/). dbus-python and PyGObject come
+from your distro; `--system-site-packages` lets Refrain use them instead of
+compiling its own:
+
+| Distro | Command |
+|--------|---------|
+| Ubuntu 24.04, Linux Mint 22, Debian 13 | `sudo apt install pipx python3-dbus python3-gi` |
+| Fedora 42 | `sudo dnf install pipx python3-dbus python3-gobject` |
+| openSUSE Tumbleweed | `sudo zypper install python313-pipx python313-gobject gcc pkgconf dbus-1-devel glib2-devel python313-devel` |
+
+Then:
+
+```sh
+pipx install --system-site-packages refrain
+pipx ensurepath   # once, if ~/.local/bin isn't on your PATH yet
+refrain --install-desktop
+```
+
+openSUSE's dbus-python package carries no metadata pip can see, so pip
+builds its own copy there — hence the compiler and headers in its line.
 
 ### From source (development)
 
@@ -89,13 +113,16 @@ refrain
 
 If your distro doesn't ship `PySide6` or `dbus-python`, plain
 `python -m venv .venv` works too — pip will pull `PySide6` from PyPI and
-build `dbus-python` against your system's D-Bus headers
-(`libdbus-1-dev` on Debian/Ubuntu, `dbus-devel` on Fedora).
+build `dbus-python`, which needs a C compiler, `pkg-config` and the D-Bus,
+GLib and Python headers (`gcc pkg-config libdbus-1-dev libglib2.0-dev
+python3-dev` on Debian/Ubuntu, `gcc pkgconf dbus-devel glib2-devel
+python3-devel` on Fedora). Without PyGObject, Plasma's media controls
+can't reach Refrain.
 
 ### Pip-installed users: get a launcher
 
-When installed via `pip` rather than a distro package, Refrain doesn't
-register itself with your application menu. Run once after install:
+When installed via pipx or pip rather than a distro package, Refrain
+doesn't register itself with your application menu. Run once after install:
 
 ```sh
 refrain --install-desktop
