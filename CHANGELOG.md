@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for it. A second Refrain that really is running is logged now, too.
 - **The AppStream metadata named an invalid developer ID** and a
   category the desktop entries no longer carry.
+- **A song on repeat in the browser could go on counting past its end.**
+  Refrain spots the loop by the song's own length at its start, and
+  Plasma sometimes reports that only seconds into the next round — too
+  late to count — or reports what it has buffered instead. A late start
+  is taken for the loop now when either the length or Refrain's own
+  clock says the song had reached its end.
 - **A song length Refrain measured itself could come out a few seconds
   short**, and the browser's time then vanished before the song ended.
   Where the player reports its own position, that is what measures the

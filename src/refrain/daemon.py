@@ -1194,6 +1194,9 @@ class DaemonWorker(QObject):
             now=time.time(),
             is_preview_clip=(0 < track.duration_ms < 30_000),
         )
+        if not self._position_known and not is_new_track:
+            # No position to follow; its stand-in 0 is no seek.
+            new_start_ts, recomputed = self._rpc_start_ts, False
         if recomputed:
             if is_new_track:
                 log.info(

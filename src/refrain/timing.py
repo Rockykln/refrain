@@ -17,6 +17,9 @@ _CLIP_MAX_MS = CLIP_MAX_MS
 # length, give or take this — at a position no further in than this.
 _START_FRAME_LENGTH_SLACK_MS = 2_000
 _START_FRAME_MAX_POS_MS = 3_000
+# Plasma can report the song's start frame this late after a loop.
+_LATE_START_MAX_POS_MS = 25_000
+_LOOP_END_SLACK_MS = 5_000
 # A start frame this far into the track is the song beginning again;
 # any sooner, it is the track change we already saw, reported twice.
 _RESTART_AFTER_MS = 30_000
@@ -309,7 +312,10 @@ def resolve_position(
         )
         state = replace(state, last_length_ms=reported_length_ms)
     else:
-        start_frame = _is_start_frame(reported_ms, reported_length_ms, duration_ms)
+        start_frame = _is_start_frame(reported_ms, reported_length_ms, duration_ms) or (
+            0 < state.last_length_ms < _CLIP_MAX_MS
+            and _is_late_start_frame(state, reported_ms, reported_length_ms, duration_ms, now)
+        )
         # Arriving at the start, not sitting there: the position fell back
         # from well into the song, or the length just turned from a
         # segment's into the song's. A source frozen at zero does neither.
@@ -454,6 +460,25 @@ def _is_start_frame(reported_ms: int, reported_length_ms: int, duration_ms: int)
         duration_ms >= _CLIP_MAX_MS
         and abs(reported_length_ms - duration_ms) <= _START_FRAME_LENGTH_SLACK_MS
         and 0 <= reported_ms <= _START_FRAME_MAX_POS_MS
+    )
+
+
+def _is_late_start_frame(
+    state: PositionState, reported_ms: int, reported_length_ms: int, duration_ms: int, now: float
+) -> bool:
+    """A segment source leaving its segments soon after a loop.
+
+    Plasma may report a buffered length instead of the song's then, so
+    our own clock reaching the song's end has to vouch for it.
+    """
+    if not 0 <= reported_ms <= _LATE_START_MAX_POS_MS or duration_ms < _CLIP_MAX_MS:
+        return False
+    if abs(reported_length_ms - duration_ms) <= _START_FRAME_LENGTH_SLACK_MS:
+        return True
+    return (
+        reported_length_ms >= _CLIP_MAX_MS
+        and state.anchored
+        and elapsed_ms(state, now) >= duration_ms - _LOOP_END_SLACK_MS
     )
 
 

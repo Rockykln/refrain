@@ -702,3 +702,52 @@ def test_a_new_track_asks_the_question_again():
     # The next change carries the position across again: unknown start.
     _, _, state = step(state, A, 900_000, 1200.0, duration_ms=0)
     assert start_is_witnessed(state) is False
+
+
+def test_a_loop_reported_late_is_still_a_loop():
+    """Plasma can report the song's length only 19 s after the loop."""
+    length = 156_814
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 157, duration_ms=length)
+    pos, _, state = step(state, A, 19_000, 1177.0, duration_ms=length, length_ms=length)
+    assert state.restarts == 1
+    assert 18_000 <= pos <= 20_000
+
+
+def test_a_late_frame_soon_after_the_change_is_no_loop():
+    length = 156_814
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 20, duration_ms=length)
+    _, _, state = step(state, A, 19_000, 1022.0, duration_ms=length, length_ms=length)
+    assert state.restarts == 0
+
+
+def test_a_frame_well_into_the_song_is_no_loop():
+    length = 156_814
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 100, duration_ms=length)
+    _, _, state = step(state, A, 40_000, 1102.0, duration_ms=length, length_ms=length)
+    assert state.restarts == 0
+
+
+def test_a_late_loop_with_a_buffered_length_is_a_loop_at_the_songs_end():
+    """Plasma can report what it has buffered, not the song's length."""
+    length = 165_832
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 170, duration_ms=length)
+    pos, _, state = step(state, A, 4_269, 1171.0, duration_ms=length, length_ms=275_709)
+    assert state.restarts == 1
+    assert pos is not None and 4_000 <= pos <= 5_000
+
+
+def test_a_buffered_length_mid_song_is_no_loop():
+    length = 165_832
+    state = PositionState()
+    _, _, state = step(state, B, 120_000, 1000.0)
+    _, state = _segments(state, A, 1001.0, 300, 100, duration_ms=length)
+    _, _, state = step(state, A, 4_269, 1101.0, duration_ms=length, length_ms=275_709)
+    assert state.restarts == 0
