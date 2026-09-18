@@ -27,13 +27,13 @@ driver and should be tested on every commit; the rest before each tag.
 
 | ✓ | Distro | Desktop | Display server | Channel | Last verified | Notes |
 |---|---|---|---|---|---|---|
-| ✓ | **CachyOS** (rolling) | KDE Plasma 6 | Wayland | AUR `refrain` | 2026-09-18 / v0.5.2 | maintainer daily |
+| ✓ | **CachyOS** (rolling) | KDE Plasma 6 | Wayland | AUR `refrain` | 2026-09-18 / 0.5.3 (dev) | maintainer daily |
 | [ ] | **Arch Linux** (rolling) | KDE Plasma 6 | X11 | AUR `refrain` | | alternate display server |
-| [ ] | **Fedora 42 Workstation** | GNOME 47 | Wayland | AppImage + PyPI | | RPM world + GNOME tray ext. |
-| [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS, glibc floor |
+| [ ] | **Fedora 42 Workstation** | GNOME 47 | Wayland | AppImage + PyPI | | RPM world + GNOME tray ext. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
+| [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | ❌ | **Ubuntu 25.04** | GNOME 48 | Wayland | PyPI | 2026-05-07 / v0.2.2 | Tested + **failed**. Settings window came up with the gnome-control-center icon (Wayland app-id matching heuristic; fixed in `1e759ba` by setting per-window icon explicitly). Snap-sandboxed Firefox + Chrome both refused to publish MPRIS so Refrain saw no players — distro-external, workaround is a deb-channel browser (Brave / Mozilla apt repo). 25 s `org.bluez` activation timeout per poll when bluez isn't present (fast-fail via `NameHasOwner` added in follow-up). Re-test with v0.2.3+ once those fixes ship. |
-| [ ] | **Debian 13** (Trixie) | KDE Plasma 6 | Wayland | AppImage | | Plasma outside Arch |
-| [ ] | **openSUSE Tumbleweed** | KDE Plasma 6 | Wayland | PyPI in venv | | rolling non-Arch |
+| [ ] | **Debian 13** (Trixie) | KDE Plasma 6 | Wayland | AppImage | | Plasma outside Arch; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
+| [ ] | **openSUSE Tumbleweed** | KDE Plasma 6 | Wayland | PyPI in venv | | rolling non-Arch; pip builds dbus-python here (see README). 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | [ ] | **Linux Mint 22** | Cinnamon 6 | X11 | AppImage | | Cinnamon tray, X11 |
 | [ ] | **Manjaro** Stable | KDE Plasma 6 | Wayland | AUR `refrain` | | delayed Arch mirror |
 
@@ -48,7 +48,7 @@ Less frequent verification — once per minor release is enough.
 | [ ] | **Pop!_OS 24.04** | GNOME (or COSMIC) | AppImage | COSMIC tray TBD |
 | [ ] | **KDE Neon** (User) | KDE Plasma 6 | PyPI / AppImage | Plasma testing target |
 | [ ] | **Ubuntu 25.04** | GNOME | PyPI in venv | Python 3.13 |
-| [ ] | **Debian 12** (Bookworm) | KDE / GNOME | AppImage | Python 3.11, Qt 5 — AppImage required |
+| [ ] | **Debian 12** (Bookworm) | KDE / GNOME | AppImage | Python 3.11, Qt 5 — AppImage required. 2026-09-18 / 0.5.3 (dev): AppImage starts in a container |
 | [ ] | **Fedora 41 KDE Spin** | KDE Plasma 6 | Wayland | AppImage / PyPI | Fedora KDE flavour |
 | [ ] | **NixOS** unstable | KDE / GNOME | PyPI in nix-shell | flake.nix would be nice-to-have |
 
@@ -81,9 +81,10 @@ track, position and length differently.
 | ✓ | Apple Music in **Chromium** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | segment lengths; the tab's entry decides playing vs. paused |
 | ✓ | Apple Music in **Firefox** | Firefox's own MPRIS (no Plasma extension) | 2026-09-18 / v0.5.2 | no length reported — the catalog's or a measured one is used; position in whole seconds |
 | ✓ | Apple Music in **Google Chrome** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | as Chromium |
-| [ ] | Apple Music in **Brave** | plasma-browser-integration | | |
+| ✓ | Apple Music in **Brave** | plasma-browser-integration + Brave's own MPRIS entry | 2026-09-18 / 0.5.3 (dev) | as Chrome |
 | ✓ | Apple Music in **Zen** | Zen's own MPRIS | 2026-09-18 / v0.5.2 | as Firefox; position to the second |
 | ✓ | **Tablet** over Bluetooth (AVRCP) | BlueZ `MediaPlayer1` | 2026-09-18 / v0.5.2 | names the playing app; Twitch is left out |
+| ✓ | **Phone** over Bluetooth (AVRCP), tablet connected too | BlueZ `MediaPlayer1` | 2026-09-18 / 0.5.3 (dev) | the playing device is picked; position to the second |
 
 ## Out of scope (won't work)
 
@@ -92,7 +93,8 @@ These are documented as **unsupported** — don't open issues for them.
 | Distro | Reason |
 |---|---|
 | Debian 11 (Bullseye) | Python 3.9 — too old |
-| Ubuntu 20.04 / 22.04 LTS | Python 3.8 / 3.10 too old; AppImage glibc floor too high for 22.04 |
+| Ubuntu 20.04 LTS | Python 3.8 too old |
+| Ubuntu 22.04 LTS (PyPI) | Python 3.10 too old — the AppImage (0.5.3+) runs, tested in a container 2026-09-18 |
 | Linux Mint 21.x | Python 3.10 — too old |
 | **CentOS Stream 10** | Tested 2026-05-07 against v0.2.2 — **failed**. AppImage in mounted mode needs `fuse` (not just `fuse-libs`) which the docs didn't surface; in `--appimage-extract-and-run` mode raises `No module named refrain` on a fresh extract. PyPI install starts but GNOME default ships no AppIndicator package out of the box — Refrain refuses to launch with "No system tray". Reachable only with manual Extension-Manager dance. Not Tier-1/2 worth. |
 | CentOS Stream 9 | glibc 2.34 < 2.35 (AppImage breaks); Python 3.9 default |

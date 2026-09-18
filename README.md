@@ -13,7 +13,10 @@ Refrain shows what you're listening to on Apple Music as your Discord status
 streaming from your phone over Bluetooth.
 
 <p align="center">
-  <img src="docs/screenshots/discord-rpc.png" alt="Refrain on Discord" width="600"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/discord-rpc-light.png"/>
+    <img src="docs/screenshots/discord-rpc.png" alt="Refrain on Discord" width="430"/>
+  </picture>
 </p>
 
 ## What it does
@@ -163,7 +166,10 @@ panel that probes your D-Bus session and Discord IPC socket so you
 know up front whether your environment can host the RPC at all.
 
 <p align="center">
-  <img src="docs/screenshots/welcome.png" alt="Welcome wizard" width="560"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/welcome-light.png"/>
+    <img src="docs/screenshots/welcome.png" alt="Welcome wizard" width="560"/>
+  </picture>
 </p>
 
 That's it. The status will appear in Discord on the next track change.
@@ -240,7 +246,10 @@ pauses, and does nothing when the music is already paused.
 ## Tray
 
 <p align="center">
-  <img src="docs/screenshots/tray-menu.png" alt="Tray menu" width="320"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/tray-menu-light.png"/>
+    <img src="docs/screenshots/tray-menu.png" alt="Tray menu" width="320"/>
+  </picture>
 </p>
 
 Every item carries a theme-matched icon (freedesktop icon names on
@@ -281,43 +290,64 @@ the background.
   <tr>
     <td align="center">
       <b>General</b><br/>
-      <img src="docs/screenshots/settings-general.png" alt="Settings — General" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-general-light.png"/>
+        <img src="docs/screenshots/settings-general.png" alt="Settings — General" width="420"/>
+      </picture>
       <br/><sub>Discord Client ID with the application's name beside it, privacy, autostart, notifications, cover art</sub>
     </td>
     <td align="center">
       <b>Sources</b><br/>
-      <img src="docs/screenshots/settings-sources.png" alt="Settings — Sources" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-sources-light.png"/>
+        <img src="docs/screenshots/settings-sources.png" alt="Settings — Sources" width="420"/>
+      </picture>
       <br/><sub>MPRIS / Bluetooth toggles + paired-device picker</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
       <b>Last.fm</b><br/>
-      <img src="docs/screenshots/settings-lastfm.png" alt="Settings — Last.fm" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-lastfm-light.png"/>
+        <img src="docs/screenshots/settings-lastfm.png" alt="Settings — Last.fm" width="420"/>
+      </picture>
       <br/><sub>Opt-in scrobbling, API key + secret, connect / disconnect an account</sub>
     </td>
     <td align="center">
       <b>History</b><br/>
-      <img src="docs/screenshots/settings-history.png" alt="Settings — History" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-history-light.png"/>
+        <img src="docs/screenshots/settings-history.png" alt="Settings — History" width="420"/>
+      </picture>
       <br/><sub>Recently played on or off, how many songs to keep</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
       <b>Updates</b><br/>
-      <img src="docs/screenshots/settings-updates.png" alt="Settings — Updates" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-updates-light.png"/>
+        <img src="docs/screenshots/settings-updates.png" alt="Settings — Updates" width="420"/>
+      </picture>
       <br/><sub>Auto-check, last-checked, manual <i>Check for updates now</i></sub>
     </td>
     <td align="center">
       <b>Advanced</b><br/>
-      <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-advanced-light.png"/>
+        <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
+      </picture>
       <br/><sub>Poll interval, notification delay, cover cache size, language, log level, restart, reset, uninstall</sub>
     </td>
   </tr>
   <tr>
     <td align="center">
       <b>Legal</b><br/>
-      <img src="docs/screenshots/legal.png" alt="Legal notice" width="420"/>
+      <picture>
+        <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/legal-light.png"/>
+        <img src="docs/screenshots/legal.png" alt="Legal notice" width="420"/>
+      </picture>
       <br/><sub>Licence, trademark and affiliation notices — the <i>Legal</i> button in the footer</sub>
     </td>
     <td></td>
@@ -327,7 +357,10 @@ the background.
 ## Recently played
 
 <p align="center">
-  <img src="docs/screenshots/history.png" alt="Recently played" width="520"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/history-light.png"/>
+    <img src="docs/screenshots/history.png" alt="Recently played" width="520"/>
+  </picture>
 </p>
 
 *Tray → Recently played…* lists the last songs Refrain saw — 30 by
@@ -362,7 +395,10 @@ cover, song title, artist and album — the same data that's going to your
 Discord status. Toggle off in *Settings → General* if you don't want them.
 
 <p align="center">
-  <img src="docs/screenshots/notification.png" alt="Track-change notification" width="520"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/notification-light.png"/>
+    <img src="docs/screenshots/notification.png" alt="Track-change notification" width="520"/>
+  </picture>
 </p>
 
 ## Updates
@@ -372,7 +408,10 @@ once per day on startup. When a newer version exists, the tray menu shows
 an *Update available* item that opens this dialog:
 
 <p align="center">
-  <img src="docs/screenshots/update-dialog.png" alt="Update-available dialog" width="560"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/update-dialog-light.png"/>
+    <img src="docs/screenshots/update-dialog.png" alt="Update-available dialog" width="560"/>
+  </picture>
 </p>
 
 Behavior is install-type-aware:
@@ -456,7 +495,10 @@ filterable. Same content as `~/.local/state/refrain/refrain.log`, but
 without tailing it from a terminal.
 
 <p align="center">
-  <img src="docs/screenshots/live-log.png" alt="Live-log window" width="640"/>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/live-log-light.png"/>
+    <img src="docs/screenshots/live-log.png" alt="Live-log window" width="640"/>
+  </picture>
 </p>
 
 ## Privacy

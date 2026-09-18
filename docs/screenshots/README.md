@@ -24,27 +24,32 @@ control, a reworded hint).
 | `discord-rpc.png`       | Discord's "Listening to" card                                                 |
 | `demo-cover.png`        | Not a screenshot: the cover of the demo track, drawn for these shots — see below |
 
-## Capturing
+## Rendering
 
-On Wayland nothing may screenshot another window unattended, so these are
-taken by hand with Spectacle:
+Every window is rendered from the real code, filled with demo data, in
+Breeze Dark and Breeze Light (the `-light` files):
 
 ```sh
-# Rectangular region, 5 s delay — long enough to open a menu or a popup
-# and let it settle before the shutter fires.
-spectacle -bnro docs/screenshots/<name>.png
+python docs/screenshots/render.py 0.5.3
 ```
 
-`tray-menu.png` and `notification.png` need the delay: right-click the
-tray icon, or trigger a track change, and let the shutter catch it.
+The script starts its own invisible KWin display, so nothing appears on
+screen, and writes the shots straight into this directory. Run it with
+the release's version number: the settings footer, the Updates tab and
+the update popup show it, and the release notes come from that version's
+section of `CHANGELOG.md` (or *Unreleased*, before the tag). It needs
+KDE Plasma's `kwin_wayland` and the Breeze colour schemes.
 
-For `discord-rpc.png`, a status has to actually be published, with a
-configured Application ID. It shows the demo track — *Glass Tides* by
-Neon Harbor, from *Low Light* — like the rest of the set. Discord only
-shows covers it can fetch itself, so upload `demo-cover.png` to your
-application under Rich Presence → Art Assets (as `refrain-demo-cover`)
-and publish the status with that asset key. Then click your own avatar
-in Discord to open the profile popout.
+`notification.png` is drawn by the script too — Plasma draws the real
+one, so the script rebuilds its layout.
+
+`discord-rpc.png` is the one shot taken by hand, from Discord itself:
+publish the demo track — *Glass Tides* by Neon Harbor, from *Low Light*,
+with `demo-cover.png` as the cover — open your own profile, and capture
+the activity card once in Discord's dark and once in its light theme.
+Crop to the card alone, below its "Listening to" line (which follows
+Discord's language), with an even margin and rounded, transparent
+corners.
 
 ## The demo cover
 
@@ -57,13 +62,12 @@ set is drawn the same way; this is the one the demo track wears.
 ## Image conventions
 
 - **Format**: PNG, lossless.
-- **Theme**: KDE's Breeze Dark. Refrain follows the system theme, so
-  capture from a Breeze Dark session and the set stays consistent.
-- **Language**: English, to match the README. On a translated desktop,
-  set `advanced.language` to `en` *and* run with `LANGUAGE=en_US` — Qt's
-  own stock buttons ("Close", "Cancel") follow the locale rather than
-  Refrain's translator, and a German "Schließen" in an otherwise English
-  dialog is exactly the kind of thing that gets noticed.
+- **Theme**: KDE's Breeze Dark, plus a Breeze Light copy of each shot
+  (`-light`). The README shows whichever matches the reader's GitHub
+  theme through `<picture>`.
+- **Language**: English, to match the README. The script sets both
+  `advanced.language = "en"` and `LANGUAGE=en_US` — Qt's own stock buttons
+  ("Close", "Cancel") follow the locale rather than Refrain's translator.
 - **Cropping**: trim to the element itself, then give it an even margin
   of its own background — roughly 24 px looks right at these sizes.
   Nothing of the desktop behind it in frame.
