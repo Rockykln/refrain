@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import importlib
 
+import pytest
+
 
 def test_enable_then_disable(xdg_tmp):
     import refrain.paths
@@ -159,3 +161,32 @@ def test_refresh_keeps_an_entry_the_desktop_switched_off(xdg_tmp):
         "Exec=/usr/bin/refrain --silent\nCategories=AudioVideo;Audio;Music;\n"
         "X-GNOME-Autostart-enabled=false\nHidden=true\nX-KDE-AutostartPhase=2\n"
     )
+
+
+@pytest.mark.parametrize(
+    "name,encoded",
+    [
+        ("100%.AppImage", "100%%.AppImage"),
+        ("it's.AppImage", '"it\'s.AppImage"'),
+        ("cost$5.AppImage", '"cost\\\\$5.AppImage"'),
+        ("tick`x.AppImage", '"tick\\\\`x.AppImage"'),
+        ('say "hi".AppImage', '"say \\\\"hi\\\\".AppImage"'),
+        ("back\\slash.AppImage", '"back\\\\\\\\slash.AppImage"'),
+    ],
+)
+def test_exec_line_follows_the_desktop_entry_spec(monkeypatch, tmp_path, name, encoded):
+    """Quoted arguments escape " ` $ and backslash, the key-file level doubles
+    every backslash again, and % is doubled so it isn't read as a field code."""
+    folder = tmp_path / "apps"
+    folder.mkdir()
+    fake_appimage = folder / name
+    fake_appimage.write_bytes(b"")
+    monkeypatch.setenv("APPIMAGE", str(fake_appimage))
+
+    import refrain.autostart as autostart
+
+    line = autostart.resolve_exec_line("--silent")
+    if encoded.startswith('"'):
+        assert line == f'"{folder}/{encoded[1:]} --silent'
+    else:
+        assert line == f"{folder}/{encoded} --silent"

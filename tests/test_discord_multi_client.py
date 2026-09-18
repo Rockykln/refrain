@@ -1,14 +1,4 @@
-"""Publishing the status to more than one Discord client.
-
-Discord and Vencord/Vesktop are separate programs with separate IPC
-sockets. A status sent to one is invisible in the other, so running both
-meant the status only ever showed up in whichever client Refrain happened
-to reach first.
-
-With ``discord.all_clients`` on, every live client gets the same payload,
-and each connection is judged on its own — closing one client mid-song
-must not drop the status from the rest.
-"""
+"""With ``discord.all_clients`` every live Discord client gets the status, each on its own."""
 
 from __future__ import annotations
 
@@ -149,14 +139,7 @@ def test_single_client_mode_does_not_rescan_once_connected(rpc_factory, monkeypa
 
 
 def test_backoff_window_does_not_freeze_an_established_status(rpc_factory):
-    """A pending retry must not stop updates to clients already served.
-
-    With all_clients on, _ensure_connected keeps looking for newcomers,
-    so it no longer returns early when connected. The retry gate then has
-    to answer "yes, we are connected" rather than "no" — otherwise every
-    update() during the backoff window bailed out and the status froze on
-    whatever was playing when the last client failed to appear.
-    """
+    """A pending retry must not stop updates to clients already served."""
     import time
 
     rpc, made = rpc_factory([0], all_clients=True)
@@ -171,12 +154,7 @@ def test_backoff_window_does_not_freeze_an_established_status(rpc_factory):
 
 
 def test_watching_for_newcomers_does_not_sweep_every_tick(rpc_factory, monkeypatch):
-    """The daemon ticks twice a second; the sweep must not ride it.
-
-    Each sweep is one connect() per occupied slot. Without its own
-    cadence, all_clients turned "keep an eye out for a second client"
-    into ten socket connects, twice a second, forever.
-    """
+    """The newcomer sweep (one connect() per slot) has its own cadence, not the daemon tick."""
     rpc, made = rpc_factory([0], all_clients=True)
     rpc._ensure_connected()
 
@@ -192,12 +170,7 @@ def test_watching_for_newcomers_does_not_sweep_every_tick(rpc_factory, monkeypat
 
 
 def test_the_multi_client_notice_is_logged_once_not_every_sweep(rpc_factory, caplog):
-    """The sweep runs every few seconds; an unchanged set has no news.
-
-    ``_last_live_pipes`` was recorded but never consulted, so a user with
-    Discord and Vesktop both open got the same INFO line every five
-    seconds for the whole session — the live log was unreadable.
-    """
+    """An unchanged set of live clients is not logged again on every sweep."""
     import logging
 
     rpc, _made = rpc_factory([0, 2], all_clients=True)

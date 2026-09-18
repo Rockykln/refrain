@@ -1,13 +1,4 @@
-"""TrayIcon constructs all menu actions in __init__.
-
-Regression test for v0.2.0 ship-blocker: the QAction setup, the
-contextMenu wiring and `self._tray.show()` were accidentally indented
-into `_on_color_scheme_changed`, so on a normal startup nothing got
-created. The tray icon never appeared, and the daemon's first track
-update crashed with `AttributeError: '_title_action'`.
-
-Runs against ``QT_QPA_PLATFORM=offscreen`` so it works in headless CI.
-"""
+"""TrayIcon constructs all menu actions in __init__."""
 
 from __future__ import annotations
 
@@ -16,10 +7,7 @@ import sys
 
 import pytest
 
-# Skip without PySide6 — the tests target build environments that
-# already have it (see release.yml / tests.yml). On a stripped-down
-# environment, the test gracefully bows out instead of erroring at
-# import time.
+# Skip without PySide6 instead of failing at import time.
 pytest.importorskip("PySide6")
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -38,15 +26,10 @@ def app():
 
 def test_tray_init_creates_all_actions(app):
     """All menu items + the tray itself must exist after __init__."""
-    # offscreen platform reports `isSystemTrayAvailable() == False`, but
-    # we explicitly want to verify construction even there — the bug
-    # was that QActions / contextMenu were never built, regardless of
-    # whether the tray itself actually shows.
+    # Offscreen reports no system tray; the actions must be built anyway.
     tray = TrayIcon()
 
-    # Every QAction the menu wires up has to be a real attribute on
-    # the instance — otherwise the slots in daemon.py would raise on
-    # the first track update.
+    # The slots in daemon.py use these on the first track update.
     for attr in (
         "_title_action",
         "_artist_action",
@@ -103,12 +86,9 @@ def test_history_entry_follows_the_switch(app):
     assert tray._history_action.isVisible()
 
 
-def test_tray_set_methods_dont_crash(app):
-    """daemon.py's first dispatch calls these — they must not AttributeError."""
-    # offscreen platform reports `isSystemTrayAvailable() == False`, but
-    # we explicitly want to verify construction even there — the bug
-    # was that QActions / contextMenu were never built, regardless of
-    # whether the tray itself actually shows.
+def test_first_dispatch_fills_the_menu(app):
+    """daemon.py's first dispatch calls these right after __init__."""
+    # Offscreen reports no system tray; the actions must be built anyway.
     tray = TrayIcon()
     track = TrackInfo(
         source="mpris",
@@ -124,15 +104,17 @@ def test_tray_set_methods_dont_crash(app):
     tray.set_progress(42_000, 180_000)
     tray.set_discord_connected(True)
     tray.set_update_available(True, "1.0.0")
+    assert tray._title_action.text() == "Some Track"
+    assert tray._artist_action.text() == "Some Artist • Some Album"
+    assert tray._play_pause_action.text() == "Pause"
+    assert tray._progress_action.text().startswith("0:42 / 3:00")
+    assert tray._discord_action.text() == "Discord: connected"
+    assert tray._update_action.isVisible()
+    assert "1.0.0" in tray._update_action.text()
 
 
 def test_progress_line_shows_elapsed_only_without_a_duration(app):
-    """A source with no track length still gets an elapsed count.
-
-    Bluetooth AVRCP often reports no length, and neither does a
-    streaming source whose catalog lookup came up empty. Hiding the line
-    there threw away a number we do trust.
-    """
+    """A source with no track length (often AVRCP) still gets an elapsed count."""
     tray = TrayIcon()
     tray.set_progress(83_000, 0)
     assert tray._progress_action.text() == "1:23"

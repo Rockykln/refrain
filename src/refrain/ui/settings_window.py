@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import copy
 import logging
+import threading
 import time
 
 from PySide6.QtCore import (
@@ -64,6 +66,7 @@ from refrain.scrobble import (
 )
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.ui.cursors import apply_interactive_cursors
+from refrain.ui.update_dialog import _open_https_link
 from refrain.updater import ReleaseInfo, prepare_release_notes
 
 GITHUB_URL = "https://github.com/Rockykln/refrain"
@@ -83,9 +86,9 @@ def application_name_status(client_id: str, status: str, name: str) -> tuple[str
       the default, and Refrain runs perfectly well without Discord.
     - An ID that cannot be a snowflake. Local knowledge, so say so
       without asking Discord.
-    - Discord has no such application. This is the one the feature
-      exists for: a mistyped ID used to fail completely silently, with
-      the status simply never appearing and nothing to point at.
+    - Discord has no such application. The case this exists for: a
+      mistyped ID otherwise fails silently, the status simply never
+      appearing and nothing to point at.
     - We could not ask. Distinct from the above, because the user can do
       nothing about it and should not go re-checking a correct ID.
 
@@ -121,12 +124,13 @@ def reset_to_defaults(current: Config) -> Config:
     - Whether the welcome wizard has already run. That is a record of
       something that happened, and the dialog offers no undo for the
       setup — so a reset must not make the wizard reappear on the next
-      start, which is exactly what it used to do.
+      start.
     """
     fresh = Config()
     fresh.discord = current.discord
     fresh.lastfm = current.lastfm
     fresh.behavior.first_run_complete = current.behavior.first_run_complete
+    fresh.update.last_check_ts = current.update.last_check_ts
     return fresh
 
 
@@ -137,7 +141,7 @@ def lastfm_connection_state(session_key: str, api_key: str, shared_secret: str) 
     of api_key + shared_secret + session_key — the secret/session live
     in the keyring, the api_key in config.toml, so they can desync
     (fresh config but a surviving keyring entry, or vice-versa). Status
-    keyed on session_key alone used to show "Connected" for an
+    keyed on session_key alone would show "Connected" for an
     unusable, scrobble-inert state.
 
     Returns:
@@ -171,7 +175,7 @@ _FORM_HSPACING = 12
 _FORM_VSPACING = 8
 # Fixed width for inputs (combos, line edits, spinboxes). Combined with
 # FieldsStayAtSizeHint the form layout will not grow them past this — on
-# Plasma Breeze, AllNonFixedFieldsGrow ignored maxWidth caps and stretched
+# Plasma Breeze, AllNonFixedFieldsGrow ignores maxWidth caps and stretches
 # widgets to ~440 px even with setFixedWidth set. FieldsStayAtSizeHint +
 # explicit per-widget setFixedWidth is the only combo that holds across
 # Fusion (offscreen tests) and Breeze (Plasma).
@@ -188,9 +192,7 @@ def _hint(text: str) -> QLabel:
     """Italic, wrapped helper text under form rows.
 
     Uses ``palette(text)`` rather than ``palette(mid)`` because the
-    latter renders almost-invisibly on Plasma Breeze Dark — the user
-    couldn't read hint lines like the "Last checked" timestamp under
-    Updates → Check for updates.
+    latter renders almost-invisibly on Plasma Breeze Dark.
     """
     lbl = QLabel(text)
     lbl.setWordWrap(True)
@@ -223,12 +225,10 @@ def _tab_layout(parent: QWidget) -> QVBoxLayout:
 def _scroll_wrap(page: QWidget) -> QScrollArea:
     """Put a tab page in a vertically-scrolling viewport.
 
-    Every tab stacks fixed-height QGroupBoxes; with enough groups (the
-    General tab now carries Discord + Last.fm + Notifications +
-    Behavior) — and especially with the ~30 %-longer German strings —
-    the content is taller than the dialog. Without a scroll area Qt
-    crushes every group below its sizeHint and the form rows overlap
-    ("the first page is all broken"). ``setWidgetResizable(True)`` keeps
+    Every tab stacks fixed-height QGroupBoxes; with enough groups — and
+    especially with the ~30 %-longer German strings — the content is
+    taller than the dialog. Without a scroll area Qt crushes every group
+    below its sizeHint and the form rows overlap. ``setWidgetResizable(True)`` keeps
     the page at the viewport width (inputs stay laid out; only a
     vertical scrollbar appears, and only when actually needed), so this
     is inert on tabs that already fit.
@@ -273,8 +273,8 @@ def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
     form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
     # FieldsStayAtSizeHint keeps every input at its sizeHint (or
     # explicit setFixedWidth) and refuses to grow it. This is critical
-    # on Plasma Breeze: AllNonFixedFieldsGrow ignored fixed-width caps
-    # there and stretched spinboxes/combos to ~440 px, leaving huge
+    # on Plasma Breeze: AllNonFixedFieldsGrow ignores fixed-width caps
+    # there and stretches spinboxes/combos to ~440 px, leaving huge
     # empty space between the value and the chevron chrome. With
     # FieldsStayAtSizeHint + per-widget setFixedWidth(_INPUT_MAX_WIDTH),
     # every input renders at exactly 220 logical px on every Qt style.
@@ -305,6 +305,20 @@ class _AppNameWorker(QObject):
         # while this was in flight, and a stale answer must not overwrite
         # the label for an id they have since changed.
         self.resolved.emit(self._client_id, status, name)
+
+
+class _BluetoothDevicesWorker(QObject):
+    """Lists the paired Bluetooth devices off the GUI thread; BlueZ can take
+    up to the D-Bus timeout to answer."""
+
+    listed = Signal(object)
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._list = BluetoothSource.list_paired_devices
+
+    def run(self) -> None:
+        self.listed.emit(self._list())
 
 
 class _LastfmAuthWorker(QObject):
@@ -354,7 +368,6 @@ class LastfmApprovalDialog(QDialog):
         super().__init__(parent)
         self._client = client
         self._token = token
-        self._thread: QThread | None = None
         self._worker: _LastfmAuthWorker | None = None
         self.session_key = ""
         self.username = ""
@@ -389,30 +402,32 @@ class LastfmApprovalDialog(QDialog):
         self._give_up.start(give_up_ms)
 
     def _poll(self) -> None:
-        if self._thread is not None:
+        if self._worker is not None:
             return  # the last question is still on its way
-        self._thread = QThread(self)
-        self._worker = _LastfmAuthWorker(self._client, "session", self._token)
-        self._worker.moveToThread(self._thread)
-        self._thread.started.connect(self._worker.run)
-        self._worker.sessionReady.connect(self._on_session)
-        self._worker.failed.connect(self._on_failed)
-        self._thread.start()
+        # A plain daemon thread, like _AppNameWorker: a request still in
+        # flight when the dialog closes is simply forgotten, and there is
+        # no QThread to pile up per poll or to destroy while it runs.
+        worker = _LastfmAuthWorker(self._client, "session", self._token)
+        worker.sessionReady.connect(self._on_session)
+        worker.failed.connect(self._on_failed)
+        self._worker = worker
+        threading.Thread(target=worker.run, name="refrain-lastfm-approval", daemon=True).start()
 
-    def _finish_thread(self) -> None:
-        if self._thread is not None:
-            self._thread.quit()
-            self._thread.wait(2000)
-            self._thread = None
-            self._worker = None
+    def _answer_is_current(self) -> bool:
+        if self._worker is None or self.sender() is not self._worker:
+            return False
+        self._worker = None
+        return True
 
     def _on_session(self, key: str, name: str) -> None:
-        self._finish_thread()
+        if not self._answer_is_current():
+            return
         self.session_key, self.username = key, name
         self.accept()
 
     def _on_failed(self, message: str, code: int) -> None:
-        self._finish_thread()
+        if not self._answer_is_current():
+            return
         if code == ERR_TOKEN_NOT_AUTHORISED:
             self._status.setText(self.tr("Waiting for you to allow access…"))
         elif code == -1:
@@ -433,7 +448,7 @@ class LastfmApprovalDialog(QDialog):
     def done(self, result: int) -> None:
         self._poll_timer.stop()
         self._give_up.stop()
-        self._finish_thread()
+        self._worker = None
         super().done(result)
 
 
@@ -490,6 +505,7 @@ class SettingsWindow(QDialog):
         self.setMinimumSize(680, 600)
         self.resize(720, 700)
         self._config = config
+        self._reset_pending = False
 
         # Last.fm session/username aren't form widgets — they're set by
         # the connect flow and persisted on Apply. Auth network calls run
@@ -527,7 +543,7 @@ class SettingsWindow(QDialog):
         button_row.addWidget(self.apply_btn)
 
         version_label = QLabel(f"Refrain v{__version__}")
-        # palette(text) follows the theme — `gray` was unreadable on
+        # palette(text) follows the theme — `gray` is unreadable on
         # Plasma Breeze Dark.
         version_label.setStyleSheet("color: palette(text);")
 
@@ -610,8 +626,9 @@ class SettingsWindow(QDialog):
         self._app_name_timer.setInterval(600)
         self._app_name_timer.timeout.connect(self._lookup_application_name)
         self.client_id_input.textChanged.connect(self._on_client_id_edited)
-        self._app_name_thread: QThread | None = None
-        self._app_name_worker: _AppNameWorker | None = None
+        # Plain daemon threads: a lookup outliving the window or the app
+        # must never be waited for, and a QThread destroyed mid-run aborts.
+        self._app_name_workers: set[_AppNameWorker] = set()
 
         # Most users need exactly one Discord application, so the
         # per-source override fields are hidden behind this opt-in
@@ -717,8 +734,8 @@ class SettingsWindow(QDialog):
 
     def _build_history_tab(self) -> QWidget:
         # Its own tab rather than a group under General: General was
-        # already as tall as the window allows, and a fourth group pushed
-        # it into the scroll-area fallback in every language.
+        # already as tall as the window allows, and a fourth group would
+        # push it into the scroll-area fallback in every language.
         w = QWidget()
         v = _tab_layout(w)
 
@@ -916,7 +933,6 @@ class SettingsWindow(QDialog):
 
         # User-friendly browser picker: a checkbox per known browser in
         # a 2-column grid + a free-text field below for less-common ones.
-        # Replaces the old comma-separated text input which was opaque.
         browsers_label = QLabel(self.tr("Detected browsers:"))
         mf.addRow(browsers_label)
 
@@ -1001,10 +1017,21 @@ class SettingsWindow(QDialog):
         return w
 
     def _populate_bluetooth_devices(self) -> None:
+        if not self.bluetooth_device.count():
+            self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
+        worker = _BluetoothDevicesWorker()
+        worker.listed.connect(self._fill_bluetooth_devices)
+        self._bluetooth_worker = worker
+        threading.Thread(target=worker.run, name="refrain-bt-devices", daemon=True).start()
+
+    def _fill_bluetooth_devices(self, devices: list[dict]) -> None:
+        if self.sender() is not self._bluetooth_worker:
+            return  # an earlier Refresh answering late
+        self._bluetooth_worker = None
         previous = self.bluetooth_device.currentData() if self.bluetooth_device.count() else None
         self.bluetooth_device.clear()
         self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
-        for d in BluetoothSource.list_paired_devices():
+        for d in devices:
             name = d.get("name") or self.tr("(unknown device)")
             label = f"{name} — {d.get('address', '')}"
             if d.get("connected"):
@@ -1015,12 +1042,15 @@ class SettingsWindow(QDialog):
                 if self.bluetooth_device.itemData(i) == previous:
                     self.bluetooth_device.setCurrentIndex(i)
                     return
+            # Not paired or not reachable right now; keep it selectable so
+            # Apply doesn't turn it into auto-detect.
+            self.bluetooth_device.addItem(previous, userData=previous)
+            self.bluetooth_device.setCurrentIndex(self.bluetooth_device.count() - 1)
 
     def _format_last_check(self, ts: int) -> str:
         """Render the 'Last checked' timestamp in the active UI locale.
 
-        Was a hard-coded ``%Y-%m-%d %H:%M:%S`` strftime, which ignored
-        the user's chosen language. ``QLocale`` formats the date the way
+        ``QLocale`` formats the date the way
         every other localised string in the window does, so a German /
         Japanese / etc. UI doesn't show a lone ISO timestamp. ``never``
         is a real translatable string.
@@ -1084,7 +1114,8 @@ class SettingsWindow(QDialog):
         # form layout via addRow with a single field instead.
         notes_group, nf = _new_group(self.tr("Latest release notes"))
         self.release_notes_view = QTextBrowser(notes_group)
-        self.release_notes_view.setOpenExternalLinks(True)
+        self.release_notes_view.setOpenLinks(False)
+        self.release_notes_view.anchorClicked.connect(_open_https_link)
         self.release_notes_view.setMarkdown(
             self.tr(
                 "_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._"
@@ -1123,6 +1154,7 @@ class SettingsWindow(QDialog):
             )
         body = release.body or self.tr("_No release notes provided._")
         self.release_notes_view.setMarkdown(prepare_release_notes(body))
+        self.last_check_label.setText(self._last_check_dt_format(self._config.update.last_check_ts))
 
     # ====================================================================
     # Advanced tab
@@ -1147,13 +1179,6 @@ class SettingsWindow(QDialog):
         self.notify_delay_spin.setSuffix(" ms")
         self.notify_delay_spin.setFixedWidth(_INPUT_MAX_WIDTH)
         pf.addRow(self.tr("Notification delay:"), self.notify_delay_spin)
-
-        self.cover_cache_spin = QSpinBox()
-        self.cover_cache_spin.setRange(10, 5000)
-        self.cover_cache_spin.setSingleStep(50)
-        self.cover_cache_spin.setSuffix(self.tr(" covers"))
-        self.cover_cache_spin.setFixedWidth(_INPUT_MAX_WIDTH)
-        pf.addRow(self.tr("Cover cache size:"), self.cover_cache_spin)
         v.addWidget(perf_group)
 
         # ---- Localization group ------------------------------------------
@@ -1173,7 +1198,13 @@ class SettingsWindow(QDialog):
         self.language_combo.addItem("Italiano", "it")
         self.language_combo.addItem("Русский", "ru")
         self.language_combo.addItem("Polski", "pl")
+        self.language_combo.addItem("Nederlands", "nl")
+        self.language_combo.addItem("Svenska", "sv")
+        self.language_combo.addItem("Čeština", "cs")
+        self.language_combo.addItem("Türkçe", "tr")
+        self.language_combo.addItem("Українська", "uk")
         self.language_combo.addItem("日本語", "ja")
+        self.language_combo.addItem("한국어", "ko")
         self.language_combo.addItem("简体中文", "zh_CN")
         lf.addRow(self.tr("Language:"), self.language_combo)
         lf.addRow(_hint(self.tr("Refrain restarts automatically after changing the language.")))
@@ -1259,23 +1290,20 @@ class SettingsWindow(QDialog):
             # Apply.
             self._show_application_name("", "", "")
             return
-        if self._config.privacy.mode == "off":
+        if self.privacy_combo.currentData() == "off":
             # Privacy → Off is "do not talk to Discord". Checking a name
             # is a small request, but it is still a request to Discord,
             # and the switch would not mean much if it had exceptions.
             self._show_application_name("", "", "")
             return
         self._show_application_name(client_id, "checking", "")
-        self._finish_app_name_thread()
-        self._app_name_thread = QThread(self)
-        self._app_name_worker = _AppNameWorker(client_id)
-        self._app_name_worker.moveToThread(self._app_name_thread)
-        self._app_name_thread.started.connect(self._app_name_worker.run)
-        self._app_name_worker.resolved.connect(self._on_application_name)
-        self._app_name_thread.start()
+        worker = _AppNameWorker(client_id)
+        worker.resolved.connect(self._on_application_name)
+        self._app_name_workers.add(worker)
+        threading.Thread(target=worker.run, daemon=True).start()
 
     def _on_application_name(self, client_id: str, status: str, name: str) -> None:
-        self._finish_app_name_thread()
+        self._app_name_workers.discard(self.sender())
         if status == FOUND:
             remember_application_name(self._config, client_id, name)
         if client_id != self.client_id_input.text().strip():
@@ -1295,23 +1323,13 @@ class SettingsWindow(QDialog):
         colour = "palette(link)" if ok else "palette(text)"
         self.app_name_label.setStyleSheet(f"color: {colour}; font-style: italic;")
 
-    def _finish_app_name_thread(self) -> None:
-        if self._app_name_thread is not None:
-            self._app_name_thread.quit()
-            self._app_name_thread.wait(2000)
-            self._app_name_thread.deleteLater()
-        self._app_name_thread = None
-        self._app_name_worker = None
-
     # ====================================================================
     # Reset
     # ====================================================================
 
     def _on_reset_clicked(self) -> None:
         # Build the dialog manually so the action button reads "Reset" /
-        # "Zurücksetzen" instead of the generic "Yes" / "Ja". The
-        # standard Yes/No buttons confused the body text — it tells
-        # the user to confirm a *reset* but the button labels said yes.
+        # "Zurücksetzen" instead of the generic "Yes" / "Ja".
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Question)
         msg.setWindowTitle(self.tr("Reset all settings"))
@@ -1332,7 +1350,25 @@ class SettingsWindow(QDialog):
         msg.exec()
         if msg.clickedButton() is not reset_btn:
             return
-        self._config = reset_to_defaults(self._config)
+        # Only the form shows the defaults until Apply; Cancel reloads the
+        # saved settings.
+        saved = self._config
+        self._config = reset_to_defaults(saved)
+        try:
+            self._load_into_form()
+        finally:
+            self._config = saved
+        self._reset_pending = True
+
+    def reject(self) -> None:
+        self._reset_pending = False
+        self._load_into_form()
+        super().reject()
+
+    def use_config(self, config: Config) -> None:
+        """Take over settings saved elsewhere, such as by the welcome wizard."""
+        self._config = config
+        self._reset_pending = False
         self._load_into_form()
 
     def _on_uninstall_clicked(self) -> None:
@@ -1345,7 +1381,7 @@ class SettingsWindow(QDialog):
 
         paths = collect_paths()
         cmd = removal_command(detect_install_type(), os.environ.get("APPIMAGE"))
-        listing = "\n".join(f"  • {p}" for p in paths) or "  • (no data files found)"
+        listing = "\n".join(f"  • {p}" for p in paths) or "  • " + self.tr("(no data files found)")
 
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Warning)
@@ -1464,13 +1500,16 @@ class SettingsWindow(QDialog):
         dialog = LastfmApprovalDialog(
             self._lastfm_client, token, lambda: QDesktopServices.openUrl(url), self
         )
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._on_lastfm_session(dialog.session_key, dialog.username)
+        accepted = dialog.exec() == QDialog.DialogCode.Accepted
+        session_key, username, error = dialog.session_key, dialog.username, dialog.error
+        dialog.deleteLater()
+        if accepted:
+            self._on_lastfm_session(session_key, username)
             return
         self._lastfm_token = ""
         self._refresh_lastfm_status()
-        if dialog.error:
-            QMessageBox.warning(self, self.tr("Last.fm connection failed"), dialog.error)
+        if error:
+            QMessageBox.warning(self, self.tr("Last.fm connection failed"), error)
 
     def _on_lastfm_session(self, key: str, name: str) -> None:
         self._finish_lastfm_thread()
@@ -1506,7 +1545,9 @@ class SettingsWindow(QDialog):
         dialog and there is no reason to build it on every settings open."""
         from refrain.ui.legal_dialog import LegalDialog
 
-        LegalDialog(self).exec()
+        dialog = LegalDialog(self)
+        dialog.exec()
+        dialog.deleteLater()
 
     def _load_into_form(self) -> None:
         c = self._config
@@ -1562,7 +1603,12 @@ class SettingsWindow(QDialog):
                     matched = True
                     break
             if not matched:
-                self.bluetooth_device.setEditText(c.sources.bluetooth_device)
+                # Not connected right now; keep it selectable so Apply
+                # doesn't turn it into auto-detect.
+                self.bluetooth_device.addItem(
+                    c.sources.bluetooth_device, userData=c.sources.bluetooth_device
+                )
+                self.bluetooth_device.setCurrentIndex(self.bluetooth_device.count() - 1)
         else:
             self.bluetooth_device.setCurrentIndex(0)
 
@@ -1573,7 +1619,6 @@ class SettingsWindow(QDialog):
 
         self.poll_spin.setValue(c.advanced.poll_interval_ms)
         self.notify_delay_spin.setValue(c.behavior.notify_delay_ms)
-        self.cover_cache_spin.setValue(c.advanced.cover_cache_size)
         for i in range(self.log_level_combo.count()):
             if self.log_level_combo.itemData(i) == c.advanced.log_level:
                 self.log_level_combo.setCurrentIndex(i)
@@ -1585,11 +1630,10 @@ class SettingsWindow(QDialog):
                 break
 
     def _on_apply_clicked(self) -> None:
-        c = self._config
-        # Asked before anything is written into `c`, so Cancel leaves
-        # both the config and the open form exactly as they were.
+        # Asked before anything is built, so Cancel leaves both the config
+        # and the open form exactly as they were.
         if (
-            c.history.enabled
+            self._config.history.enabled
             and not self.history_box.isChecked()
             and not self._confirm_history_off()
         ):
@@ -1605,18 +1649,13 @@ class SettingsWindow(QDialog):
             and not self._confirm_lastfm_unconnected()
         ):
             return
-        # Snapshot the language + client_id *before* we overwrite them so
-        # we can detect a change and trigger an automatic restart. Both
-        # require restart to take effect: the QTranslator is installed
-        # once at app startup, and pypresence is bound to the original
-        # client_id at connect time — a fresh process is the simplest
-        # way to re-init both cleanly.
-        previous_language = c.advanced.language
-        previous_client_id = c.discord.client_id
-        # Empty input is meaningful: it disables Discord RPC entirely.
-        # The previous `or c.discord.client_id` fallback meant the user
-        # could never *clear* a Client ID — emptying the field was a
-        # no-op, surprising anyone trying to disable the integration.
+        # A new object, so everyone holding the old one can tell what changed.
+        c = copy.deepcopy(reset_to_defaults(self._config) if self._reset_pending else self._config)
+        # Both need a restart: the translator is installed once at startup,
+        # and pypresence binds to the client_id when it connects.
+        previous_language = self._config.advanced.language
+        previous_client_id = self._config.discord.client_id
+        # An empty field turns Discord off, so it must not fall back.
         c.discord.client_id = self.client_id_input.text().strip()
         # The advanced toggle is the per-source feature switch: when
         # it's off, the overrides are cleared so the single default
@@ -1660,15 +1699,16 @@ class SettingsWindow(QDialog):
             picked.extend(e for e in extras if e not in picked)
         c.sources.browser_hints = ",".join(picked) if picked else c.sources.browser_hints
 
-        bt_data = self.bluetooth_device.currentData()
-        if bt_data is None:
-            text = self.bluetooth_device.currentText().strip()
+        index = self.bluetooth_device.currentIndex()
+        text = self.bluetooth_device.currentText().strip()
+        if index >= 0 and text == self.bluetooth_device.itemText(index).strip():
+            bt_data = self.bluetooth_device.itemData(index) or ""
+        else:
             bt_data = "" if text in ("", "(auto-detect)", self.tr("(auto-detect)")) else text
         c.sources.bluetooth_device = bt_data
 
         c.privacy.mode = self.privacy_combo.currentData() or "full"
         c.advanced.poll_interval_ms = self.poll_spin.value()
-        c.advanced.cover_cache_size = self.cover_cache_spin.value()
         c.advanced.log_level = self.log_level_combo.currentData() or "INFO"
         c.advanced.language = self.language_combo.currentData() or "system"
         c.history.enabled = self.history_box.isChecked()
@@ -1702,6 +1742,8 @@ class SettingsWindow(QDialog):
         from refrain.secrets_store import save_from as _save_lastfm_secrets
 
         _save_lastfm_secrets(c.lastfm, clear_missing=self._lastfm_disconnect_requested)
+        self._config = c
+        self._reset_pending = False
         self.applied.emit(c)
         # Apply triggers a restart automatically when the user changed
         # the UI language or the Discord client_id. Both need a fresh
@@ -1727,5 +1769,4 @@ class SettingsWindow(QDialog):
         # bounded wait, mirroring the welcome dialog's diagnostics thread.
         self._finish_lastfm_thread()
         self._app_name_timer.stop()
-        self._finish_app_name_thread()
         super().closeEvent(event)

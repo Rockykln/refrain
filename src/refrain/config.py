@@ -7,6 +7,7 @@ import dataclasses
 import logging
 import os
 import re
+import threading
 import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -16,10 +17,14 @@ from refrain.paths import config_path
 
 log = logging.getLogger(__name__)
 
+# The GUI thread and the Discord app-name refresh thread both save, and
+# they share one tmp file name.
+_SAVE_LOCK = threading.Lock()
+
 
 def _coerce_value(annot, name: str, value):
-    """Best-effort coercion of a single config value to its declared
-    field type. Raises TypeError when the value can't be made to fit.
+    """Coerce a single config value to its declared field type.
+    Raises TypeError when the value can't be made to fit.
 
     Coercion rules:
       bool → accept bool; "true"/"false"/"yes"/"no"/"0"/"1" strings
@@ -74,6 +79,9 @@ def _coerce_value(annot, name: str, value):
 # hot-reload) refresh per-section without rebuilding everything.
 _DATACLASS_HINTS: dict[str, dict[str, type]] = {}
 
+# Keys older versions wrote that are no longer used; skipped without a warning.
+_RETIRED_KEYS = {("AdvancedConfig", "cover_cache_size")}
+
 
 def _construct(cls, payload):
     """Build a dataclass from ``payload`` while ignoring unknown keys
@@ -102,11 +110,12 @@ def _construct(cls, payload):
     dropped: list[str] = []
     for k, v in payload.items():
         if k not in known_field_names:
-            dropped.append(k)
+            if (cls.__name__, k) not in _RETIRED_KEYS:
+                dropped.append(k)
             continue
         try:
             accepted[k] = _coerce_value(hints.get(k), k, v)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError, OverflowError) as e:
             log.warning(
                 "Config: dropping wrongly-typed %s.%s value (%s) — using default",
                 cls.__name__,
@@ -157,10 +166,8 @@ class DiscordConfig:
     app_name_checked_ts: int = 0
     # Whether to look the name up at all. Opt-in, and off by default:
     # this is the only request Refrain would make to Discord's *servers*
-    # rather than to the local client, and "sends nothing anywhere on
-    # its own" is a promise worth keeping literally true out of the box.
-    # Switching it on is a deliberate act, in one checkbox, next to the
-    # field it explains.
+    # rather than to the local client, and by default Refrain sends
+    # nothing anywhere on its own.
     resolve_app_name: bool = False
 
     def client_id_for(self, source: str) -> str:
@@ -222,9 +229,7 @@ class BehaviorConfig:
     # How long to wait after a track change before firing the desktop
     # notification. 0 = fire immediately; the retry loop in
     # `_fire_pending_notify` still polls up to 2 s for the cover image
-    # to land before falling back to the brand fallback. Previously
-    # 1500 ms / 600 ms — both felt sluggish to users; the retry loop
-    # alone is enough to wait for cover art when needed.
+    # to land before falling back to the brand fallback.
     notify_delay_ms: int = 0
     # Set to True after the first-run wizard runs once. Prevents the
     # welcome dialog from re-appearing on every launch.
@@ -235,9 +240,6 @@ class BehaviorConfig:
 class AdvancedConfig:
     poll_interval_ms: int = 500
     log_level: str = "INFO"
-    # On-disk cover-art cache cap. Older files are pruned at startup when
-    # the count exceeds this. ~50-150 KB per cover.
-    cover_cache_size: int = 200
     # Idle-detection grace window (in seconds). When the *same* track has
     # been "playing" for longer than its own duration plus this grace,
     # Refrain assumes the source is dangling (e.g. browser tab closed
@@ -334,10 +336,18 @@ class Config:
                 data = tomllib.load(f)
             return cls.from_dict(data)
         except Exception as e:
+            # The next save would write defaults over every value in it, so
+            # keep the file where the user can still fix it.
+            broken = path.with_name(path.name + ".broken")
+            try:
+                path.replace(broken)
+            except OSError:
+                broken = path
             log.warning(
-                "Config at %s unreadable (%s), using defaults",
+                "Config at %s unreadable (%s), using defaults; the file is kept as %s",
                 path,
                 e,
+                broken,
                 exc_info=True,
             )
             return cls()
@@ -357,12 +367,10 @@ class Config:
 
     def to_dict(self) -> dict[str, Any]:
         lastfm = asdict(self.lastfm)
-        # SECURITY: the Last.fm shared secret and session key are
-        # credentials — they are NEVER written to config.toml. They
-        # live in the OS keyring (see refrain.secrets_store). Forcing
-        # them empty here also means the comment-preserving writer
-        # rewrites any legacy plaintext line to `… = ""` on the next
-        # save, scrubbing secrets that an older build left on disk.
+        # The Last.fm shared secret and session key live in the OS
+        # keyring (refrain.secrets_store), never in config.toml. Forcing
+        # them empty here also makes the comment-preserving writer
+        # rewrite any legacy plaintext line to `… = ""` on the next save.
         lastfm["shared_secret"] = ""
         lastfm["session_key"] = ""
         return {
@@ -377,16 +385,17 @@ class Config:
         }
 
     def save(self, path: Path | None = None) -> None:
-        path = path or config_path()
+        with _SAVE_LOCK:
+            self._save_unlocked(path or config_path())
+
+    def _save_unlocked(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = self.to_dict()
         # Comment-/unknown-key-preserving write: when a config file
         # already exists, rewrite only the `key = value` lines Refrain
         # owns and leave user comments, blank lines, ordering, and any
         # keys a newer Refrain wrote (that this one downgraded from)
-        # intact. The old behaviour re-serialised from scratch on every
-        # save — including the silent daily update-check stamping
-        # `last_check_ts` — which quietly nuked hand-added comments.
+        # intact — the silent daily update check saves too.
         text = _serialize(payload)
         if path.exists():
             try:
@@ -454,9 +463,11 @@ def _format_value(v: Any) -> str:
         .replace("\r", "\\r")
         .replace("\t", "\\t")
     )
+    s = _CONTROL_RE.sub(lambda m: f"\\u{ord(m.group()):04x}", s)
     return f'"{s}"'
 
 
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 _SECTION_RE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
 _KEY_RE = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_-]*)\s*=")
 

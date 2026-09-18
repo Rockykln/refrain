@@ -47,3 +47,24 @@ def test_assets_dir_is_inside_package():
     assert (a / "icons" / "refrain.svg").is_file()
     for state in ("playing", "paused", "stopped"):
         assert (a / "icons" / f"tray-{state}.svg").is_file()
+
+
+def test_relative_xdg_values_are_ignored(monkeypatch, tmp_path):
+    """The XDG spec calls relative values invalid; uninstall must never
+    rmtree a path that resolves against the current directory."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", "relative/config")
+    monkeypatch.setenv("XDG_STATE_HOME", ".")
+    monkeypatch.setenv("XDG_CACHE_HOME", "cache")
+
+    import refrain.paths
+
+    importlib.reload(refrain.paths)
+    p = refrain.paths
+
+    assert p.config_dir() == home / ".config" / "refrain"
+    assert p.state_dir() == home / ".local" / "state" / "refrain"
+    assert p.cache_dir() == home / ".cache" / "refrain"
+    assert p.autostart_path() == home / ".config" / "autostart" / "refrain.desktop"

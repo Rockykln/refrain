@@ -1,20 +1,6 @@
 """Resolve a Discord Application ID to the name Discord will display.
 
-The Client ID is the one setting nobody can verify by looking at it: it
-is nineteen digits, and a wrong one fails silently — Refrain connects,
-Discord accepts the socket and rejects the application, and the status
-simply never appears. The name is the readable half of that ID, and it
-is also the word that ends up next to "Listening to" on the card, so
-seeing it confirms both that the ID is real and that it says what the
-user meant it to say.
-
-Discord exposes it without authentication at
-``/api/v10/applications/{id}/rpc`` — the endpoint RPC clients use to
-render an application they have only an ID for. The request carries the
-Application ID and nothing else: no account, no token, no listening
-data. It is public information by construction, since the same ID rides
-along in every status Refrain publishes.
-"""
+The unauthenticated request carries only the ID, which every published status contains anyway."""
 
 from __future__ import annotations
 

@@ -1,20 +1,5 @@
 """A stale Discord IPC socket must not hide a running client.
-
-Reported symptom: Refrain sometimes failed to connect when Discord was
-already running before it started, and misbehaved with Discord and
-Vencord open at the same time.
-
-Cause: pypresence's ``get_ipc_path`` probes candidates with
-``test_ipc_path``, which calls ``socket.connect()`` with no exception
-handling. The first dead ``discord-ipc-N`` it touches raises straight out
-of the scan, so a live socket behind it is never tried — and the order
-comes from ``os.scandir``, i.e. the filesystem. Discord leaves sockets
-behind when it exits, and running two clients means more sockets to trip
-over, which is why it failed only *sometimes*.
-
-``_scan_ipc_pipes`` does the probing itself, skips what does not answer,
-and hands the proven slot to ``Presence(pipe=...)``.
-"""
+pypresence's scan stops at the first dead ``discord-ipc-N``; ``_scan_ipc_pipes`` skips it."""
 
 from __future__ import annotations
 

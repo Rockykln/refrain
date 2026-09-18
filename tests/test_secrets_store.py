@@ -1,11 +1,5 @@
-"""Credential storage: keyring-first, 0600-file fallback.
-
-Hermetic — the keyring path is forced off (no real KWallet / D-Bus
-touched) so these exercise the fallback + the config/overlay logic.
-The live Secret Service path is verified manually, not in CI (CI has
-no D-Bus, and touching the user's real keyring in tests is a side
-effect).
-"""
+"""Credential storage: keyring first, 0600 file as fallback.
+The keyring is either forced off or a stand-in; the real one is never touched."""
 
 from __future__ import annotations
 
@@ -27,8 +21,7 @@ from refrain.secrets_store import (
 
 @pytest.fixture
 def file_store(xdg_tmp, monkeypatch):
-    """A SecretStore with the keyring forced unavailable → file mode,
-    writing into the isolated XDG config dir."""
+    """A SecretStore in file mode, writing into the isolated XDG config dir."""
     monkeypatch.setattr(secrets_store, "_keyring_available", lambda _bus: False)
     return SecretStore(bus=object())  # dummy bus, never actually used
 
@@ -55,6 +48,11 @@ def test_delete_removes_key(file_store):
 
 def test_keyring_ok_false_in_file_mode(file_store):
     assert file_store.keyring_ok() is False
+
+
+def test_unwritable_config_dir_reports_failure_instead_of_raising(file_store, xdg_tmp):
+    (xdg_tmp["config"] / "refrain").write_text("not a directory")
+    assert secrets_store._file_write_all({LASTFM_SESSION_KEY: "tok"}) is False
 
 
 def test_load_into_overlays_from_store(file_store):
@@ -89,14 +87,7 @@ def test_save_from_persists_and_clears(file_store):
 
 
 def test_save_from_keeps_secrets_when_the_config_never_loaded(file_store):
-    """Regression: an empty field is not consent to delete.
-
-    When the keyring goes away between sessions — a KWallet the user
-    switched off, a collection that stayed locked — ``load_into`` leaves
-    the config blank. Applying settings then used to call ``delete()``
-    and destroy the fallback copy too, turning a temporary read failure
-    into permanent credential loss.
-    """
+    """An empty field after a failed keyring read is not consent to delete."""
     file_store.set(LASTFM_SHARED_SECRET, "keep-me")
     file_store.set(LASTFM_SESSION_KEY, "keep-me-too")
 
@@ -146,8 +137,7 @@ def test_config_save_blanks_secrets_and_is_0600(tmp_path):
 
 
 def test_legacy_plaintext_config_is_scrubbed_on_next_save(tmp_path):
-    # An old build wrote the secret into config.toml. Loading then
-    # saving must blank that line (the value lives in the keyring now).
+    # A plaintext secret in config.toml is blanked on save; it lives in the keyring.
     p = tmp_path / "config.toml"
     p.write_text(
         '[lastfm]\nenabled = true\napi_key = "k"\n'

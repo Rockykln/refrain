@@ -1,19 +1,6 @@
-"""First-run welcome wizard.
+"""First-run welcome wizard: tray orientation, Discord and iTunes probes, Discord Application ID.
 
-Runs once on a brand-new install (or whenever ``behavior.first_run_complete``
-is False AND no Discord client_id is configured). Walks the user through:
-
-1. Tray-icon orientation — where Refrain lives once dismissed.
-2. A live Discord IPC probe so they know whether the desktop client is
-   reachable from this session.
-3. A live iTunes Search lookup so they know cover-art will work.
-4. A field to paste their Discord Application ID, with a direct link
-   to the Developer Portal.
-
-The dialog is intentionally non-blocking on the daemon: it runs in the
-main thread, and "Apply + close" hands the new ``client_id`` back via a
-signal — same wire-up as ``SettingsWindow``.
-"""
+Shown while ``behavior.first_run_complete`` is False and no client_id is set."""
 
 from __future__ import annotations
 
@@ -26,7 +13,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from PySide6.QtCore import QObject, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QCoreApplication, QObject, Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
@@ -40,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from refrain.discord_app import looks_like_application_id
 from refrain.paths import assets_dir
 from refrain.ui.cursors import apply_interactive_cursors
 
@@ -99,10 +87,14 @@ def _probe_discord_ipc() -> tuple[bool, str]:
                     s.settimeout(0.5)
                     s.connect(str(path))
                     s.close()
-                    return True, f"Found Discord IPC at {path}"
+                    return True, QCoreApplication.translate(
+                        "WelcomeDialog", "Found Discord IPC at {path}"
+                    ).format(path=path)
                 except OSError as e:
                     log.debug("Discord IPC probe %s failed: %s", path, e)
-    return False, "No Discord IPC socket found — start the Discord desktop app."
+    return False, QCoreApplication.translate(
+        "WelcomeDialog", "No Discord IPC socket found — start the Discord desktop app."
+    )
 
 
 def _probe_itunes() -> tuple[bool, str]:
@@ -110,12 +102,18 @@ def _probe_itunes() -> tuple[bool, str]:
         with urllib.request.urlopen(_ITUNES_TEST_URL, timeout=5) as resp:  # noqa: S310
             data = json.load(resp)
         if isinstance(data, dict) and "resultCount" in data:
-            return True, "iTunes Search API reachable."
-        return False, "iTunes responded but the payload looked off."
+            return True, QCoreApplication.translate("WelcomeDialog", "iTunes Search API reachable.")
+        return False, QCoreApplication.translate(
+            "WelcomeDialog", "iTunes responded but the payload looked off."
+        )
     except urllib.error.URLError as e:
-        return False, f"iTunes Search unreachable: {e.reason}"
+        return False, QCoreApplication.translate(
+            "WelcomeDialog", "iTunes Search unreachable: {reason}"
+        ).format(reason=e.reason)
     except Exception as e:
-        return False, f"iTunes probe failed: {e}"
+        return False, QCoreApplication.translate(
+            "WelcomeDialog", "iTunes probe failed: {error}"
+        ).format(error=e)
 
 
 class WelcomeDialog(QDialog):
@@ -129,9 +127,7 @@ class WelcomeDialog(QDialog):
         self.setWindowTitle(self.tr("Welcome"))
         # Compact-but-comfortable: tall enough for the two diagnostics
         # rows + intro + ID block without scrolling, narrow enough that
-        # it doesn't feel like a settings window. The previous 580 px
-        # height left a wide empty band between the input and the
-        # action buttons.
+        # it doesn't feel like a settings window.
         #
         # A minimum plus an explicit resize, not a pinned size: the
         # diagnostics rows word-wrap and carry whatever the probes report.
@@ -225,8 +221,8 @@ class WelcomeDialog(QDialog):
         )
         client_label.setOpenExternalLinks(True)
         client_label.setWordWrap(True)
-        # Default text color (was palette(mid) — illegible on dark
-        # Breeze). Italic + slightly smaller keeps the helper-text feel
+        # Default text color: palette(mid) is illegible on dark
+        # Breeze. Italic + slightly smaller keeps the helper-text feel
         # without sacrificing readability.
         client_label.setStyleSheet("color: palette(text); font-size: 12px; font-style: italic;")
         layout.addWidget(client_label)
@@ -281,8 +277,7 @@ class WelcomeDialog(QDialog):
         on its own — it squeezes the wrapped labels instead, so a long
         enough failure message loses its last lines. Realistic messages
         fit in the shipped 560x470; a very verbose one (or the same text
-        in a wordier locale) does not, which is why the dialog is no
-        longer setFixedSize.
+        in a wordier locale) does not, hence no setFixedSize.
 
         The deficit is measured on the labels themselves rather than from
         the layout: with a stretch item in the box, the layout's own
@@ -338,8 +333,7 @@ class WelcomeDialog(QDialog):
     def reject(self) -> None:
         # X / Escape behave the same as "Skip for now" — emit an empty
         # client_id so `first_run_complete=True` gets persisted and the
-        # wizard doesn't re-appear on every launch. Without this, X
-        # leaked back into the next session as another welcome popup.
+        # wizard doesn't re-appear on every launch.
         if self._diag_thread is not None:
             self._diag_thread.quit()
             with contextlib.suppress(Exception):
@@ -357,8 +351,8 @@ class WelcomeDialog(QDialog):
         if not client_id:
             # Built by hand rather than QMessageBox.question: the stock
             # Yes/No come from the platform theme's own catalogs, which
-            # follow the process locale and not `advanced.language` — an
-            # English wizard was answering itself "Ja" / "Nein". Naming
+            # follow the process locale and not `advanced.language`, so an
+            # English wizard could show "Ja" / "Nein". Naming
             # the action beats "Yes" anyway.
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Question)
@@ -376,12 +370,12 @@ class WelcomeDialog(QDialog):
             msg.exec()
             if msg.clickedButton() is not skip_btn:
                 return
-        if client_id and not client_id.isdigit():
+        if client_id and not looks_like_application_id(client_id):
             QMessageBox.warning(
                 self,
                 self.tr("Invalid Application ID"),
                 self.tr(
-                    "The Discord Application ID is a numeric snowflake (17–19 digits). "
+                    "The Discord Application ID is a numeric snowflake (17–20 digits). "
                     "Double-check the value you copied from the Developer Portal."
                 ),
             )

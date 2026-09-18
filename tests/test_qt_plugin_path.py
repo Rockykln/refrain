@@ -1,19 +1,5 @@
 """System Qt plugin-path augmentation must never break startup.
-
-Regression test for the 0.4.2 pipx ship-blocker: ``_augment_qt_plugin_path``
-compared only Qt's MAJOR.MINOR, so a PySide6 wheel bundling Qt 6.11.1 on a
-distro carrying Qt 6.11.2 (a rolling distro one patch ahead) *prepended* the
-system plugin tree via ``addLibraryPath``. Qt refuses a plugin built against
-a newer Qt than the one running, so both the wayland and xcb platform
-plugins were found, rejected, and — because the prepended path won — never
-fell back to the wheel's own. The app aborted with "no Qt platform plugin
-could be initialized".
-
-Two independent guards are asserted here:
-  * the version check rejects a system Qt newer than ours, and
-  * augmentation appends rather than prepends, so even a wrongly accepted
-    system tree can only cost the styles, never the ability to start.
-"""
+Qt rejects plugins from a newer Qt, so a newer system tree is refused and any tree is appended."""
 
 from __future__ import annotations
 
@@ -82,8 +68,7 @@ class _FakeQCoreApplication:
 
 
 def _install_fakes(monkeypatch, tmp_path, *, bundled: str, system: str):
-    """Point ``_augment_qt_plugin_path`` at a wheel-shaped bundled tree
-    (no ``styles/``) and a fake system tree, and capture path mutations."""
+    """Fake a wheel-shaped bundled tree and a system tree; capture path mutations."""
     import refrain.app as app
 
     bundled_plugins = tmp_path / "wheel" / "PySide6" / "Qt" / "plugins"
@@ -119,8 +104,7 @@ def test_newer_system_qt_is_not_added(monkeypatch, tmp_path):
 
 
 def test_compatible_system_qt_is_appended_not_prepended(monkeypatch, tmp_path):
-    """When the versions do line up, the bundled tree keeps first claim on
-    the platform plugin — the system tree may only be consulted after it."""
+    """With matching versions the bundled tree still comes first."""
     app, qapp, bundled, system = _install_fakes(
         monkeypatch, tmp_path, bundled="6.11.2", system="6.11.2"
     )
@@ -131,8 +115,7 @@ def test_compatible_system_qt_is_appended_not_prepended(monkeypatch, tmp_path):
 
 
 def test_distro_pyside_short_circuits(monkeypatch, tmp_path):
-    """Running against the distro PySide6 (its plugin dir already has
-    ``styles/``) must leave the library paths completely alone."""
+    """The distro PySide6 (plugin dir has ``styles/``) leaves the library paths alone."""
     import refrain.app as app
 
     plugins = tmp_path / "usr" / "lib" / "qt6" / "plugins"
@@ -182,8 +165,7 @@ def test_non_linux_is_left_alone(monkeypatch, tmp_path):
 
 
 def test_real_augmentation_never_breaks_qapplication(monkeypatch, tmp_path):
-    """Belt-and-braces: the real function against the real Qt must leave a
-    constructible QApplication behind."""
+    """The real function against the real Qt leaves a constructible QApplication."""
     from PySide6.QtCore import QCoreApplication
 
     import refrain.app as app

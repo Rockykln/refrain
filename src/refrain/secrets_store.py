@@ -1,31 +1,5 @@
-"""Credential storage that keeps secrets off plaintext disk.
-
-The Last.fm **shared secret** and **session key** are the only real
-credentials Refrain holds (the Discord client_id and the Last.fm
-api_key are public application identifiers, not secrets). They are
-*never* written to ``config.toml``. They go to the OS keyring instead:
-
-1. **freedesktop Secret Service** (KWallet / GNOME Keyring) over the
-   *session* D-Bus bus — encrypted at rest by the backend, unlocked
-   with the user's login session. Hand-rolled on ``dbus-python``
-   (already a runtime dependency) so no ``keyring``/``secretstorage``
-   dependency is added.
-2. **Fallback**: a `0600` (owner-only) JSON file under the config dir,
-   used *only* when no Secret Service is reachable (headless box,
-   no keyring daemon). Clearly separate from ``config.toml``.
-
-Threat model / "stays on the PC": the secret is transmitted only over
-the local D-Bus Unix socket (to the keyring) and, when actually
-scrobbling, to Last.fm over HTTPS — which is unavoidable, that *is*
-the feature. Nothing else ever reads or forwards it. The Secret
-Service "plain" session means the value crosses the *local* socket
-unencrypted (then the backend encrypts it at rest); negotiating a DH
-session would only defend against another process already running as
-the same user, which could read the keyring anyway — so "plain" is
-the accepted approach (it's what libsecret/`keyring` default to).
-
-Secrets are never logged anywhere in Refrain.
-"""
+"""Storage for the Last.fm shared secret and session key: the Secret Service keyring,
+else a 0600 file. Never in ``config.toml``, never logged."""
 
 from __future__ import annotations
 
@@ -95,6 +69,8 @@ def _open(bus):
     try:
         svc = bus.get_object(_SS_BUS, _SS_PATH)
         svc_iface = dbus.Interface(svc, _SS_SERVICE_IFACE)
+        # "plain": a DH session only guards against a same-user process,
+        # which could read the keyring anyway. libsecret defaults to it too.
         _out, session = svc_iface.OpenSession("plain", dbus.String("", variant_level=1))
 
         coll_path = svc_iface.ReadAlias("default")
@@ -195,9 +171,9 @@ def _file_read_all() -> dict[str, str]:
 
 def _file_write_all(data: dict[str, str]) -> bool:
     p = _fallback_path()
+    tmp = p.with_suffix(".tmp")
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        tmp = p.with_suffix(".tmp")
         # Create with 0600 from the start (umask-independent) so the
         # secret is never briefly world-readable between write and chmod.
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -228,6 +204,8 @@ class SecretStore:
     Every method is failure-tolerant: a keyring hiccup degrades to the
     file (and is logged once), never raises into the app. ``bus`` is
     injectable for tests; default opens the real session bus lazily.
+    The Secret Service is spoken directly over dbus-python, so there is
+    no ``keyring`` dependency.
     """
 
     def __init__(self, bus=None) -> None:
@@ -250,7 +228,7 @@ class SecretStore:
         if bus is not None and _keyring_available(bus):
             try:
                 _keyring_set(bus, name, value)
-                # Belt-and-braces: if a legacy plaintext copy ever
+                # If a legacy plaintext copy ever
                 # landed in the fallback file, drop it now that the
                 # keyring holds the value.
                 self._file_forget(name)
@@ -330,13 +308,13 @@ def save_from(lastfm, store: SecretStore | None = None, *, clear_missing: bool =
     """Persist the Last.fm secrets from a LastfmConfig into secure storage.
     Called on Settings Apply, alongside Config.save().
 
-    An empty field is **not** treated as "delete this" unless
+    An empty field is not treated as "delete this" unless
     ``clear_missing`` is set. The two are indistinguishable in the config
     object but mean opposite things: the user pressing Disconnect, versus
     ``load_into`` having failed to read the value back at startup. The
     latter happens whenever the keyring goes away between sessions — a
     KWallet that got disabled, a locked collection, a login keyring that
-    never got unlocked — and deleting on it turned a temporary read
+    never got unlocked — and deleting then would turn a temporary read
     failure into permanent credential loss. Callers that genuinely mean
     "forget this account" pass ``clear_missing=True``.
 

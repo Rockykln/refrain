@@ -13,8 +13,7 @@ from refrain.daemon import button_url  # noqa: E402
 
 
 def test_a_tab_address_with_spaces_is_encoded():
-    """Measured: plasma reported the search page with plain spaces, and
-    Discord refused the whole activity — "url must be a valid uri"."""
+    """Plasma reports plain spaces; Discord rejects the activity unless they're encoded."""
     assert (
         button_url("https://music.apple.com/de/search?term=KYANU Fcuk up the Club")
         == "https://music.apple.com/de/search?term=KYANU%20Fcuk%20up%20the%20Club"
@@ -27,8 +26,8 @@ def test_an_encoded_link_is_left_as_it_is():
 
 
 def test_letters_beyond_ascii_are_encoded():
-    assert button_url("https://music.apple.com/de/search?term=Königin") == (
-        "https://music.apple.com/de/search?term=K%C3%B6nigin"
+    assert button_url("https://music.apple.com/de/search?term=Moréau") == (
+        "https://music.apple.com/de/search?term=Mor%C3%A9au"
     )
 
 

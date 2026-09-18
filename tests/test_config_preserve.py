@@ -1,9 +1,5 @@
-"""Comment-/unknown-key-preserving config writer.
-
-Regression guard: the daily silent update-check stamps
-`update.last_check_ts` and calls `Config.save()` — that must not wipe
-user comments or keys a newer Refrain wrote.
-"""
+"""Config.save() keeps user comments and keys written by a newer Refrain.
+The daily update check saves the config without the user doing anything."""
 
 from __future__ import annotations
 

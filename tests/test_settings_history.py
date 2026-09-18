@@ -1,8 +1,5 @@
 """Settings → History: the two settings, and the one Apply that deletes.
-
-One window for the module with the Bluetooth probe stubbed — see the
-note at the top of test_settings_lastfm.py for why.
-"""
+One window per module with the Bluetooth probe stubbed, as in test_settings_lastfm.py."""
 
 from __future__ import annotations
 

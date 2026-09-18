@@ -1,12 +1,4 @@
-"""The legal notice must say the same thing in the repo and in the app.
-
-``LEGAL.md`` is not shipped in the wheel — the packaged build installs
-``src/refrain`` only — so ``ui/legal_dialog.py`` carries its own copy of
-the text. Two copies drift. These tests pin the statements that must
-appear in both, so dropping one from either side fails the suite rather
-than quietly shipping an app whose legal notice no longer matches the
-repository's.
-"""
+"""LEGAL.md and the copy in ui/legal_dialog.py (the wheel lacks LEGAL.md) make the same statements."""
 
 from __future__ import annotations
 
@@ -50,7 +42,6 @@ def test_legal_md_exists():
 @pytest.mark.parametrize(
     "claim",
     [
-        # The three things Rocky specifically asked to be stated.
         "not a registered trademark",
         "Refrain License (Use-Only)",
         "not affiliated with",
@@ -107,8 +98,7 @@ def test_third_party_licences_match():
 
 
 def test_dialog_does_not_promise_translation(monkeypatch):
-    """The section text is assembled at runtime, so pylupdate can't extract
-    it. Wrapping it in tr() would only pretend it is translatable."""
+    """The text is assembled at runtime, so pylupdate can't extract it; no tr() pretending."""
     src = (REPO / "src" / "refrain" / "ui" / "legal_dialog.py").read_text()
     body = src[src.index("for heading, body in _sections():") :]
     assert "self.tr(heading)" not in body
@@ -131,8 +121,7 @@ def test_dialog_constructs_and_renders(qt_app):
 
 
 def test_links_are_not_opened_by_qt_itself(qt_app):
-    """Links go through QDesktopServices so they land in the system browser
-    rather than Qt's default handler."""
+    """Links go through QDesktopServices so they open in the system browser."""
     from PySide6.QtWidgets import QLabel
 
     from refrain.ui.legal_dialog import LegalDialog

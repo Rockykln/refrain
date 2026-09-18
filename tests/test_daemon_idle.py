@@ -1,12 +1,5 @@
-"""Idle-detection: drop "stuck" playback past duration + grace.
-
-When a browser tab gets closed without releasing the MPRIS handle,
-PlaybackStatus often stays "Playing" while Position freezes. The
-daemon notices that the same track-key has been "playing" for longer
-than the track's own duration plus a grace window, and treats the
-source as dangling — clearing the Discord status until something else
-shows up.
-"""
+"""Idle detection: drop "stuck" playback past duration + grace.
+A closed tab can leave MPRIS saying "Playing" with a frozen position."""
 
 from __future__ import annotations
 
@@ -51,8 +44,7 @@ def test_clears_after_duration_plus_grace():
 
 
 def test_idle_log_only_once_per_dangling_track():
-    """Subsequent polls for the same idle track keep returning empty
-    without re-emitting the log, until the track key actually changes."""
+    """Later polls for the same idle track stay empty without logging again."""
     track = _playing(duration_ms=180_000)
     key0 = f"mpris|{track.title}|{track.artist}|{track.album}"
 
@@ -124,9 +116,7 @@ def test_empty_track_is_never_idle():
 
 
 def test_effective_duration_overrides_mpris_for_deadline():
-    """When MPRIS lies about duration (e.g. 7:21 playlist total on a
-    2:11 song), passing the iTunes-corrected value should give idle
-    detection a sensible deadline instead of waiting 5 extra minutes."""
+    """An iTunes-corrected duration sets the deadline when MPRIS reports a wrong one."""
     real_dur_ms = 131_000  # 2:11 — the truth
     mpris_dur_ms = 441_000  # 7:21 — what MPRIS reports
     track = TrackInfo(
@@ -155,10 +145,7 @@ def test_effective_duration_overrides_mpris_for_deadline():
 
 
 def test_effective_duration_preview_clip_skip_uses_effective():
-    """A preview-clip-mode MPRIS report (14 s) on a song iTunes knows
-    is full-length (3:00) must NOT be skipped from idle detection —
-    the effective duration is full-length so dangling-handle protection
-    still applies."""
+    """A 14 s preview-clip report on a full-length song still gets idle detection."""
     track = TrackInfo(
         source="mpris",
         title="A",
@@ -184,16 +171,11 @@ def test_effective_duration_preview_clip_skip_uses_effective():
 
 
 def test_moving_position_keeps_the_track_however_short_the_duration():
-    """A wrong catalog length must not clear a track that is playing.
-
-    The live case: iTunes returned 58 s for a 2:45 song, which handed
-    idle detection an 88-second deadline. The status vanished a minute
-    into the song while the source's position was still advancing.
-    """
+    """A wrong catalog length must not clear a track whose position still advances."""
     track = TrackInfo(
         source="mpris",
-        title="No Broke Boys",
-        artist="Disco Lines",
+        title="Glass Tides",
+        artist="Neon Harbor",
         duration_ms=58_140,
         status=PlaybackStatus.PLAYING,
     )

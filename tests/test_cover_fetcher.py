@@ -31,17 +31,11 @@ def fetcher_module(monkeypatch, xdg_tmp):
         song = f"https://music.apple.com/us/album/{artist}-{title}/1?i=2"
         return cf.TrackLookup(cover_url=cover, song_url=song)
 
-    def fake_download(url: str):
-        # Drop a tiny placeholder file at the deterministic path so
-        # get_local_path() finds something.
-        from refrain.cover_art import image_path_for_url
-
+    def fake_download(url: str, dest):
         if not url:
             return None
-        p = image_path_for_url(url)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_bytes(b"\xff\xd8\xff\xe0placeholder")
-        return p
+        dest.write_bytes(b"\xff\xd8\xff\xe0placeholder")
+        return dest
 
     monkeypatch.setattr(cf, "lookup_track_info", fake_lookup)
     monkeypatch.setattr(cf, "download_cover_image", fake_download)
@@ -61,11 +55,11 @@ def test_first_call_returns_none_then_caches_url(fetcher_module):
     cf, calls = fetcher_module
     fetcher = cf.CoverFetcher()
     try:
-        assert fetcher.get("Drake", "One Dance", "Views") is None
+        assert fetcher.get("Oskar Lind", "Ferrous", "Iron Garden") is None
         assert _wait_for(lambda: not fetcher._inflight)
         # Second call returns the URL synchronously
-        url = fetcher.get("Drake", "One Dance", "Views")
-        assert url == "https://example/Drake-One Dance-600x600bb.jpg"
+        url = fetcher.get("Oskar Lind", "Ferrous", "Iron Garden")
+        assert url == "https://example/Oskar Lind-Ferrous-600x600bb.jpg"
         # Still only one network call
         assert len(calls) == 1
     finally:
@@ -103,8 +97,7 @@ def test_exception_in_lookup_is_swallowed_and_backs_off(fetcher_module):
     try:
         assert fetcher.get("FAILS", "X") is None
         assert _wait_for(lambda: not fetcher._inflight)
-        # Still None, and not retried on the very next poll — the daemon
-        # asks twice a second and an outage must not become a hammer.
+        # Not retried on the next poll; the daemon asks twice a second.
         assert fetcher.get("FAILS", "X") is None
         assert len(calls) == 1
     finally:
@@ -112,13 +105,7 @@ def test_exception_in_lookup_is_swallowed_and_backs_off(fetcher_module):
 
 
 def test_failed_lookup_is_retried_after_the_cooldown(fetcher_module):
-    """A network error is not an answer, so it must not be cached as one.
-
-    One offline minute used to cost a track its cover, its Apple Music
-    link and its catalog duration for the rest of the session — every
-    later poll read the "" that the failure had written into the cache
-    and never asked again.
-    """
+    """A network error is not an answer, so it must not be cached as one."""
     cf, calls = fetcher_module
     fetcher = cf.CoverFetcher()
     try:
@@ -163,7 +150,7 @@ def test_concurrent_requests_for_same_track_dedupe(fetcher_module):
     try:
         # Three rapid-fire requests for the same track should produce one lookup.
         for _ in range(3):
-            fetcher.get("Drake", "One Dance", "Views")
+            fetcher.get("Oskar Lind", "Ferrous", "Iron Garden")
         assert _wait_for(lambda: not fetcher._inflight)
         time.sleep(0.05)
         assert len(calls) == 1
@@ -175,10 +162,12 @@ def test_get_local_path_returns_downloaded_image(fetcher_module):
     cf, _ = fetcher_module
     fetcher = cf.CoverFetcher()
     try:
-        assert fetcher.get("Drake", "One Dance", "Views") is None
+        assert fetcher.get("Oskar Lind", "Ferrous", "Iron Garden") is None
         # Wait for the BG fetch to complete
-        assert _wait_for(lambda: fetcher.get_local_path("Drake", "One Dance", "Views") is not None)
-        p = fetcher.get_local_path("Drake", "One Dance", "Views")
+        assert _wait_for(
+            lambda: fetcher.get_local_path("Oskar Lind", "Ferrous", "Iron Garden") is not None
+        )
+        p = fetcher.get_local_path("Oskar Lind", "Ferrous", "Iron Garden")
         assert p is not None
         assert p.exists()
         assert p.stat().st_size > 0
@@ -201,11 +190,11 @@ def test_get_song_url_returns_after_lookup(fetcher_module):
     cf, _ = fetcher_module
     fetcher = cf.CoverFetcher()
     try:
-        assert fetcher.get_song_url("Drake", "One Dance", "Views") is None
+        assert fetcher.get_song_url("Oskar Lind", "Ferrous", "Iron Garden") is None
         # First call to get() schedules the BG fetch that populates song_url too
-        fetcher.get("Drake", "One Dance", "Views")
+        fetcher.get("Oskar Lind", "Ferrous", "Iron Garden")
         assert _wait_for(lambda: not fetcher._inflight)
-        url = fetcher.get_song_url("Drake", "One Dance", "Views")
+        url = fetcher.get_song_url("Oskar Lind", "Ferrous", "Iron Garden")
         assert url is not None
         assert url.startswith("https://music.apple.com/")
     finally:
@@ -223,12 +212,7 @@ def test_get_song_url_none_for_empty_input(fetcher_module):
 
 
 def test_the_failure_cooldowns_do_not_pile_up(fetcher_module):
-    """The retry timestamps are a cache too, and caches need a ceiling.
-
-    While the network is down nothing succeeds, so the success path that
-    trims the other four dicts never runs — the cooldowns had no bound
-    at all. An expired one is dead weight the moment it expires.
-    """
+    """Expired retry cooldowns are dropped; offline, the success-path trim never runs."""
     cf, _calls = fetcher_module
     fetcher = cf.CoverFetcher()
     try:

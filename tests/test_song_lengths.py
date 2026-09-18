@@ -17,7 +17,7 @@ from refrain.song_lengths import MAX_ENTRIES, LearnedLengths, song_key  # noqa: 
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from refrain.timing import PositionState, PositionTier  # noqa: E402
 
-A = ("moi", "f**k dich", "LOVE IS A BITCH")
+A = ("Kite Theory", "Overexposed", "Afterimage")
 
 
 def _lengths(tmp_path):
@@ -25,7 +25,7 @@ def _lengths(tmp_path):
 
 
 def test_a_featuring_credit_is_the_same_song():
-    assert song_key("moi", "f**k dich (feat. date)", "LOVE IS A BITCH") == song_key(*A)
+    assert song_key("Kite Theory", "Overexposed (feat. Lumen Row)", "Afterimage") == song_key(*A)
 
 
 def test_another_album_is_another_song():
@@ -58,6 +58,27 @@ def test_a_play_that_ended_early_is_overwritten_not_averaged(tmp_path):
     assert lengths.get_ms(*A) == 157_000
 
 
+def test_one_short_play_leaves_a_confirmed_length_alone(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 157_000)
+    lengths.observe(*A, 157_000)
+    assert lengths.observe(*A, 40_000) is False
+    assert lengths.get_ms(*A) == 157_000
+    lengths.observe(*A, 157_000)
+    lengths.observe(*A, 62_000)
+    assert lengths.get_ms(*A) == 157_000, "two short plays that disagree prove nothing"
+
+
+def test_two_new_readings_that_agree_replace_a_confirmed_length(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 157_000)
+    lengths.observe(*A, 157_000)
+    lengths.observe(*A, 201_000)
+    assert lengths.get_ms(*A) == 157_000
+    lengths.observe(*A, 201_000)
+    assert lengths.get_ms(*A) == 201_000
+
+
 def test_lengths_no_song_has_are_ignored(tmp_path):
     lengths = _lengths(tmp_path)
     for played in (0, 29_000, 3_600_001):
@@ -70,7 +91,7 @@ def test_it_survives_a_restart_and_holds_no_titles(tmp_path):
     lengths.observe(*A, 157_000)
     lengths.observe(*A, 157_000)
     text = (tmp_path / "lengths.txt").read_text(encoding="utf-8")
-    assert text.split() == [song_key(*A), "157", "2"]
+    assert "Overexposed" not in text and "Kite Theory" not in text
     assert "dich" not in text and "moi" not in text
     assert (tmp_path / "lengths.txt").stat().st_mode & 0o777 == 0o600
     assert _lengths(tmp_path).get_ms(*A) == 157_000
@@ -104,9 +125,9 @@ def _worker(tmp_path, *, catalog_ms=0, tier=PositionTier.COMPUTED, control_at=0.
         _song_lengths=lengths,
         _prev_track=TrackInfo(
             source="mpris",
-            title="f**k dich",
-            artist="moi",
-            album="LOVE IS A BITCH",
+            title="Overexposed",
+            artist="Kite Theory",
+            album="Afterimage",
             status=PlaybackStatus.PLAYING,
         ),
         _position_state=PositionState(track_key="mpris|x", anchored=True, started_at=1000.0),
@@ -181,9 +202,9 @@ def test_a_length_the_player_plays_past_is_dropped(tmp_path):
     state = PositionState(track_key="mpris|x", anchored=True, track_relative=True)
     track = TrackInfo(
         source="mpris",
-        title="f**k dich",
-        artist="moi",
-        album="LOVE IS A BITCH",
+        title="Overexposed",
+        artist="Kite Theory",
+        album="Afterimage",
         position_ms=151_000,
     )
     DaemonWorker._follow_reported_position(worker, track, state)
@@ -193,6 +214,19 @@ def test_a_length_the_player_plays_past_is_dropped(tmp_path):
     )
     assert lengths.get_ms(*A) == 0
     assert worker._max_reported_ms == 156_000
+
+
+def test_repeat_one_counting_on_forgets_nothing(tmp_path):
+    worker, lengths = _worker(tmp_path)
+    lengths.observe(*A, 150_000)
+    lengths.observe(*A, 150_000)
+    state = PositionState(track_key="mpris|x", anchored=True, track_relative=True)
+    track = TrackInfo(
+        source="mpris", title=A[1], artist=A[0], album=A[2], position_ms=420_000, loop_track=True
+    )
+    DaemonWorker._follow_reported_position(worker, track, state)
+    assert lengths.get_ms(*A) == 150_000
+    assert worker._max_reported_ms == 0
 
 
 def test_a_segment_position_is_no_song_position(tmp_path):
@@ -210,9 +244,9 @@ def test_a_length_is_dropped_even_when_refrain_started_mid_song(tmp_path):
     state = PositionState(track_key="mpris|x", anchored=False, track_relative=False)
     track = TrackInfo(
         source="mpris",
-        title="f**k dich",
-        artist="moi",
-        album="LOVE IS A BITCH",
+        title="Overexposed",
+        artist="Kite Theory",
+        album="Afterimage",
         position_ms=156_000,
     )
     DaemonWorker._follow_reported_position(worker, track, state)

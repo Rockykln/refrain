@@ -68,19 +68,39 @@ def test_detect_install_type_flatpak(monkeypatch, updater):
     assert updater.detect_install_type() == "flatpak"
 
 
-def test_detect_install_type_returns_known_value(monkeypatch, updater):
+def _system_python(monkeypatch, updater, module_path):
     monkeypatch.delenv("APPIMAGE", raising=False)
     monkeypatch.delenv("FLATPAK_ID", raising=False)
     monkeypatch.delenv("container", raising=False)
-    # Returns whichever bucket the test interpreter actually lives in:
-    #   - pip:    .venv inside the project (local dev)
-    #   - dev:    editable install in a checkout with .git
-    #   - system: GitHub Actions hosted-toolcache (/opt/hostedtoolcache/…)
-    #   - aur:    Arch system Python that owns /usr/bin/refrain
-    # Anything from the supported set is fine — we only assert it doesn't
-    # land on the unreachable "appimage" / "flatpak" branches.
-    install = updater.detect_install_type()
-    assert install in ("pip", "dev", "system", "aur")
+    monkeypatch.setattr(updater.sys, "executable", "/usr/bin/python3")
+    monkeypatch.setattr(updater.sys, "prefix", "/usr")
+    monkeypatch.setattr(updater.sys, "base_prefix", "/usr")
+    monkeypatch.setattr(updater, "__file__", module_path)
+    monkeypatch.setattr(
+        updater.site, "getusersitepackages", lambda: "/home/u/.local/lib/python3.14/site-packages"
+    )
+
+
+def test_a_pip_user_install_is_pip_not_system(monkeypatch, updater):
+    _system_python(
+        monkeypatch,
+        updater,
+        "/home/u/.local/lib/python3.14/site-packages/refrain/updater.py",
+    )
+    assert updater.detect_install_type() == "pip"
+
+
+def test_a_distro_install_asks_pacman(monkeypatch, updater):
+    _system_python(monkeypatch, updater, "/usr/lib/python3.14/site-packages/refrain/updater.py")
+    monkeypatch.setattr(updater.shutil, "which", lambda _name: "/usr/bin/pacman")
+    monkeypatch.setattr(
+        updater.subprocess,
+        "run",
+        lambda *_a, **_k: _Proc(0, "/usr/bin/refrain is owned by refrain 0.5.2-1"),
+    )
+    assert updater.detect_install_type() == "aur"
+    monkeypatch.setattr(updater.shutil, "which", lambda _name: None)
+    assert updater.detect_install_type() == "system"
 
 
 def test_detect_install_type_pipx(monkeypatch, updater):
@@ -317,10 +337,15 @@ def test_cleanup_orphan_downloads_removes_stale_new(tmp_path, monkeypatch, updat
     assert appimage.exists()
 
 
-def test_cleanup_orphan_downloads_no_appimage_env_is_safe(monkeypatch, updater):
+def test_cleanup_orphan_downloads_without_an_appimage_deletes_nothing(
+    tmp_path, monkeypatch, updater
+):
     monkeypatch.delenv("APPIMAGE", raising=False)
-    # Must not raise.
+    monkeypatch.chdir(tmp_path)
+    download = tmp_path / "Refrain-x86_64.AppImage.new"
+    download.write_bytes(b"partial download")
     updater.cleanup_orphan_downloads()
+    assert download.exists()
 
 
 def test_cleanup_orphan_downloads_no_orphan_is_idempotent(tmp_path, monkeypatch, updater):
@@ -404,3 +429,206 @@ def test_without_a_terminal_the_command_is_shown(updater, monkeypatch, kind):
     result = updater.apply_update(_release(updater), install_type=kind)
     assert result.success is False
     assert "refrain" in result.message.lower()
+
+
+def test_the_appimage_for_this_machine_is_picked(monkeypatch, updater):
+    base = "https://github.com/Rockykln/refrain/releases/download/v9.9.9/"
+    payload = {
+        "tag_name": "v9.9.9",
+        "assets": [
+            {
+                "name": "Refrain-9.9.9-x86_64.AppImage",
+                "browser_download_url": base + "Refrain-9.9.9-x86_64.AppImage",
+                "size": 12345678,
+            },
+            {
+                "name": "Refrain-9.9.9-aarch64.AppImage",
+                "browser_download_url": base + "Refrain-9.9.9-aarch64.AppImage",
+                "size": 12345679,
+            },
+            {"name": "SHA256SUMS", "browser_download_url": base + "SHA256SUMS", "size": 99},
+        ],
+    }
+    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater.platform, "machine", lambda: "arm64")
+
+    info = updater.check_latest_release()
+    assert info.appimage_name == "Refrain-9.9.9-aarch64.AppImage"
+    assert info.appimage_url == base + "Refrain-9.9.9-aarch64.AppImage"
+    assert info.appimage_size == 12345679
+    assert info.sha256sums_url == base + "SHA256SUMS"
+
+
+def test_no_appimage_for_an_unbuilt_arch(monkeypatch, updater):
+    payload = {
+        "tag_name": "v9.9.9",
+        "assets": [{"name": "Refrain-9.9.9-x86_64.AppImage", "browser_download_url": "x"}],
+    }
+    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater.platform, "machine", lambda: "riscv64")
+    assert updater.check_latest_release().appimage_url is None
+
+
+_DL = "https://github.com/Rockykln/refrain/releases/download/v9.9.9/"
+_NAME = "Refrain-9.9.9-x86_64.AppImage"
+_NEW_APPIMAGE = b"\x7fELF" + b"12345" * 250_000
+
+
+class _Body:
+    def __init__(self, data):
+        self._buf = io.BytesIO(data)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self, *a):
+        return self._buf.read(*a)
+
+
+@pytest.fixture
+def serve(monkeypatch, updater):
+    """Serve fixed bytes per URL through every way the updater could download."""
+    files: dict[str, bytes] = {}
+    fetched: list[str] = []
+
+    def _open(url, *_a, **_kw):
+        url = getattr(url, "full_url", url)
+        fetched.append(url)
+        if url not in files:
+            raise OSError(f"not served: {url}")
+        return _Body(files[url])
+
+    monkeypatch.setattr(updater, "_open_download", _open, raising=False)
+    monkeypatch.setattr(updater.urllib.request, "urlopen", _open)
+    files["fetched"] = fetched
+    return files
+
+
+@pytest.fixture
+def running_appimage(tmp_path, monkeypatch):
+    target = tmp_path / _NAME
+    target.write_bytes(b"old build")
+    target.chmod(0o755)
+    monkeypatch.setenv("APPIMAGE", str(target))
+    return target
+
+
+def _appimage_release(updater, *, url=_DL + _NAME, size=None, sums=None):
+    return updater.ReleaseInfo(
+        tag="v9.9.9",
+        version="9.9.9",
+        name="Refrain v9.9.9",
+        body="",
+        html_url="https://github.com/Rockykln/refrain/releases/tag/v9.9.9",
+        appimage_url=url,
+        appimage_size=len(_NEW_APPIMAGE) if size is None else size,
+        appimage_name=_NAME,
+        sha256sums_url=sums,
+    )
+
+
+def _sums_line(data=_NEW_APPIMAGE, name=_NAME):
+    import hashlib
+
+    return f"{hashlib.sha256(data).hexdigest()}  {name}\n".encode()
+
+
+def test_appimage_update_with_matching_checksum(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    serve[_DL + "SHA256SUMS"] = _sums_line(b"other", "refrain.tar.gz") + _sums_line()
+    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
+    assert result.success is True
+    assert running_appimage.read_bytes() == _NEW_APPIMAGE
+
+
+def test_appimage_with_a_wrong_checksum_is_refused(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    serve[_DL + "SHA256SUMS"] = _sums_line(b"tampered")
+    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
+    assert result.success is False
+    assert running_appimage.read_bytes() == b"old build"
+    assert not running_appimage.with_name(_NAME + ".new").exists()
+
+
+def test_appimage_missing_from_the_checksums_is_refused(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    serve[_DL + "SHA256SUMS"] = _sums_line(_NEW_APPIMAGE, "Refrain-9.9.9-aarch64.AppImage")
+    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
+    assert result.success is False
+    assert running_appimage.read_bytes() == b"old build"
+
+
+def test_a_release_without_checksums_still_updates_and_says_so(
+    updater, serve, running_appimage, caplog
+):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    with caplog.at_level("WARNING", logger="refrain.updater"):
+        result = updater._apply_appimage(_appimage_release(updater))
+    assert result.success is True
+    assert "SHA256SUMS" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://github.com/someone-else/refrain/releases/download/v9.9.9/" + _NAME,
+        "http://github.com/Rockykln/refrain/releases/download/v9.9.9/" + _NAME,
+        "https://example.com/Rockykln/refrain/releases/download/v9.9.9/" + _NAME,
+    ],
+)
+def test_appimage_from_elsewhere_is_refused(updater, serve, running_appimage, url):
+    serve[url] = _NEW_APPIMAGE
+    result = updater._apply_appimage(_appimage_release(updater, url=url))
+    assert result.success is False
+    assert serve["fetched"] == []
+    assert running_appimage.read_bytes() == b"old build"
+
+
+@pytest.mark.parametrize("data", [b"", b"12345"])
+def test_an_empty_or_tiny_appimage_is_refused(updater, serve, running_appimage, data):
+    serve[_DL + _NAME] = data
+    result = updater._apply_appimage(_appimage_release(updater, size=len(data)))
+    assert result.success is False
+    assert running_appimage.read_bytes() == b"old build"
+
+
+@pytest.mark.parametrize("reported", [len(_NEW_APPIMAGE) - 1, len(_NEW_APPIMAGE) + 1])
+def test_a_size_other_than_reported_is_refused(updater, serve, running_appimage, reported):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    result = updater._apply_appimage(_appimage_release(updater, size=reported))
+    assert result.success is False
+    assert running_appimage.read_bytes() == b"old build"
+
+
+def test_redirects_to_plain_http_are_refused(updater):
+    import urllib.error
+    import urllib.request
+
+    handler = updater._HttpsOnlyRedirects()
+    req = urllib.request.Request(_DL + _NAME)
+    with pytest.raises(urllib.error.URLError):
+        handler.redirect_request(req, None, 302, "Found", {}, "http://example.com/12345")
+    followed = handler.redirect_request(
+        req, None, 302, "Found", {}, "https://objects.example.com/12345"
+    )
+    assert followed.full_url == "https://objects.example.com/12345"
+
+
+def test_a_pip_user_install_updates_with_user(monkeypatch, updater):
+    _system_python(
+        monkeypatch,
+        updater,
+        "/home/u/.local/lib/python3.14/site-packages/refrain/updater.py",
+    )
+    ran = []
+
+    def run(cmd, **_kwargs):
+        ran.append(cmd)
+        return _Proc(0, "Successfully installed refrain-0.5.3")
+
+    monkeypatch.setattr(updater.subprocess, "run", run)
+    updater._apply_pip()
+    assert ran[0][:5] == ["/usr/bin/python3", "-m", "pip", "install", "--user"]

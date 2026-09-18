@@ -1,30 +1,6 @@
-"""Recently played: the last songs Refrain saw, kept on this machine.
+"""Recently played: the last songs Refrain saw, kept on this machine and never sent anywhere.
 
-A song shows up the moment it starts playing, as "now playing", and
-stays once it counts as listened — Last.fm's rule: half its length or
-four minutes, whichever comes first, and never for anything of 30 s or
-less. A song skipped before that leaves no trace in the list. Using the
-rule Last.fm uses means the history and a Last.fm profile agree about
-what was heard.
-
-Stored in ``$XDG_STATE_HOME/refrain/history.json``: the songs that
-counted, plus the one playing right now with how much of it has been
-heard and where the player had it. That second part is written every
-``_PROGRESS_SAVE_EVERY_MS`` of play and on quit, so stopping,
-restarting or crashing mid-song doesn't start the count again from zero
-— if the same play is still going when Refrain comes back, it carries
-on as the same row. A song heard to the end and started again is a new
-play with a row of its own, restart or not. Writes are atomic (tmp +
-``os.replace``) like the scrobble queue.
-
-Local only: nothing here is ever sent anywhere, which is why privacy
-mode "off" doesn't stop it. It has its own switch, and turning that off
-deletes the file.
-
-Owned by the daemon thread. The GUI never touches a ``PlayHistory``; it
-gets immutable :class:`HistorySnapshot` copies through
-``DaemonWorker.historyChanged``.
-"""
+Owned by the daemon thread; the GUI only gets immutable :class:`HistorySnapshot` copies."""
 
 from __future__ import annotations
 
@@ -60,6 +36,10 @@ _PROGRESS_SAVE_EVERY_MS = 30_000
 # songs — the end of one, the loading of the next. A pause only shows as
 # "Paused" once it has lasted this long, so that doesn't flicker.
 _PAUSE_SHOWN_AFTER_S = 2.0
+# A source that reports no song for a poll or two (a tab reloading its
+# metadata) hasn't stopped; the song only ends once it has been gone this
+# long, as in timing.
+_GONE_GRACE_S = 10.0
 
 
 def history_path() -> Path:
@@ -76,7 +56,9 @@ def clamp_limit(value: int) -> int:
 
 
 def counts_as_played(played_ms: int, duration_ms: int) -> bool:
-    """Has this song been heard long enough to stay in the history?"""
+    """Has this song been heard long enough to stay in the history?
+
+    Last.fm's rule, so the history and a Last.fm profile agree."""
     if duration_ms <= 0:
         return played_ms >= _UNKNOWN_LENGTH_COUNTS_AFTER_MS
     return should_scrobble(played_ms, duration_ms)
@@ -259,6 +241,7 @@ class PlayHistory:
         # A song the user took out of the list while it played; kept out
         # until the next song, instead of coming straight back.
         self._ignore_key: str | None = None
+        self._gone_at: float | None = None
         self._last_wall = time.time()
         if self._enabled:
             self._entries, self._resume = self._load()
@@ -303,6 +286,18 @@ class PlayHistory:
             self._last_wall = now_wall
             key = _content_key(track) if _is_candidate(track) else None
             cur = self._cur
+            if key is not None:
+                self._gone_at = None
+            elif cur is not None or self._ignore_key is not None:
+                if self._gone_at is None:
+                    self._gone_at = now_mono
+                if now_mono - self._gone_at <= _GONE_GRACE_S:
+                    if cur is not None:
+                        cur.played_ms, cur.last_mono = accrue_play_ms(
+                            cur.played_ms, cur.last_mono, False, now_mono
+                        )
+                    return False
+                self._gone_at = None
             replay = (
                 cur is not None
                 and key == cur.key
@@ -689,7 +684,7 @@ class PlayHistory:
         return entries, resume
 
     def _save_locked(self) -> None:
-        """Best-effort: a failed write keeps the list for this session."""
+        """A failed write keeps the list for this session."""
         data: dict = {
             "version": _FILE_VERSION,
             "entries": [dataclasses.asdict(e) for e in self._entries],

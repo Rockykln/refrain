@@ -1,13 +1,9 @@
 """Scrobbler state machine: accrual, finalize, gating, lifecycle.
-
-The Scrobbler enqueues synchronously under its lock (network work is
-executor-offloaded), so asserting on the on-disk queue is deterministic
-without touching threads. A FakeClient stands in for LastfmClient so
-nothing hits the network; where now-playing / drain matter the
-executor is flushed explicitly.
-"""
+Enqueueing is synchronous, so the on-disk queue can be checked without waiting on threads."""
 
 from __future__ import annotations
+
+import pytest
 
 from refrain.config import LastfmConfig
 from refrain.scrobble import LastfmError, Scrobbler, accrue_play_ms
@@ -171,8 +167,7 @@ T0 = 1_700_000_000
 
 
 class _OfflineClient(FakeClient):
-    """Last.fm unreachable: every scrobble stays in the queue, where the
-    tests count it — nothing races a drain on another thread."""
+    """Last.fm unreachable, so every scrobble stays in the queue to be counted."""
 
     def scrobble(self, batch):
         raise LastfmError("offline")
@@ -219,8 +214,7 @@ def _next_song(sc, clock):
 
 
 def test_a_restart_mid_song_never_scrobbles_it_twice(tmp_path):
-    """A ten-minute song counts at 4:00 (Last.fm's cap). Restarted at 5:00,
-    it was queued on quit — and again for the five minutes heard after."""
+    """A ten-minute song restarted at 5:00 is queued once, not again after the restart."""
     clock = [float(T0), 1000.0]
     sc = _launch(tmp_path)
     _run(sc, _t("Long"), 300, clock, eff=600_000)
@@ -285,8 +279,7 @@ def test_the_same_song_long_after_is_a_new_play(tmp_path):
 
 
 def test_applying_settings_that_leave_last_fm_alone_keeps_the_play(tmp_path):
-    """Measured: Settings → Apply 33 s into a song — for another tab
-    entirely — started its Last.fm count again from zero."""
+    """Settings → Apply without Last.fm changes keeps the running count of the song."""
     clock = [float(T0), 1000.0]
     sc = _launch(tmp_path)
     _run(sc, _t("A"), 60, clock)
@@ -320,8 +313,7 @@ def _nothing(sc, clock, polls=2):
 
 
 def test_a_restart_whose_first_polls_see_nothing_still_carries_on(tmp_path):
-    """Measured with a probe: an empty first poll threw the saved play away,
-    so a long song counted from zero and was queued a second time."""
+    """An empty first poll after a restart keeps the saved play."""
     clock = [float(T0), 1000.0]
     sc = _launch(tmp_path)
     _run(sc, _t("Long"), 250, clock, eff=600_000, start_pos=0)
@@ -496,8 +488,7 @@ def test_invalid_session_latches_and_keeps_queue(tmp_path):
 
 
 def test_permanently_rejected_batch_is_dropped_not_head_of_line_blocking(tmp_path):
-    """A non-retryable, non-session error (bad params, suspended key)
-    must not pin the queue forever — drop it so later scrobbles flow."""
+    """Tracks Last.fm rejects must not pin the queue forever."""
 
     class RejectClient(FakeClient):
         def scrobble(self, batch):
@@ -511,6 +502,21 @@ def test_permanently_rejected_batch_is_dropped_not_head_of_line_blocking(tmp_pat
     sc._executor.shutdown(wait=True)
     assert sc._session_invalid is False  # not a session problem
     assert len(q) == 0  # poison entry dropped, queue not blocked
+
+
+@pytest.mark.parametrize("code", [8, 10, 13, 26])
+def test_a_key_or_server_problem_keeps_the_queue(tmp_path, code):
+    class RejectClient(FakeClient):
+        def scrobble(self, batch):
+            raise LastfmError(f"Last.fm error {code}", code=code)
+
+    sc, q = _scrobbler(tmp_path, client=RejectClient())
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=120, start_mono=1000.0, start_wall=1_700_000_000
+    )
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    sc._executor.shutdown(wait=True)
+    assert len(q) == 1
 
 
 # --------------------------------------------------------------------------- #
@@ -527,14 +533,8 @@ def test_an_undisputed_length_is_passed_straight_through():
 
 
 def test_a_disputed_length_still_reaches_last_fm():
-    """The display shows nothing; the scrobbler must not get nothing.
-
-    `_duration_for` answers 0 when the source and the catalog disagree,
-    because a confident wrong total is worse than a blank one. That zero
-    reached the Scrobbler too, where it fell under the 30-second floor —
-    so a track whose length was merely *disputed* was silently never
-    scrobbled, and the user saw no reason why.
-    """
+    """A disputed length shows as blank but still gives the scrobbler a length.
+    A zero would fall under Last.fm's 30-second floor."""
     from refrain.daemon import scrobble_duration_ms
 
     # Source says 10:03 (its stream buffer), catalog says 3:46. The
@@ -551,13 +551,7 @@ def test_a_disputed_length_still_reaches_last_fm():
 
 
 def test_shorter_wins_only_among_lengths_that_can_be_scrobbled():
-    """ "Take the smaller number" would have re-lost the preview-clip case.
-
-    Apple Music reports a 14-second preview-clip length for a few polls
-    on a full-length song. That is smaller than the catalog's answer, and
-    it is under Last.fm's 30-second floor — so preferring it would drop
-    the scrobble in exactly the way the disputed zero used to.
-    """
+    """A 14 s preview-clip length is ignored even though it is the smaller one."""
     from refrain.daemon import scrobble_duration_ms
 
     assert scrobble_duration_ms(0, True, 14_000, 165_832) == 165_832

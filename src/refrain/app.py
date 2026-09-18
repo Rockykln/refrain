@@ -1,20 +1,17 @@
-"""Refrain entry point.
-
-Wires together: config, single-instance lock, logging, system tray,
-settings window, and the background daemon. Keeps QApplication alive
-even when the settings window is hidden so the tray + daemon persist.
-"""
+"""Refrain entry point: wires config, single-instance lock, logging, tray, settings and daemon."""
 
 from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import faulthandler
 import logging
 import os
 import re
 import shutil
 import signal
+import ssl
 import subprocess
 import sys
 import threading
@@ -46,7 +43,7 @@ from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.discord_app import NAME_TTL_S, refresh_application_name
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
-from refrain.paths import assets_dir, state_dir
+from refrain.paths import assets_dir, desktop_entry, state_dir
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable
 from refrain.single_instance import acquire as acquire_lock
 from refrain.ui.cursors import install_global_interactive_cursors
@@ -186,7 +183,7 @@ def _augment_qt_plugin_path() -> None:
     """Make the system's Qt style plugins discoverable when running
     against a bundled PySide6 wheel.
 
-    The PySide6 PyPI wheel ships its own copy of Qt **without** distro
+    The PySide6 PyPI wheel ships its own copy of Qt without distro
     style plugins (no ``styles/breeze6.so`` etc.), so a pip/pipx install
     of Refrain on KDE Plasma falls back to the Fusion style and looks
     visibly different from the AUR / system build that runs against the
@@ -263,7 +260,9 @@ def install_desktop_files() -> int:
     # nothing.
     desktop_text = src_desktop.read_text(encoding="utf-8")
     new_exec = resolve_exec_line()
-    desktop_text = re.sub(r"^Exec=.*$", f"Exec={new_exec}", desktop_text, flags=re.MULTILINE)
+    desktop_text = re.sub(
+        r"^Exec=.*$", lambda _m: f"Exec={new_exec}", desktop_text, flags=re.MULTILINE
+    )
     dst_desktop.write_text(desktop_text, encoding="utf-8")
 
     shutil.copy2(src_icon, dst_icon)
@@ -351,10 +350,8 @@ def ui_locale(language_override: str = "system") -> QLocale:
 
     ``"system"`` follows the desktop; anything else is the user's
     explicit pick from Settings. Both Refrain's own catalogs and Qt's
-    built-in ones go through here — the Qt half used to read
-    ``QLocale.system()`` directly, so picking English on a German
-    desktop produced a window with our English labels and Qt's German
-    "Abbrechen" sitting in the same button row.
+    built-in ones go through here, so Qt's stock buttons never speak a
+    different language than our labels.
     """
     if language_override and language_override != "system":
         return QLocale(language_override)
@@ -408,7 +405,7 @@ def _install_translators(app: QApplication, language_override: str = "system") -
 
     # Qt's own translations for stock widgets (button labels, menus).
     # These follow the same override: leaving them on QLocale.system()
-    # gave a German "Abbrechen" next to our English "Cancel" whenever
+    # would give a German "Abbrechen" next to our English "Cancel" whenever
     # the user picked a language other than their system one.
     qt_t = QTranslator(app)
     qt_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
@@ -465,9 +462,8 @@ def _sync_autostart(config: Config) -> None:
 
 # Set for the whole process when --debug is on the command line. The flag
 # has to outrank the config: `settings.applied` fires on an ordinary
-# startup config save too, and without this a `--debug` run went back to
-# INFO a few seconds in, taking the diagnostics it was started for with
-# it.
+# startup config save too, and without this a `--debug` run would drop
+# back to INFO a few seconds in.
 _forced_debug = False
 
 
@@ -484,7 +480,7 @@ def _apply_log_level(config: Config) -> None:
     # `log_level = 5` would otherwise AttributeError on .upper().
     raw = config.advanced.log_level
     level_name = str(raw if raw else "INFO").upper()
-    level = getattr(logging, level_name, logging.INFO)
+    level = logging.getLevelNamesMapping().get(level_name, logging.INFO)
     root = logging.getLogger()
     if root.level != level:
         root.setLevel(level)
@@ -535,6 +531,9 @@ class UpdateOrchestrator(QObject):
         # bump last_check_ts (which gates the auto-nag cooldown).
         self._silent = False
 
+    def use_config(self, config: Config) -> None:
+        self._config = config
+
     @property
     def latest(self) -> ReleaseInfo | None:
         return self._latest
@@ -555,6 +554,10 @@ class UpdateOrchestrator(QObject):
 
     def check_now(self, manual: bool = True, silent: bool = False) -> None:
         if self._thread is not None:
+            # The running check answers this one; a click still gets feedback.
+            if manual:
+                self._manual = True
+                self._silent = False
             log.debug("Update check already in progress")
             return
         self._manual = manual
@@ -636,8 +639,8 @@ def _open_crash_log(path: Path) -> int:
     flags = os.O_WRONLY | os.O_CREAT | (os.O_TRUNC if too_big else os.O_APPEND)
     fd = os.open(path, flags, 0o600)
     try:
-        # The mode above only applies to a new file; a log an earlier
-        # version left world-readable is tightened as well.
+        # The mode above only applies to a new file; an existing
+        # world-readable log is tightened as well.
         os.fchmod(fd, 0o600)
         os.write(
             fd,
@@ -681,8 +684,37 @@ def _crash_log():
         os.close(fd)
 
 
+# Where distributions keep their CA bundle (Debian/Ubuntu/Arch, Fedora, openSUSE, Alpine).
+_CA_BUNDLES = (
+    "/etc/ssl/certs/ca-certificates.crt",
+    "/etc/pki/tls/certs/ca-bundle.crt",
+    "/etc/ssl/ca-bundle.pem",
+    "/etc/ssl/cert.pem",
+)
+
+
+def use_system_certificates(candidates: tuple[str, ...] = _CA_BUNDLES) -> None:
+    """Point OpenSSL at the host's CA bundle when its built-in path is missing.
+
+    The AppImage's OpenSSL looks in Ubuntu's /usr/lib/ssl, which other
+    distributions don't have, so every HTTPS request failed there.
+    """
+    if os.environ.get("SSL_CERT_FILE") or os.environ.get("SSL_CERT_DIR"):
+        return
+    paths = ssl.get_default_verify_paths()
+    if (paths.cafile and os.path.isfile(paths.cafile)) or (
+        paths.capath and os.path.isdir(paths.capath) and os.listdir(paths.capath)
+    ):
+        return
+    for bundle in candidates:
+        if os.path.isfile(bundle):
+            os.environ["SSL_CERT_FILE"] = bundle
+            return
+
+
 def main() -> int:
     args = _parse_args(sys.argv[1:])
+    use_system_certificates()
 
     if args.install_desktop:
         return install_desktop_files()
@@ -724,19 +756,9 @@ def _run(args: argparse.Namespace) -> int:
         log.debug("dbus-glib loop init skipped: %s", e)
 
     config = Config.load()
-    # Last.fm secrets live in the OS keyring, never in config.toml.
-    # Overlay them onto the in-memory config (and migrate any legacy
-    # plaintext out of an old config.toml) before anything reads them.
-    from refrain.secrets_store import load_into as _load_lastfm_secrets
-
-    _load_lastfm_secrets(config.lastfm)
     if not args.debug:
         _apply_log_level(config)
     log.info("Refrain %s starting", __version__)
-
-    # Self-heal a previously interrupted AppImage update before anything
-    # else touches the filesystem.
-    cleanup_orphan_downloads()
 
     _augment_qt_plugin_path()
 
@@ -766,7 +788,7 @@ def _run(args: argparse.Namespace) -> int:
     app.setApplicationName("Refrain")
     app.setApplicationDisplayName("Refrain")
     app.setApplicationVersion(__version__)
-    app.setDesktopFileName("refrain")
+    app.setDesktopFileName(desktop_entry())
     app.setQuitOnLastWindowClosed(False)
 
     icon_path = assets_dir() / "icons" / "refrain.svg"
@@ -811,6 +833,17 @@ def _run(args: argparse.Namespace) -> int:
         )
         return 1
     app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
+
+    # Only the instance holding the lock may touch the keyring or delete a
+    # half-downloaded update: a second start would pull the .new file out
+    # from under a running download.
+    cleanup_orphan_downloads()
+    # Last.fm secrets live in the OS keyring, never in config.toml.
+    # Overlay them onto the in-memory config (and migrate any legacy
+    # plaintext out of an old config.toml) before anything reads them.
+    from refrain.secrets_store import load_into as _load_lastfm_secrets
+
+    _load_lastfm_secrets(config.lastfm)
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
         log.error("No system tray available — refusing to start")
@@ -921,6 +954,7 @@ def _run(args: argparse.Namespace) -> int:
     # Two connections: worker.update_config gets queued onto the worker thread,
     # _sync_autostart runs on the main thread (file I/O, OK).
     settings.applied.connect(daemon.worker.update_config)
+    settings.applied.connect(updater.use_config)
     settings.applied.connect(_sync_autostart)
     settings.applied.connect(_apply_log_level)
 
@@ -1064,11 +1098,14 @@ def _run(args: argparse.Namespace) -> int:
                 "(empty)" if not client_id else f"set ({len(client_id)} chars)",
             )
             try:
-                config.behavior.first_run_complete = True
+                # A new object, so the daemon sees the new client_id and
+                # connects to Discord straight away.
+                wizard_config = copy.deepcopy(config)
+                wizard_config.behavior.first_run_complete = True
                 if client_id:
-                    config.discord.client_id = client_id
+                    wizard_config.discord.client_id = client_id
                 try:
-                    config.save()
+                    wizard_config.save()
                     log.info("Welcome wizard: config persisted to disk")
                 except Exception as e:
                     log.warning("Could not persist first-run wizard result: %s", e)
@@ -1078,7 +1115,8 @@ def _run(args: argparse.Namespace) -> int:
                 # use QMetaObject.invokeMethod with Q_ARG(object, ...),
                 # which PySide6 rejects with "Unable to find a
                 # QMetaType for 'object'".
-                settings.applied.emit(config)
+                settings.use_config(wizard_config)
+                settings.applied.emit(wizard_config)
             except Exception as e:
                 log.exception("Welcome wizard apply hook failed: %s", e)
 
@@ -1095,12 +1133,6 @@ def _run(args: argparse.Namespace) -> int:
             log.info("Welcome wizard closed (result=%s)", _result)
             if not args.silent:
                 try:
-                    # SettingsWindow loaded its form from the original
-                    # (empty client_id) config when it was constructed,
-                    # before the wizard saved the user's input. Reload
-                    # so the Discord-ID input shows the value the user
-                    # just entered instead of staying blank.
-                    settings._load_into_form()
                     settings.show()
                     settings.raise_()
                     settings.activateWindow()
@@ -1138,7 +1170,6 @@ def _run(args: argparse.Namespace) -> int:
         #   - Otherwise, sys.argv[0] is the entry-point script the user
         #     actually launched (venv shim, system /usr/bin/refrain, etc.).
         binary = os.environ.get("APPIMAGE") or sys.argv[0]
-        # Drop our reference to the bus connection. Note that
         # `dbus.SessionBus()` is a process-singleton wrapper, so this
         # alone doesn't trigger ReleaseName — we rely on os.execvp
         # replacing the process image, which closes the underlying
@@ -1162,6 +1193,7 @@ def _run(args: argparse.Namespace) -> int:
         is_runnable_script = binary and (
             os.path.isabs(binary) and os.access(binary, os.X_OK) and not binary.endswith(".py")
         )
+        exec_argv = [binary, *new_argv]
         if not is_runnable_script:
             log.info(
                 "Restart: %r isn't a runnable script; falling back to `%s -m refrain`",
@@ -1169,9 +1201,9 @@ def _run(args: argparse.Namespace) -> int:
                 sys.executable,
             )
             binary = sys.executable
-            new_argv = ["-m", "refrain", *new_argv]
+            exec_argv = [binary, "-m", "refrain", *new_argv]
         try:
-            os.execvp(binary, [binary, *new_argv])
+            os.execvp(binary, exec_argv)
         except OSError as e:
             log.error(
                 "Re-exec failed (%s) — falling back to `%s -m refrain`",

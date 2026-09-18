@@ -1,10 +1,4 @@
-"""One locale for the whole window, not two.
-
-Refrain's own strings honoured `advanced.language`; Qt's built-in
-translations for stock widgets read `QLocale.system()` regardless. On a
-German desktop with the language set to English, that put Qt's
-"Abbrechen" next to Refrain's "Cancel" in the same button row.
-"""
+"""Qt's stock-widget translations follow `advanced.language`, not `QLocale.system()`."""
 
 from __future__ import annotations
 
@@ -25,13 +19,12 @@ def test_system_follows_the_desktop():
     assert ui_locale("").name() == QLocale.system().name()
 
 
-@pytest.mark.parametrize("code", ["de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN"])
+@pytest.mark.parametrize(
+    "code",
+    ["de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN", "nl", "sv", "cs", "tr", "uk", "ko"],
+)
 def test_every_shipped_language_still_finds_its_catalog(code):
-    """The override goes through QLocale now, so "pt" arrives as "pt_BR".
-
-    Catalog lookup tries the full name first and the language prefix
-    second, which is what keeps the shipped `refrain_pt.qm` reachable.
-    """
+    """With "pt" arriving as "pt_BR", the prefix fallback keeps `refrain_pt.qm` reachable."""
     name = ui_locale(code).name()
     assert code in (name, name.split("_", 1)[0])
 

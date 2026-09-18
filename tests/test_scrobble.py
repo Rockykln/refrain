@@ -1,8 +1,4 @@
-"""Last.fm client + scrobble decision logic.
-
-HTTP is mocked at the urllib level (same pattern as test_updater) so
-the suite stays hermetic — no network, no real Last.fm account.
-"""
+"""Last.fm client and scrobble decision logic, with HTTP mocked at the urllib level."""
 
 from __future__ import annotations
 

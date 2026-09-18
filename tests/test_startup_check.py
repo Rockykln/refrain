@@ -1,14 +1,4 @@
-"""Startup credential check: verdicts, log markers, and honesty.
-
-Both credentials used to fail silently and late — a rejected Discord
-Application ID only spoke up once the daemon had something to publish, a
-revoked Last.fm session only at the first scrobble. This runs both checks
-once at startup and says what it found.
-
-The point of the tests is that each verdict is *accurate*: "not connected"
-must not be reported as "Discord is missing" when the client is in fact
-running and simply has not been dialled yet.
-"""
+"""Startup credential check: each verdict and log marker says what is actually the case."""
 
 from __future__ import annotations
 
@@ -74,12 +64,12 @@ def test_lastfm_valid_session_reports_the_user(monkeypatch, caplog):
     import refrain.scrobble as scrobble
 
     monkeypatch.setattr(
-        scrobble.LastfmClient, "validate_session", lambda self: "rocky", raising=True
+        scrobble.LastfmClient, "validate_session", lambda self: "alice", raising=True
     )
     with caplog.at_level(logging.INFO):
         result = check_lastfm(FakeLastfmCfg())
     assert result.state == OK
-    assert result.detail == "rocky"
+    assert result.detail == "alice"
     assert "OK" in caplog.text
 
 
@@ -131,11 +121,7 @@ def test_discord_rejected_handshake_demands_attention(caplog):
 
 
 def test_running_client_is_not_reported_as_missing(runtime_dir, caplog):
-    """The daemon only dials Discord once something plays.
-
-    Reporting "no client reachable" while Discord is plainly running sent
-    the user hunting for a problem they did not have.
-    """
+    """The daemon only dials Discord once something plays, so "not dialled" is not "missing"."""
     keep = []
     try:
         _live_socket(runtime_dir / "discord-ipc-0", keep)

@@ -46,8 +46,8 @@ def test_it_is_closed_and_disarmed_on_the_way_out(crash_log):
 
 
 def test_the_log_is_owner_only_even_if_it_was_not(crash_log):
-    # Python stacks carry paths and song titles. A log left world-readable
-    # by an earlier version is tightened, not just new ones created tight.
+    # Stacks carry paths and song titles, so an existing world-readable log
+    # is tightened too.
     crash_log.parent.mkdir(parents=True)
     crash_log.write_text("--- old\n", encoding="utf-8")
     crash_log.chmod(0o644)

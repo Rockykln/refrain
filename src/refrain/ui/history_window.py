@@ -1,16 +1,6 @@
-"""Recently played — the songs the history kept, newest first.
+"""Recently played window: the songs the history kept, newest first, from immutable snapshots.
 
-Fed by ``DaemonWorker.historyChanged`` with immutable snapshots (see
-``refrain.history``); the window never reads the history file or
-touches the daemon's state. Covers come from the on-disk cover cache
-the daemon already fills, looked up by URL — a song whose cover was
-pruned since, or never found, gets a placeholder instead.
-
-A plain scroll area of row widgets rather than a QListView: at most a
-hundred rows, and every row needs elided two-line text, a cover and a
-right-aligned column, which item widgets in a list view lay out
-unreliably across styles.
-"""
+Row widgets in a scroll area rather than a QListView, whose item widgets lay out unreliably."""
 
 from __future__ import annotations
 
@@ -133,7 +123,7 @@ def _subtitle(entry: HistoryEntry) -> str:
 
 
 def _fold(text: str) -> str:
-    """Case- and accent-blind form for searching: "Die Ärzte" → "die arzte"."""
+    """Case- and accent-blind form for searching: "Ilse Moréau" → "ilse moreau"."""
     text = unicodedata.normalize("NFKD", text.casefold())
     return "".join(c for c in text if not unicodedata.combining(c))
 
@@ -250,7 +240,7 @@ class _ElidedLabel(QLabel):
             top = rect.top() + (rect.height() - fm.height()) / 2
             # The active group's accent, whether or not the window has focus:
             # Breeze dims the inactive one almost to the background, and a
-            # match should be found at a glance either way. The text on top
+            # match should stand out either way. The text on top
             # keeps its own colour, so it stays readable on a light theme.
             accent = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight)
             color = _with_alpha(accent, 0.55)
@@ -270,7 +260,7 @@ class _ElidedLabel(QLabel):
     def sizeHint(self) -> QSize:
         # Measured in fractional pixels and rounded up, with a hair to
         # spare: elidedText compares in sub-pixels, so a width of exactly
-        # the integer advance cut short titles like "Glass Tid…" at 2x.
+        # the integer advance cuts short titles like "Glass Tid…" at 2x.
         width = math.ceil(QFontMetricsF(self.font()).horizontalAdvance(self._full)) + 2
         return QSize(width, super().sizeHint().height())
 
@@ -372,8 +362,8 @@ class _SongRow(QWidget):
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
         # The length follows the title directly. At the far end of the
-        # column it floated on its own halfway across the row whenever the
-        # title was short.
+        # column it would float on its own halfway across the row whenever
+        # the title is short.
         title_line = QHBoxLayout()
         title_line.setSpacing(8)
         title = _ElidedLabel(entry.title)
@@ -468,7 +458,7 @@ class _SongRow(QWidget):
     def _icon_beside(icon: QIcon, text: QLabel) -> QLabel:
         """A 14 px icon centred on the text's letters, not on its line box.
 
-        Centred on the line box it sat a touch high: the box keeps room
+        Centred on the line box it sits a touch high: the box keeps room
         for descenders below the baseline that a name like "Apple Music
         Web" hardly uses, so the letters' middle is lower than the box's.
         """

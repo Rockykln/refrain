@@ -1,12 +1,5 @@
-"""Open a song's page in the browser that played it.
-
-Apple Music plays in a browser tab, and that browser is the one signed
-in to Apple Music — often not the desktop's default browser. So a link
-from the history goes to the browser the song played in, as a new tab
-of the running instance, as long as that browser is still open.
-Anything else — a Bluetooth play, a browser that has since closed, a
-sandboxed Refrain — goes to the default browser like any other link.
-"""
+"""Open a song's page in the browser that played it, which is the one signed in
+to Apple Music; everything else goes to the default browser."""
 
 from __future__ import annotations
 

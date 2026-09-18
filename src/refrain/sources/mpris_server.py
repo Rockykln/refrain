@@ -1,22 +1,6 @@
-"""Refrain as an MPRIS player.
+"""Refrain as an MPRIS player, so Plasma's media controls show and control its track.
 
-Registers ``org.mpris.MediaPlayer2.refrain`` on the session bus so KDE
-Plasma's panel media controls (and any other MPRIS-aware client) show
-the same track Refrain shows in Discord. Forwards Play/Pause/Next/
-Previous to whichever Refrain source is currently active.
-
-We use ``dbus-python`` rather than PySide6's QDBus because the rest of
-the source layer already imports it, and because dbus-python's
-``service.Object`` makes implementing a published D-Bus interface
-straightforward (PySide6's QDBusAbstractAdaptor needs XML scaffolding
-that's painful to maintain by hand).
-
-Failure modes are non-fatal: if the bus refuses our well-known name
-(another refrain instance is already publishing it, the bus is missing,
-permissions are off), :meth:`MPRISServer.start` logs a warning and
-returns without raising — refrain still works as a Discord client even
-without the MPRIS-server side.
-"""
+dbus-python rather than QDBus: ``service.Object`` needs no hand-kept adaptor XML."""
 
 from __future__ import annotations
 
@@ -28,6 +12,7 @@ import dbus
 import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
+from refrain.paths import desktop_entry
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
 log = logging.getLogger(__name__)
@@ -44,7 +29,7 @@ _GLIB_THREAD: threading.Thread | None = None
 def _ensure_dbus_glib_loop() -> bool:
     """Attach dbus-python's dispatch to the GLib main loop.
 
-    Must run **before the process opens its first session bus**.
+    Must run before the process opens its first session bus.
     ``dbus.SessionBus()`` is a process-wide singleton: whoever creates it
     first decides whether that connection carries a main loop, and every
     later caller gets the same object back. Register too late and
@@ -80,7 +65,7 @@ def _ensure_dbus_glib_loop() -> bool:
         return False
     DBusGMainLoop(set_as_default=True)
     # dbus-glib's own rule for any program with more than one thread. The
-    # daemon thread no longer talks over this connection (its sources
+    # daemon thread doesn't talk over this connection (its sources
     # keep private ones, the server defers to _on_bus_thread), so this
     # is the second line of defence, not the first.
     threads_init()
@@ -159,8 +144,8 @@ def _on_bus_thread(fn: Callable[..., object], *args) -> None:
     The exported MPRIS object lives on the process-wide session bus, and
     dbus-glib dispatches that connection without locking its own
     bookkeeping. The daemon thread calling in directly — to publish, or
-    to announce a new track — put two threads on one connection, which
-    corrupted the heap ("malloc(): unaligned tcache chunk detected").
+    to announce a new track — puts two threads on one connection, which
+    corrupts the heap ("malloc(): unaligned tcache chunk detected").
     ``GLib.idle_add`` is thread-safe and runs ``fn`` on that thread's
     next loop pass instead.
     """
@@ -248,6 +233,8 @@ class MPRISServer(dbus.service.Object):
     are stubs that return sensible defaults — implementing them would
     require source-side support we don't have on the controllers we
     forward to.
+
+    Failing to start is non-fatal; Refrain works as a Discord client without it.
     """
 
     def __init__(
@@ -413,8 +400,8 @@ class MPRISServer(dbus.service.Object):
     # The sources only have a toggle, so Play, Pause and Stop each toggle
     # only when that gets them where they ask to go — judged by the state
     # this server last published, the same one Plasma is looking at. A
-    # blind toggle turned Plasma's "Stop" into "start playing" whenever
-    # the music was already paused.
+    # blind toggle would turn Plasma's "Stop" into "start playing" whenever
+    # the music is already paused.
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Play(self) -> None:
@@ -486,7 +473,7 @@ class MPRISServer(dbus.service.Object):
                     "CanRaise": dbus.Boolean(False),
                     "HasTrackList": dbus.Boolean(False),
                     "Identity": dbus.String("Refrain"),
-                    "DesktopEntry": dbus.String("refrain"),
+                    "DesktopEntry": dbus.String(desktop_entry()),
                     "SupportedUriSchemes": dbus.Array([], signature="s"),
                     "SupportedMimeTypes": dbus.Array([], signature="s"),
                 },

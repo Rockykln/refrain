@@ -1,9 +1,4 @@
-"""compute_rpc_start_ts — Discord elapsed-timer correctness.
-
-Tests that the helper behaves correctly under: new tracks, steady playback
-with poll jitter, pause + resume, forward and backward seeks, the very
-first call (uninitialized state), and configurable drift thresholds.
-"""
+"""compute_rpc_start_ts: Discord's elapsed timer across jitter, pauses, seeks and first calls."""
 
 from __future__ import annotations
 
@@ -86,14 +81,12 @@ def test_two_second_drift_is_ignored():
 
 
 # ---------------------------------------------------------------------------
-# Pause/resume: this was the user-reported bug — Discord drifted off the
-# track's actual elapsed time after a pause.
+# Pause/resume: Discord must not drift off the elapsed time after a pause.
 # ---------------------------------------------------------------------------
 
 
 def test_pause_resume_short_pause_resyncs():
-    """Track played 30 s, paused 5 s, resumed. Position is still 30 s,
-    wall-clock is at 35. Drift = 5 s > 3 s → recompute."""
+    """30 s played, 5 s paused: drift 5 s > 3 s → recompute."""
     start, changed = compute_rpc_start_ts(
         prev_start_ts=0,
         prev_track_key="k",
@@ -182,8 +175,7 @@ def test_threshold_just_above_recomputes():
 
 
 def test_initial_zero_state_treated_as_track_change():
-    """Daemon starts up with prev_start_ts=0, prev_track_key=''. The first
-    valid track call must recompute via the track_key path."""
+    """The first call after startup (empty previous state) recomputes via the track key."""
     start, changed = compute_rpc_start_ts(
         prev_start_ts=0,
         prev_track_key="",
@@ -211,7 +203,7 @@ def test_negative_position_is_clamped_to_zero():
 
 
 # ---------------------------------------------------------------------------
-# Custom drift threshold (used by future config / advanced users).
+# Custom drift threshold.
 # ---------------------------------------------------------------------------
 
 
@@ -254,16 +246,13 @@ def test_duration_both_zero_returns_zero():
 
 
 def test_duration_mpris_preview_clip_overridden_by_itunes_full_song():
-    # Apple Music briefly reports a 14 s preview length on a 2:11 song —
-    # the canonical bug from the user's report.
+    # Apple Music briefly reports a 14 s preview length on a 2:11 song.
     assert pick_effective_duration_ms(14_000, 131_000) == 131_000
 
 
 def test_duration_keeps_mpris_when_the_two_disagree():
     # The element's own length beats a catalog search that landed on a
-    # different record. Live case: MPRIS 164 s (the song is 165 s by the
-    # source's own timeline), iTunes 58 s from a wrong match — believing
-    # the catalog there let idle detection clear the track after 88 s.
+    # different record; otherwise idle detection clears the track early.
     assert pick_effective_duration_ms(164_041, 58_140) == 164_041
 
 

@@ -1,10 +1,5 @@
-"""Smoke import tests.
-
-Imports modules that don't pull Qt / D-Bus / pypresence to confirm they
-don't depend on anything ambient. Modules that *do* require those (daemon,
-ui, sources/mpris, sources/bluetooth, discord_rpc) are validated by
-`python -m compileall` in CI instead.
-"""
+"""Smoke imports for the modules that need no Qt, D-Bus or pypresence.
+The others are covered by `python -m compileall` in CI."""
 
 from __future__ import annotations
 

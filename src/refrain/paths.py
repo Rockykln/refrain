@@ -7,8 +7,9 @@ from pathlib import Path
 
 
 def _xdg(env_var: str, default_subpath: str) -> Path:
+    # The XDG spec says relative values are invalid and must be ignored.
     custom = os.environ.get(env_var)
-    if custom:
+    if custom and Path(custom).is_absolute():
         return Path(custom)
     return Path.home() / default_subpath
 
@@ -39,6 +40,11 @@ def cover_cache_dir() -> Path:
 
 def autostart_path() -> Path:
     return _xdg("XDG_CONFIG_HOME", ".config") / "autostart" / "refrain.desktop"
+
+
+def desktop_entry() -> str:
+    """Basename of the .desktop file this copy was installed with."""
+    return os.environ.get("FLATPAK_ID") or "refrain"
 
 
 def assets_dir() -> Path:

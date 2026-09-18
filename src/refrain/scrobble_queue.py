@@ -1,20 +1,6 @@
-"""Persistent offline scrobble queue.
+"""Persistent queue of plays waiting to be scrobbled, one JSON line per play.
 
-Last.fm scrobbles must survive being offline, a Last.fm outage, or
-Refrain quitting mid-listen — so a played track is *queued to disk*
-the moment it qualifies and submitted later. JSON-Lines so the format
-is append-trivial and a single corrupt line never poisons the rest.
-
-Stored under ``$XDG_STATE_HOME/refrain/scrobble_queue.jsonl`` (runtime
-state, not config). Writes are atomic (tmp + ``os.replace``) like
-``Config.save``. Failure-tolerant throughout: a queue that can't be
-read or written degrades to "this session's scrobbles may not persist"
-— it never crashes the daemon.
-
-Dedup uses SHA-256 over ``artist|track|timestamp`` — a format *we*
-control, so unlike the Last.fm request signature there's no reason to
-use MD5 here.
-"""
+A corrupt line never poisons the rest; failing I/O never crashes the daemon."""
 
 from __future__ import annotations
 
@@ -44,7 +30,8 @@ def queue_path() -> Path:
 def dedup_key(item: dict) -> str:
     """Stable identity for a queued play. Last.fm itself dedups by
     timestamp; we additionally avoid re-queueing the byte-identical
-    play (same track started at the same second)."""
+    play (same track started at the same second). SHA-256, not MD5: the
+    format is ours, unlike the Last.fm request signature."""
     raw = "{}\x1f{}\x1f{}".format(
         str(item.get("artist", "")),
         str(item.get("track", "")),
@@ -129,7 +116,7 @@ class ScrobbleQueue:
         return items
 
     def _save_locked(self) -> None:
-        """Persist ``self._items``. Best-effort: a write failure leaves
+        """Persist ``self._items``. A write failure leaves
         the in-memory queue intact for this session and is logged, not
         raised — a daemon tick must never die because state-dir is
         read-only."""

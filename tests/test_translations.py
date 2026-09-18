@@ -1,10 +1,5 @@
-"""Every shipped translation is complete and keeps what the code fills in.
-
-A translation that drops "{when}" or "%n" doesn't fail loudly: str.format
-leaves the text without the value, or Qt shows a literal "%n". Checked
-here for every language and every plural form, so a translator's slip
-can't reach a release.
-"""
+"""Every shipped translation is complete and keeps the placeholders the code fills in.
+A dropped "{when}" or "%n" fails silently at runtime, so it's checked here."""
 
 from __future__ import annotations
 
@@ -42,6 +37,12 @@ def test_catalogs_exist():
         "refrain_pt",
         "refrain_ru",
         "refrain_zh_CN",
+        "refrain_nl",
+        "refrain_sv",
+        "refrain_cs",
+        "refrain_tr",
+        "refrain_uk",
+        "refrain_ko",
     }
 
 
@@ -79,3 +80,12 @@ def test_english_catalog_holds_plural_forms_only():
     messages = list(_messages(I18N / "refrain_en.ts"))
     assert messages
     assert all(m.get("numerus") == "yes" for _, m in messages)
+
+
+def test_every_catalog_can_be_picked_in_settings():
+    source = (Path(__file__).resolve().parents[1] / "src/refrain/ui/settings_window.py").read_text(
+        encoding="utf-8"
+    )
+    offered = set(re.findall(r'language_combo\.addItem\("[^"]+", "(\w+)"\)', source))
+    shipped = {p.stem.removeprefix("refrain_") for p in CATALOGS}
+    assert offered == shipped

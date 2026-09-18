@@ -1,13 +1,4 @@
-"""Clickable widgets carry the pointing-hand cursor, everywhere.
-
-The cursor used to be set per widget at construction, which meant it was
-set almost nowhere: two buttons in the entire UI had it. `apply_
-interactive_cursors` covers a whole dialog in one call, so the assertion
-worth making is the end-to-end one — build each real dialog and check
-that nothing clickable inside it was missed.
-
-Runs against ``QT_QPA_PLATFORM=offscreen`` so it works in headless CI.
-"""
+"""Clickable widgets carry the pointing-hand cursor, checked on each real dialog."""
 
 from __future__ import annotations
 
@@ -173,14 +164,7 @@ def test_update_dialog_covers_every_control(qapp, xdg_tmp):
 
 
 def test_message_boxes_are_covered_too(qapp):
-    """The confirmations were the one place the hand never reached.
-
-    Reset and Uninstall both put a real decision behind a QMessageBox,
-    and several other paths use the static helpers
-    (`QMessageBox.warning(...)`), which never hand us a widget to walk.
-    The global filter catches them on their Show event instead, by which
-    point their buttons exist.
-    """
+    """Message boxes, including the static helpers, get the cursor on their Show event."""
     from PySide6.QtWidgets import QMessageBox
 
     from refrain.ui.cursors import install_global_interactive_cursors

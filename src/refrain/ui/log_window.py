@@ -1,9 +1,4 @@
-"""Live-log window — shows every log record as it happens.
-
-Plugged in by ``app.py`` via ``attach_qt_log_bridge()`` from
-``logging_setup``. The bridge emits a Qt signal for each ``logging`` call;
-this window's slot appends the record to a capped text view.
-"""
+"""Live-log window: shows every log record as it happens, fed by ``attach_qt_log_bridge()``."""
 
 from __future__ import annotations
 
@@ -60,7 +55,7 @@ class LogWindow(QDialog):
         self.setWindowTitle(self.tr("Live Log"))
         self.setMinimumSize(720, 480)
         # Don't override windowFlags here — QDialog defaults are correct.
-        # Adding Qt.WindowType.Window broke visibility on some compositors.
+        # Adding Qt.WindowType.Window breaks visibility on some compositors.
         self.setModal(False)
         icon_path = assets_dir() / "icons" / "refrain.svg"
         if icon_path.exists():
@@ -83,6 +78,7 @@ class LogWindow(QDialog):
         ):
             self.level_combo.addItem(label, value)
         self.level_combo.setCurrentIndex(2)  # INFO is the useful default
+        self.level_combo.currentIndexChanged.connect(self._redraw)
         bar.addWidget(self.level_combo)
 
         self.autoscroll_box = QCheckBox(self.tr("Auto-scroll"))
@@ -127,10 +123,10 @@ class LogWindow(QDialog):
     # --------------------------------------------------------------- handlers
 
     def _append(self, msg: str, level: int) -> None:
-        threshold = self.level_combo.currentData() or 0
-        if level < threshold:
-            return
+        # Kept at every level, so a lower filter can show them later.
         self._lines.append((msg, level))
+        if level < (self.level_combo.currentData() or 0):
+            return
         self._write(msg, level)
         if self.autoscroll_box.isChecked():
             sb = self.view.verticalScrollBar()
@@ -147,9 +143,14 @@ class LogWindow(QDialog):
             colors = level_colors(self.view.palette())
             if colors != self._colors:
                 self._colors = colors
-                self.view.clear()
-                for msg, level in self._lines:
-                    self._write(msg, level)
+                self._redraw()
+
+    def _redraw(self) -> None:
+        threshold = self.level_combo.currentData() or 0
+        self.view.clear()
+        for msg, level in self._lines:
+            if level >= threshold:
+                self._write(msg, level)
 
     def _clear(self) -> None:
         self._lines.clear()

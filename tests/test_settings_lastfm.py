@@ -1,18 +1,5 @@
-"""Last.fm connection status: usable-triple logic + UI rendering.
-
-Regression for the 0.4.0 report: status showed "Connected as
-(connected)" (empty username) and claimed "Connected" when only the
-keyring session survived but the api_key/secret were missing
-(scrobble-inert, misleading).
-
-NOTE: an earlier version of this file constructed a fresh
-``SettingsWindow`` per test (6+ heavy QDialogs, each with QThread
-refs + a D-Bus Bluetooth probe, no teardown). On the offscreen QPA
-that intermittently SIGSEGV'd in Qt teardown — flaky CI red (tests
-#63, py3.12). This version builds **one** window for the module,
-stubs the Bluetooth D-Bus probe, and re-drives ``_load_into_form``
-per case.
-"""
+"""Last.fm connection status: usable-triple logic and UI rendering.
+One window per module with the Bluetooth probe stubbed; many windows crash Qt's offscreen teardown."""
 
 from __future__ import annotations
 
@@ -42,7 +29,7 @@ from refrain.ui.settings_window import (  # noqa: E402
     [
         ("S", "A", "K", "connected"),
         ("S", "A", "", "incomplete"),  # secret missing
-        ("S", "", "K", "incomplete"),  # api_key missing (the report)
+        ("S", "", "K", "incomplete"),  # api_key missing
         ("S", "", "", "incomplete"),
         ("", "A", "K", "disconnected"),  # no session
         ("", "", "", "disconnected"),
@@ -96,8 +83,7 @@ def test_status_fully_connected_with_username(win):
 
 
 def test_status_connected_without_username_is_not_doubled(win):
-    # The "Connected as Connected"/"(connected)" bug: no username but a
-    # fully usable connection → just "Connected", never "… as …".
+    # No username but a usable connection → just "Connected", never "… as …".
     _load(win, api_key="A", secret="K", session="S", username="")
     assert win.lastfm_status_label.text() == "Connected"
     assert "as (" not in win.lastfm_status_label.text()
@@ -105,8 +91,7 @@ def test_status_connected_without_username_is_not_doubled(win):
 
 
 def test_status_incomplete_session_without_apikey(win):
-    # The reported scenario: keyring kept session+secret, config has no
-    # api_key → must NOT claim "Connected".
+    # Keyring kept session+secret, config has no api_key → not "Connected".
     _load(win, api_key="", secret="K", session="S", username="Rockykln")
     txt = win.lastfm_status_label.text()
     assert "Not connected" in txt and "re-enter" in txt
@@ -197,6 +182,19 @@ def test_the_approval_is_waited_for_not_clicked_for(win):
     dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10)
     assert _wait(dialog)
     assert (dialog.session_key, dialog.username) == ("SK", "alice")
+
+
+def test_polling_leaves_no_thread_objects_behind(win):
+    from PySide6.QtCore import QThread
+
+    from refrain.scrobble import LastfmError
+    from refrain.ui.settings_window import LastfmApprovalDialog
+
+    not_yet = LastfmError("Unauthorized Token", code=14)
+    client = _SlowToApprove([not_yet, not_yet, not_yet, ("SK", "alice")])
+    dialog = LastfmApprovalDialog(client, "T", lambda: None, win, poll_ms=10)
+    assert _wait(dialog)
+    assert dialog.findChildren(QThread) == []
 
 
 def test_being_offline_for_a_moment_keeps_waiting(win):

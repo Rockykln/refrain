@@ -1,8 +1,5 @@
 """Recently played: what counts, what is kept, and what reaches the disk.
-
-Pure logic — no Qt, no threads. The clocks are passed in explicitly, so
-a four-minute listen takes microseconds.
-"""
+The clocks are passed in, so a four-minute listen takes microseconds."""
 
 from __future__ import annotations
 
@@ -106,8 +103,7 @@ def test_last_fm_rule_half_or_four_minutes():
 
 
 def test_unknown_length_counts_after_four_minutes():
-    """AVRCP sources often report no length — the half-way mark can't
-    be computed, but Last.fm's four-minute cap still can."""
+    """Without a length (often AVRCP) a song still counts at Last.fm's four-minute cap."""
     assert counts_as_played(240_000, 0)
     assert not counts_as_played(239_999, 0)
 
@@ -157,9 +153,9 @@ def test_long_song_is_kept_after_four_minutes(hist, clock):
 
 
 def test_song_without_a_length_is_kept_after_four_minutes(hist, clock):
-    _feed(hist, _t("BT", source="bluetooth", player="WH-1000XM5"), 242, clock, duration_ms=0)
+    _feed(hist, _t("BT", source="bluetooth", player="Desk Speaker"), 242, clock, duration_ms=0)
     assert _stored() == ["BT"]
-    assert hist.snapshot().entries[0].player == "WH-1000XM5"
+    assert hist.snapshot().entries[0].player == "Desk Speaker"
 
 
 def test_paused_time_does_not_count(hist, clock):
@@ -200,10 +196,30 @@ def test_a_paused_tab_at_startup_is_not_now_playing(hist, clock):
 
 def test_stopping_ends_the_song(hist, clock):
     _counted(hist, "A", clock)
-    _feed(hist, TrackInfo.empty(), 2, clock)
+    _feed(hist, TrackInfo.empty(), 8, clock)
+    assert hist.snapshot().now_playing  # could still be a hiccup of the source
+    _feed(hist, TrackInfo.empty(), 4, clock)
     snap = hist.snapshot()
     assert [e.title for e in snap.entries] == ["A"]
     assert not snap.now_playing
+
+
+def test_progress_survives_a_single_empty_poll(hist, clock):
+    _feed(hist, _t("A"), 60, clock)
+    _feed(hist, TrackInfo.empty(), 0, clock)
+    _feed(hist, _t("A"), 60, clock)
+    assert _stored() == ["A"]
+    assert _titles(hist) == ["A"]
+
+
+def test_a_removed_song_stays_out_across_an_empty_poll(hist, clock):
+    _feed(hist, _t("A"), 10, clock)
+    a = hist.snapshot().entries[0]
+    assert hist.remove(a.started_at, a.title, a.artist)
+    _feed(hist, TrackInfo.empty(), 0, clock)
+    _feed(hist, _t("A"), 120, clock)
+    assert _titles(hist) == []
+    assert _stored() == []
 
 
 def test_cover_arriving_later_repaints(hist, clock):
@@ -382,8 +398,7 @@ def test_a_restart_that_follows_on_is_the_same_play(hist, clock, caplog):
 
 
 def test_a_song_that_started_over_during_a_restart_is_a_new_play(hist, clock):
-    """Heard to 2:30, Refrain away for a minute, the song back at 0:10 —
-    soon enough for the old time window, but it began again."""
+    """A song back at 0:10 after a restart began again, even within the old time window."""
     _play(hist, "A", clock, start_s=0, seconds=150)
     hist.shutdown()
     clock.wall += 60

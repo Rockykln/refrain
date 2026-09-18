@@ -1,12 +1,8 @@
-"""Shared pytest fixtures.
-
-Tests run hermetically — XDG paths are redirected to a tmp dir per test, and
-network-using modules are stubbed at the urllib level. The suite does not
-require Qt, D-Bus, Discord, or BlueZ to be available.
-"""
+"""Shared fixtures: per-test XDG dirs, no network, no real keyring."""
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -21,15 +17,8 @@ if str(SRC) not in sys.path:
 
 @pytest.fixture(autouse=True)
 def _no_network(monkeypatch):
-    """No test reaches the internet — not even from a background thread.
-
-    Tests that exercise an HTTP path stub ``urlopen`` themselves, and
-    their monkeypatch wins over this one. Anything else gets the error an
-    offline machine would. Without this, a Scrobbler test that rebuilt a
-    real Last.fm client sent "now playing" to Last.fm from its executor
-    thread — the thread that was mid-request when a 3.12 CI run died
-    with a segfault.
-    """
+    """No test reaches the internet, not even from a background thread.
+    Tests that stub ``urlopen`` themselves win over this."""
     import urllib.error
     import urllib.request
 
@@ -39,25 +28,53 @@ def _no_network(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", _refuse)
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _no_desktop_notifications(tmp_path_factory):
+    """A stand-in notify-send first on PATH for the whole run.
+
+    Session-wide, because a worker thread can still notify after its
+    test's own fixtures are gone — and the real one pops up on the
+    developer's desktop.
+    """
+    bin_dir = tmp_path_factory.mktemp("bin")
+    stub = bin_dir / "notify-send"
+    stub.write_text("#!/bin/sh\necho 1\n", encoding="utf-8")
+    stub.chmod(0o755)
+    saved = os.environ.get("PATH", "")
+    os.environ["PATH"] = f"{bin_dir}{os.pathsep}{saved}"
+    import refrain.daemon as daemon
+
+    saved_bin, daemon._NOTIFY_BIN = daemon._NOTIFY_BIN, str(stub)
+    yield
+    daemon._NOTIFY_BIN = saved_bin
+    os.environ["PATH"] = saved
+
+
 @pytest.fixture(autouse=True)
 def _private_state(tmp_path_factory, monkeypatch):
-    """No test reads or writes the real ``~/.local/state/refrain``.
+    """No test reads or writes the user's real config, state, cache or keyring.
+    ``xdg_tmp`` wins over this; keyring tests pass a fake bus to ``SecretStore``."""
+    root = tmp_path_factory.mktemp("xdg")
+    for var, name in (
+        ("XDG_CONFIG_HOME", "config"),
+        ("XDG_STATE_HOME", "state"),
+        ("XDG_CACHE_HOME", "cache"),
+        ("XDG_RUNTIME_DIR", "runtime"),
+    ):
+        (root / name).mkdir()
+        monkeypatch.setenv(var, str(root / name))
 
-    The history, the scrobble queue and the play in progress all default
-    to it, and a test building a DaemonWorker or a Scrobbler without a
-    path of its own would otherwise pick up — and overwrite — the
-    user's. Tests that want the full tree use ``xdg_tmp``, which wins.
-    """
-    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path_factory.mktemp("state")))
+    from refrain import secrets_store
+
+    def _no_session_bus():
+        raise RuntimeError("the real session bus is off limits in tests")
+
+    monkeypatch.setattr(secrets_store, "_session_bus", _no_session_bus)
 
 
 @pytest.fixture
 def xdg_tmp(tmp_path, monkeypatch):
-    """Redirect every XDG_* env var Refrain reads to an isolated tmp tree.
-
-    Each test gets its own clean config / state / cache directories so the
-    real user dotfiles are never touched.
-    """
+    """Redirect every XDG_* env var Refrain reads to an isolated tmp tree."""
     config = tmp_path / "config"
     state = tmp_path / "state"
     cache = tmp_path / "cache"

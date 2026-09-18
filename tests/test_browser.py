@@ -1,9 +1,4 @@
-"""Which browser a history link goes to.
-
-The picking is pure — player name, running processes and a ``which``
-stand-in go in, an executable (or None, meaning the default browser)
-comes out — so none of this starts anything.
-"""
+"""Which browser a history link goes to; the picking is pure, so nothing is started."""
 
 from __future__ import annotations
 
@@ -32,7 +27,7 @@ def test_a_closed_browser_leaves_it_to_the_default():
 
 
 def test_an_unknown_player_leaves_it_to_the_default():
-    assert browser_for("WH-1000XM5", {"chromium"}, _which) is None
+    assert browser_for("Desk Speaker", {"chromium"}, _which) is None
     assert browser_for("", {"chromium"}, _which) is None
 
 

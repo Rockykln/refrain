@@ -1,24 +1,6 @@
-"""Last.fm API client + scrobble decision logic.
+"""Last.fm API client and scrobble decision logic, opt-in alongside the Discord status.
 
-Opt-in, *alongside* the Discord Rich Presence — never a replacement.
-Each user registers their own Last.fm API account and pastes the
-``api_key`` / ``shared_secret`` into Settings (same "bring your own
-credentials" model as the Discord ``client_id``); the per-user
-``session_key`` is obtained through the desktop auth flow.
-
-No extra dependency — the API surface we need is three signed methods,
-so it's hand-rolled on ``urllib`` + ``hashlib`` exactly like
-``cover_art.py`` and ``updater.py``. A ``pylast`` dependency would break
-the project's three-runtime-deps rule.
-
-Note on MD5: the Last.fm API **mandates** the request signature be
-``md5(sorted_params + shared_secret)``. This is a protocol-defined,
-non-security digest (the ``shared_secret`` provides authenticity, not
-the hash) — SHA-256 would produce a signature Last.fm rejects outright.
-``usedforsecurity=False`` documents that intent and keeps bandit quiet.
-SHA-256 *is* used where we control the format (the offline-queue dedup
-key — see ``scrobble_queue``).
-"""
+Each user brings their own Last.fm API account, like the Discord ``client_id``."""
 
 from __future__ import annotations
 
@@ -59,6 +41,11 @@ ERR_INVALID_TOKEN = 4
 ERR_SERVICE_OFFLINE = 11
 ERR_SERVICE_UNAVAILABLE = 16
 ERR_RATE_LIMIT = 29
+# Only these say something about the tracks themselves. A bad API key or
+# signature, a suspended key or "operation failed" would reject every
+# track the same way, so the queue waits for them to be fixed instead.
+ERR_INVALID_PARAMETERS = 6
+ERR_INVALID_RESOURCE = 7
 
 # Last.fm's documented scrobble thresholds.
 _MIN_TRACK_MS = 30_000  # tracks shorter than 30 s are never scrobbled
@@ -100,7 +87,8 @@ def api_signature(params: dict[str, str], shared_secret: str) -> str:
     Spec: sort the params by name, concatenate ``name + value`` with no
     separator, append the ``shared_secret``, MD5-hexdigest the UTF-8
     bytes. ``format`` (and ``callback``) are excluded from the signature
-    by the spec. Protocol-mandated MD5 — see the module docstring.
+    by the spec. MD5 is mandated by the protocol (the shared secret gives
+    authenticity, not the hash); ``usedforsecurity=False`` says so.
     """
     parts = [f"{k}{v}" for k, v in sorted(params.items()) if k not in ("format", "callback")]
     raw = ("".join(parts) + shared_secret).encode("utf-8")
@@ -181,7 +169,8 @@ def continues_play(
 
 class LastfmClient:
     """Thin signed-request client. Blocking — call only off the poll
-    thread (the daemon drives it from a worker executor)."""
+    thread (the daemon drives it from a worker executor). Hand-rolled on
+    ``urllib``: ``pylast`` would break the three-runtime-deps rule."""
 
     def __init__(self, api_key: str, shared_secret: str, session_key: str = "") -> None:
         self.api_key = (api_key or "").strip()
@@ -275,10 +264,8 @@ class LastfmClient:
 
         Last.fm session keys do not expire on their own, but they stop
         working when the user revokes the application, changes their
-        password, or the key was restored from a stale copy. Nothing
-        noticed until the first scrobble of the session failed — which
-        can be an hour after startup — so the account looked connected
-        while silently scrobbling nothing.
+        password, or the key was restored from a stale copy. Otherwise
+        that only shows at the first failed scrobble, possibly an hour in.
 
         Raises ``LastfmError``; check ``.invalid_session`` to tell "the
         key is dead" apart from "Last.fm is unreachable right now".
@@ -326,8 +313,8 @@ class LastfmClient:
                 params[f"duration[{i}]"] = str(int(it["duration"]))
         data = self._call("track.scrobble", http_post=True, **params)
         # Response shape differs for single vs batch; accepted count is
-        # under scrobbles.@attr.accepted. Best-effort — the call not
-        # raising already means Last.fm took it.
+        # under scrobbles.@attr.accepted. The call not raising already
+        # means Last.fm took it.
         try:
             return int(data.get("scrobbles", {}).get("@attr", {}).get("accepted", len(items)))
         except (TypeError, ValueError, AttributeError):
@@ -480,9 +467,8 @@ class Scrobbler:
             self._cfg = cfg
             if unchanged:
                 # Apply on any tab of Settings sends the whole config. With
-                # Last.fm untouched, the play in progress carries on —
-                # dropping it made a song count from zero after every Apply,
-                # and one applied near its end was never scrobbled.
+                # Last.fm untouched, the play in progress carries on rather
+                # than counting from zero after every Apply.
                 return
             self._client = self._make_client(cfg)
             # A fresh session key clears a previous "invalid" latch.
@@ -503,8 +489,8 @@ class Scrobbler:
         # otherwise start a drain, and quitting would wait on Last.fm. The
         # queue drains next launch. Either way the play is saved as it
         # stands: if it is still going when Refrain comes back, counting
-        # carries on instead of starting over — which used to scrobble a
-        # long song a second time for what was heard after the restart.
+        # carries on instead of starting over, so a long song isn't
+        # scrobbled twice.
         self._executor.shutdown(wait=False, cancel_futures=True)
         with self._lock:
             if (
@@ -743,7 +729,7 @@ class Scrobbler:
         return r if r["key"] and r["artist"] and r["title"] else None
 
     def _save_current_locked(self, now_wall: float) -> None:
-        """Best-effort: a failed write only costs the carry-on after a restart."""
+        """A failed write only costs the carry-on after a restart."""
         if self._key is None:
             self._clear_current_file()
             return
@@ -841,15 +827,13 @@ class Scrobbler:
             return client.scrobble(batch)
         except LastfmError as e:
             self._handle_lastfm_error(e, "scrobble")
-            if e.invalid_session or e.retryable:
-                # Transient (offline / outage / rate-limit) or a revoked
-                # session: re-raise so ScrobbleQueue.drain stops and
-                # keeps the batch for a later retry / reconnect.
+            if e.code not in (ERR_INVALID_PARAMETERS, ERR_INVALID_RESOURCE):
+                # Offline, an outage, a revoked session or a key problem:
+                # re-raise so ScrobbleQueue.drain stops and keeps the batch.
                 raise
-            # Permanently rejected (bad params, suspended API key, …) —
-            # re-queuing it forever would head-of-line-block every later
-            # scrobble behind a batch that can never succeed. Drop it
-            # (report it as "submitted" so drain advances past it).
+            # Last.fm rejected these tracks. Re-queuing them forever would
+            # block every later scrobble, so drop them (reported as
+            # "submitted" so drain advances past them).
             log.warning("Dropping %d unscrobblable queued track(s): %s", len(batch), e)
             return len(batch)
 

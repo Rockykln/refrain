@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import logging.handlers
+import os
 import sys
 
 from refrain.paths import log_path, state_dir
@@ -12,6 +14,15 @@ _FMT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 _qt_bridge = None  # set by attach_qt_log_bridge(), read by the live-log window
+
+
+class _PrivateRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Keeps the log owner-only: it holds file paths and the listening history."""
+
+    def _open(self):
+        fd = os.open(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        os.fchmod(fd, 0o600)
+        return open(fd, self.mode, encoding=self.encoding, errors=self.errors)
 
 
 def setup_logging(level: str = "INFO") -> None:
@@ -36,12 +47,15 @@ def setup_logging(level: str = "INFO") -> None:
 
     try:
         state_dir().mkdir(parents=True, exist_ok=True)
-        file_handler = logging.handlers.RotatingFileHandler(
+        file_handler = _PrivateRotatingFileHandler(
             log_path(),
             maxBytes=1_048_576,
             backupCount=3,
             encoding="utf-8",
         )
+        for n in range(1, file_handler.backupCount + 1):
+            with contextlib.suppress(OSError):
+                os.chmod(f"{file_handler.baseFilename}.{n}", 0o600)
         file_handler.setFormatter(formatter)
         root.addHandler(file_handler)
     except OSError as e:

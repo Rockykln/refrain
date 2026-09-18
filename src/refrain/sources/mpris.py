@@ -1,10 +1,6 @@
-"""MPRIS-based Apple Music source.
+"""MPRIS source for Apple Music playing in a browser tab.
 
-Listens on the session bus for any MPRIS player, filters down to those that
-look like browsers, and further down to those whose `xesam:url` points at
-music.apple.com. The highest-scoring candidate wins. The bus name of the
-winning player is remembered so playback controls can target it.
-"""
+The highest-scoring browser player on music.apple.com wins; its bus name is kept for controls."""
 
 from __future__ import annotations
 
@@ -63,8 +59,8 @@ def _looks_apple_music(url: str) -> bool:
 
 
 def _is_apple_music_page_title(title: str) -> bool:
-    """Is this a page title of Apple Music's own, like "Sehnsucht – Album von
-    Rammstein – Apple Music" or "Apple Music – Webplayer"?
+    """Is this a page title of Apple Music's own, like "Afterimage – Album von
+    Kite Theory – Apple Music" or "Apple Music – Webplayer"?
 
     Merely naming it is not enough: another tab can play a video called
     "Apple Music review".
@@ -116,10 +112,9 @@ def _clean_album(album: str, title: str) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—")  # noqa: RUF001
     # Drop the album only when, *after* cleanup, it's the same as the
     # track title — the iTunes catalog often duplicates the title in
-    # the album field for singles ("Sun Rise" / "Sun Rise (Single)").
-    # Substring-style matching was overly aggressive: a short album
-    # name that happens to be a prefix of the title (Album="Sun",
-    # Title="Sun Rise (Extended Mix)") would falsely drop.
+    # the album field for singles ("Salt Flats" / "Salt Flats (Single)").
+    # Not a substring match: Album="Sun" must survive
+    # Title="Salt Flats (Extended Mix)".
     if _normalize(cleaned) and _normalize(title) and _normalize(cleaned) == _normalize(title):
         return ""
     return cleaned
@@ -148,9 +143,8 @@ class MPRISSource:
         # becomes eligible to retry. A single property timeout banishes
         # the player for `_BLACKLIST_S` seconds so subsequent reads
         # don't keep eating the dbus reply timeout per stuck player.
-        # Apple Music's plasma-browser-integration freezes mid-session
-        # under load; without this the daemon's poll cycle backed up
-        # to ~50 s and notifications + Discord status froze with it.
+        # plasma-browser-integration freezes under load; without this
+        # the poll cycle backs up to ~50 s.
         self._timeout_blacklist: dict[str, float] = {}
         self._bus = None  # see _session_bus
 
@@ -167,9 +161,9 @@ class MPRISSource:
         the MPRIS server exports on, dispatched by dbus-glib on the main
         thread. This source runs on the daemon thread, and dbus-glib keeps
         its per-connection timeout bookkeeping without any locking — a
-        blocking call from here while the main thread dispatched on the
-        same connection corrupted the heap, and Refrain died with
-        "malloc(): unaligned tcache chunk detected". A private connection
+        blocking call from here while the main thread dispatches on the
+        same connection corrupts the heap ("malloc(): unaligned tcache
+        chunk detected"). A private connection
         without a main loop never reaches dbus-glib; polling only needs
         blocking method calls, which work without one.
         """
@@ -251,7 +245,7 @@ class MPRISSource:
             # plasma-browser-integration takes its metadata from the page's
             # media session but its state from whichever media element is
             # playing — on Apple Music, the looping artwork video. Paused,
-            # the music went on "playing" there. The tab's own entry is the
+            # the music keeps "playing" there. The tab's own entry is the
             # audio; its word on playing vs. paused wins. (Its "stopped"
             # blip at a song change doesn't count — see the condition.)
             status = (
@@ -272,7 +266,7 @@ class MPRISSource:
         # single user click never races a fallback into double-toggling.
         # Except that the Apple Music tab's own entry goes first when there
         # is one: plasma's toggle follows the artwork video, which keeps
-        # playing through a pause — so it could pause the music but never
+        # playing through a pause — so it can pause the music but never
         # start it again.
         return self._dispatch_action(
             "PlayPause", "CanPause", deprioritise_plasma=False, prefer=self._native_apple_names
@@ -304,7 +298,7 @@ class MPRISSource:
         browser-native MPRIS (chromium, firefox) is tried before
         plasma-browser-integration. This is the right policy for
         Next/Previous, where plasma routinely returns success without
-        actually skipping. PlayPause keeps the old "primary first"
+        actually skipping. PlayPause keeps "primary first"
         order so a single click never double-toggles by hitting two
         players.
         """
@@ -347,10 +341,8 @@ class MPRISSource:
             obj = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
             getattr(iface, method)(timeout=0.5)
-            # INFO (not debug) so users can see in the live log which
-            # MPRIS player actually received Next/Previous/PlayPause —
-            # critical for diagnosing "Next pauses instead of skipping"
-            # type bugs where a fallback player handles the action wrong.
+            # INFO so the live log shows which player received the action
+            # when a fallback player handles it wrong.
             log.info("MPRIS %s dispatched on %s", method, name)
             return True
         except dbus.DBusException as e:
@@ -372,20 +364,16 @@ class MPRISSource:
         page title — says it is the Apple Music tab, else "".
         """
         try:
-            # introspect=False so a flaky MPRIS player (we're looking
-            # at you, plasma-browser-integration) can't hang our poll
-            # for 25 s waiting for an Introspect reply that never
-            # comes. We don't need the introspection XML — we already
-            # know the property/method signatures.
+            # introspect=False so a flaky MPRIS player can't hang our poll
+            # for 25 s waiting for an Introspect reply; the signatures are known.
             player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
 
             # Each Get is wrapped: chromium's MPRIS rejects some optional
             # properties (DesktopEntry in particular) with a generic
             # `org.freedesktop.DBus.Error.Failed` instead of returning
-            # an empty string, and one bad property in a shared
-            # try/except dropped the whole player from our candidate
-            # list — including, critically, the chromium player whose
+            # an empty string, and one bad property must not drop the
+            # whole player — least of all the chromium player whose
             # Next/Previous calls actually skip Apple Music tracks.
             #
             # 0.5 s timeout per Get caps total cost: dbus-python's

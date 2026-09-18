@@ -1,17 +1,6 @@
-"""Legal notice, reachable from the Settings window.
+"""Legal notice, reachable from the Settings window; mirrors the repository's ``LEGAL.md``.
 
-Mirrors the repository's ``LEGAL.md`` so the same statements are visible
-to someone who only ever sees the installed application: that Refrain is
-an independent project with no affiliation to Apple, Discord, Last.fm or
-KDE, that "Refrain" is not a registered trademark, which licence applies,
-and what leaves the machine.
-
-The text is kept inline rather than read from ``LEGAL.md`` at runtime —
-the packaged wheel ships ``src/refrain`` only, so the Markdown file isn't
-installed, and a legal notice that silently disappears in the packaged
-build is worse than a little duplication. ``tests/test_legal_notice.py``
-guards the two copies against drifting apart.
-"""
+Inline because the wheel doesn't ship ``LEGAL.md``; ``tests/test_legal_notice.py`` keeps both in sync."""
 
 from __future__ import annotations
 
@@ -31,14 +20,16 @@ from refrain.ui.cursors import apply_interactive_cursors
 GITHUB_URL = "https://github.com/Rockykln/refrain"
 LEGAL_URL = f"{GITHUB_URL}/blob/main/LEGAL.md"
 LICENSE_URL = f"{GITHUB_URL}/blob/main/LICENSE"
+PRIVACY_URL = f"{GITHUB_URL}/blob/main/PRIVACY.md"
 
 # Trademark owners Refrain interoperates with. Kept as data so the test
 # that compares this dialog against LEGAL.md can check the list directly.
 TRADEMARK_OWNERS = (
-    ("Apple Inc.", "Apple and Apple Music"),
+    ("Apple Inc.", "iTunes, Apple and Apple Music"),
     ("Discord Inc.", "Discord"),
     ("Last.fm Ltd.", "Last.fm"),
     ("KDE e.V.", "KDE and Plasma"),
+    ("GitHub, Inc.", "GitHub and the Invertocat logo"),
 )
 
 
@@ -63,7 +54,13 @@ def _sections() -> list[tuple[str, str]]:
             "interoperates with — never to suggest a partnership, "
             "certification or origin. Refrain does not redistribute, modify or "
             "circumvent any of these products; it talks to interfaces they "
-            "expose on your own machine.",
+            "expose on your own machine and to their public web APIs. The "
+            "GitHub logo in the settings window is GitHub's unmodified mark, "
+            "used only as a link to Refrain's repository."
+            "<br><br>"
+            "Cover art comes from Apple's iTunes Search API and remains the "
+            "property of its respective rights holders. Refrain keeps a local "
+            "copy only to display it.",
         ),
         (
             "Trademark status of “Refrain”",
@@ -83,17 +80,27 @@ def _sections() -> list[tuple[str, str]]:
             "<br><br>"
             "Third-party components keep their own licences: PySide6 / Qt for "
             "Python (LGPL v3), pypresence (MIT), dbus-python (MIT) and, "
-            "optionally, PyGObject (LGPL v2.1).",
+            "optionally, PyGObject (LGPL v2.1). The AppImage bundles these "
+            "components together with Python and system libraries from Ubuntu; "
+            "each of them stays under its own licence.",
         ),
         (
             "Data",
             "Refrain runs entirely on your machine. There is no backend, no "
-            "account system and no telemetry. Data leaves your machine only "
-            "where your own configuration requires it: track metadata goes to "
-            "your local Discord client over its Rich Presence socket; track "
-            "and album names go to Apple's iTunes Search API for cover art; "
-            "Last.fm receives scrobbles only if you enable them with your own "
-            "credentials; and GitHub's releases API is queried for updates."
+            "account system and no telemetry. Two lookups are on by default and "
+            "can be switched off in the settings: the artist and song title "
+            "(and a store country taken from the desktop language) go to "
+            "Apple's iTunes Search API for cover art, the song's length and its "
+            "Apple Music link, and GitHub's releases API is queried once a day "
+            "for updates. A new version is downloaded from GitHub, or from PyPI "
+            "for pip and pipx installs, only when you choose to update."
+            "<br><br>"
+            "Everything else only happens once you set it up: track metadata "
+            "goes to your local Discord client over its Rich Presence socket; "
+            "optionally, the application ID is sent to Discord's web API to look "
+            "up the application's name (off by default); and Last.fm receives "
+            "scrobbles only if you enable them with your own credentials. "
+            f"<a href='{PRIVACY_URL}'>PRIVACY.md</a> lists every data flow in detail."
             "<br><br>"
             "Last.fm credentials are stored in your operating system's keyring "
             "where one is available, and otherwise in a 0600-mode file in your "
@@ -164,9 +171,8 @@ class LegalDialog(QDialog):
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
         # Qt fills a standard button's text from the platform theme, and
         # KDE's plugin takes it from KDE's own catalogs keyed to the
-        # process locale — it never consults the translator we install.
-        # So a German "Schließen" sat in an otherwise English window and
-        # no language setting could reach it. Our own text can.
+        # process locale — it never consults the translator we install,
+        # so no language setting would reach it. Our own text can.
         buttons.button(QDialogButtonBox.Close).setText(self.tr("Close"))
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)

@@ -3,7 +3,7 @@
 Each lookup yields **two** URLs and a length:
 
 - ``cover_url`` — the 600x600 album-cover image URL (used as Discord's
-  ``large_image`` and downloaded to disk for ``notify-send -i``).
+  ``large_image`` and downloaded for ``notify-send -i``).
 - ``song_url`` — the canonical Apple Music page URL for the specific song
   (used as the "Listen on Apple Music" button target).
 - ``duration_ms`` — the catalog's track length, which overrides the
@@ -14,8 +14,8 @@ Finding the song: the store of the desktop's own country is asked first
 stripped of "feat." and remaster/version tags and, failing that, only
 the first of several credited artists — MPRIS joins every artist into
 one string the catalog rarely has. A result only counts when its artist
-*and* title match; the first hit used to be taken blindly, which put a
-Chinese ballad on a German rap track.
+*and* title match; taking the first hit blindly can put a ballad on a
+rap track.
 
 Caching layout:
 
@@ -23,7 +23,10 @@ Caching layout:
   format version and when it was checked, one per line. A miss expires
   after ``_NEGATIVE_TTL_S``; entries without the current version (the
   old first-hit matcher's) are looked up again.
-- ``<urlhash>.jpg`` — image bytes, named after the cover-URL hash.
+- ``<urlhash>.jpg`` — image bytes, named after the cover-URL hash, only
+  for songs in the Recently played history (see ``keep_cover_images``).
+  Images for anything else are downloaded to a private temporary
+  directory owned by ``CoverFetcher``.
 """
 
 from __future__ import annotations
@@ -34,6 +37,7 @@ import json
 import logging
 import os
 import re
+import shutil
 import time
 import unicodedata
 import urllib.parse
@@ -287,15 +291,21 @@ def _read_cache(key: str) -> TrackLookup | None:
     return TrackLookup(cover_url=cover_url, song_url=lines[1].strip(), duration_ms=duration_ms)
 
 
+def _make_private_dir(d: Path) -> None:
+    # The cached lookups and covers reveal what the user listens to.
+    d.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(d, 0o700)
+
+
 def _write_cache(key: str, info: TrackLookup) -> None:
-    """Write the URL-cache .txt file. Best-effort — a failure here
+    """Write the URL-cache .txt file. A failure here
     must not propagate up because the caller is in a worker-thread
     Future and the in-memory cache is already populated. The user
     just won't get the disk-cache hit on next session, which is
     acceptable degradation."""
     d = cover_cache_dir()
     try:
-        d.mkdir(parents=True, exist_ok=True)
+        _make_private_dir(d)
         (d / f"{key}.txt").write_text(
             f"{info.cover_url}\n{info.song_url}\n{info.duration_ms}\n"
             f"{_CACHE_VERSION}\n{int(time.time())}\n",
@@ -305,26 +315,71 @@ def _write_cache(key: str, info: TrackLookup) -> None:
         log.debug("Cover URL-cache write failed for %s: %s", key, e)
 
 
+def image_name(url: str) -> str:
+    return hashlib.blake2b(url.encode("utf-8"), digest_size=12).hexdigest() + ".jpg"
+
+
 def image_path_for_url(url: str) -> Path:
-    """Deterministic on-disk path for a given image URL."""
-    name = hashlib.blake2b(url.encode("utf-8"), digest_size=12).hexdigest() + ".jpg"
-    return cover_cache_dir() / name
+    """Where the kept image of a song in the history lives."""
+    return cover_cache_dir() / image_name(url)
 
 
-def download_cover_image(url: str) -> Path | None:
-    """Download ``url`` to the cover cache, return the local path on success.
+def has_image(path: Path) -> bool:
+    try:
+        return path.stat().st_size > 0
+    except OSError:
+        return False
 
-    Idempotent: re-uses an existing non-empty file if the URL has been
-    downloaded before. Used only for the ``notify-send -i`` path; Discord
-    fetches the URL itself, so downloading is unnecessary for RPC.
+
+def keep_cover_images(urls: set[str], sources: list[Path]) -> None:
+    """Make the kept images exactly those of ``urls``.
+
+    A missing one is copied from the first directory in ``sources`` that
+    has it; every other image in the cover cache is deleted.
+    """
+    d = cover_cache_dir()
+    wanted = {image_name(u) for u in urls if u}
+    for name in wanted:
+        dest = d / name
+        if has_image(dest):
+            continue
+        src = next((s / name for s in sources if has_image(s / name)), None)
+        if src is None:
+            continue
+        tmp = dest.with_suffix(dest.suffix + ".tmp")
+        try:
+            _make_private_dir(d)
+            shutil.copyfile(src, tmp)
+            os.replace(tmp, dest)
+        except OSError as e:
+            log.debug("Could not keep cover %s: %s", name, e)
+            with contextlib.suppress(OSError):
+                tmp.unlink()
+    if not d.is_dir():
+        return
+    removed = 0
+    try:
+        for p in d.glob("*.jpg*"):
+            if p.name not in wanted:
+                with contextlib.suppress(OSError):
+                    p.unlink()
+                    removed += 1
+    except OSError as e:
+        log.debug("Cover cleanup failed: %s", e)
+    if removed:
+        log.debug("Deleted %d cover image(s) not in the history", removed)
+
+
+def download_cover_image(url: str, dest: Path) -> Path | None:
+    """Download ``url`` to ``dest`` and return it, or None on failure.
+
+    ``dest``'s directory must exist already. Used only for
+    ``notify-send -i`` and the history's thumbnails; Discord fetches the
+    URL itself.
     """
     if not url.startswith("https://"):
         log.debug("Cover download refused: non-HTTPS URL (%s)", url[:60])
         return None
-    dest = image_path_for_url(url)
-    if dest.exists() and dest.stat().st_size > 0:
-        log.debug("Cover already on disk: %s (%d bytes)", dest.name, dest.stat().st_size)
-        return dest
     log.debug("Cover download starting: %s → %s", url, dest.name)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
@@ -336,12 +391,9 @@ def download_cover_image(url: str) -> Path | None:
     log.debug("Cover downloaded: %s (%d bytes)", dest.name, len(data))
     # Write to a sibling temp file and atomically rename. Without this,
     # a daemon kill mid-download would leave a truncated file that
-    # `dest.exists() and st_size > 0` happily returns from on the next
-    # tick, then notify-send would render a broken thumbnail forever
-    # until the cache pruner evicts it.
+    # `has_image` happily accepts on the next tick.
     tmp = dest.with_suffix(dest.suffix + ".tmp")
     try:
-        dest.parent.mkdir(parents=True, exist_ok=True)
         tmp.write_bytes(data)
         os.replace(tmp, dest)
     except OSError as e:

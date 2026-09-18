@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -41,13 +42,24 @@ _CATEGORIES_LINE = next(
 )
 
 
-def _quote(path: str) -> str:
-    # Per the Desktop Entry spec, paths with spaces or special chars must be
-    # double-quoted in Exec=. Escape inner double quotes and backslashes.
-    if any(c in path for c in ' \t\n"\\$`'):
-        escaped = path.replace("\\", "\\\\").replace('"', '\\"')
-        return f'"{escaped}"'
-    return path
+_EXEC_RESERVED = frozenset(" \t\n\"'\\><~|&;$*?#()`")
+
+
+def _quote(arg: str) -> str:
+    """Encode one argument for an ``Exec=`` value per the Desktop Entry spec."""
+    if arg and not any(c in _EXEC_RESERVED for c in arg):
+        quoted = arg
+    else:
+        quoted = '"' + re.sub(r'(["`$\\])', r"\\\1", arg) + '"'
+    # The key-file string escapes apply on top of the quoting rule, so a
+    # quoted backslash ends up as four; % would start a field code.
+    return (
+        quoted.replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\t", "\\t")
+        .replace("\r", "\\r")
+        .replace("%", "%%")
+    )
 
 
 def resolve_exec_line(extra_args: str = "") -> str:

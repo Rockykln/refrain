@@ -1,14 +1,5 @@
-"""MPRIS skip-control falls back across players.
-
-Apple Music in Chromium typically exposes two MPRIS players:
-- KDE's `plasma-browser-integration` — rich metadata, but
-  CanGoNext / CanGoPrevious = False
-- the browser's own MPRIS — CanGoNext = True but only the tab title
-  as `xesam:title` (no `xesam:url`)
-
-The metadata view picks the plasma player; skip controls have to fall
-back onto the browser-native player to actually do anything.
-"""
+"""MPRIS skip controls fall back from plasma-browser-integration to the browser's own player.
+Plasma has the metadata but CanGoNext = False; the browser player can skip."""
 
 from __future__ import annotations
 
@@ -18,12 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-# dbus is a required runtime dep but these tests target the *dispatch*
-# logic against an in-memory player set. Forcefully replace `dbus`
-# with our stub *and* reload refrain.sources.mpris so its module-level
-# `import dbus` picks up the fake — `setdefault` doesn't work here
-# because earlier tests in the suite may have already pulled in the
-# real `dbus` module.
+# Replace `dbus` and reload refrain.sources.mpris; `setdefault` isn't
+# enough when earlier tests already imported the real module.
 _fake_dbus = MagicMock()
 
 
@@ -204,8 +191,7 @@ def test_play_pause_prefers_primary():
 
 
 def test_play_pause_goes_to_the_apple_music_tab_itself_when_known():
-    """plasma's toggle follows the page's artwork video, which plays on
-    through a pause — it could pause the music but never start it again."""
+    """Plasma's toggle follows the artwork video, which keeps playing through a pause."""
     plasma = _FakePlayer(can_pause=True)
     chromium = _FakePlayer(can_pause=True)
     _wire_bus(
@@ -266,8 +252,8 @@ def _plasma(status):
         "Position": 2_000_000,
         "Metadata": {
             "xesam:title": "Eifersucht",
-            "xesam:artist": ["Rammstein"],
-            "xesam:album": "Sehnsucht",
+            "xesam:artist": ["Kite Theory"],
+            "xesam:album": "Afterimage",
             "xesam:url": "https://music.apple.com/de/album/sehnsucht/1390562159",
             "mpris:length": 10_416_000,  # the artwork video, not the song
         },
@@ -275,7 +261,7 @@ def _plasma(status):
 
 
 # As the page spells it: left-to-right mark, no-break spaces, en dashes.
-def _tab(status, title="‎Sehnsucht\xa0– Album von Rammstein\xa0– Apple\xa0Music"):  # noqa: RUF001
+def _tab(status, title="‎Afterimage\xa0– Album von Kite Theory\xa0– Apple\xa0Music"):  # noqa: RUF001
     return {
         "Identity": "Chromium",
         "DesktopEntry": "",
@@ -286,7 +272,7 @@ def _tab(status, title="‎Sehnsucht\xa0– Album von Rammstein\xa0– Apple\xa0
 
 
 def test_a_pause_is_read_from_the_apple_music_tab_not_plasma():
-    """Measured: paused in the browser, plasma kept saying Playing."""
+    """Paused in the browser while plasma still says Playing."""
     _wire_read({PLASMA: _plasma("Playing"), CHROMIUM: _tab("Paused")})
     src = MPRISSource()
     track = src.read()
@@ -308,8 +294,7 @@ def test_another_tab_playing_says_nothing_about_apple_music():
 
 
 def test_the_page_title_is_not_a_song():
-    """Measured: with no song loaded, plasma reported the page title as the
-    track — "Apple Music – Webplayer", no artist — and it "played"."""
+    """With no song loaded, plasma reports the page title as a "playing" track."""
     page = _plasma("Playing")
     page["Metadata"] = {
         "xesam:title": "‎Apple Music\xa0– Webplayer",  # noqa: RUF001
@@ -359,7 +344,7 @@ def test_only_apple_musics_own_page_titles_count_as_its_tab():
     from refrain.sources.mpris import _is_apple_music_page_title
 
     assert _is_apple_music_page_title(
-        "\u200eSehnsucht\xa0\u2013 Album von Rammstein\xa0\u2013 Apple\xa0Music"
+        "\u200eAfterimage\xa0\u2013 Album von Kite Theory\xa0\u2013 Apple\xa0Music"
     )
     assert _is_apple_music_page_title("\u200eApple\xa0Music\xa0\u2013 Webplayer")
     assert _is_apple_music_page_title("Listen Now - Apple Music")

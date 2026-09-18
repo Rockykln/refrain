@@ -60,3 +60,9 @@ def test_parse_id_non_numeric_is_none():
     # libnotify build without --print-id support, or a wrapper that
     # prints something else — degrade to "no later swap" not a crash.
     assert parse_notify_id("not-an-id") is None
+
+
+def test_a_title_starting_with_a_dash_is_not_an_option():
+    argv = build_notify_argv("notify-send", None, "-u critical", "--app-name=12345")
+    assert argv[-3:] == ["--", "-u critical", "--app-name=12345"]
+    assert argv.index("--") == len(argv) - 3

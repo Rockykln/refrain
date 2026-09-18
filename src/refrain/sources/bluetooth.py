@@ -1,8 +1,5 @@
-"""BlueZ AVRCP source — reads metadata and dispatches controls.
-
-Auto-detects the active player path; an optional MAC filter restricts
-selection to a single paired device.
-"""
+"""BlueZ AVRCP source: reads metadata and dispatches controls for the active player,
+optionally restricted to one paired device."""
 
 from __future__ import annotations
 
@@ -17,15 +14,12 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 log = logging.getLogger(__name__)
 
 
-def _bluez_owned(bus) -> bool:
-    """Return True iff org.bluez currently has an owner on the system bus.
+def _bluez_owned(bus) -> bool | None:
+    """Whether org.bluez has an owner on the system bus; None when the bus didn't answer.
 
     Uses ``NameHasOwner`` instead of ``get_object('org.bluez', ...)`` so
-    a missing bluez daemon is detected in <1 ms instead of triggering
-    D-Bus's 25 s service-activation timeout. On VMs / minimal installs
-    without bluez this previously stalled every Refrain poll cycle for
-    a full 25 s waiting for an `org.bluez`-activation that would never
-    succeed.
+    a missing bluez daemon (VMs, minimal installs) is detected in <1 ms
+    instead of stalling every poll on D-Bus's 25 s service-activation timeout.
     """
     try:
         dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
@@ -33,7 +27,7 @@ def _bluez_owned(bus) -> bool:
         return bool(dbus_iface.NameHasOwner("org.bluez"))
     except Exception as e:
         log.debug("Bluetooth: NameHasOwner(org.bluez) failed: %s", e)
-        return False
+        return None
 
 
 def _device_name(objects, player_props) -> str:
@@ -137,7 +131,10 @@ class BluetoothSource:
             log.debug("Bluetooth: cannot reach system bus: %s", e)
             self._drop_bus()
             return TrackInfo.empty()
-        if not _bluez_owned(bus):
+        owned = _bluez_owned(bus)
+        if owned is None:
+            self._drop_bus()  # a connection that died stays dead; open a new one next poll
+        if not owned:
             return TrackInfo.empty()
 
         player_path = self._find_player(bus)

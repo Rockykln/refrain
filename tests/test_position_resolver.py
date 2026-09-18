@@ -1,12 +1,5 @@
-"""resolve_position — the three-tier position decision.
-
-Tier 1 is what the source reports, tier 2 is our own clock anchored at a
-track start we witnessed, tier 3 is nothing at all. The numbers in the
-queue-cumulative tests come from a live session log: "Blessings" starts
-at 234299 ms on Apple Music's queue timeline and the change to "Dior"
-lands at 454260 ms — one poll tick after 234299 plus its 219650 ms
-catalog length.
-"""
+"""resolve_position: the source's value, our own clock from a witnessed start, or nothing.
+The queue-cumulative numbers are from a real Apple Music session log."""
 
 from __future__ import annotations
 
@@ -17,16 +10,14 @@ from refrain.timing import (
     start_is_witnessed,
 )
 
-A = "mpris|No Broke Boys|Disco Lines|"
-B = "mpris|Blessings|Calvin Harris|"
+A = "mpris|Glass Tides|Neon Harbor|"
+B = "mpris|Northbound|The Quiet Hours|"
 C = "mpris|Dior|MK|"
 DUR = 220_000
 
 
 def step(state, key, reported_ms, now, *, duration_ms=DUR, playing=True, length_ms=None, **kw):
-    """`length_ms` defaults to `duration_ms`: for most sources the raw
-    length and the effective one are the same number, and the tests that
-    care about them diverging say so explicitly."""
+    """`length_ms` defaults to `duration_ms`; tests that need them to differ pass both."""
     kw.setdefault("reported_length_ms", duration_ms if length_ms is None else length_ms)
     return resolve_position(state, key, reported_ms, duration_ms, playing, now, **kw)
 
@@ -101,7 +92,7 @@ def test_source_recovering_from_a_freeze_is_believed_again():
 
 def test_queue_cumulative_position_falls_back_to_our_clock():
     state = PositionState()
-    # Playing "Blessings", position already past this track's length
+    # Playing "Northbound", position already past this track's length
     # because the source counts across the whole queue.
     _, _, state = step(state, B, 234_299, 1000.0)
     _, _, state = step(state, B, 234_799, 1000.5)
@@ -199,9 +190,7 @@ def test_another_track_after_a_moment_of_nothing_starts_as_after_idle():
 
 
 def test_a_moment_of_nothing_mid_segment_keeps_the_clock():
-    """Probe: at 2:00 one empty poll (a D-Bus hiccup), then the segment
-    source came back 1.5 s into a segment — and that was taken for the
-    song's start, 2:00 behind for the rest of it."""
+    """One empty poll mid-song must not make a segment's start count as the song's start."""
     state = PositionState()
     _, _, state = step(state, B, 120_000, 1000.0)
     seen, state = _segments(state, A, 1001.0, 300, 120)
@@ -233,17 +222,15 @@ def test_stream_relative_source_stops_being_believed_after_one_change():
     assert (pos, tier) == (0, PositionTier.COMPUTED)
     assert state.cumulative is True
     # Even with no catalog length to catch it out, the reported value is
-    # not offered again — this is the regression that made the elapsed
-    # timer disappear one poll after every track change.
+    # not offered again, or the timer vanishes one poll after a track change.
     pos, tier, state = step(state, C, 297_590, 1065.0, duration_ms=0)
     assert (pos, tier) == (30_000, PositionTier.COMPUTED)
 
 
 def test_a_late_catalog_length_does_not_poison_the_anchor():
-    # The exact live sequence: at the track change the only length known
-    # is the source's own (a stream buffer marker, far larger than the
-    # song), so nothing looks wrong yet. The catalog answers a second
-    # later with the real one.
+    # At the track change the only length known is the source's own (a
+    # stream buffer marker, far larger than the song), so nothing looks
+    # wrong yet. The catalog answers a second later with the real one.
     state = PositionState()
     _, _, state = step(state, B, 234_299, 1000.0, duration_ms=411_918)
     pos, tier, state = step(state, C, 267_590, 1035.0, duration_ms=411_918)
@@ -278,8 +265,7 @@ def test_a_frozen_stream_position_is_not_mistaken_for_a_seek():
 
 
 def test_a_stream_position_catching_up_after_a_stall_is_not_a_seek():
-    """Probe: stuck for 15 s, then right again — read as a 15 s seek, and
-    the time ran 15 s ahead until the next song."""
+    """A position stuck for 15 s and then right again is not a 15 s seek."""
     state = PositionState()
     _, _, state = step(state, B, 234_299, 1000.0, duration_ms=0)
     _, _, state = step(state, C, 267_590, 1035.0, duration_ms=0)
@@ -292,8 +278,7 @@ def test_a_stream_position_catching_up_after_a_stall_is_not_a_seek():
 
 
 def test_an_album_filled_in_late_is_the_same_song():
-    """Probe: the album arrived 4 s in, the key changed, and the clock
-    started again at zero — 4 s behind, with tier 1 lost for the song."""
+    """An album name that arrives 4 s in does not restart the clock."""
     state = PositionState()
     _, _, state = step(state, B, 0, 1000.0)
     for s in range(1, 4):
@@ -326,10 +311,8 @@ def test_a_source_that_resets_again_gets_tier_1_back():
 
 
 def test_source_switching_to_track_relative_mid_track_is_believed_again():
-    # Seen live: the player counted the stream for one track, then
-    # started counting the track itself without a track change in
-    # between. Read as a seek, that 700-second jump backwards put the
-    # clock's zero in the future and the time vanished.
+    # The player switches from counting the stream to counting the track
+    # mid-song; read as a seek, the jump back puts the clock's zero in the future.
     state = PositionState()
     _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
     _, tier, state = step(state, C, 700_000, 1035.0, duration_ms=0)
@@ -364,12 +347,9 @@ def test_resuming_from_a_long_pause_is_not_read_as_a_freeze():
 
 
 def test_a_length_that_grows_underneath_the_track_latches_the_source():
-    # Apple Music's `mpris:length` tracks how far its stream has
-    # buffered: measured live, it grew by 135 s across 144 s of playback
-    # on one unchanging track. A track's length does not do that, so
-    # this catches the source out without waiting for a track change —
-    # which matters for a session that starts mid-song, where there is
-    # nothing else to go on.
+    # Apple Music's `mpris:length` tracks how far its stream has buffered.
+    # A track's length does not grow, so this catches the source out
+    # without a track change, which a session started mid-song needs.
     state = PositionState()
     pos, tier, state = step(state, A, 454_260, 1000.0, duration_ms=632_166)
     assert tier is PositionTier.REPORTED  # nothing says otherwise yet
@@ -440,15 +420,8 @@ def test_an_absent_length_is_not_a_dispute():
 
 
 def test_a_mid_track_frame_switch_also_proves_the_source_counts_tracks():
-    """Taking the latch off is only half the answer.
-
-    `cumulative` says "this source's numbers belong to a stream";
-    `track_relative` is the positive evidence of the opposite, and the
-    daemon consults it before it will publish a length at all. Clearing
-    the first without setting the second left the source in limbo: the
-    frame switch was believed for the position but the track's total
-    stayed hidden until the next track change.
-    """
+    """A mid-track frame switch clears `cumulative` and sets `track_relative`.
+    The daemon only publishes a length once `track_relative` is set."""
     state = PositionState()
     _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
     _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)
@@ -476,20 +449,8 @@ def test_a_zero_stall_window_never_calls_the_source_stale():
 
 
 def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
-    """Plasma's browser integration reports the *segment*, not the track.
-
-    Measured live on Apple Music's web player: position ran 0.5 s, 2.6 s,
-    1.1 s, 3.2 s, 5.0 s, 0 s … while `mpris:length` moved between 8433,
-    9999 and 11033 ms — both describing whichever media segment the page
-    had buffered. Each shifting length latched the source as
-    stream-relative and each return to zero was read as the player
-    changing frames, which unlatched it and re-anchored the clock. The
-    elapsed time fell back to the start every few seconds, all song long.
-
-    A frame switch happens once and sticks. Repeated resets are a source
-    that does not describe tracks at all, and our own clock — anchored on
-    a track start we watched — outranks it.
-    """
+    """Plasma's browser integration reports the media segment, not the track.
+    A frame switch happens once; repeated resets mean our own clock outranks the source."""
     # Refrain was running with nothing playing; then the track starts, and
     # the source resets for it: a real anchor. The value itself is a
     # segment's, so it comes from our clock — which reads the same here,
@@ -521,7 +482,7 @@ def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
     assert pos >= 13_000, "our clock should be near the 14 s that actually elapsed"
 
 
-SEGMENT_MS = 10_416  # measured: Plasma's browser integration, constant all song
+SEGMENT_MS = 10_416  # Plasma's browser integration, constant all song
 
 
 def _segments(state, key, start_s, first_ms, seconds, *, duration_ms=215_867):
@@ -538,15 +499,10 @@ def _segments(state, key, start_s, first_ms, seconds, *, duration_ms=215_867):
 
 
 def test_a_constant_segment_length_never_drags_the_time_back():
-    """Refrain restarted mid-song, landing 0.8 s into a segment.
-
-    The segment's length never moves, so nothing latched the source, and
-    every wrap to zero was shown: the time fell back every ten seconds.
-    """
+    """After a restart mid-song, a constant segment length must not pull the time back."""
     seen, _ = _segments(PositionState(), A, 1000.0, 792, 40)
     # Not even that first zero is taken: straight after a start a segment
-    # source sits in a segment's first seconds far too often (twice in two
-    # live restarts), and counting from there ran 24 s ahead of the song.
+    # source often sits in a segment's first seconds.
     assert all((pos, tier) == (None, PositionTier.UNKNOWN) for pos, tier in seen)
 
 
@@ -570,9 +526,7 @@ def test_a_segment_source_after_a_track_change_counts_from_the_change():
 
 
 def test_a_segment_source_shows_a_repeat_as_a_start_frame():
-    """Measured on Apple Music in the browser, repeat-one: mid-song the
-    source reports 10–16 s segments; as the song loops it reports the
-    song's own 215.9 s length at position 0 for a few seconds."""
+    """On repeat-one, the song's own length at position 0 between segments is a start frame."""
     state = PositionState()
     _, _, state = step(state, B, 120_000, 1000.0)
     seen, state = _segments(state, A, 1001.0, 300, 214)
@@ -607,8 +561,7 @@ def test_a_start_frame_places_the_zero_after_a_restart_mid_song():
 
 
 def test_bluetooth_repeat_one_wraps_the_position_back_into_the_song():
-    """Measured: a phone on repeat-one read 5:13 on a 3:36 song — AVRCP
-    kept counting across the loop."""
+    """AVRCP on repeat-one counts across the loop; the position wraps back into the song."""
     length = 215_914
     state = PositionState()
     shown = []
@@ -638,8 +591,7 @@ def test_a_pause_that_blips_to_zero_is_not_a_restart():
 
 
 def test_the_zero_of_a_pause_blip_is_never_passed_on_as_the_players_position():
-    """Probe: the blip's 0:00 went to the history and Last.fm as the
-    player's own position — which read as the song starting over."""
+    """A pause blip's 0:00 is not passed on as the player's position."""
     length = 215_914
     state = PositionState()
     for s in range(0, 151):
@@ -672,12 +624,7 @@ def test_without_repeat_a_position_past_the_end_is_still_not_believed():
 
 
 def test_one_genuine_frame_switch_is_still_believed():
-    """The Apple Music case the switch was written for must keep working.
-
-    There the source carried its position across the track change, so we
-    never saw this track start — the frame switch is the first real zero
-    we get, and taking it is strictly better than not.
-    """
+    """Without a witnessed track start, one frame switch is the first real zero and is taken."""
     state = PositionState()
     _, _, state = step(state, B, 690_000, 1000.0, duration_ms=0)
     _, _, state = step(state, C, 700_000, 1035.0, duration_ms=0)

@@ -1,16 +1,5 @@
-"""The welcome dialog must not clip its live diagnostics.
-
-The two diagnostics rows word-wrap and are filled at runtime with
-whatever the probes report. The dialog used to be ``setFixedSize`` — Qt
-never grows an already-shown window on its own, so a long enough failure
-message ("no IPC socket answered …", and the same text is longer again
-in a wordier locale) lost its last lines with no scrollbar to reach them.
-
-It now grows in height when, and only when, the labels genuinely need
-more room than the layout can absorb.
-
-Runs against ``QT_QPA_PLATFORM=offscreen`` so it works in headless CI.
-"""
+"""The welcome dialog grows in height when its word-wrapped diagnostics need it, and only then.
+Qt never grows an already-shown window on its own."""
 
 from __future__ import annotations
 

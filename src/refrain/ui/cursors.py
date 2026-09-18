@@ -1,18 +1,5 @@
-"""One place that decides what the mouse cursor looks like over a widget.
-
-Refrain's dialogs are built by hand, and setting a cursor per widget at
-construction means every new button is one `setCursor` away from being
-the odd one out — which is exactly what had happened: two buttons in the
-whole UI carried the pointing hand and everything else kept the arrow.
-The dialogs call `apply_interactive_cursors(self)` once, after their
-layout is built, and every clickable child is covered — including the
-ones added later.
-
-Dialogs Refrain does not build itself — every `QMessageBox`, whether
-constructed by hand or conjured by `QMessageBox.warning(...)` — are
-covered by `install_global_interactive_cursors(app)` instead, which
-catches them as they are shown.
-"""
+"""One place that decides what the mouse cursor looks like over a widget, so no
+button has to remember its own `setCursor`."""
 
 from __future__ import annotations
 

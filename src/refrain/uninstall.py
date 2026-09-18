@@ -1,21 +1,6 @@
-"""Full uninstall — wipe every file and credential Refrain created.
+"""Full uninstall: delete every file and credential Refrain created.
 
-Removing the *package* itself is install-type-specific (pip / pipx /
-AUR / Flatpak / AppImage) and a running binary can't reliably delete
-itself, so we print the exact command for the detected install type.
-The part Refrain *can* do on any distro / install method — and does
-here — is delete everything it wrote:
-
-- ``$XDG_CONFIG_HOME/refrain/``  (config.toml, secrets fallback)
-- ``$XDG_STATE_HOME/refrain/``   (logs, scrobble queue)
-- ``$XDG_CACHE_HOME/refrain/``   (cover-art cache)
-- the autostart entry, the menu ``.desktop`` + icon
-- the Last.fm credentials in the OS keyring
-
-Importable without Qt or a D-Bus connection (it runs as a one-shot
-``--uninstall`` before the GUI starts, and the tests exercise it
-hermetically).
-"""
+Importable without Qt or D-Bus, since ``--uninstall`` runs before the GUI starts."""
 
 from __future__ import annotations
 
@@ -89,7 +74,7 @@ class UninstallReport:
 
 def _purge_secrets(store=None) -> bool:
     """Delete the Last.fm credentials from the keyring (or fallback
-    file). Best-effort — never raises. ``store`` is injectable for
+    file). Never raises. ``store`` is injectable for
     tests so the suite never touches the real keyring."""
     try:
         from refrain.secrets_store import (

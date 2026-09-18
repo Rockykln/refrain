@@ -1,15 +1,6 @@
 """Song lengths Refrain measured itself, for songs the catalog has none for.
 
-A song the iTunes catalog doesn't know has no length in the browser at all:
-plasma reports the buffered media segment, not the song. Without a length
-Last.fm's rules can't be applied, so the play is never scrobbled — around
-one song in ten here. But a song that plays to its end measures itself: our
-own clock says how long it ran. Heard twice with the same answer, that is
-the song's length, and the next play counts.
-
-Stored as ``<key> <seconds> <confirmations>`` per line — the key a hash, so
-the file holds no song titles.
-"""
+Stored as ``<key> <seconds> <confirmations>`` per line; the key is a hash, so no titles."""
 
 from __future__ import annotations
 
@@ -41,8 +32,8 @@ MAX_ENTRIES = 1000
 def song_key(artist: str, title: str, album: str) -> str:
     """A stable, opaque key for a song.
 
-    Same normalisation as the catalog lookup, so "f**k dich (feat. …)" and
-    "f**k dich" are one song rather than two.
+    Same normalisation as the catalog lookup, so "Overexposed (feat. …)" and
+    "Overexposed" are one song rather than two.
     """
     raw = "\x1f".join(
         (
@@ -60,7 +51,10 @@ def lengths_path() -> Path:
 
 class LearnedLengths:
     """Lengths measured from whole plays. Failure-tolerant throughout: a
-    file that can't be read or written costs the fallback, nothing else."""
+    file that can't be read or written costs the fallback, nothing else.
+
+    Plasma reports only the buffered segment for songs the catalog lacks,
+    and without a length Last.fm's rules can't be applied at all."""
 
     def __init__(self, path: Path | None = None) -> None:
         self._path = path or lengths_path()
@@ -68,6 +62,8 @@ class LearnedLengths:
         # key -> (seconds, confirmations), oldest first: dicts keep
         # insertion order, which is the recency the cap goes by.
         self._entries: dict[str, tuple[int, int]] = self._load()
+        # A differing reading for a confirmed length, waiting for a second.
+        self._challengers: dict[str, int] = {}
 
     def _load(self) -> dict[str, tuple[int, int]]:
         try:
@@ -115,11 +111,12 @@ class LearnedLengths:
         return entry[0] * 1000
 
     def observe(self, artist: str, title: str, album: str, played_ms: int) -> bool:
-        """Record how long a song ran. True when it is now confirmed.
+        """Record how long a song ran. True when that just confirmed a length.
 
-        A reading that disagrees with the one on file replaces it — the
+        A reading that disagrees with an unconfirmed one replaces it — the
         song's length doesn't change, so a disagreement means one of the two
-        was a play that ended early.
+        was a play that ended early. A confirmed length gives way only to two
+        new readings that agree with each other.
         """
         seconds = round(played_ms / 1000)
         if not MIN_LENGTH_S <= seconds <= MAX_LENGTH_S:
@@ -129,21 +126,23 @@ class LearnedLengths:
             known = self._entries.pop(key, None)
             if known is not None and abs(known[0] - seconds) <= AGREES_WITHIN_S:
                 entry = (known[0], min(known[1] + 1, CONFIRMATIONS_NEEDED))
+                self._challengers.pop(key, None)
+            elif known is not None and known[1] >= CONFIRMATIONS_NEEDED:
+                challenger = self._challengers.pop(key, None)
+                if challenger is not None and abs(challenger - seconds) <= AGREES_WITHIN_S:
+                    entry = (challenger, CONFIRMATIONS_NEEDED)
+                else:
+                    self._challengers[key] = seconds
+                    entry = known
             else:
                 entry = (seconds, 1)
             self._entries[key] = entry
             while len(self._entries) > MAX_ENTRIES:
                 self._entries.pop(next(iter(self._entries)))
             self._save_locked()
-        return entry[1] >= CONFIRMATIONS_NEEDED
+        return entry[1] >= CONFIRMATIONS_NEEDED and entry != known
 
     def forget(self, artist: str, title: str, album: str) -> None:
         with self._lock:
             if self._entries.pop(song_key(artist, title, album), None) is not None:
                 self._save_locked()
-
-    def clear(self) -> None:
-        with self._lock:
-            self._entries = {}
-            with contextlib.suppress(OSError):
-                self._path.unlink()

@@ -1,11 +1,6 @@
-"""Background daemon: polls sources, drives Discord + tray + notifications.
+"""Background daemon on its own QThread: polls sources, drives Discord, tray and notifications.
 
-The worker lives on its own QThread so the GUI is never blocked. Polling is
-driven by a QTimer running inside the worker's event loop — crucially, NOT
-a `while/sleep` loop, which would block the event loop and prevent
-cross-thread slot invocations (Play/Pause/Next/Previous from the tray) from
-being delivered.
-"""
+Polling runs on a QTimer, not a sleep loop, so queued slot calls from the tray still arrive."""
 
 from __future__ import annotations
 
@@ -20,7 +15,7 @@ import urllib.parse
 
 from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Slot
 
-from refrain.config import Config
+from refrain.config import AdvancedConfig, Config
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_rpc import DiscordRPC
 from refrain.history import HistorySnapshot, PlayHistory
@@ -61,8 +56,8 @@ def button_url(link: str) -> str:
     """``link`` as Discord accepts it in a button, or "" when it can't be.
 
     Plasma reports the tab's address decoded — "search?term=KYANU Fcuk up
-    the Club", spaces and all — and Discord refused the whole activity
-    over it, not just the button, so nothing showed at all.
+    the Club", spaces and all — and Discord refuses the whole activity
+    over it, not just the button.
     """
     link = urllib.parse.quote(link.strip(), safe=":/?#[]@!$&'()*+,;=%~")
     parts = urllib.parse.urlsplit(link)
@@ -81,8 +76,7 @@ def scrobble_duration_ms(
     than an honest blank. Last.fm can't work that way — its rules are
     written in terms of length (a 30-second floor, then half the track
     or four minutes, whichever comes first), so withholding it doesn't
-    mean "we're not sure", it means the play never counts. Users lost
-    scrobbles to a disagreement they never saw.
+    mean "we're not sure", it means the play never counts.
 
     So a disputed length falls back to a candidate, and among those that
     clear Last.fm's 30-second floor it takes the shorter — which is the
@@ -96,7 +90,7 @@ def scrobble_duration_ms(
     Apple Music reports a 14-second preview-clip length for a few polls
     on a full-length song, and simply taking the smaller number there
     would hand the scrobbler a length below the floor — losing the play
-    exactly the way the disputed zero used to.
+    just as a zero length would.
     """
     if not disputed:
         return effective_ms
@@ -136,17 +130,12 @@ def compute_idle_state(
     dangling handle cannot do that — the tab is gone and nothing is
     advancing — so a moving position is proof the deadline should not be
     running yet, and it pushes the anchor forward. This is what keeps a
-    wrong duration from clearing a track mid-play: a catalog search that
-    returned 58 s for a 2:45 song used to hand idle detection an
-    88-second deadline, and the status vanished a minute into the song
-    while it was audibly still playing.
+    wrong duration (a catalog match of 58 s for a 2:45 song) from
+    clearing a track mid-play.
 
     Logs the detection exactly once per dangling-track instance: the
     returned ``new_key`` is prefixed with a sentinel so subsequent
-    polls of the same stuck track skip the log line. Without that
-    suppression, every poll tick re-logged the idle state and drowned
-    the live log in identical messages while the user was looking at
-    a stuck Apple Music tab.
+    polls of the same stuck track skip the log line.
     """
     if grace_s <= 0:
         return track, "", 0.0
@@ -191,15 +180,11 @@ def select_source_track(
     """Pick which source's reading drives this tick.
 
     A source is a *candidate* when it has a track or is in a
-    PLAYING / PAUSED state. Among candidates, an actively **PLAYING**
-    source always outranks a merely paused / loaded one.
-
-    Why this matters: with a static "MPRIS before Bluetooth" order, a
-    stale *paused* Apple Music tab in the browser (``has_track=True``,
-    ``PAUSED``) permanently masked music actively playing over
-    Bluetooth headphones — and idle detection only fires on PLAYING,
-    so the paused tab never got cleared either. Ranking PLAYING first
-    fixes both.
+    PLAYING / PAUSED state. Among candidates, an actively PLAYING
+    source always outranks a merely paused / loaded one: with a static
+    "MPRIS before Bluetooth" order, a stale *paused* Apple Music tab
+    would mask music playing over Bluetooth, and idle detection only
+    fires on PLAYING, so the tab would never clear either.
 
     When neither source is playing (both paused / loaded), MPRIS keeps
     priority so the active source doesn't flip-flop between two idle
@@ -230,7 +215,7 @@ def select_source_track(
 def _format_album_for_display(album: str, artist: str, title: str) -> str:
     """Strip artist / title cruft from an album name for Discord's bottom
     line. MPRIS album fields sometimes embed the artist as a prefix
-    (`"W&W & Scooter - Sun Rise"`) or repeat the title verbatim; without
+    (`"Wren & Ash - Salt Flats"`) or repeat the title verbatim; without
     this the third RPC line just echoes what's already shown above.
     """
     if not album:
@@ -288,7 +273,8 @@ def build_notify_argv(
         argv.extend(["--replace-id", str(replace_id)])
     if print_id:
         argv.append("--print-id")
-    argv.extend([title, body or ""])
+    # "--" ends option parsing: a song title may start with a dash.
+    argv.extend(["--", title, body or ""])
     return argv
 
 
@@ -327,7 +313,7 @@ class DaemonWorker(QObject):
         # applies.
         self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
         self._rpc_active_client_id: str = config.discord.client_id
-        self._cover_fetcher = CoverFetcher(max_cached_covers=config.advanced.cover_cache_size)
+        self._cover_fetcher = CoverFetcher()
         # Last.fm scrobbling — opt-in, alongside (never replacing) the
         # Discord RPC. Constructed always; inert until the user enables
         # it + connects an account. All network work runs on its own
@@ -336,6 +322,8 @@ class DaemonWorker(QObject):
         # main thread, so the window has its first snapshot before the
         # daemon thread starts; from then on only the worker touches it.
         self._history = PlayHistory(config.history)
+        # Also clears out cover images an older version kept by count.
+        self._keep_history_covers(self._history.snapshot())
         # Lengths measured from whole plays, for songs the catalog has none
         # for — see refrain.song_lengths.
         self._song_lengths = LearnedLengths()
@@ -347,6 +335,7 @@ class DaemonWorker(QObject):
         self._history_error_logged = False
         self._scrobbler = Scrobbler(config.lastfm, on_queued=self._on_scrobble_queued)
         self._timer: QTimer | None = None
+        self._stopped = False
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
         self._notify_retry_count = 0
@@ -374,6 +363,7 @@ class DaemonWorker(QObject):
         # `refrain` brand fallback for ~1-3 s while iTunes search
         # resolves. Capped so we don't block forever on iTunes misses.
         self._rpc_cover_wait_count = 0
+        self._rpc_cover_wait_key = ""
         # Idle detection: when the same track-content key has been
         # reported as "playing" for longer than its own duration + a
         # grace window, the source is dangling (typical: browser tab
@@ -418,9 +408,8 @@ class DaemonWorker(QObject):
         """Called on the worker thread once the QThread's event loop is up."""
         log.info("Daemon started")
         # Pure-polling design (default 500 ms; user-configurable via
-        # advanced.poll_interval_ms, floored at 250 ms). A signal-driven
-        # path via QDBusConnection was prototyped but PySide6's
-        # connect-signature handling proved too brittle to ship.
+        # advanced.poll_interval_ms, floored at 250 ms). Not signal-driven:
+        # PySide6's QDBusConnection connect-signature handling is too brittle.
         self._timer = QTimer()
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
@@ -433,6 +422,9 @@ class DaemonWorker(QObject):
     @Slot()
     def cleanup(self) -> None:
         """Called from the main thread via BlockingQueuedConnection during stop."""
+        # A single-shot poll queued by update_config or a control can still
+        # be pending, and must not reconnect Discord after the clear below.
+        self._stopped = True
         if self._timer is not None:
             self._timer.stop()
             self._timer = None
@@ -464,8 +456,8 @@ class DaemonWorker(QObject):
         old_default = self._config.discord.client_id
         old_mpris = self._config.discord.client_id_mpris
         old_bt = self._config.discord.client_id_bluetooth
+        old_all_clients = self._config.discord.all_clients
         old_interval = self._config.advanced.poll_interval_ms
-        old_cover_cache = self._config.advanced.cover_cache_size
         self._config = config
         self._bluetooth.set_device(config.sources.bluetooth_device)
         self._mpris.set_browser_hints(config.sources.browser_hints_list())
@@ -477,8 +469,9 @@ class DaemonWorker(QObject):
             config.discord.client_id != old_default
             or config.discord.client_id_mpris != old_mpris
             or config.discord.client_id_bluetooth != old_bt
+            or config.discord.all_clients != old_all_clients
         ):
-            log.info("Discord client_id config changed, reconnecting RPC")
+            log.info("Discord settings changed, reconnecting RPC")
             with contextlib.suppress(Exception):
                 self._rpc.close()
             self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
@@ -496,13 +489,6 @@ class DaemonWorker(QObject):
             QTimer.singleShot(0, self._tick)
         if self._timer is not None and config.advanced.poll_interval_ms != old_interval:
             self._timer.setInterval(max(config.advanced.poll_interval_ms, 250))
-        if config.advanced.cover_cache_size != old_cover_cache:
-            # Re-prune to the new cap immediately so the user sees their
-            # quota take effect without waiting for the next refrain
-            # restart. Existing in-memory cache stays intact.
-            from refrain.cover_fetcher import _prune_cover_cache
-
-            _prune_cover_cache(config.advanced.cover_cache_size)
         # Last.fm: pick up enable/disable, new credentials, or a freshly
         # connected session without a process restart (unlike the
         # Discord client_id, the Scrobbler rebinds cleanly in place).
@@ -530,7 +516,17 @@ class DaemonWorker(QObject):
             self._emit_history()
 
     def _emit_history(self) -> None:
-        self.historyChanged.emit(self._history.snapshot())
+        snapshot = self._history.snapshot()
+        # Before the window hears of it, so it finds the thumbnails.
+        self._keep_history_covers(snapshot)
+        self.historyChanged.emit(snapshot)
+
+    def _keep_history_covers(self, snapshot: HistorySnapshot) -> None:
+        """Cover images stay on disk only for the songs in the history."""
+        try:
+            self._cover_fetcher.keep_covers(e.cover_url for e in snapshot.entries)
+        except Exception:
+            log.exception("Could not sync the cover images with the history")
 
     def _on_scrobble_queued(self, artist: str, title: str) -> None:
         # Called by the Scrobbler on this thread, with its lock held.
@@ -585,7 +581,7 @@ class DaemonWorker(QObject):
         log.debug("control %s → active=%s", action, active)
 
         def _try(src, label: str) -> bool:
-            # Belt-and-braces: a bare `getattr(src, action)()` would
+            # A bare `getattr(src, action)()` would
             # raise on bus disconnect / typo, killing the whole
             # _control before the follow-up polls fire. Each source
             # already swallows its own dbus errors, but reflection
@@ -631,6 +627,8 @@ class DaemonWorker(QObject):
     # -------------------------------------------------------------------- core
 
     def _tick(self) -> None:
+        if self._stopped:
+            return
         try:
             track = self._poll()
             self._dispatch(track)
@@ -650,7 +648,7 @@ class DaemonWorker(QObject):
         # system-bus round-trip in the common "music playing in the
         # browser" case. We only pay for the Bluetooth read when MPRIS
         # is paused / loaded / absent — exactly the case where a stale
-        # paused tab used to mask an actively-playing BT source.
+        # paused tab could mask an actively-playing BT source.
         if mpris_t is not None and mpris_t.status == PlaybackStatus.PLAYING:
             bt_t = None
         else:
@@ -674,7 +672,9 @@ class DaemonWorker(QObject):
             track.artist, track.title, track.album
         )
 
-    def _duration_for(self, track: TrackInfo) -> tuple[int, bool]:
+    def _duration_for(
+        self, track: TrackInfo, state: PositionState | None = None
+    ) -> tuple[int, bool]:
         """The track length every consumer should use, and whether it's disputed.
 
         Two parties can answer, and either can be wrong. The player's
@@ -694,17 +694,18 @@ class DaemonWorker(QObject):
 
         Returns ``(effective_ms, disputed)``.
         """
+        state = state or self._position_state
         itunes_dur_ms = self._known_duration_ms(track)
         mpris_dur_ms = track.duration_ms
-        if self._position_state.cumulative:
-            # Measured live: this length grew by 135 s over 144 s of
-            # playback on one unchanging track. Better no total at all
+        if state.cumulative:
+            # Such a length can grow by 135 s over 144 s of playback on
+            # one unchanging track. Better no total at all
             # than a 6:52 one on a 2:24 song.
             return itunes_dur_ms, False
         if (
             mpris_dur_ms > 0
             and itunes_dur_ms > 0
-            and not self._position_state.track_relative
+            and not state.track_relative
             # A clip or a buffered segment is no rival length: the catalog
             # is the song's, as pick_effective_duration_ms decides below.
             and not mpris_dur_ms < CLIP_MAX_MS <= itunes_dur_ms
@@ -712,9 +713,6 @@ class DaemonWorker(QObject):
         ):
             return 0, True
         return pick_effective_duration_ms(mpris_dur_ms, itunes_dur_ms), False
-
-    def _effective_duration_ms(self, track: TrackInfo) -> int:
-        return self._duration_for(track)[0]
 
     def _measure_previous_song(self, now: float) -> None:
         """Note how long the song that just ended ran, if that is its length.
@@ -746,7 +744,8 @@ class DaemonWorker(QObject):
 
     def _follow_reported_position(self, track: TrackInfo, state: PositionState) -> None:
         """A measured length the player plays past was measured short."""
-        if not track.has_track or state.cumulative:
+        if not track.has_track or state.cumulative or track.loop_track:
+            # On repeat-one some players keep counting across the loops.
             return
         if 0 < track.duration_ms < CLIP_MAX_MS:
             return  # a media segment's position, not the song's
@@ -776,22 +775,34 @@ class DaemonWorker(QObject):
         track_key = (
             f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
         )
-        duration_ms, disputed = self._duration_for(track)
         now = time.monotonic()
         if track_key != self._position_state.track_key:
             self._measure_previous_song(now)
-        position_ms, tier, new_state = resolve_position(
-            self._position_state,
-            track_key,
-            track.position_ms,
-            duration_ms,
-            track.status == PlaybackStatus.PLAYING,
-            now,
-            reported_length_ms=track.duration_ms,
-            duration_disputed=disputed,
-            stall_after_s=float(self._config.advanced.position_stall_s),
-            loop_track=track.loop_track,
-        )
+
+        def resolve(length: tuple[int, bool]):
+            return resolve_position(
+                self._position_state,
+                track_key,
+                track.position_ms,
+                length[0],
+                track.status == PlaybackStatus.PLAYING,
+                now,
+                reported_length_ms=track.duration_ms,
+                duration_disputed=length[1],
+                stall_after_s=float(self._config.advanced.position_stall_s),
+                loop_track=track.loop_track,
+            )
+
+        length = self._duration_for(track)
+        position_ms, tier, new_state = resolve(length)
+        # This poll can itself reveal what the source's length describes
+        # (a length that moves latches it as a stream). Judge the position
+        # against the length the rest of the tick will use.
+        settled = self._duration_for(track, new_state)
+        if settled != length:
+            length = settled
+            position_ms, tier, new_state = resolve(length)
+        duration_ms, disputed = length
         self._track_restarted = (
             new_state.track_key == self._position_state.track_key
             and new_state.restarts > self._position_state.restarts
@@ -809,7 +820,7 @@ class DaemonWorker(QObject):
         self._position_known = position_ms is not None
         # Log the tier transitions only — a degraded source stays
         # degraded for hundreds of polls, and per-tick logging would
-        # drown the live log the way un-suppressed idle detection did.
+        # drown the live log.
         if tier != self._position_tier and track.has_track:
             log.debug(
                 "Position inputs: reported=%s length=%s duration=%s disputed=%s playing=%s "
@@ -847,16 +858,21 @@ class DaemonWorker(QObject):
         # When MPRIS reports a wonky value (preview-clip 14 s, playlist
         # total 7:21 on a 2:11 song), the iTunes-catalog duration we
         # already cached for cover-art lookup is closer to truth.
-        effective_dur_ms = self._effective_duration_ms(track)
+        effective_dur_ms, disputed = self._duration_for(track)
+        if disputed:
+            # No length to show, but the deadline only needs an upper bound:
+            # the longer candidate never clears a real play early.
+            effective_dur_ms = max(track.duration_ms, self._known_duration_ms(track))
         now = time.monotonic()
         # The source's position moving is proof the handle isn't
-        # dangling, whatever the duration says — the same freshness the
-        # position resolver goes by, asked through the same function so
-        # the two can't drift apart on what `position_stall_s = 0` means.
+        # dangling, whatever the duration says. `position_stall_s = 0`
+        # switches off the resolver's freshness check, not idle detection,
+        # so the movement window then falls back to the default.
+        stall_s = self._config.advanced.position_stall_s
         source_alive = source_position_is_fresh(
             self._position_state.moved_at,
             now,
-            float(self._config.advanced.position_stall_s),
+            float(stall_s if stall_s > 0 else AdvancedConfig.position_stall_s),
         )
         result, new_key, new_seen = compute_idle_state(
             track,
@@ -883,6 +899,7 @@ class DaemonWorker(QObject):
             )
             self.trackChanged.emit(track)
             self._last_track_fp = fp
+            self._drop_old_temp_covers(track)
             if (
                 self._config.behavior.notifications
                 and track.has_track
@@ -981,11 +998,23 @@ class DaemonWorker(QObject):
             )
 
         # Surface RPC connect/disconnect transitions so the tray can show
-        # an at-a-glance "● Discord connected" indicator.
+        # a "● Discord connected" indicator.
         rpc_connected = self._rpc.is_connected()
         if rpc_connected != self._last_rpc_connected:
             self.discordConnectionChanged.emit(rpc_connected)
             self._last_rpc_connected = rpc_connected
+
+    def _drop_old_temp_covers(self, track: TrackInfo) -> None:
+        """The previous song's notification is done with its image.
+
+        A song in the history has its own copy in the cover cache."""
+        try:
+            if track.has_track and self._config.behavior.cover_art:
+                self._cover_fetcher.drop_temp_covers(track.artist, track.title, track.album)
+            else:
+                self._cover_fetcher.drop_temp_covers()
+        except Exception:
+            log.exception("Could not delete the temporary cover images")
 
     # Up to 2 seconds of additional wait time, polled every 250 ms, in case
     # the cover image is still downloading when the initial notify-delay
@@ -1146,28 +1175,21 @@ class DaemonWorker(QObject):
         track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
         is_new_track = track_key != self._rpc_track_key
 
-        # Defer the first RPC update for a new track until the cover URL
-        # is in cache — without this, Discord briefly shows the `refrain`
-        # brand fallback for ~1-3 s while iTunes search resolves, then
-        # flips to the real cover. Capped at ~3 polls (~3 s) so a song
-        # that has no iTunes match still updates eventually.
+        # Hold a new song back for up to 3 polls until its cover is cached,
+        # so Discord doesn't flash the Refrain logo before the cover lands.
         cover_url: str | None = None
         if self._config.behavior.cover_art:
             cover_url = self._cover_fetcher.get(track.artist, track.title, track.album)
+        if self._rpc_cover_wait_key != track_key:
+            # A song skipped while it waited must not use up the next one's wait.
+            self._rpc_cover_wait_key = track_key
+            self._rpc_cover_wait_count = 0
         if (
             is_new_track
             and self._config.behavior.cover_art
             and cover_url is None
             and self._rpc_cover_wait_count < 3
         ):
-            # Defer up to 3 polls (~1.5 s at 500 ms) so iTunes search
-            # has time to land before we push the activity. Without
-            # this, Discord briefly shows the `refrain` brand fallback
-            # in the large-image slot for the first ~500 ms-1 s of a
-            # new track, then flips to the cover when iTunes returns
-            # — visible flicker on every track change. The 3-poll cap
-            # bounds the worst case: a song with no iTunes match
-            # still updates after 1.5 s with the brand fallback.
             self._rpc_cover_wait_count += 1
             return
         self._rpc_cover_wait_count = 0
@@ -1248,7 +1270,7 @@ class DaemonWorker(QObject):
             "state": state[:128],
             "large_image": large_image,
         }
-        # Note: Discord's LISTENING activity type intentionally does
+        # Discord's LISTENING activity type intentionally does
         # NOT render `small_image` — only PLAYING / WATCHING activities
         # show a small-icon overlay. We keep activity_type=LISTENING
         # (from DiscordRPC.update) so the status reads "Listening to
@@ -1274,9 +1296,8 @@ class DaemonWorker(QObject):
             if link:
                 payload["buttons"] = [{"label": "Listen on Apple Music", "url": link}]
 
-        # The timing pair is what both the "Discord shows no progress bar"
-        # and the "bar is already in the past" reports come down to, and
-        # it is assembled from four different sources. Logged whenever it
+        # The timing pair decides Discord's progress bar, and it is
+        # assembled from four different sources. Logged whenever it
         # changes — every poll would be twice a second of identical
         # lines, since a stable track deliberately keeps the same pair.
         timing = (payload.get("start"), payload.get("end"), self._position_tier)
@@ -1380,6 +1401,10 @@ class Daemon:
         self.thread.start()
 
     def stop(self) -> None:
+        # A blocking call into a thread that has already quit never returns,
+        # and uninstall stops the daemon before the normal exit does.
+        if not self.thread.isRunning():
+            return
         # Run cleanup on the worker thread synchronously (BlockingQueued) so
         # the timer is stopped and Discord status is cleared *before* we tear
         # down the thread itself.

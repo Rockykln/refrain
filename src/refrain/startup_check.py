@@ -1,20 +1,6 @@
-"""One-shot credential check at startup.
+"""One-shot Discord and Last.fm credential check shortly after startup, off the UI thread.
 
-Both credentials used to fail silently and late. A Discord Application ID
-that is malformed or belongs to a deleted app only announced itself the
-first time the daemon had something to publish, and a Last.fm session key
-that had been revoked only surfaced at the first scrobble — which can be
-an hour in. Until then the UI happily claimed to be connected.
-
-This runs the two checks once, shortly after startup, off the UI thread,
-and reports the outcome through one signal. Every line it logs carries a
-``[startup-check]`` marker so the result is greppable in ``refrain.log``:
-
-    grep '\\[startup-check\\]' ~/.local/state/refrain/refrain.log
-
-Nothing here blocks startup, and nothing here is fatal: a failed check is
-information for the user, not a reason to stop.
-"""
+Log lines carry a ``[startup-check]`` marker; a failed check is reported, never fatal."""
 
 from __future__ import annotations
 

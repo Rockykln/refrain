@@ -1,10 +1,5 @@
-"""Full-uninstall core: collect_paths / removal_command / purge + CLI.
-
-STRICTLY HERMETIC. The desktop/icon paths use ``Path.home()`` (not
-XDG-redirectable), so every test monkeypatches the two home-path
-helpers into the tmp tree — a non-hermetic run here would delete the
-developer's real menu entry (it did, once; never again).
-"""
+"""Full uninstall: collect_paths / removal_command / purge + CLI.
+The home-based desktop/icon paths are patched into tmp, or a run deletes the real menu entry."""
 
 from __future__ import annotations
 

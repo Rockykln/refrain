@@ -9,6 +9,13 @@ lists every version and why.
 
 ## [Unreleased]
 
+### Added
+
+- **Six more languages:** Dutch, Swedish, Czech, Turkish, Ukrainian and
+  Korean. Every existing translation was checked line by line as well —
+  French now says "vous" throughout, Portuguese sticks to one variant, and
+  texts quoting what Discord shows keep Discord's English wording.
+
 ### Changed
 
 - **Connecting to Last.fm waits for your approval.** After *Connect…*
@@ -23,8 +30,26 @@ lists every version and why.
   the distro's dbus-python and PyGObject, which also brings Plasma's
   media controls to pip installs.
 - **Disconnecting from Last.fm asks first**, and *Apply* warns when
-  scrobbling is switched on without a working connection — which used
-  to scrobble nothing, silently.
+  scrobbling is switched on without a working connection, which would
+  scrobble nothing.
+
+- **Settings apply straight away.** A new poll interval, a fresh Last.fm
+  connection or sending to every Discord client only took effect after a
+  restart, because the running parts never saw that anything changed.
+- **Cover images are only kept for songs in *Recently played*.** Others
+  are downloaded for the notification and dropped again, and turning the
+  history off removes them all. The cover cache size setting is gone.
+- **The in-app AppImage update checks what it downloads**: it only takes
+  files from this project's GitHub releases over HTTPS, for your machine's
+  architecture, of the announced size and — from this release on — with
+  a matching checksum.
+- **The AppImage is a third of its old size** and ships the licence texts
+  of everything it bundles. Qt modules only available under the GPL are
+  no longer included.
+- **The log file and the cover cache are readable by you only.**
+- **The licence** now words its liability terms to hold under German law,
+  lets contributors keep authorship while granting the use of their
+  work, and allows forks that only prepare a pull request.
 
 ### Fixed
 
@@ -78,6 +103,44 @@ lists every version and why.
   read a version like `0.5.3.dev0` as no version at all, so nothing was
   ever newer than it. A pre-release now sorts before the release of the
   same number, and after every earlier one.
+- **Uninstalling from the settings hung** instead of quitting.
+- **Cancel did not undo the settings form**, so the next *Apply* saved
+  what had been cancelled — also after *Reset*.
+- **Looking up the Discord application's name could freeze or crash the
+  settings window** when Discord was slow to answer.
+- **A single typo in `config.toml` cost every setting.** The file was
+  replaced by defaults on the next save; it is now kept as
+  `config.toml.broken`. Values with control characters broke the file too.
+- **Some Last.fm errors threw away the whole offline queue.** A key or
+  server problem now leaves queued scrobbles in place; only tracks
+  Last.fm rejects themselves are dropped.
+- **One short play could wipe a learned song length**, and a phone
+  repeating one song made Refrain forget it.
+- **After Discord restarted mid-song, the status stayed empty** until the
+  next song.
+- **A moment without a song ended the one playing** in *Recently
+  played*, losing its progress and bringing back a song you had removed.
+- **A saved Bluetooth device that was not connected turned into
+  auto-detect** on *Apply*. Listing devices no longer freezes the
+  settings window, and a Bluetooth connection that dropped is opened
+  again instead of staying silent.
+- **HTTPS failed in the AppImage** outside Ubuntu — no covers, no update
+  check. It now uses your system's certificates.
+- **Esc during an update download did not cancel it.** *Last checked*
+  now updates, the live log's level filter applies to lines already
+  shown, and *Privacy → Off* stops the Discord name lookup before *Apply*.
+- **Clicking *Check for updates* while the check at startup was still
+  running gave no answer at all.**
+- **Installs made with `pip install --user` were taken for distro
+  packages** and got no in-app update.
+- **A second start could delete a running AppImage download**, and a
+  hand-edited log level could stop Refrain from starting.
+- **A new song could briefly show the Refrain logo in Discord** after a
+  skip while the previous song was still waiting for its cover.
+- **A song title starting with a dash** could be read as an option by
+  `notify-send`.
+- **The Flatpak manifest could not be built**, and inside the Flatpak the
+  MPRIS entry and desktop file name did not match the app.
 
 ## [0.5.2] - 2026-09-18
 
@@ -810,7 +873,7 @@ spam the log with unexpected-exception tracebacks.
   so it visually matches the theme icons' pixel weight.
 - **Song-info rows in the tray menu now render with proper icons
   and full-strength text colour.** Title / Artist / Progress /
-  Discord-status used to be `setEnabled(False)` so KDE's DBusMenu
+  Discord-status were `setEnabled(False)` so KDE's DBusMenu
   rendered them muted-grey + indented + iconless next to the white
   action labels below. They're now enabled (a stray click opens
   Settings — their natural "tell me more" target) and carry
@@ -1263,7 +1326,7 @@ a handful of long-standing rough edges.
   early-exit gets a `log.error()`; `os.execvp`-based restarts call
   `logging.shutdown()` first so the file handler's last buffered
   line isn't lost; `Config.load` exception path adds `exc_info=True`;
-  `setup_logging` degrades gracefully when the XDG state dir or log
+  `setup_logging` keeps going when the XDG state dir or log
   file can't be opened (console handler always attaches first).
 - **Catch-all exception branches in `DiscordRPC._ensure_connected`,
   `MPRISSource._call_method_on`, and `BluetoothSource._call_method`**
@@ -1294,7 +1357,7 @@ of reliability + UX work driven by live-testing the v0.2.1 build.
   notifications, …) drive the same Play/Pause/Next/Previous as the
   tray, and render the same track Discord renders. Implemented with
   `dbus-python` + a daemon GLib main loop running in its own thread
-  so it doesn't compete with Qt's event loop. Falls back gracefully
+  so it doesn't compete with Qt's event loop. Falls back
   when PyGObject isn't installed.
 - **iTunes track duration in the cover-fetcher cache** —
   `trackTimeMillis` from the iTunes Search API rides along with

@@ -1,9 +1,4 @@
-"""Album-name cleanup for the third Discord RPC line.
-
-The MPRIS metadata sometimes embeds the artist into the album name
-('W&W & Scooter - Sun Rise') or duplicates the title; without filtering
-the third line just echoes what's already on line 2.
-"""
+"""Album-name cleanup for the third Discord line: no artist or title echoed from line 2."""
 
 from __future__ import annotations
 
@@ -13,9 +8,9 @@ from refrain.daemon import _format_album_for_display
 def test_strips_artist_prefix_with_dash():
     assert (
         _format_album_for_display(
-            "W&W & Scooter - Sun Rise", "W&W & Scooter", "Sun Rise (Dauner Remix)"
+            "Wren & Ash - Salt Flats", "Wren & Ash", "Salt Flats (Harbor Remix)"
         )
-        == "Sun Rise"
+        == "Salt Flats"
     )
 
 

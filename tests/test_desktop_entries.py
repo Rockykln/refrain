@@ -58,3 +58,14 @@ def test_desktop_file_validate_accepts_it(name, tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "error" not in result.stdout + result.stderr
+
+
+def test_an_installed_entry_keeps_backslashes_in_its_exec_line(tmp_path, monkeypatch):
+    import refrain.app as app
+
+    monkeypatch.setattr(app, "_user_apps_dir", lambda: tmp_path / "apps")
+    monkeypatch.setattr(app, "_user_icons_dir", lambda: tmp_path / "icons")
+    monkeypatch.setattr(app, "resolve_exec_line", lambda: '"/opt/my\\\\\\\\apps/refrain"')
+    assert app.install_desktop_files() == 0
+    text = (tmp_path / "apps" / "refrain.desktop").read_text(encoding="utf-8")
+    assert 'Exec="/opt/my\\\\\\\\apps/refrain"' in text

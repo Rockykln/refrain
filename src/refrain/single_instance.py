@@ -1,10 +1,6 @@
-"""Single-instance lock via D-Bus name acquisition.
+"""Single-instance lock via a well-known name on the D-Bus session bus.
 
-More idiomatic than a /tmp/.lock file: we claim a well-known bus name on
-the session bus. If another Refrain instance already owns it, we bail.
-The returned bus reference must be kept alive for the duration of the
-process so that the name does not get released.
-"""
+The returned bus must stay referenced for the process lifetime, or the name is released."""
 
 from __future__ import annotations
 

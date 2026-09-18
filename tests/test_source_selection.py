@@ -1,10 +1,5 @@
-"""Source selection: an actively-playing source beats a paused one.
-
-Regression guard for the bug where a stale *paused* Apple Music tab in
-the browser (has_track=True, PAUSED) permanently masked music actively
-playing over Bluetooth headphones — idle detection only fires on
-PLAYING, so the paused tab never got cleared either.
-"""
+"""Source selection: an actively playing source beats a paused one.
+Idle detection only fires on PLAYING, so a paused tab would never clear itself."""
 
 from __future__ import annotations
 

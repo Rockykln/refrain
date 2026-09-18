@@ -1,11 +1,5 @@
-"""Plasma's Play / Pause / Stop reach a source that only has a toggle.
-
-Each may toggle only when that gets it where it asks to go — a blind
-toggle made Plasma's "Stop" start the music whenever it was paused.
-
-Named to be collected before test_mpris_dispatch.py, which swaps the
-``dbus`` module for a mock for the rest of the session.
-"""
+"""Plasma's Play / Pause / Stop only toggle a source when that reaches the asked state.
+Named to be collected before test_mpris_dispatch.py, which mocks ``dbus`` for the session."""
 
 from __future__ import annotations
 
@@ -31,7 +25,7 @@ def _server(status: PlaybackStatus):
 @pytest.mark.parametrize(
     "method,status,toggled",
     [
-        ("Stop", PlaybackStatus.PAUSED, False),  # the reported bug
+        ("Stop", PlaybackStatus.PAUSED, False),  # Stop must not start the music
         ("Stop", PlaybackStatus.PLAYING, True),
         ("Pause", PlaybackStatus.PAUSED, False),
         ("Pause", PlaybackStatus.PLAYING, True),
@@ -49,10 +43,15 @@ def test_toggle_only_towards_the_asked_state(method, status, toggled):
 
 
 def test_a_title_beyond_ascii_still_makes_a_valid_track_id():
-    """Measured: "Wer weiß das schon" failed every read of Metadata."""
+    """Non-ASCII titles like "Wer weiß das schon" still give a readable Metadata."""
     from refrain.sources.mpris_server import _track_id
 
-    for title in ("Wer weiß das schon", "Königin", "f**k dich (feat. dateツ & flippin'dope)", ""):
+    for title in (
+        "Silk Road Radio",
+        "Hanabi Afterglow (花火)",
+        "Late Train Home (feat. Sora Minamiツ & Kite Theory's Band)",
+        "",
+    ):
         path = _track_id(TrackInfo(source="mpris", title=title))
         assert path.startswith("/refrain/track/")
 
@@ -67,13 +66,15 @@ def _published(**kw):
 
 
 def test_the_metadata_carries_the_song():
-    server = _published(title="Königin", artist="Völkerball", album="Album", position_ms=61_500)
+    server = _published(
+        title="Hanabi Afterglow (花火)", artist="Sora Minami", album="Album", position_ms=61_500
+    )
     server._cover_url = "https://example.org/cover.jpg"
     server._effective_duration_ms = 197_873
     props = server.GetAll("org.mpris.MediaPlayer2.Player")
     md = props["Metadata"]
-    assert md["xesam:title"] == "Königin"
-    assert list(md["xesam:artist"]) == ["Völkerball"]
+    assert md["xesam:title"] == "Hanabi Afterglow (花火)"
+    assert list(md["xesam:artist"]) == ["Sora Minami"]
     assert md["mpris:length"] == 197_873_000, "microseconds, as the spec wants"
     assert md["mpris:artUrl"] == "https://example.org/cover.jpg"
     assert props["Position"] == 61_500_000
@@ -95,6 +96,12 @@ def test_an_unknown_property_is_an_error():
 def test_the_player_names_itself_refrain():
     root = _published(title="T").GetAll("org.mpris.MediaPlayer2")
     assert (root["Identity"], root["DesktopEntry"]) == ("Refrain", "refrain")
+
+
+def test_inside_the_flatpak_the_desktop_entry_is_the_app_id(monkeypatch):
+    monkeypatch.setenv("FLATPAK_ID", "io.github.Rockykln.Refrain")
+    root = _published(title="T").GetAll("org.mpris.MediaPlayer2")
+    assert root["DesktopEntry"] == "io.github.Rockykln.Refrain"
 
 
 def test_a_length_arriving_late_reaches_the_panel():

@@ -1,10 +1,5 @@
-"""Discord IPC client wrapper.
-
-Wraps `pypresence.Presence` with:
-- exponential backoff on connection failures (no busy-loop)
-- silent no-op when Discord isn't running
-- automatic reconnect on update errors
-"""
+"""Discord IPC client around `pypresence.Presence`: backoff on connection failures,
+silent no-op when Discord isn't running, reconnect on update errors."""
 
 from __future__ import annotations
 
@@ -103,6 +98,9 @@ _IPC_PROBE_TIMEOUT_S = 0.5
 # up to 15 s and is about a client we could not reach, not about noticing
 # a new one.
 _IPC_RESCAN_INTERVAL_S = 5.0
+# An unchanged status is still sent this often. Writing is the only way to
+# notice that Discord restarted and the pipe is dead.
+_RESEND_S = 30.0
 
 
 def _runtime_dir() -> Path | None:
@@ -122,9 +120,8 @@ def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
     touch raises ConnectionRefusedError straight out of the scan and the
     live socket behind it is never tried. The order comes from
     ``os.scandir``, i.e. the filesystem, so whether a connect succeeds is
-    luck. That is the "Discord was already running but Refrain didn't
-    connect" report: a ``discord-ipc-N`` left behind by a previous
-    Discord session shadows the running one. Several clients at once
+    luck, and a ``discord-ipc-N`` left behind by a previous Discord
+    session shadows the running one. Several clients at once
     (Discord plus Vencord/Vesktop) make it likelier still, because there
     are simply more sockets to trip over.
     """
@@ -173,6 +170,8 @@ class DiscordRPC:
         # on a drift-resync), so most ticks would otherwise be
         # entirely redundant.
         self._last_payload: dict | None = None
+        self._last_sent_mono = 0.0
+        self._cleared = False
         # Remembered so a changing client line-up is logged once, not per tick.
         self._last_live_pipes: list[int] = []
         # Why we are not connected, for the startup check and the tray.
@@ -198,9 +197,8 @@ class DiscordRPC:
     def _presence(self) -> Presence | None:
         """The primary connection.
 
-        Kept as a property so the single-connection call sites (and the
-        tests that inject a fake) keep working now that several
-        connections can be open at once.
+        A property for the single-connection call sites and the tests
+        that inject a fake.
         """
         return next(iter(self._presences.values()), None)
 
@@ -225,8 +223,8 @@ class DiscordRPC:
         if time.monotonic() < self._next_retry_ts:
             # Still connected to whoever answered — the pending retry is
             # only about clients we have *not* reached yet. Answering
-            # False here froze the status for everyone during the backoff
-            # window, because update() bails on a False.
+            # False here would freeze the status for everyone during the
+            # backoff window, because update() bails on a False.
             return bool(self._presences)
         # Sandbox-aware socket bridging — cheap (a few stat calls when
         # the standard path already works) and handles the
@@ -267,8 +265,7 @@ class DiscordRPC:
         if not targets:
             if self._presences:
                 # Everyone visible is already served. Push the next sweep
-                # out so watching for newcomers does not run on every
-                # tick — that was a socket sweep twice a second.
+                # out so watching for newcomers does not run on every tick.
                 self._next_retry_ts = time.monotonic() + _IPC_RESCAN_INTERVAL_S
                 return True
             self._schedule_retry()
@@ -308,6 +305,7 @@ class DiscordRPC:
             # the first update on the new one (Discord would then keep
             # showing nothing until the daemon picks up a change).
             self._last_payload = None
+            self._cleared = False
             self.status = "connected"
             self.status_detail = ", ".join(
                 "auto" if t == "auto" else f"discord-ipc-{t}"
@@ -336,9 +334,7 @@ class DiscordRPC:
         # Default to Discord's "Listening" activity type so the status renders
         # as "Listening to <song>" — matching what users expect from a music
         # RPC and what Spotify / other Discord music apps show. Without this,
-        # Discord defaults to type=PLAYING ("Playing Refrain"), which looks
-        # wrong for a music status and is what made early v0.1.x feel like
-        # "Discord status missing" even though the RPC was sending data.
+        # Discord defaults to type=PLAYING ("Playing Refrain").
         payload.setdefault("activity_type", ActivityType.LISTENING)
         # Skip when the payload is byte-for-byte identical to what we
         # already pushed — Discord's rate-limit (5/20 s) drops most of
@@ -346,7 +342,7 @@ class DiscordRPC:
         # state recompute is wasted work. The cache key intentionally
         # round-trips through dict-equality so any field change (start
         # drift-resync, cover URL arrival, button URL change) re-pushes.
-        if payload == self._last_payload:
+        if payload == self._last_payload and time.monotonic() - self._last_sent_mono < _RESEND_S:
             return
         # Fan out, and judge each connection on its own: one client being
         # closed mid-song must not drop the status from the others.
@@ -364,12 +360,14 @@ class DiscordRPC:
                 self._presences.pop(target).close()
         if delivered:
             self._last_payload = dict(payload)
+            self._last_sent_mono = time.monotonic()
+            self._cleared = False
         else:
             self._last_payload = None
             self._schedule_retry()
 
     def clear(self) -> None:
-        if not self._presences:
+        if not self._presences or self._cleared:
             return
         # Whatever the user just listened to is no longer current; the
         # next update() must push (don't dedupe against a previous
@@ -382,6 +380,7 @@ class DiscordRPC:
                 log.debug("Discord RPC clear failed on %s: %s", target, e)
                 with contextlib.suppress(Exception):
                     self._presences.pop(target).close()
+        self._cleared = bool(self._presences)
         if not self._presences:
             self._schedule_retry()
 
@@ -393,6 +392,7 @@ class DiscordRPC:
                 presence.close()
         self._presences.clear()
         self._last_payload = None
+        self._cleared = False
 
     def _schedule_retry(self) -> None:
         self._next_retry_ts = time.monotonic() + self._backoff_s

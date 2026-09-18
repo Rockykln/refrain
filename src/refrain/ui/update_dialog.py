@@ -37,6 +37,8 @@ from refrain.updater import (
 
 log = logging.getLogger(__name__)
 
+_detached_runners: set[QThread] = set()
+
 
 class _UpdateRunner(QThread):
     """Runs the (potentially slow) network update on a background thread.
@@ -60,6 +62,13 @@ class _UpdateRunner(QThread):
             cancelled=self.isInterruptionRequested,
         )
         self.finished_with_result.emit(result)
+
+
+def _open_https_link(url: QUrl) -> None:
+    if url.scheme() == "https":
+        QDesktopServices.openUrl(url)
+    else:
+        log.info("Ignored non-https link in the update dialog: %s", url.toString())
 
 
 class UpdateDialog(QDialog):
@@ -89,7 +98,9 @@ class UpdateDialog(QDialog):
         layout.addWidget(notes_label)
 
         self.notes = QTextBrowser()
-        self.notes.setOpenExternalLinks(True)
+        # Release notes are remote content: only https links leave the dialog.
+        self.notes.setOpenLinks(False)
+        self.notes.anchorClicked.connect(_open_https_link)
         self.notes.setMarkdown(prepare_release_notes(release.body))
         layout.addWidget(self.notes, 1)
 
@@ -140,7 +151,7 @@ class UpdateDialog(QDialog):
 
     def _open_release_page(self) -> None:
         if self._release.html_url:
-            QDesktopServices.openUrl(QUrl(self._release.html_url))
+            _open_https_link(QUrl(self._release.html_url))
 
     # --------------------------------------------------------- handlers
 
@@ -209,14 +220,20 @@ class UpdateDialog(QDialog):
         else:
             QMessageBox.warning(self, self.tr("Update"), result.message)
 
-    def closeEvent(self, event) -> None:
-        # If the user closes the window while a download is running, treat
-        # it as a cancel: ask the runner to stop and wait briefly so the
-        # tmp file is cleaned up before we vanish. The runner's
-        # finished_with_result will not fire after we close, so we accept
-        # the close once the thread has joined.
-        if self._runner is not None and self._runner.isRunning():
+    def reject(self) -> None:
+        runner = self._runner
+        if runner is not None and runner.isRunning():
+            if self._install_type != "appimage":
+                # pip/pipx can't be interrupted; the dialog stays until it's done.
+                return
             log.info("Update dialog closed during download — cancelling")
-            self._runner.requestInterruption()
-            self._runner.wait(3000)
-        super().closeEvent(event)
+            runner.finished_with_result.disconnect(self._on_runner_finished)
+            runner.requestInterruption()
+            if not runner.wait(3000):
+                # A stalled read can outlive the dialog, and deleting a running
+                # QThread aborts the process.
+                runner.setParent(None)
+                _detached_runners.add(runner)
+                runner.finished.connect(runner.deleteLater)
+                runner.destroyed.connect(lambda: _detached_runners.discard(runner))
+        super().reject()

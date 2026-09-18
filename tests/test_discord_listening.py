@@ -1,9 +1,4 @@
-"""Discord activity_type defaults to LISTENING (not PLAYING).
-
-Without this, Discord renders the RPC payload as 'Playing Refrain' instead
-of 'Listening to <song>', which made early v0.1.x feel like the Discord
-status was missing entirely.
-"""
+"""Discord activity_type defaults to LISTENING, so the status reads 'Listening to <song>'."""
 
 from __future__ import annotations
 

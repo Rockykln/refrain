@@ -1,13 +1,10 @@
-"""DiscordRPC: payload-dedup + sandboxed-IPC bridge.
-
-The pypresence library is mocked at the import boundary so the suite
-runs without a Discord client and without a real IPC socket.
-"""
+"""DiscordRPC: payload dedup and sandboxed-IPC bridge, with pypresence mocked."""
 
 from __future__ import annotations
 
 import socket
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -23,8 +20,12 @@ def fake_pypresence(monkeypatch):
     fake_module.exceptions = MagicMock()
     monkeypatch.setitem(sys.modules, "pypresence", fake_module)
     monkeypatch.setitem(sys.modules, "pypresence.exceptions", fake_module.exceptions)
-    if "refrain.discord_rpc" in sys.modules:
-        del sys.modules["refrain.discord_rpc"]
+    # Re-imported against the fake, and put back afterwards for the tests
+    # that imported the real one.
+    import refrain
+
+    monkeypatch.delitem(sys.modules, "refrain.discord_rpc", raising=False)
+    monkeypatch.delattr(refrain, "discord_rpc", raising=False)
     yield fake_module
 
 
@@ -64,9 +65,7 @@ def test_different_payload_pushes_again(fake_pypresence):
 
 
 def test_clear_resets_dedup_cache(fake_pypresence):
-    """After a clear() the next update — even if identical to the
-    pre-clear one — must push, because clear() invalidates Discord's
-    side of the activity."""
+    """After clear() even an identical update pushes again."""
     from refrain.discord_rpc import DiscordRPC
 
     rpc = DiscordRPC("123456789012345678")
@@ -81,9 +80,43 @@ def test_clear_resets_dedup_cache(fake_pypresence):
     assert presence_mock.update.call_count == 2
 
 
+def test_an_unchanged_status_is_sent_again_after_a_while(fake_pypresence, monkeypatch):
+    """Only a write notices a Discord that restarted mid-song."""
+    import refrain.discord_rpc as discord_rpc
+
+    now = [1000.0]
+    monkeypatch.setattr(discord_rpc.time, "monotonic", lambda: now[0])
+    rpc = discord_rpc.DiscordRPC("123456789012345678")
+    rpc._presence = fake_pypresence.Presence.return_value
+    presence_mock = rpc._presence
+
+    rpc.update(details="Track A")
+    now[0] += 10
+    rpc.update(details="Track A")
+    assert presence_mock.update.call_count == 1
+    now[0] += discord_rpc._RESEND_S
+    rpc.update(details="Track A")
+    assert presence_mock.update.call_count == 2
+
+
+def test_a_paused_song_clears_once(fake_pypresence):
+    from refrain.discord_rpc import DiscordRPC
+
+    rpc = DiscordRPC("123456789012345678")
+    rpc._presence = fake_pypresence.Presence.return_value
+    presence_mock = rpc._presence
+
+    rpc.update(details="Track A")
+    for _ in range(5):
+        rpc.clear()
+    assert presence_mock.clear.call_count == 1
+    rpc.update(details="Track A")
+    rpc.clear()
+    assert presence_mock.clear.call_count == 2
+
+
 def test_update_failure_invalidates_cache(fake_pypresence):
-    """If pypresence's update raises, the cache must be cleared so the
-    next attempt (after reconnect) actually pushes."""
+    """A failed update clears the cache so the next attempt pushes."""
     from refrain.discord_rpc import DiscordRPC
 
     rpc = DiscordRPC("123456789012345678")
@@ -126,8 +159,7 @@ def test_bridge_no_op_when_standard_path_already_has_socket(tmp_path, monkeypatc
 
 
 def test_bridge_symlinks_flatpak_socket(tmp_path, monkeypatch):
-    """Standard path empty + Flatpak instance dir holds a real unix
-    socket → bridge creates a symlink at the standard path."""
+    """A Flatpak socket with an empty standard path gets a symlink there."""
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     flatpak_dir = tmp_path / "app" / "com.discordapp.Discord"
     flatpak_dir.mkdir(parents=True)
@@ -151,9 +183,7 @@ def test_bridge_symlinks_flatpak_socket(tmp_path, monkeypatch):
 
 
 def test_bridge_sweeps_stale_symlink(tmp_path, monkeypatch):
-    """A symlink left behind by a previous Refrain run whose target
-    has since been removed must be cleaned up so the next connect
-    attempt isn't pointing at nothing."""
+    """A dangling symlink from an earlier run is removed."""
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     stale_target = tmp_path / "gone" / "discord-ipc-0"
     stale_link = tmp_path / "discord-ipc-0"
@@ -171,10 +201,21 @@ def test_bridge_sweeps_stale_symlink(tmp_path, monkeypatch):
     assert not stale_link.is_symlink()
 
 
-def test_bridge_no_xdg_runtime_dir_is_safe(monkeypatch):
+def test_bridge_without_xdg_runtime_dir_links_nothing(tmp_path, monkeypatch):
     monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    snap_dir = tmp_path / "snap" / "discord" / "current" / ".config" / "discord"
+    snap_dir.mkdir(parents=True)
+    linked = []
+    monkeypatch.setattr(Path, "symlink_to", lambda self, target: linked.append(self))
+    monkeypatch.chdir(snap_dir)  # the full path is too long for a socket name
+    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        s.bind("discord-ipc-0")
 
-    from refrain.discord_rpc import _bridge_sandboxed_ipc_socket
+        from refrain.discord_rpc import _bridge_sandboxed_ipc_socket
 
-    # Must not raise.
-    _bridge_sandboxed_ipc_socket()
+        _bridge_sandboxed_ipc_socket()
+    finally:
+        s.close()
+    assert linked == []

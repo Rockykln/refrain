@@ -1,7 +1,4 @@
-"""The recently-played window shows what a snapshot says — and stays tidy.
-
-Runs against ``QT_QPA_PLATFORM=offscreen`` like the other widget tests.
-"""
+"""The recently-played window shows what a snapshot says, and stays tidy."""
 
 from __future__ import annotations
 
@@ -31,9 +28,8 @@ from refrain.ui.history_window import (  # noqa: E402
 
 @pytest.fixture(scope="module")
 def _window():
-    # One window for the module, as in test_settings_lastfm: building and
-    # tearing down a dialog per test is what made the offscreen platform
-    # SIGSEGV there. Each test starts it from an empty snapshot instead.
+    # One window for the module, as in test_settings_lastfm; each test
+    # starts it from an empty snapshot.
     app = QApplication.instance() or QApplication(sys.argv)
     # English plurals ("Last song" / "Last 12 songs") come from the
     # shipped refrain_en.qm, exactly as in the app.
@@ -154,7 +150,7 @@ def test_rows_carry_the_details_in_their_tooltip(win):
         artist="Artist",
         album="Album",
         source="bluetooth",
-        player="WH-1000XM5",
+        player="Desk Speaker",
         started_at=_at(QDate.currentDate()),
         duration_ms=225_000,
         scrobbled=True,
@@ -168,7 +164,7 @@ def test_rows_carry_the_details_in_their_tooltip(win):
         # The zone abbreviated once, after the time — not spelled out.
         f"{QLocale('en_US').toString(started.time(), QLocale.FormatType.ShortFormat)} "
         f"{started.timeZoneAbbreviation()}",
-        "Bluetooth · WH-1000XM5",
+        "Bluetooth · Desk Speaker",
         "Length: 3:45",
         "Scrobbled to Last.fm",
     ):
@@ -213,10 +209,10 @@ def _mixed(n: int) -> tuple[HistoryEntry, ...]:
         out.append(
             HistoryEntry(
                 title=f"Song {i}",
-                artist="Die Ärzte" if i == 4 else "Artist",
+                artist="Ilse Moréau" if i == 4 else "Artist",
                 album="Album",
                 source="bluetooth" if bt else "mpris",
-                player="WH-1000XM5" if bt else "Chromium",
+                player="Desk Speaker" if bt else "Chromium",
                 started_at=base - i * 240,
                 duration_ms=200_000,
             )
@@ -241,12 +237,12 @@ def test_source_filter_appears_with_a_second_source(win):
     win.set_snapshot(HistorySnapshot(entries=_mixed(12)))
     assert not win.source_filter.isHidden()
     items = [win.source_filter.itemText(i) for i in range(win.source_filter.count())]
-    assert items == ["All sources", "Apple Music Web · Chromium", "Bluetooth · WH-1000XM5"]
+    assert items == ["All sources", "Apple Music Web · Chromium", "Bluetooth · Desk Speaker"]
 
 
 def test_search_ignores_case_and_accents(win):
     win.set_snapshot(HistorySnapshot(entries=_mixed(12)))
-    win.search.setText("ARZTE song")
+    win.search.setText("MOREAU song")
     win._rebuild()
     assert _titles_shown(win) == ["Song 4"]
     assert win.count_label.text() == "1 of 12 songs"
@@ -254,7 +250,7 @@ def test_search_ignores_case_and_accents(win):
 
 def test_filter_by_source(win):
     win.set_snapshot(HistorySnapshot(entries=_mixed(12)))
-    win.source_filter.setCurrentIndex(win.source_filter.findData("Bluetooth · WH-1000XM5"))
+    win.source_filter.setCurrentIndex(win.source_filter.findData("Bluetooth · Desk Speaker"))
     win._rebuild()
     assert _titles_shown(win) == ["Song 2", "Song 5", "Song 8", "Song 11"]
     assert win.count_label.text() == "4 of 12 songs"
@@ -282,7 +278,7 @@ def test_no_matches(win):
 @pytest.mark.parametrize(
     "text,words,ranges",
     [
-        ("Die Ärzte", ["arzte"], [(4, 9)]),
+        ("Ilse Moréau", ["moreau"], [(5, 11)]),
         ("Straße", ["strasse"], [(0, 6)]),
         ("Song 10", ["song", "10"], [(0, 4), (5, 7)]),
         ("Talk Talk Talk", ["talk"], [(0, 4), (5, 9), (10, 14)]),
@@ -296,13 +292,13 @@ def test_highlight_ranges(text, words, ranges):
 
 def test_found_words_get_a_background(win):
     win.set_snapshot(HistorySnapshot(entries=_mixed(12)))
-    win.search.setText("ärzte")
+    win.search.setText("moréau")
     win._rebuild()
     row = win.findChildren(_SongRow)[0]
     subtitle = next(
-        lbl for lbl in row.findChildren(_ElidedLabel) if lbl._full.startswith("Die Ärzte")
+        lbl for lbl in row.findChildren(_ElidedLabel) if lbl._full.startswith("Ilse Moréau")
     )
-    assert subtitle._highlights == [(4, 9)]
+    assert subtitle._highlights == [(5, 11)]
     win.search.clear()
     win._rebuild()
     assert not any(lbl._highlights for lbl in win.findChildren(_ElidedLabel))
@@ -400,7 +396,7 @@ def test_clicking_a_row_opens_it_in_the_browser_that_played_it(win, monkeypatch)
     )
     entries = (
         HistoryEntry(title="A", source="mpris", player="Chromium", url="https://x/song/a"),
-        HistoryEntry(title="B", artist="Art", source="bluetooth", player="WH-1000XM5"),
+        HistoryEntry(title="B", artist="Art", source="bluetooth", player="Desk Speaker"),
     )
     win.set_snapshot(HistorySnapshot(entries=entries))
     rows = win.findChildren(_SongRow)

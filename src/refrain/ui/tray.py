@@ -84,9 +84,9 @@ class TrayIcon(QObject):
         # Info rows: title / artist / progress / Discord-status.
         # Left ENABLED on purpose — KDE Plasma's DBusMenu renderer (and
         # GNOME's AppIndicator) draw disabled QActions in a muted /
-        # greyed-out style, which made the song info read like
-        # "broken" rows with their text washed out next to the white
-        # action labels below. Enabled rows render in the standard
+        # greyed-out style, which makes the song info read like
+        # broken rows next to the white action labels below.
+        # Enabled rows render in the standard
         # menu-item colour. Click-handlers for these rows fall back
         # to opening Settings (their natural "tell me more" target);
         # we don't want them to look greyed-out + indented + iconless.
@@ -97,7 +97,7 @@ class TrayIcon(QObject):
         self._artist_action.setIcon(QIcon.fromTheme("view-media-artist"))
         self._artist_action.triggered.connect(self.settingsRequested.emit)
         # Hidden until a real track populates it — otherwise it
-        # rendered as a tall empty row right under "(nothing playing)".
+        # renders as a tall empty row right under "(nothing playing)".
         self._artist_action.setVisible(False)
         self._progress_action = QAction("")
         self._progress_action.setIcon(QIcon.fromTheme("chronometer"))
@@ -280,8 +280,8 @@ class TrayIcon(QObject):
         """Show what the startup credential check found.
 
         Only a *rejected* credential changes what the row says: the user
-        has to go and fix something, and until now nothing told them —
-        Discord silently published nothing, Last.fm silently scrobbled
+        has to go and fix something, and otherwise nothing tells them —
+        Discord silently publishes nothing, Last.fm silently scrobbles
         nothing. "Cannot reach it right now" is left alone, because the
         normal connected/disconnected updates already cover that and will
         correct themselves.
@@ -344,9 +344,8 @@ class TrayIcon(QObject):
         if not track.has_track:
             self._title_action.setText(self.tr("(nothing playing)"))
             self._artist_action.setText("")
-            # Hide instead of leaving an empty row — without this the
-            # menu showed "(nothing playing)" followed by a tall blank
-            # line that read as a layout glitch.
+            # Hide instead of leaving a tall blank line under
+            # "(nothing playing)" that reads as a layout glitch.
             self._artist_action.setVisible(False)
             self._progress_action.setVisible(False)
             self._current_track_line = ""

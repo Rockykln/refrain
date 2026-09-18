@@ -1,8 +1,4 @@
-"""Pure-Python timing helpers for the daemon.
-
-Lives in its own module — kept free of Qt and D-Bus imports — so the unit
-suite can exercise it in isolation without the GUI runtime installed.
-"""
+"""Pure-Python timing helpers for the daemon, free of Qt and D-Bus so tests need neither."""
 
 from __future__ import annotations
 
@@ -12,7 +8,6 @@ from enum import StrEnum
 # A source length below this, on a song the catalog knows to be longer,
 # describes a clip or a buffered media segment rather than the song.
 CLIP_MAX_MS = 30_000
-_CLIP_MAX_MS = CLIP_MAX_MS
 # A *start frame*: the player reporting the song itself — its full
 # length, give or take this — at a position no further in than this.
 _START_FRAME_LENGTH_SLACK_MS = 2_000
@@ -35,10 +30,8 @@ def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
     The source's ``mpris:length`` describes the media element actually
     playing, so it is the better answer whenever it is an answer at all.
     The iTunes duration is a catalog guess reached by searching for an
-    artist and title, and a search can land on the wrong record: a live
-    session had it return 58 s for a 2:45 song, and the daemon believed
-    it — long enough for idle detection to clear a track a minute into
-    playing it.
+    artist and title, and a search can land on the wrong record (58 s for
+    a 2:45 song) — enough for idle detection to clear a track a minute in.
 
     So iTunes fills gaps rather than overruling:
 
@@ -48,9 +41,8 @@ def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
       Music's preview-clip representation, which it reports for a few
       seconds on a full-length song; the catalog is right there.
 
-    Anything else keeps the source's own number. The one case that used
-    to need iTunes to overrule — Apple Music reporting a running total
-    instead of a track length — is not a length problem at all: that
+    Anything else keeps the source's own number. Apple Music reporting a
+    running total instead of a track length is not a length problem: that
     player reports a position and a length for the *stream*, and both
     are recognised as such by ``resolve_position``, whose caller then
     asks for the catalog length directly.
@@ -59,7 +51,7 @@ def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
         return itunes_dur_ms
     if itunes_dur_ms <= 0:
         return mpris_dur_ms
-    if mpris_dur_ms < _CLIP_MAX_MS <= itunes_dur_ms:
+    if mpris_dur_ms < CLIP_MAX_MS <= itunes_dur_ms:
         return itunes_dur_ms
     return mpris_dur_ms
 
@@ -85,8 +77,8 @@ def compute_rpc_start_ts(
     1. Track changed (different ``track_key``) — always recompute.
     2. Same track, but the wall-clock view (``now - prev_start_ts``) has
        drifted from the source's reported position by more than
-       ``drift_threshold_s`` — recompute. This catches **pause/resume**
-       (wall clock advances while position is frozen) and **seeks**
+       ``drift_threshold_s`` — recompute. This catches pause/resume
+       (wall clock advances while position is frozen) and seeks
        (position jumps without the song changing).
     3. Otherwise leave ``prev_start_ts`` alone.
 
@@ -187,11 +179,8 @@ def source_position_is_fresh(moved_at: float, now: float, stall_after_s: float) 
     The one place that answers it, because two callers ask: the resolver
     uses it to decide whether tier 1 is still on the table, and idle
     detection uses the same movement as proof the source handle isn't
-    dangling. They disagreed on what `stall_after_s <= 0` meant — the
-    resolver read it as "never call it stale" (as documented) while idle
-    detection read it as "never call it fresh", which quietly took away
-    the proof-of-life and let a wrong catalog duration clear a track that
-    was playing perfectly well.
+    dangling. `stall_after_s <= 0` means "never call it stale"; idle
+    detection therefore never passes it one.
     """
     return stall_after_s <= 0 or (now - moved_at) <= stall_after_s
 
@@ -212,10 +201,10 @@ def resolve_position(
 ) -> tuple[int | None, PositionTier, PositionState]:
     """Resolve the current position through three tiers, in order.
 
-    Sources lie about position in several different ways, and each lie
-    used to need its own patch. This is the single decision instead:
+    Sources lie about position in several different ways; this is the
+    single decision for all of them:
 
-    1. **What the source reports**, when it holds up. It must be
+    1. What the source reports, when it holds up. It must be
        non-negative, must not sit past the end of the track (Apple
        Music's web player counts Position across the whole queue, so
        three songs in it reads 11:08 on a 2:25 track), and — while
@@ -224,12 +213,12 @@ def resolve_position(
        Accepting it also re-anchors our own clock to it, so tier 2 can
        pick up from the last value known to be good.
 
-    2. **Our own clock**, when the reported value fails but we know when
+    2. Our own clock, when the reported value fails but we know when
        the track started: wall-clock elapsed since that anchor, minus
        time spent paused. This is what carries a queue-cumulative or
        frozen source through to the end of the track.
 
-    3. **Nothing.** No anchor to count from, or even our own clock has
+    3. Nothing. No anchor to count from, or even our own clock has
        run past the end of the track — the source has been claiming
        "playing" for longer than the song lasts. The caller hides the
        time entirely rather than showing a number known to be wrong.
@@ -238,7 +227,7 @@ def resolve_position(
     the catalog-corrected ``duration_ms`` the tiers are judged against.
     A length that changes while the same track plays is not a track
     length — Apple Music's grows as its stream buffers, by 135 s over
-    144 s of playback in one measurement — and latches the source as
+    144 s of playback — and latches the source as
     stream-relative on its own. Without it, a session that starts
     mid-track has nothing to catch the source out with until the first
     track change, and spends that time rendering a plausible-looking
@@ -257,16 +246,15 @@ def resolve_position(
     ``duration_ms <= 0`` means the source gave no length (common on
     Bluetooth AVRCP): start and end are the same instant, so the two
     end-of-track checks are skipped and only movement decides. The
-    caller renders elapsed-only in that case, as it always has.
+    caller renders elapsed-only in that case.
 
-    A source length under ``_CLIP_MAX_MS`` on a song the catalog knows to
+    A source length under ``CLIP_MAX_MS`` on a song the catalog knows to
     be longer is a *segment* source: Plasma's browser integration reports
     the media segment the page has buffered, whose position runs 0 → 10 s
     and starts over, all song long. Its position is never the song's, so
     it is never shown, and its returns to zero are never a frame switch
-    or a seek. Its length need not move either — at a constant 10.4 s
-    nothing latched it, and after a restart mid-song the elapsed time
-    fell back to zero every ten seconds.
+    or a seek. Its length need not move either (a constant 10.4 s), so
+    the length check alone does not catch it.
 
     A song that begins again on the same track — repeat-one, or played
     again from the top — shows as a *start frame*: the player reporting
@@ -291,12 +279,12 @@ def resolve_position(
             else PositionState(after_idle=True)
         )
     # Whatever the catalog says — for the first polls after a start it
-    # hasn't said anything yet, and a segment then passed for a very short
+    # hasn't said anything yet, and a segment would then pass for a very short
     # song. A song that really is that short loses nothing: its time comes
     # from our clock, anchored at the change, and reads the same.
-    segment = 0 < reported_length_ms < _CLIP_MAX_MS
-    if loop_track and duration_ms >= _CLIP_MAX_MS and reported_ms > duration_ms:
-        loop_ms = reported_length_ms if reported_length_ms >= _CLIP_MAX_MS else duration_ms
+    segment = 0 < reported_length_ms < CLIP_MAX_MS
+    if loop_track and duration_ms >= CLIP_MAX_MS and reported_ms > duration_ms:
+        loop_ms = reported_length_ms if reported_length_ms >= CLIP_MAX_MS else duration_ms
         reported_ms %= loop_ms
 
     if track_key != state.track_key and _only_album_differs(track_key, state.track_key):
@@ -313,7 +301,7 @@ def resolve_position(
         state = replace(state, last_length_ms=reported_length_ms)
     else:
         start_frame = _is_start_frame(reported_ms, reported_length_ms, duration_ms) or (
-            0 < state.last_length_ms < _CLIP_MAX_MS
+            0 < state.last_length_ms < CLIP_MAX_MS
             and _is_late_start_frame(state, reported_ms, reported_length_ms, duration_ms, now)
         )
         # Arriving at the start, not sitting there: the position fell back
@@ -339,7 +327,7 @@ def resolve_position(
                 state,
                 started_at=now - reported_ms / 1000.0,
                 paused_ms=0,
-                paused_since=now if not is_playing else 0.0,
+                paused_since=0.0,
                 anchored=True,
                 track_relative=True,
                 restarts=state.restarts + 1,
@@ -364,8 +352,7 @@ def resolve_position(
             # every eight to eleven seconds — and it does reset properly
             # at a track change, which means we already have a real zero
             # for this track. Reading each of those returns as a frame
-            # switch re-anchored the clock on them, and the elapsed time
-            # visibly fell back to the start all song long.
+            # switch would re-anchor the clock every few seconds.
             state = replace(
                 state,
                 cumulative=False,
@@ -380,15 +367,15 @@ def resolve_position(
             # source's *timeline* while distrusting its absolute value —
             # worth doing when the timeline is all we have, wrong when we
             # watched the track start ourselves. A segment source's fall
-            # back to zero read as a seek backwards, which dragged the
-            # clock's zero up to `now` and put the elapsed time at 0:00.
+            # back to zero would read as a seek backwards and put the
+            # elapsed time at 0:00.
             state = _follow_seek(state, reported_ms, now, tolerance_ms)
         state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
     state = replace(state, last_seen_at=now)
     if not is_playing:
         # The freshness clock only runs while playing. A paused source is
         # supposed to stand still, and letting the stall window accrue
-        # through a pause made every resume from a pause longer than
+        # through a pause would make every resume from a pause longer than
         # `stall_after_s` look like a freeze for one poll.
         state = replace(state, moved_at=now)
     state = _track_pause(state, is_playing, now)
@@ -400,7 +387,7 @@ def resolve_position(
     past_end = duration_ms > 0 and reported_ms > duration_ms + overrun_grace_ms
     undecidable = duration_disputed and not state.anchored
     # A tablet pausing can report 0 for a moment. Passed on as the player's
-    # own position, it looked like the song starting over.
+    # own position, it would look like the song starting over.
     unconfirmed_start = state.start_pending and not is_playing
     if (
         reported_ms >= 0
@@ -457,7 +444,7 @@ def elapsed_ms(state: PositionState, now: float) -> int:
 def _is_start_frame(reported_ms: int, reported_length_ms: int, duration_ms: int) -> bool:
     """Is the player reporting the song itself, right at its beginning?"""
     return (
-        duration_ms >= _CLIP_MAX_MS
+        duration_ms >= CLIP_MAX_MS
         and abs(reported_length_ms - duration_ms) <= _START_FRAME_LENGTH_SLACK_MS
         and 0 <= reported_ms <= _START_FRAME_MAX_POS_MS
     )
@@ -471,12 +458,12 @@ def _is_late_start_frame(
     Plasma may report a buffered length instead of the song's then, so
     our own clock reaching the song's end has to vouch for it.
     """
-    if not 0 <= reported_ms <= _LATE_START_MAX_POS_MS or duration_ms < _CLIP_MAX_MS:
+    if not 0 <= reported_ms <= _LATE_START_MAX_POS_MS or duration_ms < CLIP_MAX_MS:
         return False
     if abs(reported_length_ms - duration_ms) <= _START_FRAME_LENGTH_SLACK_MS:
         return True
     return (
-        reported_length_ms >= _CLIP_MAX_MS
+        reported_length_ms >= CLIP_MAX_MS
         and state.anchored
         and elapsed_ms(state, now) >= duration_ms - _LOOP_END_SLACK_MS
     )
@@ -615,7 +602,7 @@ def _track_length(state: PositionState, reported_length_ms: int) -> PositionStat
     # is the difference between hiding the time and simply counting it
     # ourselves — and this source is common enough (Plasma's browser
     # integration, whose length is the current media segment's) that
-    # throwing the anchor away hid the elapsed time on every track.
+    # throwing the anchor away would hide the elapsed time on every track.
     return replace(
         state,
         last_length_ms=reported_length_ms,

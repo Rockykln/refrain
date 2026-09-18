@@ -1,11 +1,5 @@
-"""Resolving a Discord Application ID to its display name.
-
-The Client ID is the one setting a user cannot check by looking at it:
-nineteen digits, and a wrong one fails silently — Refrain connects,
-Discord rejects the application, and the status simply never appears.
-These tests cover the three answers that distinction rests on, and the
-cache that keeps Refrain from asking about the same ID all day.
-"""
+"""Resolving a Discord Application ID to its display name, and caching the answer.
+A wrong ID fails silently in Discord, so the name is the user's only check."""
 
 from __future__ import annotations
 
@@ -28,7 +22,7 @@ from refrain.discord_app import (
     refresh_application_name,
 )
 
-VALID_ID = "1425491225162809447"
+VALID_ID = "1234567890123456789"
 
 
 def _respond(payload: dict):
@@ -95,12 +89,7 @@ def test_a_404_means_discord_has_no_such_application(monkeypatch):
 
 
 def test_other_http_errors_are_not_a_verdict_on_the_id(monkeypatch):
-    """A rate limit says nothing about whether the ID is right.
-
-    Telling a user with a perfectly good ID that no such application
-    exists would send them off editing a setting that was already
-    correct.
-    """
+    """A rate limit or other HTTP error says nothing about whether the ID is right."""
     for code in (429, 500, 503):
         err = urllib.error.HTTPError("u", code, "nope", {}, None)
         monkeypatch.setattr("urllib.request.urlopen", _raise(err))
@@ -133,13 +122,9 @@ def test_the_cache_ages_out():
 
 
 def test_a_name_cached_for_a_different_id_is_never_fresh():
-    """The worst outcome would be showing the old app's name on a new ID.
-
-    That reads as confirmation, which is the exact opposite of what the
-    line is for.
-    """
+    """The old app's name on a new ID would read as confirmation."""
     now = 1_000_000.0
-    assert cached_name_is_fresh(VALID_ID, "9999999999999999999", now - 5, now) is False
+    assert cached_name_is_fresh(VALID_ID, "1234567890123456780", now - 5, now) is False
 
 
 def test_no_id_is_never_fresh():
@@ -160,11 +145,7 @@ def test_a_timestamp_from_the_future_ages_out_rather_than_lasting_forever():
 
 @pytest.fixture
 def cfg(xdg_tmp):
-    """A config with the lookup deliberately switched on.
-
-    It is opt-in, so every test that exercises the lookup has to say so
-    — which is the point of the default and worth restating here.
-    """
+    """A config with the opt-in lookup switched on."""
     c = Config()
     c.discord.client_id = VALID_ID
     c.discord.resolve_app_name = True
@@ -172,12 +153,7 @@ def cfg(xdg_tmp):
 
 
 def test_the_lookup_is_off_until_asked_for(xdg_tmp, monkeypatch):
-    """Out of the box, Refrain talks to no Discord server at all.
-
-    The status goes to the local IPC socket; this is the one thing that
-    would reach discord.com, so a fresh install must not do it until
-    someone ticks the box.
-    """
+    """A fresh install never contacts discord.com; the status only uses the local IPC socket."""
     c = Config()
     c.discord.client_id = VALID_ID
     assert c.discord.resolve_app_name is False

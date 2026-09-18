@@ -1,7 +1,4 @@
-"""iTunes Search API lookup: which result is taken, and what is cached.
-
-Real HTTP is mocked at the urllib level so the suite is hermetic.
-"""
+"""iTunes Search API lookup: which result is taken, and what is cached."""
 
 from __future__ import annotations
 
@@ -16,11 +13,7 @@ import pytest
 
 @pytest.fixture
 def cover_art(xdg_tmp, monkeypatch):
-    """Reload cover_art + paths so they pick up the patched XDG env.
-
-    The store country comes from the locale; pinned to Germany so the
-    order of attempts is the same on every machine.
-    """
+    """Reload cover_art + paths for the patched XDG env, with the store country pinned to DE."""
     monkeypatch.setenv("LANG", "de_DE.UTF-8")
     monkeypatch.delenv("LC_ALL", raising=False)
     monkeypatch.delenv("LC_MESSAGES", raising=False)
@@ -99,15 +92,14 @@ def test_lookup_upgrades_artwork_to_600(monkeypatch, cover_art):
 
 def test_asks_the_local_store_first(monkeypatch, cover_art):
     store = _install(
-        monkeypatch, cover_art, _Store(default=[_song("Die Ärzte", "Schrei nach Liebe")])
+        monkeypatch, cover_art, _Store(default=[_song("Ilse Moréau", "Silk Road Radio")])
     )
-    cover_art.lookup_track_info("Die Ärzte", "Schrei nach Liebe")
-    assert store.queries[0] == ("Die Ärzte Schrei nach Liebe", "DE")
+    cover_art.lookup_track_info("Ilse Moréau", "Silk Road Radio")
+    assert store.queries[0] == ("Ilse Moréau Silk Road Radio", "DE")
 
 
 def test_a_result_by_someone_else_is_rejected(monkeypatch, cover_art):
-    """The first hit used to be taken blindly — a Chinese ballad as the
-    cover of a German rap track, a jazz collective for a pop song."""
+    """A hit by a different artist is not taken just because it comes first."""
     wrong = [_song("黃霄雲", "星辰大海"), _song("Jazz Collective", "Rest in the Moonshine")]
     _install(monkeypatch, cover_art, _Store(default=wrong))
     assert cover_art.lookup_track_info("NA CHUI", "TILL THE END").cover_url == ""
@@ -207,8 +199,7 @@ def test_a_miss_is_cached_but_expires(monkeypatch, cover_art):
 
 
 def test_unreachable_is_an_error_not_a_miss(monkeypatch, cover_art):
-    """Offline must not look like "this song has no cover" — that was
-    remembered for the whole session and, on disk, for good."""
+    """Offline must not be cached as "this song has no cover"."""
 
     def _boom(*a, **kw):
         raise OSError("network down")
@@ -221,16 +212,18 @@ def test_unreachable_is_an_error_not_a_miss(monkeypatch, cover_art):
 
 
 def test_cache_key_is_stable_and_lowercase(cover_art):
-    a = cover_art._key("Drake", "One Dance", "Views")
-    b = cover_art._key("DRAKE", "one dance", "VIEWS")
+    a = cover_art._key("Oskar Lind", "Ferrous", "Iron Garden")
+    b = cover_art._key("OSKAR LIND", "ferrous", "IRON GARDEN")
     assert a == b
 
 
 def test_cache_file_format(monkeypatch, cover_art):
     """Cover URL, song URL, catalog length, format version, checked-at."""
-    _install(monkeypatch, cover_art, _Store(default=[_song("Drake", "One Dance", "Views")]))
-    cover_art.lookup_track_info("Drake", "One Dance", "Views")
-    key = cover_art._key("Drake", "One Dance", "Views")
+    _install(
+        monkeypatch, cover_art, _Store(default=[_song("Oskar Lind", "Ferrous", "Iron Garden")])
+    )
+    cover_art.lookup_track_info("Oskar Lind", "Ferrous", "Iron Garden")
+    key = cover_art._key("Oskar Lind", "Ferrous", "Iron Garden")
     lines = (cover_art.cover_cache_dir() / f"{key}.txt").read_text().strip().splitlines()
     assert len(lines) == 5
     assert lines[0].endswith("600x600bb.jpg")
@@ -241,11 +234,51 @@ def test_cache_file_format(monkeypatch, cover_art):
 
 
 def test_entries_from_the_old_matcher_are_looked_up_again(monkeypatch, cover_art):
-    """The old matcher took any first hit and cached misses forever, so
-    its entries are neither trusted nor final."""
+    """Cache entries in the old matcher's format are looked up again."""
     cover_art.cover_cache_dir().mkdir(parents=True, exist_ok=True)
     key = cover_art._key("Old", "Track", "Album")
     (cover_art.cover_cache_dir() / f"{key}.txt").write_text("\n\n0\n")
     store = _install(monkeypatch, cover_art, _Store(default=[_song("Old", "Track")]))
     assert cover_art.lookup_track_info("Old", "Track", "Album").cover_url
     assert store.queries
+
+
+def test_an_image_is_downloaded_to_the_given_file(monkeypatch, cover_art, tmp_path):
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(
+        cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"\xff\xd8jpeg")
+    )
+    dest = tmp_path / "cover.jpg"
+    assert cover_art.download_cover_image("https://example.com/c.jpg", dest) == dest
+    assert dest.read_bytes() == b"\xff\xd8jpeg"
+    assert not cover_art.cover_cache_dir().exists()
+    assert cover_art.download_cover_image("http://example.com/c.jpg", tmp_path / "x.jpg") is None
+
+
+def test_keeping_images_clears_out_everything_else_but_the_lookups(cover_art, tmp_path):
+    """Images an older version cached by count go; lookup answers stay."""
+    d = cover_art.cover_cache_dir()
+    d.mkdir(parents=True)
+    kept_url = "https://example.com/kept.jpg"
+    kept = cover_art.image_path_for_url(kept_url)
+    kept.write_bytes(b"kept")
+    stray = [d / "0123456789abcdef01234567.jpg", d / "0123456789abcdef01234567.jpg.tmp"]
+    for p in stray:
+        p.write_bytes(b"old")
+    lookup = d / "0123456789abcdef0123456789abcdef.txt"
+    lookup.write_text("x\n")
+
+    cover_art.keep_cover_images({kept_url}, [tmp_path])
+    assert kept.read_bytes() == b"kept"
+    assert not any(p.exists() for p in stray)
+    assert lookup.exists()
+
+    cover_art.keep_cover_images(set(), [tmp_path])
+    assert not list(d.glob("*.jpg*"))
+    assert lookup.exists()
