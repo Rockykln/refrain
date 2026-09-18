@@ -459,7 +459,7 @@ transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
 - [Bluetooth quick-start](docs/bluetooth.md) — pair + AVRCP setup walkthrough
 - [Last.fm scrobbling](docs/lastfm.md) — API account + connect walkthrough
 - [Test matrix](docs/test-matrix.md) — supported distros, smoke-check checklist
-- [Roadmap](ROADMAP.md)
+- [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md) — dev setup, testing, code style
 - [Privacy & data protection](PRIVACY.md) — every data flow, retention, erasure
