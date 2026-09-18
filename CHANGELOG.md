@@ -33,6 +33,13 @@ lists every version and why.
   but bundled Python 3.10. It is now built from Ubuntu 24.04 packages
   with the Python it bundles, carries the Wayland and XCB libraries Qt
   needs, and each release starts it once before publishing it.
+- **The live log was hard to read on a light theme.** Its colours were
+  made for a dark background — ordinary lines came out light grey on
+  white. They now follow the theme, and every level keeps a readable
+  contrast on light and dark backgrounds alike.
+- **History day headings could come out barely visible.** A window
+  built before it got focus took the greyed-out colours of an unfocused
+  window, which some styles use, and kept them.
 - **Refrain's own restart could fail with "already running".** It
   replaces its own process, and the session bus may still hold the old
   one's name for a moment; the new one now waits up to three seconds

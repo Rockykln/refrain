@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import html
 import logging
+from collections import deque
 
-from PySide6.QtGui import QFont, QGuiApplication, QIcon
+from PySide6.QtCore import QEvent
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QIcon, QPalette
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -26,13 +28,30 @@ from PySide6.QtWidgets import (
 from refrain.paths import assets_dir
 from refrain.ui.cursors import apply_interactive_cursors
 
-_LEVEL_COLORS = {
-    logging.DEBUG: "#888888",
-    logging.INFO: "#cccccc",
-    logging.WARNING: "#e8b800",
-    logging.ERROR: "#ff7777",
-    logging.CRITICAL: "#ff3030",
+_MAX_LINES = 5000
+# (on a light background, on a dark one)
+_ALERT_COLORS = {
+    logging.WARNING: ("#8a6400", "#e8b800"),
+    logging.ERROR: ("#b3261e", "#ff7777"),
+    logging.CRITICAL: ("#8c0000", "#ff6b6b"),
 }
+
+
+def level_colors(palette: QPalette) -> dict[int, str]:
+    active = QPalette.ColorGroup.Active
+    text = palette.color(active, QPalette.ColorRole.Text)
+    base = palette.color(active, QPalette.ColorRole.Base)
+    k = 0.7
+    muted = QColor(
+        round(text.red() * k + base.red() * (1 - k)),
+        round(text.green() * k + base.green() * (1 - k)),
+        round(text.blue() * k + base.blue() * (1 - k)),
+    )
+    dark = base.lightness() < 128
+    colors = {level: pair[dark] for level, pair in _ALERT_COLORS.items()}
+    colors[logging.DEBUG] = muted.name()
+    colors[logging.INFO] = text.name()
+    return colors
 
 
 class LogWindow(QDialog):
@@ -91,7 +110,9 @@ class LogWindow(QDialog):
         font.setStyleHint(QFont.StyleHint.Monospace)
         self.view.setFont(font)
         # Cap memory: the underlying deque drops old blocks once the limit hits.
-        self.view.setMaximumBlockCount(5000)
+        self.view.setMaximumBlockCount(_MAX_LINES)
+        self._lines: deque[tuple[str, int]] = deque(maxlen=_MAX_LINES)
+        self._colors = level_colors(self.view.palette())
 
         layout = QVBoxLayout(self)
         layout.addLayout(bar)
@@ -109,13 +130,29 @@ class LogWindow(QDialog):
         threshold = self.level_combo.currentData() or 0
         if level < threshold:
             return
-        color = _LEVEL_COLORS.get(level, "#cccccc")
-        self.view.appendHtml(f'<span style="color:{color};">{html.escape(msg)}</span>')
+        self._lines.append((msg, level))
+        self._write(msg, level)
         if self.autoscroll_box.isChecked():
             sb = self.view.verticalScrollBar()
             sb.setValue(sb.maximum())
 
+    def _write(self, msg: str, level: int) -> None:
+        color = self._colors.get(level, self._colors[logging.INFO])
+        weight = "font-weight:bold;" if level >= logging.CRITICAL else ""
+        self.view.appendHtml(f'<span style="color:{color};{weight}">{html.escape(msg)}</span>')
+
+    def changeEvent(self, event) -> None:
+        super().changeEvent(event)
+        if event.type() in (QEvent.Type.PaletteChange, QEvent.Type.StyleChange):
+            colors = level_colors(self.view.palette())
+            if colors != self._colors:
+                self._colors = colors
+                self.view.clear()
+                for msg, level in self._lines:
+                    self._write(msg, level)
+
     def _clear(self) -> None:
+        self._lines.clear()
         self.view.clear()
 
     def _copy_all(self) -> None:

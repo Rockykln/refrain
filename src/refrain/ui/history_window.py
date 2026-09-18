@@ -196,8 +196,11 @@ def _muted(palette: QPalette) -> QColor:
     Not ``palette(mid)`` / ``PlaceholderText`` — both come out close to
     invisible on Breeze Dark (see the settings window's ``_hint``).
     """
-    fg = palette.color(QPalette.ColorRole.WindowText)
-    bg = palette.color(QPalette.ColorRole.Window)
+    # Active group: a window built before it is focused would bake in the
+    # inactive colours, which Fusion greys out.
+    active = QPalette.ColorGroup.Active
+    fg = palette.color(active, QPalette.ColorRole.WindowText)
+    bg = palette.color(active, QPalette.ColorRole.Window)
     k = 0.62
     return QColor(
         round(fg.red() * k + bg.red() * (1 - k)),
