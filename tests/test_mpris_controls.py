@@ -55,3 +55,59 @@ def test_a_title_beyond_ascii_still_makes_a_valid_track_id():
     for title in ("Wer weiß das schon", "Königin", "f**k dich (feat. dateツ & flippin'dope)", ""):
         path = _track_id(TrackInfo(source="mpris", title=title))
         assert path.startswith("/refrain/track/")
+
+
+# --------------------------------------------------- what the panel reads
+
+
+def _published(**kw):
+    server, _ = _server(PlaybackStatus.PLAYING)
+    server._track = TrackInfo(source="mpris", status=PlaybackStatus.PLAYING, **kw)
+    return server
+
+
+def test_the_metadata_carries_the_song():
+    server = _published(title="Königin", artist="Völkerball", album="Album", position_ms=61_500)
+    server._cover_url = "https://example.org/cover.jpg"
+    server._effective_duration_ms = 197_873
+    props = server.GetAll("org.mpris.MediaPlayer2.Player")
+    md = props["Metadata"]
+    assert md["xesam:title"] == "Königin"
+    assert list(md["xesam:artist"]) == ["Völkerball"]
+    assert md["mpris:length"] == 197_873_000, "microseconds, as the spec wants"
+    assert md["mpris:artUrl"] == "https://example.org/cover.jpg"
+    assert props["Position"] == 61_500_000
+    assert props["PlaybackStatus"] == "Playing"
+
+
+def test_empty_fields_are_left_out():
+    md = _published(title="T").GetAll("org.mpris.MediaPlayer2.Player")["Metadata"]
+    assert set(md) == {"mpris:trackid", "xesam:title"}
+
+
+def test_an_unknown_property_is_an_error():
+    import dbus
+
+    with pytest.raises(dbus.exceptions.DBusException):
+        _published(title="T").Get("org.mpris.MediaPlayer2.Player", "Nonsense")
+
+
+def test_the_player_names_itself_refrain():
+    root = _published(title="T").GetAll("org.mpris.MediaPlayer2")
+    assert (root["Identity"], root["DesktopEntry"]) == ("Refrain", "refrain")
+
+
+def test_a_length_arriving_late_reaches_the_panel():
+    """The length often comes a poll after the title; the panel was told
+    only about title, cover and state, and showed no length that song."""
+    server = _published(title="T")
+    server._bus_name = object()
+    sent = []
+    server.PropertiesChanged = lambda iface, changed, inv: sent.append(changed)
+    track = TrackInfo(source="mpris", title="T", status=PlaybackStatus.PLAYING)
+    server._apply(track, None, None)
+    server._apply(track, None, None)
+    assert sent == [], "nothing moved, nothing sent"
+    server._apply(track, None, 157_000)
+    assert len(sent) == 1
+    assert sent[0]["Metadata"]["mpris:length"] == 157_000_000

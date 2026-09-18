@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for it. A second Refrain that really is running is logged now, too.
 - **The AppStream metadata named an invalid developer ID** and a
   category the desktop entries no longer carry.
+- **Plasma's media controls often showed no length.** The length a song
+  gets from the catalog tends to arrive a poll after its title, and the
+  MPRIS entry only announced changes to the title, cover or playing
+  state — so the panel went without a total until the next song.
 - **The in-app update could install over a source checkout.** A checkout
   installed editable into a virtual environment passed for a pip
   install, so *Update* ran `pip install --upgrade refrain` over it and
