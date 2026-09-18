@@ -131,14 +131,20 @@ def detect_install_type() -> str:
 # ---------------------------------------------------------------------------
 
 
-_VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$")
+_VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:(\+.*)|[-.]?((?:dev|a|b|rc|pre).*))?$")
 
 
-def _parse_version(s: str) -> tuple[int, int, int] | None:
+def _parse_version(s: str) -> tuple[int, int, int, int] | None:
+    """``(major, minor, patch, final)`` — a pre-release such as 0.5.3.dev0 or
+    0.5.3-rc1 sorts before 0.5.3 itself.
+
+    A development build used to parse as nothing at all, so it was never
+    told about any release.
+    """
     m = _VERSION_RE.match(s.strip())
     if not m:
         return None
-    return int(m.group(1)), int(m.group(2)), int(m.group(3))
+    return int(m.group(1)), int(m.group(2)), int(m.group(3)), 0 if m.group(5) else 1
 
 
 def is_newer(remote: str, local: str) -> bool:

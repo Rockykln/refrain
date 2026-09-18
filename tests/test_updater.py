@@ -42,6 +42,15 @@ def test_is_newer_handles_pre_release_suffix(updater):
     assert updater.is_newer("0.2.0+build.5", "0.1.0") is True
 
 
+def test_a_development_build_hears_about_releases(updater):
+    """0.5.3.dev0 parsed as nothing, so no release was ever newer."""
+    assert updater.is_newer("0.5.3", "0.5.3.dev0") is True
+    assert updater.is_newer("v9.9.9", "0.5.3.dev0") is True
+    assert updater.is_newer("0.5.2", "0.5.3.dev0") is False
+    assert updater.is_newer("0.5.3", "0.5.3-rc1") is True
+    assert updater.is_newer("0.5.3-rc1", "0.5.3") is False
+
+
 def test_is_newer_invalid_versions(updater):
     assert updater.is_newer("nope", "0.1.0") is False
     assert updater.is_newer("0.1.0", "weird") is False

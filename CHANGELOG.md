@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A development build never heard about a release.** The update check
+  read a version like `0.5.3.dev0` as no version at all, so nothing was
+  ever newer than it. A pre-release now sorts before the release of the
+  same number, and after every earlier one.
+
 ## [0.5.2] - 2026-09-18
 
 A release about the gaps. Songs the iTunes catalog doesn't know — about
