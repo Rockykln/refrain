@@ -58,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the start to an end the player reached on its own is as long as the
   song, and two plays that agree settle it. Kept under a hash of the
   title, artist and album, so the file holds no song titles.
+- **Discord showed nothing while a song without a catalog match played
+  from Apple Music's search page.** Plasma reports the tab's address with
+  plain spaces in it, the "Listen on Apple Music" button took it as its
+  link, and Discord refused the whole activity over the malformed link.
+  The link is encoded now, and one that still isn't valid drops only the
+  button.
 - **A browser tab with "Apple Music" anywhere in its title counted as the
   Apple Music tab**, so a video about Apple Music could decide whether
   Refrain showed the music as playing or paused.

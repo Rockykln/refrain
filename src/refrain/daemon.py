@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import time
+import urllib.parse
 
 from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Slot
 
@@ -50,6 +51,24 @@ _NOTIFY_BIN: str | None = shutil.which("notify-send")
 
 
 _IDLE_LOG_KEY_SENTINEL = "__refrain_idle_logged__:"
+
+
+# Discord's limit for a button's link.
+_BUTTON_URL_MAX = 512
+
+
+def button_url(link: str) -> str:
+    """``link`` as Discord accepts it in a button, or "" when it can't be.
+
+    Plasma reports the tab's address decoded — "search?term=KYANU Fcuk up
+    the Club", spaces and all — and Discord refused the whole activity
+    over it, not just the button, so nothing showed at all.
+    """
+    link = urllib.parse.quote(link.strip(), safe=":/?#[]@!$&'()*+,;=%~")
+    parts = urllib.parse.urlsplit(link)
+    if parts.scheme != "https" or not parts.netloc or len(link) > _BUTTON_URL_MAX:
+        return ""
+    return link
 
 
 def scrobble_duration_ms(
@@ -1210,8 +1229,8 @@ class DaemonWorker(QObject):
         # over xesam:url from the browser tab (often the album / playlist page).
         if self._config.behavior.show_buttons:
             song_url = self._cover_fetcher.get_song_url(track.artist, track.title, track.album)
-            link = song_url or (track.url if track.source == "mpris" else "")
-            if link.startswith("https://"):
+            link = button_url(song_url or (track.url if track.source == "mpris" else ""))
+            if link:
                 payload["buttons"] = [{"label": "Listen on Apple Music", "url": link}]
 
         # The timing pair is what both the "Discord shows no progress bar"
