@@ -1,4 +1,5 @@
 Refrain License (Use-Only)
+SPDX-License-Identifier: LicenseRef-RefrainUseOnly
 
 Copyright (c) 2026 Rockykln. All rights reserved.
 
@@ -21,14 +22,24 @@ PERMITTED
 
   - Make modifications to the Software for the sole purpose of running
     it on your own machines. Such local-only modifications must not be
-    redistributed in any form.
+    redistributed in any form, except in a contribution fork as
+    described below.
+
+  - View and fork the public repository on GitHub or a similar platform
+    as its terms of service allow, and make changes in such a fork
+    solely to prepare a contribution (pull request or patch) to the
+    original Refrain repository ("contribution fork"). A contribution
+    fork must not be offered as a version of Refrain, and no builds,
+    packages, or releases may be published or distributed from it.
 
 ================================================================
 NOT PERMITTED
 ================================================================
 
   - Modify, adapt, port, translate, fork, or create derivative works
-    based on the Software for distribution in any form.
+    based on the Software for distribution in any form, other than a
+    contribution fork as permitted above. This includes publishing or
+    distributing modified builds, packages, or releases.
 
   - Re-license the Software, in whole or in part, under any other terms.
 
@@ -40,22 +51,49 @@ CONTRIBUTIONS
 ================================================================
 
 Contributions to the Refrain project (pull requests, patches, issues
-with code attached) are accepted only on the condition that the
-contributor agrees their contribution will be incorporated under the
-terms of this license, with copyright assigned to the project's
-primary maintainer for the purpose of consolidating ownership.
+with code attached) are accepted only on the following terms. By
+submitting a contribution, you:
+
+  (a) confirm that you created it yourself or otherwise have the right
+      to submit it on these terms, and
+
+  (b) grant the copyright holder a non-exclusive, perpetual,
+      irrevocable, worldwide, royalty-free right to use, reproduce,
+      modify, and distribute your contribution, and to license it to
+      others, including under terms other than this license.
+
+Your contribution is then distributed as part of Refrain under this
+license. You remain the author of your contribution; your copyright and
+moral rights in it are not transferred.
 
 ================================================================
-NO WARRANTY
+NO WARRANTY AND LIMITATION OF LIABILITY
 ================================================================
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES,
-OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED FREE OF CHARGE AND "AS IS", WITHOUT WARRANTY OF
+ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NON-INFRINGEMENT, TO THE EXTENT PERMITTED BY LAW.
+
+THE COPYRIGHT HOLDER IS LIABLE WITHOUT LIMITATION FOR DAMAGE CAUSED
+INTENTIONALLY OR BY GROSS NEGLIGENCE, FOR INJURY TO LIFE, BODY, OR
+HEALTH, FOR DEFECTS THAT WERE FRAUDULENTLY CONCEALED, AND UNDER
+MANDATORY PRODUCT LIABILITY LAW (IN GERMANY, THE PRODUKTHAFTUNGSGESETZ).
+BEYOND THAT, AND TO THE EXTENT PERMITTED BY LAW, THE COPYRIGHT HOLDER
+SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================
+GOVERNING LAW
+================================================================
+
+This license is governed by the laws of the Federal Republic of
+Germany, excluding the UN Convention on Contracts for the International
+Sale of Goods (CISG). If you are a consumer, you keep the protection of
+the mandatory provisions of the law of the country where you normally
+live.
 
 ================================================================
 THIRD-PARTY DEPENDENCIES
@@ -68,4 +106,4 @@ original licenses.
 
   - PySide6        Lesser General Public License, version 3 (LGPL-3.0)
   - pypresence     MIT License
-  - dbus-python    MIT License / Academic Free License v2.1
+  - dbus-python    MIT License

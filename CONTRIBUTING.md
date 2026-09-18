@@ -8,12 +8,17 @@ that experience better for users on real Linux desktops.
 
 Refrain ships under the **Refrain License (Use-Only)** — see
 [`LICENSE`](LICENSE). It is source-available but **not open source**.
-Forks and modified redistributions are not permitted.
+Modified redistributions are not permitted. Forking the repository on
+GitHub to prepare a pull request is fine; just don't publish builds,
+packages, or releases from your fork.
 
 By submitting a contribution (pull request, patch, code in an issue), you
-agree that your contribution becomes part of Refrain under the same
-license, with copyright assigned to the project's maintainer for the
-purpose of consolidating ownership.
+confirm that you wrote it or otherwise have the right to submit it, and
+you grant the maintainer a non-exclusive, perpetual, irrevocable,
+worldwide, royalty-free right to use, reproduce, modify, and distribute
+it, and to license it to others, including under terms other than the
+Refrain License. You remain the author of your contribution. The exact
+wording is in the "Contributions" section of [`LICENSE`](LICENSE).
 
 If that's a deal-breaker for you, that's understandable — please don't
 contribute. Bug reports and feature ideas (without code) remain very
@@ -143,11 +148,11 @@ To add a new language end-to-end:
 ```sh
 # 1. Copy the German translation as a starting point (gives you all
 #    the strings already extracted).
-cp src/refrain/i18n/refrain_de.ts src/refrain/i18n/refrain_fr.ts
+cp src/refrain/i18n/refrain_de.ts src/refrain/i18n/refrain_nl.ts
 
 # 2. Open it in Qt Linguist (friendlier than editing XML by hand) and
 #    replace each German line with your translation.
-pyside6-linguist src/refrain/i18n/refrain_fr.ts
+pyside6-linguist src/refrain/i18n/refrain_nl.ts
 
 # 3. Compile to .qm.
 make i18n
@@ -155,7 +160,7 @@ make i18n
 # 4. Add your code to settings_window.py's language combo so users can
 #    pick it from the Localization group, then run Refrain locally to
 #    smoke-test.
-LANG=fr_FR.UTF-8 refrain
+LANG=nl_NL.UTF-8 refrain
 ```
 
 If you've wrapped any new English strings on the source side, run

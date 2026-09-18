@@ -34,6 +34,7 @@ whatever's relevant and delete the rest.
 
 ## Checklist
 
+- [ ] I agree that my contribution is licensed as described in the "Contributions" section of LICENSE (summary in CONTRIBUTING.md)
 - [ ] `pytest` passes locally
 - [ ] `ruff check .` and `ruff format --check .` are clean
 - [ ] New / changed behavior is covered by tests (or unreachable from tests due to system integration — explain)

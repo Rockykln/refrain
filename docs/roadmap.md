@@ -251,7 +251,7 @@ What's done, what's next, what's deliberately not in scope.
 - **Logging audit** closed six gaps: `setup_logging` runs before
   `Config.load` so config-load messages reach the file log; the
   log-level toggle in Settings applies live; `setup_logging` degrades
-  gracefully when the XDG state dir is unwritable; `os.execvp`-based
+  cleanly when the XDG state dir is unwritable; `os.execvp`-based
   restarts flush log handlers first; catch-all exception branches in
   `DiscordRPC._ensure_connected`, `MPRISSource._call_method_on` and
   `BluetoothSource._call_method` switched to `log.exception()` so
@@ -380,7 +380,7 @@ What's done, what's next, what's deliberately not in scope.
   their unicode-glyph prefixes (`⏮ ⏵ ⏸ ⏭ ⟳ ●/○`); all 9 .ts
   files updated. Quit ✕ glyph redrawn to fill its 16×16 viewBox.
 - **Song-info rows render with proper colour + icons.** Title /
-  Artist / Progress / Discord-status used to be `setEnabled(False)`
+  Artist / Progress / Discord-status were `setEnabled(False)`
   so KDE / GNOME's DBusMenu painted them muted-grey + indented +
   iconless. They're now enabled (a click opens Settings) and
   carry `view-media-{track,artist}`, `chronometer`, and

@@ -289,7 +289,9 @@ Nothing else is shared; `Config` is treated as immutable after `Apply`.
 ## Threads created elsewhere
 
 - **CoverFetcher** owns a 1-worker `ThreadPoolExecutor` for the iTunes
-  lookup + image download. Results are cached in-memory + on-disk; the
+  lookup + image download. Lookups are cached in-memory + on-disk, images
+  in a private temp dir; `keep_covers()` copies those of the songs in
+  the history into the cover cache and deletes the rest there. The
   daemon polls the cache via `get()` / `get_local_path()`. The lookup
   asks the store of the desktop's country first, then the US store,
   with "feat." and remaster tags stripped and, failing that, only the
@@ -330,8 +332,8 @@ name and exit. No lockfile in `/tmp`.
 | Credentials (fallback) | `$XDG_CONFIG_HOME/refrain/secrets.json` (`0600`, owner-only) — only when no keyring is reachable |
 | Logs (rotating)    | `$XDG_STATE_HOME/refrain/refrain.log{,.1,.2,.3}` |
 | Crash stacks       | `$XDG_STATE_HOME/refrain/crash.log` (faulthandler; `0600`; ≤ 256 KB, then started afresh) |
-| Cover URL cache    | `$XDG_CACHE_HOME/refrain/<key>.txt` (versioned; a miss expires after 3 days) |
-| Cover image cache  | `$XDG_CACHE_HOME/refrain/<urlhash>.jpg` (200-entry cap) |
+| Cover URL cache    | `$XDG_CACHE_HOME/refrain/covers/<key>.txt` (versioned; a miss expires after 3 days; 200-entry cap) |
+| Cover images       | `$XDG_CACHE_HOME/refrain/covers/<urlhash>.jpg` only for songs in the history; others in a private temp dir until the next song or quit |
 | Scrobble queue     | `$XDG_STATE_HOME/refrain/scrobble_queue.jsonl` (`0600`, atomic; 1000-entry cap; each entry names its Last.fm account) |
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` (`0600`, atomic; one play, kept across a restart) |
 | Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 10–100 songs, 30 by default) |

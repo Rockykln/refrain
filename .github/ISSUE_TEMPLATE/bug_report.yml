@@ -61,14 +61,23 @@ body:
     validations:
       required: true
 
+  - type: markdown
+    attributes:
+      value: |
+        **Before you paste a log:** issues are public. The log lists the songs you
+        played (your listening history) and, in debug mode, the address of your
+        Bluetooth device. Read it first and remove anything you don't want public,
+        or mail the log to [contact@rockykln.com](mailto:contact@rockykln.com) instead
+        and mention your issue number.
+
   - type: textarea
     id: logs
     attributes:
       label: Refrain log
       description: |
         Paste the relevant portion of `~/.local/state/refrain/refrain.log`.
-        Tracks playing at the time of the bug are useful context but no secrets
-        live in the log.
+        It holds no passwords or tokens, but it does contain song titles and,
+        in debug mode, Bluetooth device addresses — check it before posting.
       render: shell
     validations:
       required: false

@@ -40,6 +40,13 @@ the update popup show it, and the release notes come from that version's
 section of `CHANGELOG.md` (or *Unreleased*, before the tag). It needs
 KDE Plasma's `kwin_wayland` and the Breeze colour schemes.
 
+The GitHub social preview (`docs/social-preview.png`, uploaded by hand under
+Settings → General → Social preview) is put together from these shots:
+
+```sh
+python docs/screenshots/social.py docs/social-preview.png
+```
+
 `notification.png` is drawn by the script too — Plasma draws the real
 one, so the script rebuilds its layout.
 

@@ -207,7 +207,6 @@ notify_delay_ms = 0                # 0 = fire ASAP; the cover-art retry loop sti
 [advanced]
 poll_interval_ms = 500
 log_level = "INFO"
-cover_cache_size = 200             # disk cap for cached covers
 idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
 position_stall_s = 4               # seconds a playing track's position may stand still before Refrain stops trusting it; 0 disables
 language = "system"                # "system" follows QLocale; "en", "de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN" force a translation
@@ -484,7 +483,7 @@ entry + icon.)
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
 | Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes) |
-| Cover cache   | `$XDG_CACHE_HOME/refrain/covers/*.txt`      |
+| Cover cache   | `$XDG_CACHE_HOME/refrain/covers/` (lookups; images only for songs in *Recently played*) |
 | Autostart     | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (when enabled) |
 
 ## Diagnostics — live log
@@ -504,15 +503,16 @@ without tailing it from a terminal.
 ## Privacy
 
 Refrain is **local-first**: no Refrain server, no account, **no
-telemetry**, and the author receives nothing. Data leaves your machine
-**only** when *you* enable an optional integration, and then it goes
+telemetry**, and the author receives nothing. Two lookups are on by
+default and can be switched off (cover art at Apple, the update check at
+GitHub); everything else only runs once *you* set it up. Data always goes
 directly to that provider:
 
 - **Discord** — only if you set a Discord Application ID; track
   metadata goes to the *local* Discord IPC socket (the Discord client
   then broadcasts it under your account).
-- **Apple iTunes Search** (HTTPS) — artist + track name, only while
-  cover-art is enabled, to fetch album art. Untick it for zero egress.
+- **Apple iTunes Search** (HTTPS) — artist + track name, while cover art
+  is enabled (the default), to fetch album art. Untick it for zero egress.
 - **GitHub** (HTTPS) — a daily update check sends only the Refrain
   version + your IP. Disable in *Updates*.
 - **Last.fm** (HTTPS) — opt-in scrobbling only; credentials live in
@@ -559,12 +559,12 @@ source/UI architecture. PRs welcome — especially for distribution packaging
 
 Refrain is **source-available but not open source**. In short:
 
-- ✅ Anyone may use, copy, and redistribute the unmodified Software.
-- ✅ Anyone may read, study, and reference the source code.
-- ❌ Modifications and derivative works (including forks) may **not** be
-     redistributed.
-- ❌ The "Refrain" name and logo may not be used to imply endorsement of
-     or affiliation with modified versions.
+- Anyone may use, copy, and redistribute the unmodified Software.
+- Anyone may read, study, and reference the source code.
+- Modifications and derivative works may **not** be redistributed.
+  Forks on GitHub are fine only for preparing a pull request.
+- The "Refrain" name and logo may not be used to imply endorsement of
+  or affiliation with modified versions.
 
 Third-party dependencies (`PySide6`, `pypresence`, `dbus-python`) retain
 their original licenses (LGPL / MIT).
@@ -580,3 +580,25 @@ with.
 Full notice — trademarks, licence, third-party components, and what data
 leaves your machine — in [`LEGAL.md`](LEGAL.md). The same text is reachable
 inside the app under **Settings → Legal**.
+
+<!-- stats:start -->
+## Stats
+
+| Stat | Value |
+|---|---|
+| Lines of code | 9,133 |
+| Lines in the repository | 43,213 |
+| Words in the repository | 175,046 |
+| Test coverage | 91 % |
+| Words of documentation | 37,799 |
+| Automated tests | 1,171 |
+| Days since the first release | 136 |
+| Versions released | 24 |
+| Commits | 200 |
+| Languages | 10 |
+| Runtime dependencies | 3 |
+| Browsers tested | 5 (Chrome, Chromium, Brave, Firefox, Zen) |
+| Ways to install | 3 (PyPI, AUR, AppImage) |
+
+As of v0.5.3.
+<!-- stats:end -->

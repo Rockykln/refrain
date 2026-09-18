@@ -14,6 +14,9 @@ mid-song never loses them — they're submitted on the next opportunity.
 
 Same "bring your own credentials" model as the Discord Application ID:
 each user registers their own free API account (takes a minute).
+Using Last.fm through Refrain is subject to the
+[Last.fm API Terms of Service](https://www.last.fm/api/tos), which you
+accept when you create that account.
 
 1. Open <https://www.last.fm/api/account/create> (the
    *Settings → Last.fm → Create API account* button takes you there).

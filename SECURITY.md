@@ -8,8 +8,8 @@ next tag, and users update.
 
 | Version | Supported |
 |---------|-----------|
-| Latest tag on `main` | ✅ |
-| Older tags | ❌ |
+| Latest tag on `main` | Yes |
+| Older tags | No |
 
 ## Reporting a vulnerability
 
@@ -24,6 +24,18 @@ If GitHub Security Advisories aren't an option for you, mail
 is monitored for security reports specifically; please don't use it for
 feature requests or general questions (use `contact@rockykln.com` for
 those).
+
+## What to expect
+
+Refrain is a hobby project maintained by one person in their spare time,
+so these are aims, not guarantees:
+
+- I acknowledge a report within **7 days**.
+- A fix, or an advisory with a workaround, ships as soon as practical.
+  I'll keep you posted if it takes longer.
+- Disclosure is coordinated: please keep the details private until a
+  fixed release is out. The advisory is published after the fix, and I
+  credit you in it unless you'd rather not be named.
 
 ## What counts as a security issue
 
@@ -45,10 +57,31 @@ Refrain is a desktop app that talks to D-Bus and a single local IPC socket
   HTTPS. The shared secret + session token are credentials; anything
   that exposes them (in a log, in `config.toml`, world-readable on
   disk, or sent anywhere other than Last.fm) qualifies.
-- **Config / log / credential paths** — Refrain writes only to
-  `$XDG_CONFIG_HOME`, `$XDG_STATE_HOME`, `$XDG_CACHE_HOME`. Anything
-  that lets these files escape those directories, or that leaks the
-  credentials out of the OS keyring / `0600` fallback, qualifies.
+- **Updater** — the update check asks the GitHub releases API over
+  HTTPS. For an AppImage, *Update* downloads the new AppImage and
+  `SHA256SUMS` only from
+  `https://github.com/Rockykln/refrain/releases/download/`, refuses
+  redirects to anything but HTTPS, picks the file for the machine's
+  architecture, checks the size against the release, and compares the
+  SHA-256 with the release's `SHA256SUMS` before it replaces the
+  AppImage file (a release without `SHA256SUMS` is checked by size
+  only). The checksum file comes from the same release and releases are
+  not signed, so this protects against corrupted or partial downloads,
+  not against a compromised GitHub account or release. pip and pipx
+  installs are updated by running `pip install --upgrade refrain` or
+  `pipx upgrade refrain` against PyPI; Refrain is published there from
+  GitHub Actions with Trusted Publishing, without a stored token. Anything
+  that makes the updater install a file that isn't from the Refrain
+  releases or PyPI qualifies.
+- **Files Refrain writes** — its config, logs, state and cache live in
+  the `refrain` folders inside `$XDG_CONFIG_HOME`, `$XDG_STATE_HOME` and
+  `$XDG_CACHE_HOME`. Besides those it writes the autostart entry
+  (`$XDG_CONFIG_HOME/autostart/refrain.desktop`), the menu entry and icon
+  from `--install-desktop` (`~/.local/share/applications`,
+  `~/.local/share/icons`), and, during an AppImage update, the AppImage
+  file itself (via a temporary `.AppImage.new` next to it). Anything that
+  lets Refrain write outside these places, or that leaks the credentials
+  out of the OS keyring / `0600` fallback, qualifies.
 
 ## What doesn't count
 
