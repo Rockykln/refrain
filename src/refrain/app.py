@@ -15,6 +15,7 @@ import os
 import re
 import shutil
 import signal
+import subprocess
 import sys
 import threading
 import time
@@ -35,7 +36,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
-from refrain import __version__
+from refrain import __version__, qt_libraries
 from refrain.autostart import disable as autostart_disable
 from refrain.autostart import enable as autostart_enable
 from refrain.autostart import is_enabled as autostart_is_enabled
@@ -738,6 +739,18 @@ def _run(args: argparse.Namespace) -> int:
     cleanup_orphan_downloads()
 
     _augment_qt_plugin_path()
+
+    missing = qt_libraries.missing_libraries(
+        Path(QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath))
+    )
+    if missing:
+        # Qt would abort with "no Qt platform plugin could be initialized".
+        text = qt_libraries.message(missing)
+        log.error("%s", text.replace("\n", " "))
+        print(text, file=sys.stderr)
+        if notify := shutil.which("notify-send"):
+            subprocess.run([notify, "-a", "Refrain", "Refrain can't start", text], check=False)
+        return 1
 
     app = QApplication(sys.argv)
     # Qt's glib dispatcher now owns the default GMainContext, so this is

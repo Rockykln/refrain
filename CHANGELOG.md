@@ -40,6 +40,10 @@ lists every version and why.
 - **History day headings could come out barely visible.** A window
   built before it got focus took the greyed-out colours of an unfocused
   window, which some styles use, and kept them.
+- **A missing system library ended in Qt's crash.** When a pip install
+  lacked a library Qt's Wayland or X11 plugin needs, Qt aborted with
+  "no Qt platform plugin could be initialized". Refrain now names the
+  missing library and the command that installs it on your distro.
 - **Refrain's own restart could fail with "already running".** It
   replaces its own process, and the session bus may still hold the old
   one's name for a moment; the new one now waits up to three seconds
