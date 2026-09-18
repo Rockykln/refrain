@@ -214,6 +214,14 @@ def _current_dict(
     }
 
 
+def _copy_entry(entry: HistoryEntry) -> HistoryEntry:
+    # A plain field copy: dataclasses.replace re-runs __init__ and costs
+    # several times as much, for every entry of every snapshot.
+    copy = object.__new__(HistoryEntry)
+    copy.__dict__.update(entry.__dict__)
+    return copy
+
+
 def _same_play(a: HistoryEntry, b: HistoryEntry) -> bool:
     return (a.started_at, a.title, a.artist) == (b.started_at, b.title, b.artist)
 
@@ -519,7 +527,7 @@ class PlayHistory:
                 entries.insert(0, cur.entry)
             entries = entries[: self._limit]
             return HistorySnapshot(
-                entries=tuple(dataclasses.replace(e) for e in entries),
+                entries=tuple(_copy_entry(e) for e in entries),
                 now_playing=cur is not None,
                 playing=cur.shown_playing if cur is not None else False,
                 limit=self._limit,

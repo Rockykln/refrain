@@ -337,7 +337,7 @@ the background.
         <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-advanced-light.png"/>
         <img src="docs/screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
       </picture>
-      <br/><sub>Poll interval, notification delay, cover cache size, language, log level, restart, reset, uninstall</sub>
+      <br/><sub>Poll interval, notification delay, language, log level, restart, reset, uninstall</sub>
     </td>
   </tr>
   <tr>

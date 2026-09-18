@@ -77,16 +77,39 @@ def _normalize(item: dict) -> dict | None:
 class ScrobbleQueue:
     """Disk-backed FIFO of pending scrobbles.
 
-    Small (≤ ``_MAX_QUEUE`` tiny rows), so every mutation rewrites the
-    whole file atomically — simpler and corruption-proof versus
-    append-mode, and the cost is negligible at this size.
+    A new play is appended as one line; removals rewrite the whole file
+    atomically. The file may run up to ``_slack`` rows past the cap before
+    it is compacted — loading keeps only the newest ``max_entries`` rows,
+    which are exactly the ones in memory.
     """
 
     def __init__(self, path: Path | None = None, max_entries: int = _MAX_QUEUE) -> None:
         self._path = path or queue_path()
         self._max = max(1, int(max_entries))
+        self._slack = max(1, self._max // 10)
         self._lock = threading.Lock()
+        # Rows in the file, and whether it holds anything besides them
+        # (a torn or corrupt line) that an append would build on.
+        self._file_rows = 0
+        self._file_dirty = False
         self._items: list[dict] = self._load()
+        # Dedup key -> how many queued rows carry it. A count, not a set:
+        # a file from before dedup can hold the same play twice.
+        self._keys: dict[str, int] = {}
+        for it in self._items:
+            self._add_key(it)
+
+    def _add_key(self, item: dict) -> None:
+        key = dedup_key(item)
+        self._keys[key] = self._keys.get(key, 0) + 1
+
+    def _drop_key(self, item: dict) -> None:
+        key = dedup_key(item)
+        left = self._keys.get(key, 0) - 1
+        if left > 0:
+            self._keys[key] = left
+        else:
+            self._keys.pop(key, None)
 
     # ------------------------------------------------------------- io
 
@@ -98,7 +121,9 @@ class ScrobbleQueue:
             text = self._path.read_text(encoding="utf-8")
         except OSError as e:
             log.warning("Scrobble queue unreadable (%s) — starting empty", e)
+            self._file_dirty = True
             return []
+        clean = not text or text.endswith("\n")
         for line in text.splitlines():
             line = line.strip()
             if not line:
@@ -107,19 +132,49 @@ class ScrobbleQueue:
                 raw = json.loads(line)
             except ValueError:
                 log.debug("Skipping corrupt scrobble-queue line")
+                clean = False
                 continue
             norm = _normalize(raw) if isinstance(raw, dict) else None
             if norm is not None:
                 items.append(norm)
+            else:
+                clean = False
+        self._file_rows = len(items)
+        self._file_dirty = not clean
         if len(items) > self._max:
             items = items[-self._max :]
         return items
+
+    def _append_locked(self, item: dict) -> None:
+        if self._file_dirty or self._file_rows >= self._max + self._slack:
+            self._save_locked()
+            return
+        line = json.dumps(item, ensure_ascii=False) + "\n"
+        try:
+            # No O_CREAT: a file that went missing needs the whole queue.
+            fd = os.open(self._path, os.O_WRONLY | os.O_APPEND)
+        except FileNotFoundError:
+            self._save_locked()
+            return
+        except OSError as e:
+            self._file_dirty = True
+            log.warning("Could not persist scrobble queue (%s)", e)
+            return
+        try:
+            with os.fdopen(fd, "a", encoding="utf-8") as f:
+                f.write(line)
+        except OSError as e:
+            self._file_dirty = True
+            log.warning("Could not persist scrobble queue (%s)", e)
+            return
+        self._file_rows += 1
 
     def _save_locked(self) -> None:
         """Persist ``self._items``. A write failure leaves
         the in-memory queue intact for this session and is logged, not
         raised — a daemon tick must never die because state-dir is
         read-only."""
+        self._file_dirty = True
         try:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             tmp = self._path.with_suffix(self._path.suffix + ".tmp")
@@ -139,6 +194,9 @@ class ScrobbleQueue:
                 raise
         except OSError as e:
             log.warning("Could not persist scrobble queue (%s)", e)
+            return
+        self._file_rows = len(self._items)
+        self._file_dirty = False
 
     # --------------------------------------------------------- mutate
 
@@ -158,14 +216,14 @@ class ScrobbleQueue:
             log.debug("Scrobble dropped — missing artist/track/timestamp")
             return False
         with self._lock:
-            key = dedup_key(norm)
-            if any(dedup_key(it) == key for it in self._items):
+            if dedup_key(norm) in self._keys:
                 log.debug("Scrobble already queued — skipping duplicate")
                 return False
             self._items.append(norm)
+            self._add_key(norm)
             dropped = 0
             while len(self._items) > self._max:
-                self._items.pop(0)
+                self._drop_key(self._items.pop(0))
                 dropped += 1
             if dropped:
                 log.warning(
@@ -174,7 +232,7 @@ class ScrobbleQueue:
                     dropped,
                     "y" if dropped == 1 else "ies",
                 )
-            self._save_locked()
+            self._append_locked(norm)
         return True
 
     def drop_other_accounts(self, account: str) -> int:
@@ -189,6 +247,9 @@ class ScrobbleQueue:
             dropped = len(self._items) - len(kept)
             if dropped:
                 self._items = kept
+                self._keys = {}
+                for it in kept:
+                    self._add_key(it)
                 self._save_locked()
         return dropped
 
@@ -221,6 +282,8 @@ class ScrobbleQueue:
                 # Drop exactly the rows we just submitted (by identity of
                 # value); a concurrent enqueue appended to the end so
                 # slicing the prefix is safe.
+                for it in self._items[: len(batch)]:
+                    self._drop_key(it)
                 del self._items[: len(batch)]
                 submitted += len(batch)
                 self._save_locked()

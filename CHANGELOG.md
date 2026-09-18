@@ -48,6 +48,14 @@ lists every version and why.
   of everything it bundles. Qt modules only available under the GPL are
   no longer included.
 - **The log file and the cover cache are readable by you only.**
+- **Refrain does less work while it waits.** It asks the players on the
+  session bus for everything in one call instead of property by property
+  and looks for new players less often, a song without a catalog length
+  no longer costs twice as much per poll, and a new scrobble is added to
+  the offline queue instead of rewriting the whole file.
+- **The *Recently played* window keeps only the covers it shows.** With
+  the window open, every cover it had ever displayed stayed in memory,
+  and each change rebuilt the whole list.
 - **The licence** now words its liability terms to hold under German law,
   lets contributors keep authorship while granting the use of their
   work, and allows forks that only prepare a pull request.
@@ -142,6 +150,11 @@ lists every version and why.
   `notify-send`.
 - **The Flatpak manifest could not be built**, and inside the Flatpak the
   MPRIS entry and desktop file name did not match the app.
+- **A player that sent its artist as plain text had it spelled out letter
+  by letter.**
+- **With every Discord client enabled, one that refused the connection
+  reported the Application ID as rejected** although the others showed
+  the status.
 
 ## [0.5.2] - 2026-09-18
 

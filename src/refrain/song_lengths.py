@@ -27,6 +27,8 @@ MAX_LENGTH_S = 3600
 # 22 bytes a line, so the cap costs ~22 KB. Past it the least recently
 # heard song goes.
 MAX_ENTRIES = 1000
+# The daemon asks for the playing song's length several times a second.
+_KEY_CACHE_SIZE = 64
 
 
 def song_key(artist: str, title: str, album: str) -> str:
@@ -64,6 +66,10 @@ class LearnedLengths:
         self._entries: dict[str, tuple[int, int]] = self._load()
         # A differing reading for a confirmed length, waiting for a second.
         self._challengers: dict[str, int] = {}
+        self._keys: dict[tuple[str, str, str], str] = {}
+        # Bumped by every change, so a caller can hold on to a length
+        # until it may have moved.
+        self.generation = 0
 
     def _load(self) -> dict[str, tuple[int, int]]:
         try:
@@ -102,10 +108,20 @@ class LearnedLengths:
                 tmp.unlink()
             log.debug("Could not save the measured song lengths (%s)", e)
 
+    def _key_locked(self, artist: str, title: str, album: str) -> str:
+        names = (artist, title, album)
+        key = self._keys.get(names)
+        if key is None:
+            key = song_key(artist, title, album)
+            if len(self._keys) >= _KEY_CACHE_SIZE:
+                self._keys.pop(next(iter(self._keys)))
+            self._keys[names] = key
+        return key
+
     def get_ms(self, artist: str, title: str, album: str) -> int:
         """The song's measured length, or 0 while it is still unconfirmed."""
         with self._lock:
-            entry = self._entries.get(song_key(artist, title, album))
+            entry = self._entries.get(self._key_locked(artist, title, album))
         if entry is None or entry[1] < CONFIRMATIONS_NEEDED:
             return 0
         return entry[0] * 1000
@@ -121,8 +137,8 @@ class LearnedLengths:
         seconds = round(played_ms / 1000)
         if not MIN_LENGTH_S <= seconds <= MAX_LENGTH_S:
             return False
-        key = song_key(artist, title, album)
         with self._lock:
+            key = self._key_locked(artist, title, album)
             known = self._entries.pop(key, None)
             if known is not None and abs(known[0] - seconds) <= AGREES_WITHIN_S:
                 entry = (known[0], min(known[1] + 1, CONFIRMATIONS_NEEDED))
@@ -139,10 +155,12 @@ class LearnedLengths:
             self._entries[key] = entry
             while len(self._entries) > MAX_ENTRIES:
                 self._entries.pop(next(iter(self._entries)))
+            self.generation += 1
             self._save_locked()
         return entry[1] >= CONFIRMATIONS_NEEDED and entry != known
 
     def forget(self, artist: str, title: str, album: str) -> None:
         with self._lock:
-            if self._entries.pop(song_key(artist, title, album), None) is not None:
+            if self._entries.pop(self._key_locked(artist, title, album), None) is not None:
+                self.generation += 1
                 self._save_locked()

@@ -203,3 +203,23 @@ def test_an_image_arriving_for_a_song_already_in_the_history_is_kept(fetcher, do
     fetcher.keep_covers([COVER])
     _settle(fetcher, *KEY)
     assert image_path_for_url(COVER).exists()
+
+
+def test_the_same_covers_again_leave_the_disk_alone(fetcher, downloads, monkeypatch):
+    _settle(fetcher, *KEY)
+    fetcher.keep_covers([COVER])
+    synced = []
+    monkeypatch.setattr(cf, "keep_cover_images", lambda urls, sources: synced.append(urls))
+    fetcher.keep_covers([COVER, "", COVER])
+    fetcher.keep_covers(u for u in [COVER])
+    assert synced == []
+    fetcher.keep_covers([])
+    assert synced == [set()]
+
+
+def test_the_first_sync_cleans_up_even_with_nothing_to_keep(fetcher):
+    stray = image_path_for_url("https://example.org/covers/gone-600x600bb.jpg")
+    stray.parent.mkdir(parents=True, exist_ok=True)
+    stray.write_bytes(b"\xff\xd8\xff\xe0cover")
+    fetcher.keep_covers([])
+    assert not stray.exists()

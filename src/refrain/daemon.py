@@ -327,6 +327,11 @@ class DaemonWorker(QObject):
         # Lengths measured from whole plays, for songs the catalog has none
         # for — see refrain.song_lengths.
         self._song_lengths = LearnedLengths()
+        # The known length of the song this tick is about, shared by every
+        # pipeline stage; dropped at the start of each tick so a catalog
+        # answer that arrived since is picked up.
+        self._tick_known: tuple[tuple, int] | None = None
+        self._album_display: tuple[tuple[str, str, str], str] = (("", "", ""), "")
         self._prev_track: TrackInfo | None = None
         self._max_reported_ms = 0
         # When we last skipped a song ourselves: a play we cut short says
@@ -629,6 +634,7 @@ class DaemonWorker(QObject):
     def _tick(self) -> None:
         if self._stopped:
             return
+        self._tick_known = None
         try:
             track = self._poll()
             self._dispatch(track)
@@ -672,8 +678,20 @@ class DaemonWorker(QObject):
             track.artist, track.title, track.album
         )
 
+    def _tick_known_ms(self, track: TrackInfo) -> int:
+        """`_known_duration_ms`, looked up once per tick and song.
+
+        A length measured or dropped mid-tick bumps the learned lengths'
+        generation, so the stages after it see the new answer."""
+        key = (track.artist, track.title, track.album, self._song_lengths.generation)
+        if self._tick_known is not None and self._tick_known[0] == key:
+            return self._tick_known[1]
+        known = self._known_duration_ms(track)
+        self._tick_known = (key, known)
+        return known
+
     def _duration_for(
-        self, track: TrackInfo, state: PositionState | None = None
+        self, track: TrackInfo, state: PositionState | None = None, known_ms: int | None = None
     ) -> tuple[int, bool]:
         """The track length every consumer should use, and whether it's disputed.
 
@@ -695,7 +713,7 @@ class DaemonWorker(QObject):
         Returns ``(effective_ms, disputed)``.
         """
         state = state or self._position_state
-        itunes_dur_ms = self._known_duration_ms(track)
+        itunes_dur_ms = self._known_duration_ms(track) if known_ms is None else known_ms
         mpris_dur_ms = track.duration_ms
         if state.cumulative:
             # Such a length can grow by 135 s over 144 s of playback on
@@ -793,12 +811,13 @@ class DaemonWorker(QObject):
                 loop_track=track.loop_track,
             )
 
-        length = self._duration_for(track)
+        known_ms = self._tick_known_ms(track)
+        length = self._duration_for(track, known_ms=known_ms)
         position_ms, tier, new_state = resolve(length)
         # This poll can itself reveal what the source's length describes
         # (a length that moves latches it as a stream). Judge the position
         # against the length the rest of the tick will use.
-        settled = self._duration_for(track, new_state)
+        settled = self._duration_for(track, new_state, known_ms)
         if settled != length:
             length = settled
             position_ms, tier, new_state = resolve(length)
@@ -858,11 +877,12 @@ class DaemonWorker(QObject):
         # When MPRIS reports a wonky value (preview-clip 14 s, playlist
         # total 7:21 on a 2:11 song), the iTunes-catalog duration we
         # already cached for cover-art lookup is closer to truth.
-        effective_dur_ms, disputed = self._duration_for(track)
+        known_ms = self._tick_known_ms(track)
+        effective_dur_ms, disputed = self._duration_for(track, known_ms=known_ms)
         if disputed:
             # No length to show, but the deadline only needs an upper bound:
             # the longer candidate never clears a real play early.
-            effective_dur_ms = max(track.duration_ms, self._known_duration_ms(track))
+            effective_dur_ms = max(track.duration_ms, known_ms)
         now = time.monotonic()
         # The source's position moving is proof the handle isn't
         # dangling, whatever the duration says. `position_stall_s = 0`
@@ -925,8 +945,8 @@ class DaemonWorker(QObject):
         # the same number, and `_duration_for` is the one place that
         # weighs the player's length against the catalog's. The raw
         # catalog value is kept alongside it purely for the RPC log line.
-        itunes_dur_ms = self._known_duration_ms(track)
-        effective_dur_ms, duration_disputed = self._duration_for(track)
+        itunes_dur_ms = self._tick_known_ms(track)
+        effective_dur_ms, duration_disputed = self._duration_for(track, known_ms=itunes_dur_ms)
 
         # Tray progress label, emitted on every tick while playing. The
         # tray reads a negative position as "hide the line" and a
@@ -1248,7 +1268,10 @@ class DaemonWorker(QObject):
 
         large_image = cover_url or "refrain"
 
-        album_for_display = _format_album_for_display(track.album, track.artist, track.title)
+        names = (track.album, track.artist, track.title)
+        if names != self._album_display[0]:
+            self._album_display = (names, _format_album_for_display(*names))
+        album_for_display = self._album_display[1]
 
         # Preview-clip mode for the Discord payload: drop start AND end
         # when the *effective* track length is under 30 s. Using the

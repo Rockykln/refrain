@@ -107,6 +107,7 @@ class CoverFetcher:
         # Serialises the copies into, and the deletions from, the cover cache.
         self._keep_lock = threading.Lock()
         self._keep: frozenset[str] = frozenset()
+        self._kept_once = False
 
     def get(self, artist: str, title: str, album: str = "") -> str | None:
         """Returns the iTunes cover URL or None.
@@ -193,6 +194,11 @@ class CoverFetcher:
         """
         keep = frozenset(u for u in urls if u)
         with self._keep_lock:
+            # Pausing or a scrobble mark changes the history but not its
+            # covers; an image that arrives later is kept by _download.
+            if self._kept_once and keep == self._keep:
+                return
+            self._kept_once = True
             self._keep = keep
             keep_cover_images(set(keep), self._temp_sources())
 

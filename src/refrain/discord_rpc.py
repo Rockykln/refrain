@@ -273,6 +273,7 @@ class DiscordRPC:
 
         connected_now: list[object] = []
         last_error: Exception | None = None
+        rejected = False
         for target in targets:
             try:
                 p = (
@@ -285,18 +286,26 @@ class DiscordRPC:
                 connected_now.append(target)
             except ppx.DiscordError as e:
                 # Discord answered but refused the handshake — a bad
-                # Application ID or a signed-out client. Same verdict for
-                # every client, so stop here instead of retrying it once
-                # per socket.
-                self.status = "rejected"
-                self.status_detail = str(e)
-                log.info("Discord RPC handshake rejected: %s", e)
-                self._backoff_s = self._max_backoff_s
-                self._schedule_retry()
-                return bool(self._presences)
+                # Application ID or a signed-out client. Likely the same
+                # verdict from the clients after it, so stop here instead of
+                # asking each one.
+                log.info("Discord RPC handshake rejected on %s: %s", target, e)
+                rejected = True
+                if not self._presences:
+                    self.status = "rejected"
+                    self.status_detail = str(e)
+                    self._backoff_s = self._max_backoff_s
+                    self._schedule_retry()
+                    return False
+                break
             except Exception as e:
                 last_error = e
                 log.debug("Discord RPC connect failed on %s: %s", target, e)
+
+        if rejected:
+            # A client that accepted is served, so the status stays
+            # "connected"; the one that refused is asked again later.
+            self._next_retry_ts = time.monotonic() + self._max_backoff_s
 
         if connected_now:
             self._backoff_s = 2.0
@@ -319,8 +328,10 @@ class DiscordRPC:
             return True
 
         if self._presences:
-            # Already serving someone; a newcomer simply is not ready.
-            self._schedule_retry()
+            # Already serving someone; a newcomer is not ready or refused.
+            self.status = "connected"
+            if not rejected:
+                self._schedule_retry()
             return True
 
         self.status = "no_client"

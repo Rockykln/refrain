@@ -568,3 +568,17 @@ def test_the_catalog_page_wins_over_the_tab(hist, clock):
         track, SONG_MS, song_url="https://music.apple.com/us/song/a/9", now_wall=0, now_mono=0
     )
     assert hist.snapshot().entries[0].url == "https://music.apple.com/us/song/a/9"
+
+
+def test_a_snapshot_is_a_copy_the_caller_cannot_change_the_history_through(hist, clock):
+    _counted(hist, "Glass Tides", clock)
+    shown = hist.snapshot().entries[0]
+    shown.title = "Paper Satellites"
+    shown.scrobbled = True
+    again = hist.snapshot().entries[0]
+    assert (again.title, again.scrobbled) == ("Glass Tides", False)
+    assert again is not shown
+    # Nor is it a live view: a later change leaves the earlier copy as it was.
+    assert hist.mark_scrobbled("Artist", "Glass Tides")
+    assert not again.scrobbled
+    assert hist.snapshot().entries[0].scrobbled

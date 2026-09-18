@@ -12,14 +12,17 @@ pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QDate, QDateTime, QLocale, Qt, QTime, QTranslator  # noqa: E402
+from PySide6.QtGui import QColor, QImage  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox  # noqa: E402
 
 import refrain  # noqa: E402
+from refrain.cover_art import image_path_for_url  # noqa: E402
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
 from refrain.ui.history_window import (  # noqa: E402
     HistoryWindow,
     _ElidedLabel,
+    _read_scaled,
     _SongRow,
     highlight_ranges,
     song_link,
@@ -387,6 +390,109 @@ def test_without_a_page_the_link_is_a_search():
     assert song_link(entry) == (
         "https://music.apple.com/search?term=Neon%20Harbor%20%26%20Co%20Glass%20Tides%3F"
     )
+
+
+def _demo(*songs: tuple[str, str], cover: bool = False) -> tuple[HistoryEntry, ...]:
+    base = _at(QDate.currentDate())
+    return tuple(
+        HistoryEntry(
+            title=title,
+            artist=artist,
+            source="mpris",
+            player="Chromium",
+            started_at=base - i * 240,
+            duration_ms=200_000,
+            cover_url=_cover_url(title) if cover else "",
+        )
+        for i, (title, artist) in enumerate(songs)
+    )
+
+
+def _cover_url(title: str) -> str:
+    return f"https://example.org/covers/{title.lower().replace(' ', '-')}-600x600bb.jpg"
+
+
+def _store_cover(url: str) -> None:
+    path = image_path_for_url(url)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    image = QImage(600, 600, QImage.Format.Format_RGB32)
+    image.fill(QColor(40, 90, 160))
+    assert image.save(str(path), "JPG")
+
+
+GLASS = ("Glass Tides", "Neon Harbor")
+PAPER = ("Paper Satellites", "Marlow Vance")
+NORTH = ("Northbound", "The Quiet Hours")
+SILK = ("Silk Road Radio", "Ilse Moreau")
+
+
+def _rows_in_order(w) -> list[_SongRow]:
+    items = (w._rows.itemAt(i).widget() for i in range(w._rows.count()))
+    return [widget for widget in items if isinstance(widget, _SongRow)]
+
+
+def test_a_new_song_keeps_the_rows_that_did_not_change(win):
+    entries = _demo(GLASS, PAPER, NORTH)
+    win.set_snapshot(HistorySnapshot(entries=entries[1:], now_playing=True, playing=True))
+    paper, north = _rows_in_order(win)
+    win.set_snapshot(HistorySnapshot(entries=entries, now_playing=True, playing=True))
+    rows = _rows_in_order(win)
+    assert [row._entry.title for row in rows] == ["Glass Tides", "Paper Satellites", "Northbound"]
+    assert rows[2] is north
+    assert rows[1] is not paper  # it was the playing one
+    assert not rows[1]._now_playing and rows[0]._now_playing
+    assert win.findChildren(_SongRow) == rows
+    assert win.count_label.text() == "Last 3 songs"
+
+
+def test_pausing_replaces_only_the_playing_row(win):
+    entries = _demo(GLASS, PAPER, NORTH)
+    win.set_snapshot(HistorySnapshot(entries=entries, now_playing=True, playing=True))
+    before = _rows_in_order(win)
+    win.set_snapshot(HistorySnapshot(entries=entries, now_playing=True, playing=False))
+    after = _rows_in_order(win)
+    assert after[1:] == before[1:]
+    assert after[0] is not before[0]
+    assert "Paused" in _texts(win)
+    assert "Now playing" not in _texts(win)
+
+
+def test_the_cover_memo_holds_only_the_songs_in_the_snapshot(win):
+    for song in (GLASS, PAPER, NORTH, SILK):
+        _store_cover(_cover_url(song[0]))
+    win.set_snapshot(HistorySnapshot(entries=_demo(GLASS, PAPER, cover=True)))
+    assert _memo_urls(win) == {_cover_url(GLASS[0]), _cover_url(PAPER[0])}
+    win.set_snapshot(HistorySnapshot(entries=_demo(NORTH, SILK, cover=True)))
+    assert _memo_urls(win) == {_cover_url(NORTH[0]), _cover_url(SILK[0])}
+    win.hide()
+    win.set_snapshot(HistorySnapshot(entries=_demo(SILK, cover=True)))
+    assert _memo_urls(win) == {_cover_url(SILK[0])}
+
+
+def _memo_urls(w) -> set[str]:
+    return {url for url, _dpr in w._covers if url}
+
+
+def test_covers_are_decoded_at_the_size_they_are_shown(win):
+    _store_cover(_cover_url(GLASS[0]))
+    win.set_snapshot(HistorySnapshot(entries=_demo(GLASS, cover=True)))
+    (pixmap,) = (v for (url, _dpr), v in win._covers.items() if url)
+    px = round(44 * win.devicePixelRatioF())
+    assert (pixmap.width(), pixmap.height()) == (px, px)
+    image = _read_scaled(str(image_path_for_url(_cover_url(GLASS[0]))), px)
+    assert (image.width(), image.height()) == (px, px)
+
+
+def test_a_cover_that_lands_later_replaces_the_placeholder(win):
+    entries = _demo(GLASS, PAPER, cover=True)
+    win.set_snapshot(HistorySnapshot(entries=entries, now_playing=True, playing=True))
+    first = _rows_in_order(win)
+    assert not any(row.has_cover for row in first)
+    _store_cover(_cover_url(PAPER[0]))
+    win.set_snapshot(HistorySnapshot(entries=entries, now_playing=True, playing=False))
+    rows = _rows_in_order(win)
+    assert rows[1] is first[1]
+    assert rows[1].has_cover
 
 
 def test_clicking_a_row_opens_it_in_the_browser_that_played_it(win, monkeypatch):

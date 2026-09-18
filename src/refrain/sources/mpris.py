@@ -8,6 +8,7 @@ import contextlib
 import dataclasses
 import logging
 import re
+import time
 
 import dbus
 import dbus.mainloop
@@ -39,12 +40,19 @@ BROWSER_HINTS = (
     "plasma-browser-integration",
 )
 
+_ROOT_IFACE = "org.mpris.MediaPlayer2"
+_PLAYER_IFACE = "org.mpris.MediaPlayer2.Player"
+_HUNG_ERRORS = ("NoReply", "Timeout")
+_GONE_ERRORS = ("ServiceUnknown", "NameHasNoOwner", "Disconnected")
+
 
 def _safe_str(v) -> str:
     return "" if v is None else str(v)
 
 
 def _to_str_list(v) -> list[str]:
+    if isinstance(v, str):
+        return [v]
     try:
         return [str(x) for x in v]
     except Exception:
@@ -147,8 +155,23 @@ class MPRISSource:
         # the poll cycle backs up to ~50 s.
         self._timeout_blacklist: dict[str, float] = {}
         self._bus = None  # see _session_bus
+        # MPRIS bus names from the last ListNames, and when that was.
+        self._player_names: list[str] = []
+        self._names_listed_at = 0.0
+        self._names_stale = True
+        # Properties proxy per bus name. dbus-python resolves the name to its
+        # current owner once, in get_object (a blocking GetNameOwner); when the
+        # owner goes away, calls fail with ServiceUnknown and it is dropped.
+        self._proxies: dict[str, object] = {}
+        # Identity / DesktopEntry per bus name; they never change while it is owned.
+        self._identities: dict[str, tuple[str, str]] = {}
+        # (bus name, interface) pairs whose GetAll failed; read property by property.
+        self._no_get_all: set[tuple[str, str]] = set()
 
     _BLACKLIST_S = 5.0
+    # New players (a browser started, a Firefox tab starting media) are noticed
+    # this late at most; a vanished one is noticed on its failed read.
+    _LIST_REFRESH_S = 3.0
 
     def set_browser_hints(self, hints: list[str]) -> None:
         if hints:
@@ -174,31 +197,20 @@ class MPRISSource:
     def _drop_bus(self) -> None:
         """Forget a connection that failed, so the next call opens a new one."""
         bus, self._bus = self._bus, None
+        self._player_names = []
+        self._names_stale = True
+        self._proxies.clear()
+        self._identities.clear()
+        self._no_get_all.clear()
         if bus is not None:
             with contextlib.suppress(Exception):
                 bus.close()
 
-    def read(self) -> TrackInfo:
-        import time as _time
-
-        try:
-            bus = self._session_bus()
-            obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
-            dbus_iface = dbus.Interface(obj, "org.freedesktop.DBus")
-            names = list(dbus_iface.ListNames())
-        except Exception as e:
-            log.debug("MPRIS: ListNames failed: %s", e)
-            self._drop_bus()
-            return TrackInfo.empty()
-
-        now = _time.monotonic()
-        candidates: list[tuple[int, TrackInfo, str]] = []
-        # Browser-looking players that *can* control playback but failed the
-        # apple-music URL filter — kept around so skip/next/prev fall back
-        # onto them when the metadata player can't dispatch the action.
-        fallbacks: list[str] = []
-        native: dict[str, str] = {}  # the Apple Music tab's own entries → "playing"/"paused"
-        for raw in names:
+    def _list_players(self, bus) -> list[str]:
+        obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+        dbus_iface = dbus.Interface(obj, "org.freedesktop.DBus")
+        names = []
+        for raw in dbus_iface.ListNames():
             name = str(raw)
             if not name.startswith("org.mpris.MediaPlayer2."):
                 continue
@@ -208,10 +220,56 @@ class MPRISSource:
             # whole seconds of latency per tick.
             if name == "org.mpris.MediaPlayer2.refrain":
                 continue
+            names.append(name)
+        for cache in (self._proxies, self._identities):
+            for name in set(cache) - set(names):
+                del cache[name]
+        self._no_get_all = {key for key in self._no_get_all if key[0] in names}
+        return names
+
+    def _forget_player(self, name: str) -> None:
+        self._names_stale = True
+        self._proxies.pop(name, None)
+        self._identities.pop(name, None)
+        self._no_get_all = {key for key in self._no_get_all if key[0] != name}
+
+    def read(self) -> TrackInfo:
+        now = time.monotonic()
+        if (
+            self._names_stale
+            or not self._player_names
+            or now - self._names_listed_at >= self._LIST_REFRESH_S
+        ):
+            try:
+                self._player_names = self._list_players(self._session_bus())
+            except Exception as e:
+                log.debug("MPRIS: ListNames failed: %s", e)
+                self._drop_bus()
+                return TrackInfo.empty()
+            self._names_listed_at = now
+            self._names_stale = False
+        bus = self._bus
+
+        candidates: list[tuple[int, TrackInfo, str]] = []
+        # Browser-looking players that *can* control playback but failed the
+        # apple-music URL filter — kept around so skip/next/prev fall back
+        # onto them when the metadata player can't dispatch the action.
+        fallbacks: list[str] = []
+        native: dict[str, str] = {}  # the Apple Music tab's own entries → "playing"/"paused"
+        for name in self._player_names:
             until = self._timeout_blacklist.get(name, 0.0)
             if now < until:
                 continue  # this player just timed out; skip until cooldown ends
-            ti, score, control_capable, native_status = self._read_player(bus, name)
+            had_proxy = name in self._proxies
+            result = self._read_player(bus, name)
+            if (
+                had_proxy
+                and name not in self._proxies
+                and now >= self._timeout_blacklist.get(name, 0.0)
+            ):
+                # The name may have passed to a new owner; look it up again.
+                result = self._read_player(bus, name)
+            ti, score, control_capable, native_status = result
             if ti is not None:
                 candidates.append((score, ti, name))
             elif control_capable:
@@ -364,50 +422,36 @@ class MPRISSource:
         page title — says it is the Apple Music tab, else "".
         """
         try:
-            # introspect=False so a flaky MPRIS player can't hang our poll
-            # for 25 s waiting for an Introspect reply; the signatures are known.
-            player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
-            props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
+            ident = self._identities.get(name)
+            if ident is not None and not _looks_browser(name, *ident, self._browser_hints):
+                return None, 0, False, ""
+            props = self._proxies.get(name)
+            if props is None:
+                # introspect=False so a flaky MPRIS player can't hang our poll
+                # for 25 s waiting for an Introspect reply; the signatures are known.
+                player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
+                props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
+                self._proxies[name] = props
 
-            # Each Get is wrapped: chromium's MPRIS rejects some optional
-            # properties (DesktopEntry in particular) with a generic
-            # `org.freedesktop.DBus.Error.Failed` instead of returning
-            # an empty string, and one bad property must not drop the
-            # whole player — least of all the chromium player whose
-            # Next/Previous calls actually skip Apple Music tracks.
-            #
-            # 0.5 s timeout per Get caps total cost: dbus-python's
-            # default 25 s reply timeout would let a single hung
-            # player freeze the poll loop for half a minute.
-            def _safe_get(iface: str, prop: str, default=""):
-                try:
-                    return props.Get(iface, prop, timeout=0.5)
-                except dbus.DBusException as e:
-                    err = str(e)
-                    # NoReply / Timeout means the player is hung — blacklist
-                    # so the next poll skips it instead of eating another
-                    # 0.5 s here. Other errors (Error.Failed, UnknownProp)
-                    # are normal for optional properties; just default.
-                    if "NoReply" in err or "Timeout" in err:
-                        import time as _time
+            if ident is None:
+                root, complete = self._read_props(
+                    props, name, _ROOT_IFACE, ("Identity", "DesktopEntry")
+                )
+                ident = (
+                    _safe_str(root.get("Identity", "")),
+                    _safe_str(root.get("DesktopEntry", "")),
+                )
+                if complete:
+                    self._identities[name] = ident
+            identity, desktop_entry = ident
+            if not _looks_browser(name, identity, desktop_entry, self._browser_hints):
+                return None, 0, False, ""
 
-                        self._timeout_blacklist[name] = _time.monotonic() + self._BLACKLIST_S
-                        log.debug(
-                            "MPRIS %s timed out on %s — blacklisting %.0fs",
-                            name,
-                            prop,
-                            self._BLACKLIST_S,
-                        )
-                    return default
-                except Exception:
-                    return default
-
-            identity = _safe_str(_safe_get("org.mpris.MediaPlayer2", "Identity"))
-            desktop_entry = _safe_str(_safe_get("org.mpris.MediaPlayer2", "DesktopEntry"))
-            playback = _safe_str(
-                _safe_get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")
-            ).lower()
-            metadata = _safe_get("org.mpris.MediaPlayer2.Player", "Metadata", default={})
+            values, _ = self._read_props(
+                props, name, _PLAYER_IFACE, ("PlaybackStatus", "Metadata", "Position")
+            )
+            playback = _safe_str(values.get("PlaybackStatus", "")).lower()
+            metadata = values.get("Metadata", {})
 
             title = _safe_str(metadata.get("xesam:title", ""))
             artists = _to_str_list(metadata.get("xesam:artist", []))
@@ -419,15 +463,10 @@ class MPRISSource:
                 duration_ms = int(metadata.get("mpris:length", 0)) // 1000
             except Exception:
                 duration_ms = 0
-            raw_position = _safe_get("org.mpris.MediaPlayer2.Player", "Position", default=0)
             try:
-                position_ms = int(raw_position) // 1000
+                position_ms = int(values.get("Position", 0)) // 1000
             except Exception:
                 position_ms = 0
-
-            is_browser = _looks_browser(name, identity, desktop_entry, self._browser_hints)
-            if not is_browser:
-                return None, 0, False, ""
 
             if not _looks_apple_music(url):
                 # Browser is playing *something* — it might be the same Apple
@@ -482,7 +521,67 @@ class MPRISSource:
 
         except dbus.DBusException as e:
             log.debug("MPRIS player %s gone or unreadable: %s", name, e)
+            self._forget_player(name)
             return None, 0, False, ""
         except Exception as e:
             log.debug("MPRIS player %s read error: %s", name, e)
             return None, 0, False, ""
+
+    def _blacklist(self, name: str, what: str) -> None:
+        self._timeout_blacklist[name] = time.monotonic() + self._BLACKLIST_S
+        log.debug("MPRIS %s timed out on %s — blacklisting %.0fs", name, what, self._BLACKLIST_S)
+
+    def _read_props(self, props, name: str, iface: str, keys: tuple[str, ...]) -> tuple[dict, bool]:
+        """Read ``keys`` of ``iface``: one GetAll, or one Get each where GetAll failed before.
+
+        Returns the values that could be read, and False when a property timed
+        out. A missing value means the caller's default. A GetAll that times
+        out or finds the player gone raises; any other failure falls back to
+        single Gets and is remembered for this player.
+
+        The 0.5 s timeout caps the cost of a hung player: dbus-python's
+        default 25 s would freeze the poll loop.
+        """
+        if (name, iface) not in self._no_get_all:
+            try:
+                reply = props.GetAll(iface, timeout=0.5)
+            except dbus.DBusException as e:
+                err = str(e)
+                if any(h in err for h in _HUNG_ERRORS):
+                    self._blacklist(name, f"GetAll({iface})")
+                    raise
+                if any(g in err for g in _GONE_ERRORS):
+                    raise
+                reply = None
+            except Exception:
+                reply = None
+            if isinstance(reply, dict):
+                return {k: reply[k] for k in keys if k in reply}, True
+            self._no_get_all.add((name, iface))
+            log.debug("MPRIS %s: GetAll(%s) failed, reading properties singly", name, iface)
+
+        # Each Get on its own: chromium's MPRIS rejects some optional
+        # properties (DesktopEntry in particular) with a generic
+        # `org.freedesktop.DBus.Error.Failed` instead of returning
+        # an empty string, and one bad property must not drop the
+        # whole player — least of all the chromium player whose
+        # Next/Previous calls actually skip Apple Music tracks.
+        values: dict = {}
+        complete = True
+        for key in keys:
+            try:
+                values[key] = props.Get(iface, key, timeout=0.5)
+            except dbus.DBusException as e:
+                err = str(e)
+                # A hung player is skipped on the next polls instead of
+                # eating another 0.5 s each. Other errors (Error.Failed,
+                # UnknownProperty) are normal for optional properties.
+                if any(h in err for h in _HUNG_ERRORS):
+                    self._blacklist(name, key)
+                    complete = False
+                elif any(g in err for g in _GONE_ERRORS):
+                    self._forget_player(name)
+                    complete = False
+            except Exception:
+                pass
+        return values, complete

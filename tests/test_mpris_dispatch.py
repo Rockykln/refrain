@@ -238,6 +238,11 @@ def _wire_read(players: dict[str, dict]):
         elif iface_name == "org.freedesktop.DBus.Properties":
             props = players[obj._name]
             proxy.Get.side_effect = lambda _ifc, prop, **_kw: props[prop]
+            proxy.GetAll.side_effect = lambda ifc, **_kw: {
+                k: v
+                for k, v in props.items()
+                if (k in ("Identity", "DesktopEntry")) == (ifc == "org.mpris.MediaPlayer2")
+            }
         return proxy
 
     _fake_dbus.SessionBus.side_effect = fake_session_bus

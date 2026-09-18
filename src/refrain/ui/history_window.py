@@ -29,6 +29,8 @@ from PySide6.QtGui import (
     QFontMetricsF,
     QGuiApplication,
     QIcon,
+    QImage,
+    QImageReader,
     QKeySequence,
     QPainter,
     QPainterPath,
@@ -283,6 +285,22 @@ class _ElidedLabel(QLabel):
             super().setText(elided)
 
 
+def _read_scaled(path: str, px: int) -> QImage:
+    """Decode an image straight at the size that covers ``px`` × ``px``.
+
+    Covers are stored at 600 × 600; decoding them in full for a 44 px
+    thumbnail costs time and leaves large freed blocks on the heap.
+    """
+    reader = QImageReader(path)
+    size = reader.size()
+    if size.isValid() and size.width() > px and size.height() > px:
+        scale = max(px / size.width(), px / size.height())
+        reader.setScaledSize(
+            QSize(math.ceil(size.width() * scale), math.ceil(size.height() * scale))
+        )
+    return reader.read()
+
+
 def _round_cover(pix: QPixmap, dpr: float) -> QPixmap:
     px = round(_COVER_PX * dpr)
     scaled = pix.scaled(
@@ -353,10 +371,11 @@ class _SongRow(QWidget):
         row.setContentsMargins(*_ROW_MARGINS)
         row.setSpacing(12)
 
-        cover_label = QLabel()
-        cover_label.setFixedSize(_COVER_PX, _COVER_PX)
-        cover_label.setPixmap(cover)
-        row.addWidget(cover_label)
+        self._cover_label = QLabel()
+        self._cover_label.setFixedSize(_COVER_PX, _COVER_PX)
+        self._cover_label.setPixmap(cover)
+        self.has_cover = False
+        row.addWidget(self._cover_label)
 
         # ---- title + duration / artist — album --------------------------
         text_col = QVBoxLayout()
@@ -383,9 +402,10 @@ class _SongRow(QWidget):
         subtitle = _ElidedLabel(_subtitle(entry))
         _set_color(subtitle, muted)
         text_col.addWidget(subtitle)
+        self._texts = (title, subtitle)
+        self._highlight: list[str] = []
         if highlight:
-            title.set_highlights(highlight)
-            subtitle.set_highlights(highlight)
+            self.set_highlights(highlight)
         row.addLayout(text_col, 1)
 
         # ---- time (or "Now playing") / source ---------------------------
@@ -446,6 +466,17 @@ class _SongRow(QWidget):
         self._started = started
         self._locale = locale
         self.setToolTip(self._tooltip(started, locale))
+
+    def set_highlights(self, words: list[str]) -> None:
+        if words == self._highlight:
+            return
+        self._highlight = list(words)
+        for label in self._texts:
+            label.set_highlights(words)
+
+    def set_cover(self, cover: QPixmap) -> None:
+        self._cover_label.setPixmap(cover)
+        self.has_cover = True
 
     def event(self, event) -> bool:
         # Rebuilt as the tooltip opens, so "5 minutes ago" is true now and
@@ -617,7 +648,12 @@ class HistoryWindow(QDialog):
         # the desktop's — the same locale the translators use.
         self._locale = locale if locale is not None else QLocale()
         self._snapshot = HistorySnapshot()
-        self._covers: dict[str, QPixmap] = {}
+        # (cover URL, device pixel ratio) → rounded thumbnail; "" is the placeholder.
+        self._covers: dict[tuple[str, float], QPixmap] = {}
+        # What the list shows, in order, with the key each widget was built
+        # for: a rebuild reuses every widget whose key it asks for again.
+        self._shown_widgets: list[QWidget] = []
+        self._shown_keys: list[tuple] = []
 
         # ---- top bar ------------------------------------------------------
         self.count_label = QLabel()
@@ -748,6 +784,7 @@ class HistoryWindow(QDialog):
         if snapshot == self._snapshot:
             return
         self._snapshot = snapshot
+        self._forget_old_covers()
         # Closed, the window only keeps the snapshot: showEvent rebuilds
         # anyway, and a hundred rows rebuilt on every song change, cover
         # and pause while nobody looks is work for nothing.
@@ -803,6 +840,7 @@ class HistoryWindow(QDialog):
         if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
             # Placeholders and muted text are derived from the palette.
             self._covers.clear()
+            self._clear_rows()
             self._apply_muted_colors()
             self._rebuild()
 
@@ -813,20 +851,24 @@ class HistoryWindow(QDialog):
         for label in (self.count_label, self.empty_text):
             _set_color(label, muted)
 
+    @staticmethod
+    def _drop(widget: QWidget) -> None:
+        # Out of the tree now, freed later: deleteLater alone leaves the
+        # old rows as children until the event loop runs, where
+        # findChildren (and a11y) would still see them.
+        widget.setParent(None)
+        widget.deleteLater()
+
+    def _clear_rows(self) -> None:
+        while self._rows.count():
+            widget = self._rows.takeAt(0).widget()
+            if widget is not None:
+                self._drop(widget)
+        self._shown_widgets = []
+        self._shown_keys = []
+
     def _rebuild(self) -> None:
         snap = self._snapshot
-        bar = self._scroll.verticalScrollBar()
-        scroll_pos = bar.value()
-        while self._rows.count():
-            item = self._rows.takeAt(0)
-            widget = item.widget()
-            if widget is not None:
-                # Out of the tree now, freed later: deleteLater alone
-                # leaves the old rows as children until the event loop
-                # runs, where findChildren (and a11y) would still see them.
-                widget.setParent(None)
-                widget.deleteLater()
-
         count = len(snap.entries)
         self._update_filter_bar(snap)
         query = self.search.text()
@@ -851,21 +893,20 @@ class HistoryWindow(QDialog):
         self.clear_btn.setEnabled(snap.enabled and count > 0)
         self.count_label.setVisible(snap.enabled and count > 0)
 
+        empty = None
         if not snap.enabled:
-            self.empty_title.setText(self.tr("History is turned off"))
-            self.empty_text.setText(
-                self.tr("Turn it on under Settings → History to see what you played.")
+            empty = (
+                self.tr("History is turned off"),
+                self.tr("Turn it on under Settings → History to see what you played."),
             )
-            self._stack.setCurrentIndex(1)
-            return
-        if not count:
-            self.empty_title.setText(self.tr("No songs yet"))
-            self.empty_text.setText(self.tr("Play something and it shows up here."))
-            self._stack.setCurrentIndex(1)
-            return
-        if not shown:
-            self.empty_title.setText(self.tr("No matches"))
-            self.empty_text.setText(self.tr("Try a different search or source."))
+        elif not count:
+            empty = (self.tr("No songs yet"), self.tr("Play something and it shows up here."))
+        elif not shown:
+            empty = (self.tr("No matches"), self.tr("Try a different search or source."))
+        if empty is not None:
+            self._clear_rows()
+            self.empty_title.setText(empty[0])
+            self.empty_text.setText(empty[1])
             self._stack.setCurrentIndex(1)
             return
         self._stack.setCurrentIndex(0)
@@ -875,7 +916,13 @@ class HistoryWindow(QDialog):
         now_entry = snap.entries[0] if snap.now_playing else None
         words = _fold(query).split()
         meta_width = self._meta_width(snap)
+        dpr = self.devicePixelRatioF()
         today = QDate.currentDate()
+        spare: dict[tuple, list[QWidget]] = {}
+        for widget, key in zip(self._shown_widgets, self._shown_keys, strict=True):
+            spare.setdefault(key, []).append(widget)
+        widgets: list[QWidget] = []
+        keys: list[tuple] = []
         last_day: QDate | None = None
         for entry in shown:
             started = (
@@ -885,22 +932,69 @@ class HistoryWindow(QDialog):
             )
             day = started.date()
             if day != last_day:
-                self._rows.addWidget(self._day_header(day, today, first=last_day is None))
+                first = last_day is None
+                key = ("day", day.toJulianDay(), today.toJulianDay(), first)
+                reused = spare.get(key)
+                widgets.append(reused.pop() if reused else self._day_header(day, today, first))
+                keys.append(key)
                 last_day = day
-            self._rows.addWidget(
-                _SongRow(
+            is_now = entry is now_entry
+            key = (
+                "song",
+                # Without a start time the row shows the current one, so
+                # it is never taken over from an earlier rebuild.
+                tuple(vars(entry).values()) if entry.started_at else object(),
+                is_now,
+                is_now and snap.playing,
+                meta_width,
+                dpr,
+            )
+            reused = spare.get(key)
+            if reused:
+                row = reused.pop()
+                row.set_highlights(words)
+                if entry.cover_url and not row.has_cover:
+                    cover = self._stored_cover(entry.cover_url, dpr)
+                    if cover is not None:
+                        row.set_cover(cover)
+            else:
+                cover = self._stored_cover(entry.cover_url, dpr) if entry.cover_url else None
+                row = _SongRow(
                     entry,
                     started,
-                    now_playing=entry is now_entry,
+                    now_playing=is_now,
                     playing=snap.playing,
                     locale=self._locale,
-                    cover=self._cover_for(entry),
+                    cover=cover if cover is not None else self._placeholder(dpr),
                     meta_width=meta_width,
                     when_text=self.when_text,
                     on_remove=lambda e=entry: self.removeRequested.emit(e),
                     highlight=words,
                 )
-            )
+                row.has_cover = cover is not None
+            widgets.append(row)
+            keys.append(key)
+        for leftovers in spare.values():
+            for widget in leftovers:
+                self._drop(widget)
+        same_order = len(widgets) == len(self._shown_widgets) and all(
+            a is b for a, b in zip(widgets, self._shown_widgets, strict=True)
+        )
+        self._shown_widgets = widgets
+        self._shown_keys = keys
+        if same_order:
+            return
+        bar = self._scroll.verticalScrollBar()
+        scroll_pos = bar.value()
+        # Taken out and put back in the new order: the widgets that stay
+        # keep their parent, only their place in the layout changes.
+        while self._rows.count():
+            self._rows.takeAt(0)
+        for widget in widgets:
+            self._rows.addWidget(widget)
+            # Child order follows too, so accessibility reads the list
+            # in the order it is shown.
+            widget.raise_()
         self._rows.addStretch(1)
         # The new rows lay out on the next event-loop pass; restoring the
         # position before that would clamp it to the old, empty range.
@@ -957,28 +1051,36 @@ class HistoryWindow(QDialog):
             widths.append(fm.horizontalAdvance("00:00 AM") + 20)
         return min(_META_MAX_WIDTH, max(widths))
 
-    def _cover_for(self, entry: HistoryEntry) -> QPixmap:
-        dpr = self.devicePixelRatioF()
-        if entry.cover_url:
-            path = image_path_for_url(entry.cover_url)
-            key = f"{path}@{dpr}"
-            cached = self._covers.get(key)
-            if cached is not None:
-                return cached
-            try:
-                present = path.exists() and path.stat().st_size > 0
-            except OSError:
-                present = False
-            if present:
-                pix = QPixmap(str(path))
-                if not pix.isNull():
-                    rounded = _round_cover(pix, dpr)
-                    self._covers[key] = rounded
-                    return rounded
-        key = f"placeholder@{dpr}"
+    def _stored_cover(self, url: str, dpr: float) -> QPixmap | None:
+        """The song's cover from the cover cache, or None while it has none."""
+        cached = self._covers.get((url, dpr))
+        if cached is not None:
+            return cached
+        path = image_path_for_url(url)
+        try:
+            present = path.exists() and path.stat().st_size > 0
+        except OSError:
+            present = False
+        if not present:
+            return None
+        image = _read_scaled(str(path), round(_COVER_PX * dpr))
+        if image.isNull():
+            return None
+        rounded = _round_cover(QPixmap.fromImage(image), dpr)
+        self._covers[(url, dpr)] = rounded
+        return rounded
+
+    def _placeholder(self, dpr: float) -> QPixmap:
+        key = ("", dpr)
         if key not in self._covers:
             self._covers[key] = _placeholder_cover(self.palette(), dpr)
         return self._covers[key]
+
+    def _forget_old_covers(self) -> None:
+        dpr = self.devicePixelRatioF()
+        keep = {(e.cover_url, dpr) for e in self._snapshot.entries}
+        keep.add(("", dpr))
+        self._covers = {k: v for k, v in self._covers.items() if k in keep}
 
     # ------------------------------------------------------------ actions
 
