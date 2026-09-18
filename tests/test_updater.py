@@ -43,7 +43,7 @@ def test_is_newer_handles_pre_release_suffix(updater):
 
 
 def test_a_development_build_hears_about_releases(updater):
-    """0.5.3.dev0 parsed as nothing, so no release was ever newer."""
+    """A development build still hears about releases."""
     assert updater.is_newer("0.5.3", "0.5.3.dev0") is True
     assert updater.is_newer("v9.9.9", "0.5.3.dev0") is True
     assert updater.is_newer("0.5.2", "0.5.3.dev0") is False
@@ -336,8 +336,7 @@ def test_cleanup_orphan_downloads_no_orphan_is_idempotent(tmp_path, monkeypatch,
 
 
 def test_a_source_checkout_in_a_venv_is_never_updated_by_pip(updater, tmp_path, monkeypatch):
-    """Measured: the in-app update ran pip over an editable checkout in a
-    venv, which then ran the released version instead of the source."""
+    """pip must never upgrade over an editable checkout."""
     checkout = tmp_path / "refrain"
     (checkout / "src" / "refrain").mkdir(parents=True)
     (checkout / "pyproject.toml").write_text("")
@@ -389,8 +388,7 @@ def test_pip_and_pipx_go_their_own_way(updater, monkeypatch, kind, helper):
 
 @pytest.mark.parametrize("kind", ["aur", "flatpak"])
 def test_system_packages_are_left_to_the_package_manager(updater, monkeypatch, kind):
-    """Refrain never changes system files itself: the package manager runs
-    in a terminal, where the user confirms any sudo prompt."""
+    """The package manager runs in a terminal, where the user confirms sudo."""
     commands = []
     monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: commands.append(cmd) or True)
     monkeypatch.setattr(updater, "_aur_helper", lambda: "yay -Syu refrain")

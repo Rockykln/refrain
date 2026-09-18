@@ -27,8 +27,7 @@ def _with_bus(monkeypatch, bus):
 
 
 def test_a_restart_waits_for_the_old_process_to_let_go(monkeypatch):
-    """Refrain restarts by replacing its own process; the old name can
-    still be held for a moment when the new one asks."""
+    """On a restart the old process can hold the name for a moment."""
     bus = _Bus([EXISTS, EXISTS, 1])
     _with_bus(monkeypatch, bus)
     assert si.acquire(wait_s=1.0, step_s=0.01) is bus

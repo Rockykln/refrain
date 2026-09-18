@@ -188,8 +188,7 @@ def _wait(dialog, ms=3000):
 
 
 def test_the_approval_is_waited_for_not_clicked_for(win):
-    """Clicking OK before approving on Last.fm's page used to end in an
-    error; now Refrain asks Last.fm until the approval is there."""
+    """Refrain asks Last.fm until the approval is there."""
     from refrain.scrobble import LastfmError
     from refrain.ui.settings_window import LastfmApprovalDialog
 

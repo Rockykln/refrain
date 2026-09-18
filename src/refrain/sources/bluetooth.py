@@ -85,10 +85,8 @@ _NOT_MUSIC_APPS = frozenset(
 def is_music_app(app: str, duration_ms: int) -> bool:
     """Does the app playing over Bluetooth play music?
 
-    Measured: a tablet names the app — "Music" for Apple Music, "Twitch" for
-    a stream, whose title and channel then passed for a song and its
-    artist. An app neither list knows counts when its track has a length:
-    a live stream has none.
+    An app neither list knows counts when its track has a length: a live
+    stream has none.
     """
     name = app.strip().casefold()
     if not name or name in _MUSIC_APPS:

@@ -53,8 +53,6 @@ _TIMEOUT_S = 10
 # Last.fm error codes we treat specially. The full list lives in the
 # API docs; these are the ones that change Refrain's behaviour.
 ERR_INVALID_SESSION = 9  # session revoked / wrong — user must reconnect
-# While connecting: the page the user approves on hasn't been answered yet
-# (14), or its token has expired or never existed (15, 4).
 ERR_TOKEN_NOT_AUTHORISED = 14
 ERR_TOKEN_EXPIRED = 15
 ERR_INVALID_TOKEN = 4

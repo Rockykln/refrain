@@ -57,8 +57,7 @@ def _read(monkeypatch, app):
 
 
 def test_a_twitch_stream_is_not_a_song(monkeypatch):
-    """Measured: a tablet playing Twitch put the stream on Discord and, four
-    minutes in, into the history as a song by the channel."""
+    """A stream's title and channel are no song and artist."""
     assert _read(monkeypatch, "Twitch").has_track is False
 
 

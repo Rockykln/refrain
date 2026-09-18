@@ -98,8 +98,7 @@ def test_the_player_names_itself_refrain():
 
 
 def test_a_length_arriving_late_reaches_the_panel():
-    """The length often comes a poll after the title; the panel was told
-    only about title, cover and state, and showed no length that song."""
+    """The length often comes a poll after the title."""
     server = _published(title="T")
     server._bus_name = object()
     sent = []

@@ -84,9 +84,7 @@ def detect_install_type() -> str:
     if os.environ.get("FLATPAK_ID") or os.environ.get("container") == "flatpak":  # noqa: SIM112
         return "flatpak"
 
-    # A source checkout, usually installed editable into a venv — before the
-    # venv→pip branch below, which took it for a pip install: the in-app
-    # update then ran `pip install --upgrade refrain` over the checkout.
+    # Before the venv→pip branch: pip must never upgrade over a checkout.
     project_root = Path(__file__).resolve().parents[2]
     if (project_root / "pyproject.toml").exists() and (project_root / ".git").exists():
         return "dev"
@@ -138,12 +136,7 @@ _VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:(\+.*)|[-.]?((?:dev|a|b|rc|p
 
 
 def _parse_version(s: str) -> tuple[int, int, int, int] | None:
-    """``(major, minor, patch, final)`` — a pre-release such as 0.5.3.dev0 or
-    0.5.3-rc1 sorts before 0.5.3 itself.
-
-    A development build used to parse as nothing at all, so it was never
-    told about any release.
-    """
+    """``(major, minor, patch, final)`` — 0.5.3.dev0 sorts before 0.5.3."""
     m = _VERSION_RE.match(s.strip())
     if not m:
         return None

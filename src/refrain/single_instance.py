@@ -39,9 +39,7 @@ class SessionBusUnavailable(Exception):
 def acquire(wait_s: float = 3.0, step_s: float = 0.2) -> dbus.SessionBus:
     """Claim the bus name, waiting ``wait_s`` for a Refrain that is on its way out.
 
-    Refrain restarts itself by replacing its own process, and the bus
-    daemon may not yet have let go of the old one's name when the new one
-    asks — the restart then failed with "already running".
+    On a restart the bus may still hold the old process's name for a moment.
     """
     try:
         bus = dbus.SessionBus()

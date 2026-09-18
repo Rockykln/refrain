@@ -355,9 +355,7 @@ class MPRISServer(dbus.service.Object):
         self._track = track
         self._cover_url = cover_url
         self._effective_duration_ms = effective_duration_ms
-        # Only emit when something visible to the panel actually moved —
-        # the length too: it often arrives a poll or two after the title,
-        # and the panel showed none until the next song.
+        # The length often arrives a poll or two after the title.
         if (
             track.fingerprint() != prev_track.fingerprint()
             or cover_url != prev_cover

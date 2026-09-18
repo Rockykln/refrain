@@ -251,8 +251,7 @@ def test_delete_removes_it_from_the_keyring(keyring):
 
 
 def test_a_keyring_that_would_prompt_falls_back_to_the_file(keyring, xdg_tmp):
-    """A locked collection needs an unlock dialog Refrain can't drive;
-    it must not hang there but keep the secret in the 0600 file."""
+    """A locked collection falls back to the 0600 file instead of hanging."""
     service, store = keyring
     service.locked, service.prompt = True, "/prompt/1"
     store.set(LASTFM_SHARED_SECRET, "secret")

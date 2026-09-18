@@ -340,12 +340,7 @@ class _LastfmAuthWorker(QObject):
 
 
 class LastfmApprovalDialog(QDialog):
-    """Waits while the user allows Refrain on Last.fm's page.
-
-    It asks Last.fm itself every few seconds instead of taking an OK click
-    for the answer: clicked before the page was approved, OK ended in an
-    error and the whole connect had to start over.
-    """
+    """Asks Last.fm every few seconds until the user has allowed Refrain."""
 
     def __init__(
         self,
@@ -790,8 +785,6 @@ class SettingsWindow(QDialog):
         return box.clickedButton() is turn_off
 
     def _confirm_lastfm_disconnect(self) -> bool:
-        """One click used to disconnect — easy to do by accident, and nothing
-        is scrobbled until the browser round-trip is done again."""
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Question)
         box.setWindowTitle(self.tr("Disconnect from Last.fm?"))
@@ -804,8 +797,6 @@ class SettingsWindow(QDialog):
         return box.clickedButton() is disconnect
 
     def _confirm_lastfm_unconnected(self) -> bool:
-        """Scrobbling switched on without a working connection does nothing,
-        and says so nowhere — so say it before it is saved."""
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Icon.Warning)
         box.setWindowTitle(self.tr("Last.fm isn't connected"))
