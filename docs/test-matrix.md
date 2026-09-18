@@ -27,7 +27,7 @@ driver and should be tested on every commit; the rest before each tag.
 
 | ✓ | Distro | Desktop | Display server | Channel | Last verified | Notes |
 |---|---|---|---|---|---|---|
-| [ ] | **CachyOS** (rolling) | KDE Plasma 6 | Wayland | AUR `refrain` | | maintainer daily |
+| ✓ | **CachyOS** (rolling) | KDE Plasma 6 | Wayland | AUR `refrain` | 2026-09-18 / v0.5.2 | maintainer daily |
 | [ ] | **Arch Linux** (rolling) | KDE Plasma 6 | X11 | AUR `refrain` | | alternate display server |
 | [ ] | **Fedora 42 Workstation** | GNOME 47 | Wayland | AppImage + PyPI | | RPM world + GNOME tray ext. |
 | [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS, glibc floor |
@@ -70,6 +70,19 @@ on these specifically.
 | [ ] | Hyprland / Sway / i3 | needs SNI-capable bar (waybar `tray` module, polybar) | |
 | [ ] | Pantheon (elementary) | unofficial SNI support | untested |
 | [ ] | COSMIC (Pop!_OS 24.04+) | own protocol | untested |
+
+## Players
+
+What plays the music matters as much as the desktop: each reports its
+track, position and length differently.
+
+| ✓ | Player | Reports through | Last verified | Notes |
+|---|---|---|---|---|
+| ✓ | Apple Music in **Chromium** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | segment lengths; the tab's entry decides playing vs. paused |
+| ✓ | Apple Music in **Firefox** | Firefox's own MPRIS (no Plasma extension) | 2026-09-18 / v0.5.2 | no length reported — the catalog's or a measured one is used; position in whole seconds |
+| [ ] | Apple Music in **Google Chrome** / **Brave** | plasma-browser-integration | | |
+| [ ] | Apple Music in **Zen** | Zen's own MPRIS | | Firefox-based |
+| ✓ | **iPad** over Bluetooth (AVRCP) | BlueZ `MediaPlayer1` | 2026-09-18 / v0.5.2 | names the playing app; Twitch is left out |
 
 ## Out of scope (won't work)
 
