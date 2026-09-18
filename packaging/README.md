@@ -96,17 +96,24 @@ all deps) that runs on any glibc-based Linux.
 The release workflow rewrites `version:` from the git tag at build time,
 so the recipe's hardcoded version is just a placeholder.
 
+Build on Ubuntu 24.04: the recipe installs Refrain with `/usr/bin/python3`,
+which has to be the Python 3.12 it bundles.
+
 ```sh
-pip install appimage-builder
+pip install appimage-builder "packaging<22"
 cd packaging/appimage
 appimage-builder --recipe AppImageBuilder.yml --skip-test
+./Refrain-*-x86_64.AppImage --appimage-extract-and-run --version
 ```
 
 The recipe vendors:
 
-- Python 3 (from Ubuntu 22.04 jammy, glibc-compatible widely)
-- Qt 6 + libqt6dbus, libdbus, libglib
-- The `refrain` package and its Python deps via pip
+- Python 3.12, dbus-python and PyGObject from Ubuntu 24.04
+- The libraries Qt needs on Wayland and X11 (EGL, fontconfig, xkbcommon, XCB)
+- The `refrain` package, PySide6 (with Qt 6) and pypresence via pip
+
+The release workflow starts the AppImage once with `--version` and stops
+the release if it doesn't answer.
 
 ## Flatpak
 

@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/project/refrain/
@@ -93,21 +93,19 @@ jobs:
 
       # Single-file AppImage so end users can grab one binary from the
       # Releases page and run it without installing anything else.
-      # Marked continue-on-error so a recipe glitch never blocks shipping
-      # the wheel + sdist; we re-attempt by deleting + re-pushing the tag.
+      # The recipe installs Refrain with the runner's /usr/bin/python3,
+      # which must match the Python it bundles from Ubuntu 24.04.
       - name: Install AppImage build deps
-        continue-on-error: true
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libdbus-1-dev libglib2.0-dev pkg-config \
-            libfuse2 desktop-file-utils \
+            python3-pip libfuse2t64 desktop-file-utils \
             zsync appstream patchelf squashfs-tools file
-          pip install appimage-builder
+          # appimage-builder can't parse Ubuntu package versions with newer packaging.
+          pip install appimage-builder "packaging<22"
 
       - name: Build AppImage
         id: appimage
-        continue-on-error: true
         run: |
           TAG="${GITHUB_REF#refs/tags/v}"
           # The recipe pins a literal `version:` value, which determines the
@@ -121,6 +119,14 @@ jobs:
           mv *.AppImage ../../dist/ 2>/dev/null || true
           mv *.AppImage.zsync ../../dist/ 2>/dev/null || true
           ls -la ../../dist/
+
+      # Every AppImage up to 0.5.2 was published without ever starting.
+      - name: Start the AppImage once
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          out="$(./dist/Refrain-${TAG}-x86_64.AppImage --appimage-extract-and-run --version)"
+          echo "$out"
+          [ "$out" = "refrain ${TAG}" ]
 
       # Extract the matching `## [X.Y.Z]` section from CHANGELOG.md
       # and feed it into the GitHub release body. Without this we'd

@@ -1,27 +1,16 @@
-# AppImage build recipe.
-#
-# Status: starting point — tested only against Ubuntu 22.04 / 24.04.
-# Build:
+# AppImage build recipe. Build on Ubuntu 24.04 — the Python that installs
+# Refrain below must be the one the apt section bundles (3.12):
 #   pip install appimage-builder
 #   cd packaging/appimage
 #   appimage-builder --recipe AppImageBuilder.yml --skip-test
-#
-# The result is a single .AppImage file that runs Refrain on any glibc-
-# compatible Linux without installing system dependencies.
 
 version: 1
 
 script:
   - rm -rf AppDir
-  - python3 -m venv --copies --without-pip AppDir/usr
-  # ensurepip installs pip as a *module*; recent Python builds skip the
-  # `bin/pip` launcher script, so we always go through `python3 -m pip`.
-  - AppDir/usr/bin/python3 -m ensurepip --upgrade
-  - AppDir/usr/bin/python3 -m pip install --upgrade pip
-  - AppDir/usr/bin/python3 -m pip install ../../  # installs refrain from the project root
-  # appimage-builder's icon_bundler walks the standard XDG icon paths to
-  # find the `icon:` named in app_info. Drop the SVG at the canonical
-  # hicolor/scalable/apps location so it gets picked up + bundled.
+  - /usr/bin/python3 -m pip install --no-deps --target AppDir/usr/lib/python3/dist-packages ../../
+  # dbus-python and PyGObject come from apt, built for the bundled Python.
+  - /usr/bin/python3 -m pip install --target AppDir/usr/lib/python3/dist-packages "pypresence>=4.3" "PySide6>=6.6"
   - install -Dm644 ../../src/refrain/assets/icons/refrain.svg
       AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg
 
@@ -30,51 +19,42 @@ AppDir:
     id: io.github.Rockykln.Refrain
     name: Refrain
     icon: refrain
-    version: 0.5.2
+    version: 0.5.3.dev0
     exec: usr/bin/python3
     exec_args: -m refrain $@
 
   apt:
     arch: amd64
     sources:
-      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ jammy main universe'
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ noble main universe'
         key_url: 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C'
+      - sourceline: 'deb http://archive.ubuntu.com/ubuntu/ noble-updates main universe'
     include:
       - python3
       - python3-dbus
-      - python3-venv
+      - python3-gi
+      - gir1.2-glib-2.0
       - libdbus-1-3
-      - libglib2.0-0
-      - libqt6core6
-      - libqt6gui6
-      - libqt6widgets6
-      - libqt6dbus6
-      - libqt6svg6
-      - libqt6network6
+      - libglib2.0-0t64
       - libxkbcommon0
+      - libxkbcommon-x11-0
       - libegl1
+      - libgl1
       - libfontconfig1
+      - libwayland-client0
+      - libwayland-cursor0
+      - libwayland-egl1
+      - libxcb-cursor0
+      - libxcb-icccm4
+      - libxcb-keysyms1
+      - libxcb-shape0
 
-  # files.include is intentionally absent — the icon is installed into
-  # AppDir/usr/share/icons/hicolor/scalable/apps/ by the script: section
-  # above, which is the path icon_bundler actually searches.
-
-  test:
-    fedora-39:
-      image: appimagecrafters/tests-env:fedora-39
-      command: ./AppRun --version
-      use_host_x: false
-    debian-stable:
-      image: appimagecrafters/tests-env:debian-stable
-      command: ./AppRun --version
-      use_host_x: false
+  # Ubuntu 24.04 moved the loader to /usr/lib64, but the bundled binaries
+  # look for lib64/ in the runtime they are started from.
+  after_runtime: |
+    ln -sfn usr/lib64 AppDir/runtime/compat/lib64
 
 AppImage:
   arch: x86_64
   update-information: 'gh-releases-zsync|Rockykln|refrain|latest|*x86_64.AppImage.zsync'
   sign-key: None
-  # file_name omitted on purpose — appimage-builder's {version} placeholder
-  # was rendered as the literal string ".version." in v0.1.3, leaving us
-  # with `Refrain-.version.-x86_64.AppImage`. The default name is
-  # `<app_info.name>-<app_info.version>-<arch>.AppImage` which evaluates
-  # correctly at recipe-parse time, so we use that.

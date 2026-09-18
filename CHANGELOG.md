@@ -22,6 +22,11 @@ lists every version and why.
 
 ### Fixed
 
+- **The AppImage never started.** Every AppImage up to 0.5.2 stopped with
+  `No module named refrain`: the build installed Refrain for Python 3.12
+  but bundled Python 3.10. It is now built from Ubuntu 24.04 packages
+  with the Python it bundles, carries the Wayland and XCB libraries Qt
+  needs, and each release starts it once before publishing it.
 - **Refrain's own restart could fail with "already running".** It
   replaces its own process, and the session bus may still hold the old
   one's name for a moment; the new one now waits up to three seconds
