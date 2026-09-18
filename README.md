@@ -61,7 +61,7 @@ streaming from your phone over Bluetooth.
 |---------|---------|
 | **PyPI** *(any distro with Python ≥ 3.11)* | `pip install refrain` |
 | **AUR** *(Arch / CachyOS / Manjaro / EndeavourOS)* | `yay -S refrain` *(stable)* or `yay -S refrain-git` *(latest main)* |
-| **AppImage** *(portable single-file, any glibc-based distro)* | Download from the [Releases page](https://github.com/Rockykln/refrain/releases/latest) |
+| **AppImage** *(portable single-file, any glibc-based distro)* | Returns with 0.5.3 — earlier AppImages never started and were removed |
 | **From source** | See below |
 
 A Flatpak manifest exists under `packaging/flatpak/` for users who want to
@@ -69,6 +69,8 @@ build it themselves; a Flathub submission is on the roadmap but not
 currently active. Build files for the live channels live under
 [`packaging/`](packaging/).
 See [`packaging/README.md`](packaging/README.md) for build instructions.
+Which versions can still be downloaded, and why the others were taken
+down: [`docs/releases.md`](docs/releases.md).
 
 ### From source (development)
 
@@ -463,6 +465,7 @@ transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
 - [Privacy & data protection](PRIVACY.md) — every data flow, retention, erasure
 - [Security policy](SECURITY.md)
 - [Packaging guide](packaging/README.md) — AUR, Flatpak, AppImage build steps
+- [Releases](docs/releases.md) — every version, and why some were removed
 
 ## Contributing
 
