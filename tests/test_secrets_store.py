@@ -161,3 +161,112 @@ def test_legacy_plaintext_config_is_scrubbed_on_next_save(tmp_path):
     assert "OLD-PLAINTEXT" not in text
     assert "OLD-SK" not in text
     assert 'shared_secret = ""' in text
+
+
+# --------------------------------------------------------------------------- #
+# keyring path, against a stand-in Secret Service                              #
+# --------------------------------------------------------------------------- #
+
+
+class _SecretService:
+    """Just enough of org.freedesktop.secrets for the calls Refrain makes."""
+
+    def __init__(self, locked=False, prompt="/"):
+        self.items = {}  # path -> (attributes, bytes)
+        self.locked = locked
+        self.prompt = prompt
+
+    # the object is its own bus, service, collection and items
+    def get_object(self, _bus, path, **_kw):
+        self._path = path
+        return self
+
+    def NameHasOwner(self, name):  # noqa: N802
+        return name == "org.freedesktop.secrets"
+
+    def OpenSession(self, _alg, _input):  # noqa: N802
+        return None, "/session/1"
+
+    def ReadAlias(self, _name):  # noqa: N802
+        return "/collection/login"
+
+    def Get(self, _iface, prop):  # noqa: N802
+        assert prop == "Locked"
+        return self.locked
+
+    def Unlock(self, paths):  # noqa: N802
+        return (paths, self.prompt)
+
+    def CreateItem(self, props, secret, replace):  # noqa: N802
+        attrs = dict(props["org.freedesktop.Secret.Item.Attributes"])
+        for path, (a, _v) in list(self.items.items()):
+            if replace and a == attrs:
+                del self.items[path]
+        path = f"/item/{len(self.items) + 1}"
+        self.items[path] = (attrs, bytes(secret[2]))
+
+    def SearchItems(self, attrs):  # noqa: N802
+        found = [p for p, (a, _v) in self.items.items() if a == dict(attrs)]
+        return (found, []) if not self.locked else ([], found)
+
+    def GetSecret(self, _session):  # noqa: N802
+        return ("/session/1", b"", self.items[self._path][1], "text/plain")
+
+    def Delete(self):  # noqa: N802
+        self.items.pop(self._path, None)
+
+
+@pytest.fixture
+def keyring(xdg_tmp, monkeypatch):
+    import dbus
+
+    service = _SecretService()
+    monkeypatch.setattr(dbus, "Interface", lambda obj, _iface: obj)
+    return service, SecretStore(bus=service)
+
+
+def test_the_keyring_keeps_a_secret_and_the_file_stays_empty(keyring, xdg_tmp):
+    service, store = keyring
+    store.set(LASTFM_SESSION_KEY, "sk-123")
+    assert store.keyring_ok() is True
+    assert store.get(LASTFM_SESSION_KEY) == "sk-123"
+    assert len(service.items) == 1
+    assert not (xdg_tmp["config"] / "refrain" / "secrets.json").exists()
+
+
+def test_setting_again_replaces_rather_than_piles_up(keyring):
+    service, store = keyring
+    store.set(LASTFM_SESSION_KEY, "old")
+    store.set(LASTFM_SESSION_KEY, "new")
+    assert len(service.items) == 1
+    assert store.get(LASTFM_SESSION_KEY) == "new"
+
+
+def test_delete_removes_it_from_the_keyring(keyring):
+    service, store = keyring
+    store.set(LASTFM_SESSION_KEY, "sk-123")
+    store.delete(LASTFM_SESSION_KEY)
+    assert service.items == {}
+    assert store.get(LASTFM_SESSION_KEY) is None
+
+
+def test_a_keyring_that_would_prompt_falls_back_to_the_file(keyring, xdg_tmp):
+    """A locked collection needs an unlock dialog Refrain can't drive;
+    it must not hang there but keep the secret in the 0600 file."""
+    service, store = keyring
+    service.locked, service.prompt = True, "/prompt/1"
+    store.set(LASTFM_SHARED_SECRET, "secret")
+    assert service.items == {}
+    path = xdg_tmp["config"] / "refrain" / "secrets.json"
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+    assert store.get(LASTFM_SHARED_SECRET) == "secret"
+
+
+def test_moving_to_the_keyring_drops_the_plaintext_copy(keyring, xdg_tmp):
+    service, store = keyring
+    service.locked, service.prompt = True, "/prompt/1"
+    store.set(LASTFM_SESSION_KEY, "sk-file")  # lands in the file
+    service.locked, service.prompt = False, "/"
+    store.set(LASTFM_SESSION_KEY, "sk-keyring")
+    assert "sk-file" not in (xdg_tmp["config"] / "refrain" / "secrets.json").read_text()
+    assert store.get(LASTFM_SESSION_KEY) == "sk-keyring"

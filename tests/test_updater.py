@@ -357,3 +357,52 @@ def test_a_pip_install_in_a_venv_is_still_pip(updater, tmp_path, monkeypatch):
     monkeypatch.setattr(updater.sys, "prefix", str(tmp_path / "venv"))
     monkeypatch.setattr(updater.sys, "base_prefix", "/usr")
     assert updater.detect_install_type() == "pip"
+
+
+# --------------------------------------------------------------------------- #
+# apply_update: which way each install type is updated                         #
+# --------------------------------------------------------------------------- #
+
+
+def _release(updater):
+    return updater.ReleaseInfo(
+        tag="v9.9.9", version="9.9.9", name="Refrain v9.9.9", body="", html_url="https://x"
+    )
+
+
+def test_a_checkout_is_never_touched(updater, monkeypatch):
+    monkeypatch.setattr(updater, "_apply_pip", lambda: pytest.fail("pip ran over a checkout"))
+    result = updater.apply_update(_release(updater), install_type="dev")
+    assert result.success is False
+    assert "git pull" in result.message
+
+
+@pytest.mark.parametrize("kind,helper", [("pip", "_apply_pip"), ("pipx", "_apply_pipx")])
+def test_pip_and_pipx_go_their_own_way(updater, monkeypatch, kind, helper):
+    called = []
+    monkeypatch.setattr(
+        updater, helper, lambda: called.append(kind) or updater.UpdateResult(True, "ok")
+    )
+    updater.apply_update(_release(updater), install_type=kind)
+    assert called == [kind]
+
+
+@pytest.mark.parametrize("kind", ["aur", "flatpak"])
+def test_system_packages_are_left_to_the_package_manager(updater, monkeypatch, kind):
+    """Refrain never changes system files itself: the package manager runs
+    in a terminal, where the user confirms any sudo prompt."""
+    commands = []
+    monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: commands.append(cmd) or True)
+    monkeypatch.setattr(updater, "_aur_helper", lambda: "yay -Syu refrain")
+    result = updater.apply_update(_release(updater), install_type=kind)
+    assert result.success is True and result.needs_restart is True
+    assert len(commands) == 1 and "sudo" not in commands[0]
+
+
+@pytest.mark.parametrize("kind", ["aur", "flatpak"])
+def test_without_a_terminal_the_command_is_shown(updater, monkeypatch, kind):
+    monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: False)
+    monkeypatch.setattr(updater, "_aur_helper", lambda: "yay -Syu refrain")
+    result = updater.apply_update(_release(updater), install_type=kind)
+    assert result.success is False
+    assert "refrain" in result.message.lower()
