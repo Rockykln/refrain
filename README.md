@@ -64,6 +64,11 @@ streaming from your phone over Bluetooth.
 | **AppImage** *(portable single-file, any glibc-based distro)* | Returns with 0.5.3 — earlier AppImages never started and were removed |
 | **From source** | See below |
 
+The AppImage needs FUSE 2, which current distros no longer install by
+default: `libfuse2t64` on Debian and Ubuntu, `fuse-libs` on Fedora,
+`libfuse2` on openSUSE, `fuse2` on Arch. Without it, start the AppImage
+with `--appimage-extract-and-run`.
+
 A Flatpak manifest exists under `packaging/flatpak/` for users who want to
 build it themselves; a Flathub submission is on the roadmap but not
 currently active. Build files for the live channels live under
