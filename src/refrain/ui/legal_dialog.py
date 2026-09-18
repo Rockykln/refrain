@@ -30,6 +30,8 @@ TRADEMARK_OWNERS = (
     ("Last.fm Ltd.", "Last.fm"),
     ("KDE e.V.", "KDE and Plasma"),
     ("GitHub, Inc.", "GitHub and the Invertocat logo"),
+    ("Bluetooth SIG, Inc.", "Bluetooth"),
+    ("Linus Torvalds", "Linux"),
 )
 
 

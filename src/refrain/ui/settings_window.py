@@ -913,6 +913,12 @@ class SettingsWindow(QDialog):
                 )
             )
         )
+        # Last.fm's API terms ask for a visible link back to Last.fm.
+        self.lastfm_attribution = QLabel(
+            '<a href="https://www.last.fm">{}</a>'.format(self.tr("Scrobbling via Last.fm"))
+        )
+        self.lastfm_attribution.linkActivated.connect(lambda url: _open_https_link(QUrl(url)))
+        lf.addRow(self.lastfm_attribution)
         v.addWidget(lastfm_group)
 
         v.addStretch(1)

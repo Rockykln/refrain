@@ -152,8 +152,8 @@ Refrain needs a Discord Application ID to push status updates. Each user
 registers their own (free, takes 30 seconds):
 
 1. Open <https://discord.com/developers/applications> and click **New Application**.
-2. Name it whatever you want — that name is what shows up under
-   *"Listening to ..."* in your Discord status. You can also upload a
+2. Give it a name you're entitled to use — that name is what shows up
+   under *"Listening to ..."* in your Discord status. You can also upload a
    square image as the application icon; Discord uses it as the
    fallback when there's no album cover.
 3. Copy the **Application ID** from the *General Information* page.

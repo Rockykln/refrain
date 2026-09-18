@@ -15,6 +15,7 @@ lists every version and why.
   Korean. Every existing translation was checked line by line as well —
   French now says "vous" throughout, Portuguese sticks to one variant, and
   texts quoting what Discord shows keep Discord's English wording.
+- **A link to Last.fm in the Last.fm tab**, as Last.fm's API terms ask.
 
 ### Changed
 

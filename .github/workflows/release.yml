@@ -145,6 +145,13 @@ jobs:
           sha256sum *.AppImage > SHA256SUMS
           cat SHA256SUMS
 
+      - name: Publish the AppImage's third-party notices next to it
+        run: |
+          cd dist
+          ./Refrain-*-x86_64.AppImage --appimage-extract usr/share/doc/refrain/THIRD-PARTY-NOTICES > /dev/null
+          mv squashfs-root/usr/share/doc/refrain/THIRD-PARTY-NOTICES .
+          rm -rf squashfs-root
+
       # Extract the matching `## [X.Y.Z]` section from CHANGELOG.md
       # and feed it into the GitHub release body. Without this we'd
       # fall back to GitHub's auto-generated "Full Changelog: …"
@@ -168,6 +175,15 @@ jobs:
             echo "::error::CHANGELOG section for v${TAG} extracted to nothing"
             exit 1
           fi
+          cat >> release-notes.md <<'NOTES'
+
+          ---
+
+          The AppImage bundles third-party software under its own licences; the
+          list, with versions and where to get the source, is in `THIRD-PARTY-NOTICES`
+          below and inside the AppImage. Versions that were taken down, and why, are
+          listed in [docs/releases.md](https://github.com/Rockykln/refrain/blob/main/docs/releases.md).
+          NOTES
 
       - name: Hand the release files to the publishing jobs
         uses: actions/upload-artifact@v7
@@ -213,6 +229,7 @@ jobs:
             dist/*.AppImage
             dist/*.AppImage.zsync
             dist/SHA256SUMS
+            dist/THIRD-PARTY-NOTICES
 
   pypi:
     # After the GitHub release, as before the jobs were split.

@@ -31,10 +31,10 @@ Refrain is a hobby project maintained by one person in their spare time,
 so these are aims, not guarantees:
 
 - I acknowledge a report within **7 days**.
-- A fix, or an advisory with a workaround, ships as soon as practical.
-  I'll keep you posted if it takes longer.
+- A fix, or a clear plan for one, follows within **30 days**. I'll keep
+  you posted if it takes longer.
 - Disclosure is coordinated: please keep the details private until a
-  fixed release is out. The advisory is published after the fix, and I
+  fixed release is out, or for up to **90 days** after your report. The advisory is published after the fix, and I
   credit you in it unless you'd rather not be named.
 
 ## What counts as a security issue

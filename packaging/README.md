@@ -7,9 +7,9 @@ users; a Flathub submission is on the roadmap but not currently active.
 
 | Channel | Audience | Status |
 |---------|----------|--------|
-| **PyPI** | Any distro with Python ≥ 3.11 | ✅ live — `pip install refrain` |
-| **AUR**  | Arch / CachyOS / Manjaro / EndeavourOS | ✅ live — `refrain` + `refrain-git` |
-| **AppImage** | Single-file portable use, any glibc Linux | ✅ live — attached to every GitHub release |
+| **PyPI** | Any distro with Python ≥ 3.11 | Live — `pipx install refrain` (see the README) |
+| **AUR**  | Arch / CachyOS / Manjaro / EndeavourOS | Live — `refrain` + `refrain-git` |
+| **AppImage** | Single-file portable use, any glibc Linux | Live — attached to every GitHub release |
 | **Flatpak** | Every distro that ships Flatpak | 🛠️ self-build only — manifest validated locally, no Flathub submission |
 
 ## PyPI
@@ -90,7 +90,7 @@ the old version showing there straight afterwards is not a failed push.
 ## AppImage
 
 Recipe at [`appimage/AppImageBuilder.yml`](appimage/AppImageBuilder.yml).
-Builds a portable single-file binary (~245 MB, includes Qt 6 + Python +
+Builds a portable single-file binary (~76 MB, includes Qt 6 + Python +
 all deps) that runs on any glibc-based Linux.
 
 The release workflow rewrites `version:` from the git tag at build time,
@@ -110,10 +110,19 @@ The recipe vendors:
 
 - Python 3.12, dbus-python and PyGObject from Ubuntu 24.04
 - The libraries Qt needs on Wayland and X11 (EGL, fontconfig, xkbcommon, XCB)
-- The `refrain` package, PySide6 (with Qt 6) and pypresence via pip
+- The `refrain` package, PySide6-Essentials (with Qt 6) and pypresence via pip;
+  `prune_qt.py` drops the Qt modules Refrain doesn't use, including every
+  GPL-only one
 
-The release workflow starts the AppImage once with `--version` and stops
-the release if it doesn't answer.
+The AppImage bundles third-party software, so it has to carry their
+licences: `third_party_notices.py` writes `usr/share/doc/refrain/THIRD-PARTY-NOTICES`
+(every bundled component with version, licence and where its source is)
+and `LICENSES/` with the full texts at build time.
+
+The release workflow starts the AppImage once with `--version`, checks
+that the notices are inside and no GPL-only Qt module is, and stops the
+release otherwise. It publishes `THIRD-PARTY-NOTICES` and `SHA256SUMS`
+next to the AppImage.
 
 ## Flatpak
 

@@ -254,3 +254,14 @@ def test_release_note_links_open_https_only(win, monkeypatch):
     window.release_notes_view.anchorClicked.emit(QUrl("file:///etc/passwd"))
     window.release_notes_view.anchorClicked.emit(QUrl("https://github.com/Rockykln/refrain"))
     assert opened == ["https://github.com/Rockykln/refrain"]
+
+
+def test_the_last_fm_tab_links_back_to_last_fm(win, monkeypatch):
+    import refrain.ui.update_dialog as ud
+
+    opened = []
+    monkeypatch.setattr(ud.QDesktopServices, "openUrl", lambda url: opened.append(url.toString()))
+    window, _, _ = win
+    assert "https://www.last.fm" in window.lastfm_attribution.text()
+    window.lastfm_attribution.linkActivated.emit("https://www.last.fm")
+    assert opened == ["https://www.last.fm"]

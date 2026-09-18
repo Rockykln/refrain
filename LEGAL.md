@@ -20,6 +20,8 @@ In particular, Refrain has **no relationship with**:
 - **Last.fm Ltd.** — Last.fm is a trademark of Last.fm Ltd.
 - **KDE e.V.** — KDE and Plasma are trademarks of KDE e.V.
 - **GitHub, Inc.** — GitHub and the Invertocat logo are trademarks of GitHub, Inc.
+- **Bluetooth SIG, Inc.** — Bluetooth is a trademark of Bluetooth SIG, Inc.
+- **Linus Torvalds** — Linux is a trademark of Linus Torvalds.
 
 All product names, logos, trademarks, and registered trademarks mentioned in
 this project, its documentation, or its interface are the property of their
