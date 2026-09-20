@@ -64,10 +64,13 @@ Refrain is a desktop app that talks to D-Bus and a single local IPC socket
   redirects to anything but HTTPS, picks the file for the machine's
   architecture, checks the size against the release, and compares the
   SHA-256 with the release's `SHA256SUMS` before it replaces the
-  AppImage file (a release without `SHA256SUMS` is checked by size
-  only). The checksum file comes from the same release and releases are
-  not signed, so this protects against corrupted or partial downloads,
-  not against a compromised GitHub account or release. pip and pipx
+  AppImage file. `SHA256SUMS` itself carries an Ed25519 signature
+  (`SHA256SUMS.sig`) made on the maintainer's own machine, which Refrain
+  checks against the public key built into it; a release whose checksum
+  file is missing, unsigned or signed with another key is refused
+  outright, and there is no fallback to checking the size alone. So an
+  update survives a corrupted download and a release published without
+  that key — not a leak of the key itself. pip and pipx
   installs are updated by running `pip install --upgrade refrain` or
   `pipx upgrade refrain` against PyPI; Refrain is published there from
   GitHub Actions with Trusted Publishing, without a stored token. Anything

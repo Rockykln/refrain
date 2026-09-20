@@ -59,6 +59,13 @@ is on). It shows, refreshed every second while the tab is visible:
 
 *Export…* saves all of it as one JSON file wherever you choose.
 
+*System report…* shows what Refrain runs on — version and install type,
+distribution, kernel, Python, PySide6 and Qt, desktop session, and which
+settings are on — with a *Copy* button, ready to paste into a bug report.
+It names no songs, no credentials, no Bluetooth address and no Application
+ID, only whether each is set; home directories are written as `~` and the
+time zone is left out.
+
 ## What is stored
 
 Records go to `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (normally

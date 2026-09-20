@@ -11,6 +11,7 @@ IPC socket and a few outbound HTTPS clients.
 │                                                                 │
 │  Main thread (Qt event loop, GLib-backed)                       │
 │  ├─ QApplication                                                │
+│  ├─ StatusWindow (QDialog, opened by a start or a tray click)   │
 │  ├─ TrayIcon (QSystemTrayIcon)         <─── status / track      │
 │  ├─ SettingsWindow (QDialog, hidden after Apply)                │
 │  ├─ LogWindow (QDialog, on-demand)                              │
@@ -369,9 +370,9 @@ to pump dbus-python signal dispatch. When PyGObject isn't installed,
 Refrain logs a warning at startup and falls back to read-only mode —
 the rest of the app works, but Plasma's panel can't drive playback.
 
-The sources only have a play/pause toggle, so the published `Play`,
-`Pause` and `Stop` toggle only when that gets them where they ask to go,
-judged by the state the server last published. Plasma offers "Stop" for
+The sources answer `Play` and `Pause` on their own, so the published
+`Play`, `Pause` and `Stop` say what they mean and change nothing when the
+music is already in the state they ask for. Plasma offers "Stop" for
 every controllable player; here it pauses, and does nothing when the
 music is already paused.
 

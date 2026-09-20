@@ -13,13 +13,14 @@ control, a reworded hint).
 | `settings-lastfm.png`   | Opt-in scrobbling, API key + shared secret, a connected account, "Now playing" |
 | `settings-history.png`  | Recently played on/off and how many songs to keep                             |
 | `settings-updates.png`  | Auto-check, current / latest version, last-checked, the inline release-notes pane |
-| `settings-advanced.png` | Poll interval, notification delay, cover cache size, language, log level, restart / reset / uninstall |
+| `settings-advanced.png` | Poll interval, notification delay, language, log level, restart / reset / uninstall |
+| `status.png`            | The Status window: the song playing now, player controls, the Discord and Last.fm lines, Recently played, *Pause sharing*, *Settings…* |
 | `legal.png`             | The Legal notice behind the footer's *Legal* button                           |
 | `welcome.png`           | First-run wizard, with both live diagnostics resolved rather than mid-check    |
 | `update-dialog.png`     | The update-available popup                                                    |
 | `live-log.png`          | The live-log window with a real session's records in it                       |
 | `history.png`           | Recently played: covers, lengths, times, sources, the song playing on top, search and source filter |
-| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Recently played, Settings, Live log, Restart, Quit |
+| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Recently played, Troubleshooting (Live log, Restart), Quit |
 | `notification.png`      | A track-change desktop notification                                           |
 | `discord-rpc.png`       | Discord's "Listening to" card                                                 |
 | `demo-cover.png`        | Not a screenshot: the cover of the demo track, drawn for these shots — see below |
@@ -78,9 +79,10 @@ set is drawn the same way; this is the one the demo track wears.
 - **Cropping**: trim to the element itself, then give it an even margin
   of its own background — roughly 24 px looks right at these sizes.
   Nothing of the desktop behind it in frame.
-- **Consistency**: the tray menu, the live log, the notification and the
-  Discord card all show *the same track*. A set that disagrees with
-  itself about what is playing reads as a set of mockups.
+- **Consistency**: the tray menu, the Status window, the live log, the
+  notification and the Discord card all show *the same track*. A set
+  that disagrees with itself about what is playing reads as a set of
+  mockups.
 - **No real personal data.** No real Client ID, no Last.fm session, no
   MAC address, no Discord username or avatar. The Discord popout carries
   all three of the last — crop to the activity card alone.

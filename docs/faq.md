@@ -222,7 +222,8 @@ is already paused.
 
 ## Refrain was suddenly gone.
 
-The next start says so with a notification; clicking it opens the report.
+The next start says so with a notification, and the Status window carries
+the same notice as a banner; clicking either opens the report.
 You can also open `~/.local/state/refrain/crash.log` yourself. If Refrain
 died inside Qt or D-Bus, it holds the Python stack of every thread at
 that moment — attach it to a [bug report](https://github.com/Rockykln/refrain/issues/new?template=bug_report.yml)
@@ -256,7 +257,8 @@ manifest in the repository, the dialog opens a terminal running
 ## Where are the logs?
 
 `~/.local/state/refrain/refrain.log`. They rotate at 1 MiB with three
-backups. The live-log window (tray menu → *Live log…* or `--debug` flag)
+backups. The live-log window (tray → *Troubleshooting* → *Live log…*, or the
+`--debug` flag)
 shows the same stream live. `crash.log` in the same folder only ever
 gets written when Refrain crashes.
 

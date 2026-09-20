@@ -107,18 +107,24 @@ def render(version: str, suffix: str) -> None:
 
     app = QApplication(sys.argv[:1])
 
+    # The English catalog carries the plural forms, so shots read "Last 14 songs".
+    import refrain.app as rapp
+
+    keep_translators = rapp._install_translators(app, "en")  # noqa: F841
+
     import refrain.ui.settings_window as sw
     import refrain.ui.update_dialog as ud
     from refrain import updater
     from refrain.config import Config
     from refrain.cover_art import image_path_for_url
     from refrain.history import HistoryEntry, HistorySnapshot
+    from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
     from refrain.sources.base import PlaybackStatus, TrackInfo
     from refrain.sources.bluetooth import BluetoothSource
-    from refrain.startup_check import OK, CheckResult
     from refrain.ui.history_window import HistoryWindow
     from refrain.ui.legal_dialog import LegalDialog
     from refrain.ui.log_window import LogWindow
+    from refrain.ui.status_window import StatusWindow
     from refrain.ui.tray import TrayIcon
     from refrain.ui.welcome_dialog import WelcomeDialog
 
@@ -217,9 +223,13 @@ def render(version: str, suffix: str) -> None:
     config.update.last_check_ts = now - 3600
 
     changelog = (REPO / "CHANGELOG.md").read_text(encoding="utf-8")
-    section = re.search(
-        rf"## \[(?:{re.escape(version)}|Unreleased)\][^\n]*\n(.*?)\n## \[", changelog, re.S
-    )
+    # The released section once it exists; before that, whatever is unreleased.
+    section = None
+    for heading in (re.escape(version), "Unreleased"):
+        found = re.search(rf"## \[{heading}\][^\n]*\n(.*?)\n## \[", changelog, re.S)
+        if found and found.group(1).strip():
+            section = found
+            break
     release = updater.ReleaseInfo(
         tag=f"v{version}",
         version=version,
@@ -241,6 +251,26 @@ def render(version: str, suffix: str) -> None:
         HistorySnapshot(entries=tuple(entries), now_playing=True, playing=True, limit=30)
     )
     shot(history, "history")
+
+    playing = TrackInfo(
+        source="mpris",
+        title="Glass Tides",
+        artist="Neon Harbor",
+        album="Low Light",
+        status=PlaybackStatus.PLAYING,
+        player="Chromium",
+    )
+    window = StatusWindow()
+    window.version.setText(f"v{version}")
+    window.set_track(playing)
+    window.set_history(HistorySnapshot(entries=tuple(entries), now_playing=True, playing=True))
+    window.set_status(
+        StatusSnapshot(DiscordStatus.SHOWING, "", LastfmStatus.SCROBBLING, "refrain_demo")
+    )
+    # The same point in the song the Discord card shows.
+    window.set_progress(45_000, 214_000)
+    window.resize(520, 520)
+    shot(window, "status")
 
     class Bridge(QObject):
         log_record = Signal(str, int)
@@ -290,8 +320,8 @@ def render(version: str, suffix: str) -> None:
     )
     tray.set_status(PlaybackStatus.PLAYING)
     tray.set_progress(41_000, 214_000)
-    tray.set_discord_connected(True)
-    tray.set_startup_check(CheckResult(state=OK, detail="refrain_demo"), CheckResult(state=OK))
+    status = StatusSnapshot(DiscordStatus.SHOWING, "", LastfmStatus.SCROBBLING, "refrain_demo")
+    tray.set_service_status(status)
     menu = tray._tray.contextMenu()
     menu.popup(QPoint(200, 100))
     settle()

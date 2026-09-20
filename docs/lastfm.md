@@ -36,8 +36,10 @@ Open the *Settings → **Last.fm*** tab:
 ## 3. Authorise in the browser
 
 Connect opens a Last.fm page in your browser asking you to grant
-Refrain access to your account. Approve it, return to Refrain, and
-click **OK** on the "Authorise Refrain" dialog.
+Refrain access to your account, and puts up an *Authorize Refrain*
+window that waits for you. Approve the page; Refrain asks Last.fm every
+few seconds and closes the window by itself once access is granted. If
+the browser page never opened, *Open the page again* brings it back.
 
 The *Account* line then reads **Connected as &lt;your-username&gt;**.
 Click **Apply** to save. Scrobbling starts on the next track — no
@@ -89,10 +91,10 @@ them, and they are never logged.
 
 ## Troubleshooting
 
-**The *Account* line says "Not connected" after I clicked OK.**
-The authorisation wasn't completed in the browser before you clicked
-OK, or the API key/secret are wrong. Re-check the key + secret and
-click **Connect…** again.
+**The *Account* line still says "Not connected".**
+The authorisation was never completed in the browser, or the API
+key/secret are wrong. Re-check the key + secret and click **Connect…**
+again.
 
 **Live log shows "Last.fm session invalid … reconnect in Settings → Last.fm".**
 The full warning reads
@@ -117,7 +119,7 @@ says so in the live log.
 - If you were offline, they're queued
   (`$XDG_STATE_HOME/refrain/scrobble_queue.jsonl`) and submit on the
   next track change once the network is back.
-- Open the live log (*tray → Live log…*) and watch for
+- Open the live log (*tray → Troubleshooting → Live log…*) and watch for
   `Scrobble queued:` / `Scrobbled N queued track(s)` lines.
 
 **Does this replace the Discord status?**

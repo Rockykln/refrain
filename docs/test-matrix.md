@@ -120,9 +120,10 @@ minute; the whole sweep is ≈ 6 minutes per system.
 
 ### 2. Settings round-trip
 
-- Tray → *Settings…* opens the window.
+- Tray icon → Status window → *Settings…* opens the window.
 - Toggle any setting (e.g. *Notifications*), hit *Apply*.
-- Window closes; setting persists in `~/.config/refrain/config.toml`.
+- Window stays open, *Apply* greys out again, setting persists in
+  `~/.config/refrain/config.toml`; *OK* saves and closes.
 - No console errors, no Qt crashes.
 
 ### 3. MPRIS / Apple Music — Discord push

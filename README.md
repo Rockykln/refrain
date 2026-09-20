@@ -64,7 +64,7 @@ streaming from your phone over Bluetooth.
 |---------|---------|
 | **PyPI** *(any distro with Python ≥ 3.11)* | `pipx install --system-site-packages refrain` — see [below](#from-pypi) |
 | **AUR** *(Arch / CachyOS / Manjaro / EndeavourOS)* | `yay -S refrain` *(stable)* or `yay -S refrain-git` *(latest main)* |
-| **AppImage** *(portable single-file, any glibc-based distro)* | Returns with 0.5.3 — earlier AppImages never started and were removed |
+| **AppImage** *(portable single-file, any glibc-based distro)* | [Download from the latest release](https://github.com/Rockykln/refrain/releases/latest), `chmod +x`, run it |
 | **From source** | See below |
 
 The AppImage needs FUSE 2, which current distros no longer install by
@@ -157,8 +157,8 @@ registers their own (free, takes 30 seconds):
    square image as the application icon; Discord uses it as the
    fallback when there's no album cover.
 3. Copy the **Application ID** from the *General Information* page.
-4. Launch Refrain → *Settings → General → Discord Client ID* → paste,
-   *Apply*.
+4. Launch Refrain → *Settings → General → Application ID* → paste,
+   *OK*.
 
 The first time you launch Refrain without a configured ID, the
 welcome wizard pops up with the setup steps + a live diagnostics
@@ -172,7 +172,8 @@ know up front whether your environment can host the RPC at all.
   </picture>
 </p>
 
-That's it. The status will appear in Discord on the next track change.
+After the wizard, the **Status window** says *You're all set*. Play a
+song and it shows up in Discord within a few seconds.
 
 ## Configuration
 
@@ -196,11 +197,12 @@ browser_hints = "firefox,chromium,…"  # which MPRIS players count as a browser
 
 [privacy]
 mode = "full"                      # "full" | "minimal" | "off"
+resume_mode = "full"               # what *Resume sharing* goes back to after *Pause sharing*
 
 [behavior]
 autostart = false
-notifications = true
-cover_art = true
+notifications = false              # new installs; a config from before 0.5.3 keeps its value
+cover_art = true                   # look songs up in Apple's catalog: cover, song link, length
 show_buttons = true
 notify_delay_ms = 0                # 0 = fire ASAP; the cover-art retry loop still waits up to ~2 s
 
@@ -209,7 +211,12 @@ poll_interval_ms = 500
 log_level = "INFO"
 idle_grace_s = 30                  # clear status when same track plays past duration + grace; 0 disables
 position_stall_s = 4               # seconds a playing track's position may stand still before Refrain stops trusting it; 0 disables
-language = "system"                # "system" follows QLocale; "en", "de", "es", "fr", "pt", "it", "ru", "pl", "ja", "zh_CN" force a translation
+language = "system"                # "system" follows QLocale; "cs", "de", "en", "es", "fr", "it", "ja", "ko", "nl", "pl", "pt", "ru", "sv", "tr", "uk", "zh_CN" force a translation
+time_format = "system"             # not in Settings: "system" follows the desktop clock, "12h" and "24h" override it
+time_zone = ""                     # not in Settings: empty follows the desktop, or an IANA name like "Europe/Berlin"
+hover_scroll_ms = 1500             # rest this long on a song in the Status window and its title scrolls past once; 0 = never
+developer_mode = false             # local timing + usage metrics, see docs/developer-mode.md
+developer_unlocked = false         # keeps the Developer switch in Settings once unlocked
 
 [lastfm]
 enabled = false                    # opt-in, alongside (never replacing) the Discord RPC
@@ -225,6 +232,10 @@ enabled = true                     # the "Recently played" list; false also dele
 max_entries = 30                   # songs kept, 1–100 (Settings offers 10, 20, 30, 50, 75, 100)
 window_width = 0                   # the history window's size when last closed; 0 = default
 window_height = 0
+
+[update]
+auto_check = true                  # look for a newer release shortly after start
+last_check_ts = 0                  # when that last happened; Refrain keeps this current
 ```
 
 Per-source `client_id_*` fields let Apple Music render under one Discord
@@ -257,33 +268,75 @@ no unicode-glyph prefixes.
 
 | Item              | What it does                                              |
 |-------------------|-----------------------------------------------------------|
-| Title             | Currently playing track (click opens Settings)            |
+| Title             | Currently playing track (click opens the Status window)   |
 | Artist • Album    | Currently playing artist + album (hidden when idle)       |
 | X:XX / Y:YY (–Z:ZZ) | Elapsed / track length / remaining (hidden when idle)   |
-| Discord: connected / not connected | Live Discord-RPC connection state        |
-| Discord: rejected — check Application ID | Discord accepted the socket but refused the Application ID |
-| Last.fm: connected as … / session expired | Scrobbling status (hidden unless Last.fm is enabled) |
+| Discord: …        | What Discord shows right now: *ready — waiting for music*, *visible on your profile*, *showing “Listening to music”*, *hidden while paused*, *hidden — sharing is off*, *app isn't running*, *not answering*, *not set up — add your Application ID*, *Application ID rejected — check it* |
+| Last.fm: …        | *scrobbling as …*, *N scrobbles waiting*, *sign-in expired — reconnect* (hidden while Last.fm was never set up) |
 | Previous          | Skip backward on the active source                        |
 | Play / Pause      | Toggle on the active source (label follows playback state)|
 | Next              | Skip forward on the active source                         |
 | Update available — vX.Y.Z | Only visible when a newer release exists          |
 | Recently played…  | Open the history window (hidden while the history is off) |
-| Settings…         | Open the settings window                                  |
-| Live log…         | Open the live-log window                                  |
-| Restart Refrain   | Cleanly stop and re-launch (release D-Bus name + RPC, exec the same binary) |
+| Troubleshooting ▸ | *Live log…* and *Restart Refrain* (releases the D-Bus name and Discord connection, then starts the same binary again) |
 | Quit Refrain      | Stop the daemon and exit                                  |
 
-Left-click the tray icon opens Settings, **middle-click toggles
-play/pause**, right-click shows this menu. (DBusMenu keeps an open
+Left-click the tray icon opens the Status window — which also holds
+*Pause sharing* and *Settings…* — **middle-click toggles play/pause**,
+right-click shows this menu. (DBusMenu keeps an open
 menu's text static, so the progress line is a snapshot from when you
 opened it — hover the tray icon for a live-updating tooltip.)
 
+## Status window
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/status-light.png"/>
+    <img src="docs/screenshots/status.png" alt="Status window" width="420"/>
+  </picture>
+</p>
+
+A small window that answers "is it working?": the song playing now, one
+line each for Discord and Last.fm in plain words, and a button only when
+there is something to do (*Set up…*, *Fix…*, *Reconnect…*). Below are
+player controls, the time played so far, the songs before this one,
+*Pause sharing*, *Settings…* and a link to the project on GitHub. After a
+crash it also carries a banner naming the report. The list holds as many
+songs as the window has room for, so making the window taller shows more
+and there is never a scroll bar. It updates live; a title too long for the
+window scrolls past twice, and resting the mouse on a song in the list
+scrolls that one once. While the window is on screen Refrain keeps quiet
+and sends no notifications.
+
+Every link that leaves Refrain — a song on Apple Music, the GitHub page,
+Last.fm — asks first and names the page it is about to open.
+
+It opens when you start Refrain from the menu, when you click the tray
+icon, and when you start Refrain again while it is already running. A
+start at login (`--silent`, what autostart uses) stays in the tray and
+opens it only when something needs you — Discord not set up, the
+Application ID rejected, the Last.fm sign-in expired — once per problem.
+
 ## Settings
 
-The settings window opens on first launch, and again any time you click
-*Settings…* from the tray. Hitting **Apply** writes the change to
-`config.toml`, hides the window, and keeps the daemon + tray running in
-the background.
+The settings window opens from *Settings…* in the Status window. **Apply** saves to `config.toml` and keeps the window open,
+**OK** saves and closes it, **Cancel** closes it without saving. Apply
+stays greyed out until something differs from what is saved. Closing the
+window with unsaved changes — Cancel, <kbd>Esc</kbd> or the window's close
+button — asks first: *Save*, *Discard* or *Keep editing*.
+
+A few things are saved the moment they happen, because they are results
+rather than drafts: connecting or disconnecting Last.fm (connecting also
+switches scrobbling on), *Reset all settings to defaults* after its
+confirmation, and unlocking developer mode. Only a new language needs a
+restart; Refrain says so and asks before it restarts.
+
+*Privacy* on the General tab decides what is shared: *Full*, *Minimal*
+(only “Listening to music”) or *Off*, which pauses both the Discord status
+and Last.fm scrobbling. The recently played list keeps working either way.
+Next to it, *Look up songs in Apple's catalog* sends artist and title to
+Apple for the cover, the song link and the length; without it Discord shows
+no cover and often no progress bar.
 
 <table>
   <tr>
@@ -293,7 +346,7 @@ the background.
         <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-general-light.png"/>
         <img src="docs/screenshots/settings-general.png" alt="Settings — General" width="420"/>
       </picture>
-      <br/><sub>Discord Client ID with the application's name beside it, privacy, autostart, notifications, cover art</sub>
+      <br/><sub>Discord Application ID with the application's name beside it, privacy and the Apple catalog lookup, autostart, notifications</sub>
     </td>
     <td align="center">
       <b>Sources</b><br/>
@@ -314,10 +367,10 @@ the background.
       <br/><sub>Opt-in scrobbling, API key + secret, connect / disconnect an account</sub>
     </td>
     <td align="center">
-      <b>History</b><br/>
+      <b>Recently played</b><br/>
       <picture>
         <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/settings-history-light.png"/>
-        <img src="docs/screenshots/settings-history.png" alt="Settings — History" width="420"/>
+        <img src="docs/screenshots/settings-history.png" alt="Settings — Recently played" width="420"/>
       </picture>
       <br/><sub>Recently played on or off, how many songs to keep</sub>
     </td>
@@ -347,7 +400,7 @@ the background.
         <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/legal-light.png"/>
         <img src="docs/screenshots/legal.png" alt="Legal notice" width="420"/>
       </picture>
-      <br/><sub>Licence, trademark and affiliation notices — the <i>Legal</i> button in the footer</sub>
+      <br/><sub>License, trademark and affiliation notices — the <i>Legal</i> button in the footer</sub>
     </td>
     <td></td>
   </tr>
@@ -384,14 +437,16 @@ again is listed twice, once per play.
 
 The list stays on your machine (`history.json`, readable only by you)
 and is never sent anywhere, so the privacy mode doesn't affect it.
-*Settings → History* turns it off — which deletes the file — or changes
+*Settings → Recently played* turns it off — which deletes the file — or changes
 how many songs it keeps.
 
 ## Notifications
 
-When a track changes, Refrain fires a desktop notification with the album
-cover, song title, artist and album — the same data that's going to your
-Discord status. Toggle off in *Settings → General* if you don't want them.
+Refrain can show a desktop notification on each track change, with the
+album cover, song title, artist and album — the same data that's going to
+your Discord status. It is off for new installs; turn it on under
+*Settings → General → Behavior*. Configs from before 0.5.3 keep the setting
+they had.
 
 <p align="center">
   <picture>
@@ -403,8 +458,10 @@ Discord status. Toggle off in *Settings → General* if you don't want them.
 ## Updates
 
 Refrain checks the [GitHub Releases API](https://api.github.com/repos/Rockykln/refrain/releases/latest)
-once per day on startup. When a newer version exists, the tray menu shows
-an *Update available* item that opens this dialog:
+on startup, at most once per day (*Settings → Updates* has the switch and
+a *Check for updates now* button). When a newer version exists, Refrain
+opens this dialog, and the tray menu shows an *Update available* item
+that brings it back:
 
 <p align="center">
   <picture>
@@ -413,15 +470,23 @@ an *Update available* item that opens this dialog:
   </picture>
 </p>
 
-Behavior is install-type-aware:
+What the update does depends on how Refrain was installed:
 
-- **AppImage** — Refrain downloads the new `.AppImage` from the release
-  assets and replaces the running binary in place (atomic rename), then
-  prompts a restart.
-- **pip / venv** — runs `pip install --upgrade refrain` for you.
-- **Flatpak / AUR** — never modifies system files; surfaces the distro's
-  own upgrade command (`flatpak update …` / `yay -Syu refrain`) so the
-  package manager stays in charge.
+- **AppImage** — downloads the new `.AppImage`, checks it against the
+  release's signed checksums and replaces the running file, then asks
+  you to restart.
+- **pipx** — runs `pipx upgrade refrain`.
+- **pip / venv** — runs `pip install --upgrade refrain`.
+- **AUR** — opens a terminal running your AUR helper
+  (`yay -Syu refrain` or similar), so the package manager stays in
+  charge and you confirm sudo yourself. Other distro packages get a
+  hint to use the package manager.
+- **Source checkout** — never updated in place; `git pull` and
+  `pip install -e .` yourself.
+
+There is no published Flatpak; a self-built one gets
+`flatpak update` in a terminal the same way. Details in the
+[FAQ](docs/faq.md#how-do-i-update).
 
 ## Last.fm scrobbling
 
@@ -482,16 +547,24 @@ entry + icon.)
 | Recently played | `$XDG_STATE_HOME/refrain/history.json`    |
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
-| Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes) |
+| Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes; the next start says so and opens it on click) |
+| Developer-mode metrics | `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (only while developer mode is on) |
 | Cover cache   | `$XDG_CACHE_HOME/refrain/covers/` (lookups; images only for songs in *Recently played*) |
 | Autostart     | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (when enabled) |
 
 ## Diagnostics — live log
 
-Tray menu → *Live log…* (or launch with `refrain --debug`) opens a
+Tray menu → *Troubleshooting* → *Live log…* (or launch with
+`refrain --debug`) opens a
 streaming view of every log line as it happens, color-coded by level and
 filterable. Same content as `~/.local/state/refrain/refrain.log`, but
 without tailing it from a terminal.
+
+For finding slow spots there is also a **developer mode** (off by default):
+click the version number in *Settings* six times. It measures poll,
+startup and request timings, memory and which windows and buttons get used,
+shows them in a *Developer* tab of the live log, and keeps them in a local
+file. It never sends anything. See [`docs/developer-mode.md`](docs/developer-mode.md).
 
 <p align="center">
   <picture>
@@ -521,7 +594,7 @@ directly to that provider:
 `Privacy → Off` is the global kill switch (no Discord status, no
 scrobbling) while keeping the tray + controls running. The *Recently
 played* list never leaves your machine, so it has its own switch in
-*Settings → History* instead.
+*Settings → Recently played* instead.
 
 Full data-flow, retention and erasure details — written to GDPR
 transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
@@ -530,8 +603,10 @@ transparency expectations — are in [`PRIVACY.md`](PRIVACY.md).
 
 - [Architecture overview](docs/architecture.md) — threads, D-Bus surface, file paths
 - [FAQ](docs/faq.md)
+- [Known limitations and troubleshooting](docs/troubleshooting.md) — what doesn't work, and what to check when something fails
 - [Bluetooth quick-start](docs/bluetooth.md) — pair + AVRCP setup walkthrough
 - [Last.fm scrobbling](docs/lastfm.md) — API account + connect walkthrough
+- [Developer mode](docs/developer-mode.md) — local timing and usage metrics, never sent
 - [Test matrix](docs/test-matrix.md) — supported distros, smoke-check checklist
 - [Roadmap](docs/roadmap.md)
 - [Changelog](CHANGELOG.md)
@@ -586,16 +661,17 @@ inside the app under **Settings → Legal**.
 
 | Stat | Value |
 |---|---|
-| Lines of code | 9,133 |
-| Lines in the repository | 43,213 |
-| Words in the repository | 175,046 |
-| Test coverage | 91 % |
-| Words of documentation | 37,799 |
-| Automated tests | 1,171 |
-| Days since the first release | 136 |
+| Lines of code | 9,799 |
+| Lines in the repository | 62,146 |
+| Words in the repository | 226,663 |
+| Words of documentation | 39,969 |
+| Automated tests | 2,076 |
+| Test coverage | 99 % |
+| Days since the first release | 138 |
 | Versions released | 24 |
-| Commits | 200 |
-| Languages | 10 |
+| Downloads | 2,676 |
+| Commits | 205 |
+| Languages | 16 |
 | Runtime dependencies | 3 |
 | Browsers tested | 5 (Chrome, Chromium, Brave, Firefox, Zen) |
 | Ways to install | 3 (PyPI, AUR, AppImage) |

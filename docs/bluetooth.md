@@ -107,7 +107,7 @@ arrives from Bluetooth.
   lists no player at all, the phone isn't exposing AVRCP — disconnect
   and reconnect, and check that the audio profile is enabled for the
   pairing.
-- Open the live log (tray → *Live log…*) and look for
+- Open the live log (tray → *Troubleshooting* → *Live log…*) and look for
   `Track change [bluetooth]: …` lines. If you see `[mpris]` instead,
   the browser is playing too: a source that is playing wins over a
   paused one, and when both play, the browser comes first. Pause or

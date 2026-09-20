@@ -67,8 +67,10 @@ make clean-all   # also remove .venv
 ```
 
 Runtime data (logs, cover-art cache) lives under `$XDG_STATE_HOME` and
-`$XDG_CACHE_HOME`, never in the project folder. Refrain itself prunes the
-cover-art cache on startup if it exceeds 200 entries (~10–30 MB).
+`$XDG_CACHE_HOME`, never in the project folder. Refrain prunes both caches
+itself: the catalogue answers (a few hundred bytes each) once they pass
+200 entries, the cover images whenever a song drops out of *Recently
+played*.
 
 ## Style
 
@@ -89,6 +91,8 @@ The duck-typed source contract is:
 class Source:
     def read(self) -> TrackInfo: ...
     def play_pause(self) -> bool: ...
+    def play(self) -> bool: ...
+    def pause(self) -> bool: ...
     def next(self) -> bool: ...
     def previous(self) -> bool: ...
 ```

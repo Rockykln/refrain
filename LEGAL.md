@@ -33,7 +33,7 @@ Refrain does not redistribute, modify, circumvent, or bundle any of these
 products. It communicates with them through interfaces they expose on the
 user's own system — Discord's local Rich Presence IPC socket, the MPRIS
 D-Bus specification, and the public Last.fm, iTunes Search and GitHub web
-APIs. The GitHub logo in the settings window is GitHub's unmodified mark,
+APIs. The GitHub logo in the settings and Status windows is GitHub's unmodified mark,
 used only as a link to Refrain's repository.
 
 Cover art comes from Apple's iTunes Search API and remains the property of

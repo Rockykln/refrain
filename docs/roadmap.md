@@ -536,6 +536,18 @@ were tracked internally as "v0.2.8" but never separately tagged.
   connected"; the Connect button no longer treats an incomplete
   leftover as Disconnect. +13 tests (pure + offscreen).
 
+## Done — v0.4.2 – v0.4.6
+
+- **Bluetooth as a second source.** Headphones and phones that publish
+  AVRCP metadata land in Discord the same way a browser tab does, with
+  their own Application ID if you want one.
+- **A first-run wizard** that checks the session bus, the tray and the
+  Discord socket before the first song, and a live log window with a
+  level picker.
+- **Translations**, starting at nine languages, and a settings window
+  split into tabs.
+- Details per version in the [changelog](../CHANGELOG.md).
+
 ## Done — v0.5.1
 
 - **Recently played.** A history window (tray → *Recently played…*)
@@ -568,6 +580,39 @@ were tracked internally as "v0.2.8" but never separately tagged.
   stops the elapsed time falling back every ten seconds.
 - **Every shipped translation complete**, plural forms included
   (English now carries its own plural catalog).
+
+## Done — v0.5.2
+
+- **Scrobbling that survives a bad day.** No double scrobble after a
+  restart, no lost scrobble while the Last.fm session is invalid, no
+  queued scrobble going to an account you connected afterwards.
+- **Songs the catalog doesn't know count too** — they are scrobbled and
+  shown in Discord instead of being skipped for want of a length.
+- **A stream is no longer a song.** Video and live streams over
+  Bluetooth, and browser tabs that only mention Apple Music in their
+  title, stay out of the status.
+- **Quitting is quick again**, even with Last.fm unreachable.
+
+## Done — v0.5.3
+
+- **An AppImage that starts.** Every one before it died at launch; this
+  one runs on Ubuntu, Debian, Fedora, openSUSE and Arch, carries the
+  licences of what it bundles, and updates itself only with files whose
+  checksums carry a valid signature.
+- **A Status window** as the face of the app: the song playing now, what
+  Discord and Last.fm are doing in plain words, the songs before this
+  one, player controls, and a button only when something needs doing.
+- **Sixteen languages**, Dutch, Swedish, Czech, Turkish, Ukrainian and
+  Korean among them, with every existing translation re-read line by
+  line.
+- **Settings that take effect on Apply**, ask before dropping unsaved
+  changes, and survive a typo in `config.toml` without losing the rest.
+- **Less work while nothing plays** — fewer D-Bus round trips per poll
+  and a lighter history window.
+- **Developer mode**: six clicks on the version number turn on local
+  timings for every step, a report of what Refrain runs on, and a
+  watcher that reports text which does not fit its window. Nothing it
+  measures ever leaves the machine.
 
 ## Up next — v0.5.x
 

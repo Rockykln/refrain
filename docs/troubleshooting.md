@@ -4,7 +4,8 @@ This page lists what Refrain can't do, and what to check when something
 doesn't work. Many single questions are already answered in the
 [FAQ](faq.md); this page links there instead of repeating them.
 
-Most answers point to a line in the **live log**: tray menu → *Live log…*,
+Most answers point to a line in the **live log**: tray menu →
+*Troubleshooting* → *Live log…*,
 or start Refrain with `refrain --debug`. The same lines are written to
 `~/.local/state/refrain/refrain.log`.
 
@@ -181,10 +182,13 @@ First check that a song is detected (see above). The status is also
 cleared on purpose while the music is paused
 ([FAQ](faq.md#the-discord-status-disappears-when-i-pause)).
 
-The tray menu shows the connection: *Discord: connected*,
-*Discord: not connected*, or *Discord: rejected — check Application ID*.
-A few seconds after start-up the live log has a line starting with
-`[startup-check] Discord:`.
+The tray menu says in plain words what Discord is doing right now:
+*Discord: ready — waiting for music*, *visible on your profile*,
+*showing "Listening to music"*, *hidden while paused*,
+*hidden — sharing is off*, *app isn't running*, *not answering*,
+*not set up — add your Application ID* or
+*Application ID rejected — check it*. A few seconds after start-up the
+live log has a line starting with `[startup-check] Discord:`.
 
 **No Application ID**
 
@@ -205,7 +209,7 @@ yet` is normal: Refrain connects once something plays.
 
 **The Application ID is rejected**
 
-- *What you see:* *Discord: rejected — check Application ID* in the tray.
+- *What you see:* *Discord: Application ID rejected — check it* in the tray.
 - *Why:* Discord answered but refused the ID. Either the ID is wrong,
   or Discord isn't signed in.
 - *What to do:* check the ID in *Settings → General*. The
@@ -346,7 +350,7 @@ Restart Refrain after an update. If the check fails, the log says
   older files `refrain.log.1` to `.3`. Only you can read them.
   `crash.log` in the same folder is only written when Refrain crashes
   ([FAQ](faq.md#refrain-was-suddenly-gone)).
-- **Live:** tray → *Live log…*. *Copy all* copies what the window
+- **Live:** tray → *Troubleshooting* → *Live log…*. *Copy all* copies what the window
   holds.
 - **More detail:** *Settings → Advanced → Log level → DEBUG*, or start
   with `refrain --debug`.
