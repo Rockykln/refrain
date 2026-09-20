@@ -108,4 +108,4 @@ modules:
         url: https://github.com/Rockykln/refrain.git
         # Tag only: this file is part of the tagged tree, so it can never
         # name the commit the tag points to.
-        tag: v0.5.2
+        tag: v0.5.3

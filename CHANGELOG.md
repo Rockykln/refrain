@@ -9,6 +9,22 @@ lists every version and why.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-09-20
+
+The first release with an AppImage that works, and a thorough one. Every
+AppImage before it stopped at start; this one starts on Ubuntu, Debian,
+Fedora, openSUSE and Arch, carries the licences of what it bundles, and
+updates itself only with files that match the release's signed
+checksums.
+Settings take effect the moment you apply them, a typo in config.toml no
+longer costs every setting, Last.fm keeps its offline queue through key
+and server errors, and Discord gets the status back after a restart.
+A new Status window says in plain words whether Discord and Last.fm are
+working, and holds the switch that pauses sharing. Refrain now speaks
+sixteen languages, Dutch, Swedish, Czech, Turkish, Ukrainian and Korean
+among them, uses less CPU while idle, and has a developer mode that times
+every step locally and never sends anything.
+
 ### Added
 
 - **Six more languages:** Dutch, Swedish, Czech, Turkish, Ukrainian and
@@ -16,8 +32,79 @@ lists every version and why.
   French now says "vous" throughout, Portuguese sticks to one variant, and
   texts quoting what Discord shows keep Discord's English wording.
 - **A link to Last.fm in the Last.fm tab**, as Last.fm's API terms ask.
+- **Developer mode** for finding slow spots: click the version number in
+  *Settings* six times to turn it on. Refrain then measures how long each
+  step of a poll, the startup and requests to Apple, Last.fm, GitHub and
+  Discord take, its memory use, and which windows, tabs and buttons get
+  used. The results show in a new *Developer* tab of the live log and can
+  be exported; they are kept in a local file and never sent anywhere. Song
+  titles and anything you type are never recorded. It also warns when a
+  window shows text that does not fit, and a test renders every window in
+  all sixteen languages so that cannot ship. See
+  [docs/developer-mode.md](docs/developer-mode.md).
+- **A Status window** answers "is it working?": the song playing now,
+  whether Discord shows it and whether Last.fm scrobbles it, in plain
+  words, with a button only when there is something to do (*Set up…*,
+  *Fix…*, *Reconnect…*), the last five songs, *Pause sharing* and
+  *Settings…*. It replaces the settings window at start and on a click on
+  the tray icon. A start at login opens it only when something needs you;
+  after the welcome wizard it says *You're all set*. A title or album too
+  long for the window scrolls past twice, as Apple Music does, and while
+  the window is open a song notification would only repeat it, so none is
+  shown.
+- **Pause sharing** in the Status window stops the
+  Discord status and Last.fm scrobbling in one click, and *Resume sharing*
+  brings back the privacy mode you had.
 
 ### Changed
+
+- **Starting Refrain while it runs brings up its Status window**
+  instead of a dead-end "Refrain is already running."
+- **The tray says what Discord really shows.** It read "Discord: not
+  connected" until the first song, even with everything in order, and
+  looked the same for a missing Application ID, a closed Discord and a
+  rejected ID. It now says *ready — waiting for music*, *showing your
+  song*, *hidden while paused*, *hidden — sharing is off*, *app isn't
+  running*, *not set up* or *Application ID rejected*, and a rejected ID
+  shows before the first song. The Last.fm line follows scrobbling live
+  instead of the one check at startup.
+- **Song changes reach Discord at once.** Refrain held every update back
+  until four seconds after the last one; it now sends straight away and
+  only waits once five updates went out within 20 seconds, Discord's
+  own limit, sending the newest state then.
+- **The tray menu is shorter:** *Live log…* and *Restart Refrain* moved
+  into a *Troubleshooting* submenu.
+- **Settings no longer lose changes without asking.** *Apply* saves and
+  keeps the window open, the new *OK* saves and closes, and closing with
+  unsaved changes (*Cancel*, <kbd>Esc</kbd> or the close button) asks
+  *Save*, *Discard* or *Keep editing*. *Apply* used to close the window,
+  and closing it dropped every change on every tab.
+- **No more silent restarts.** Only a new language still needs one, and
+  Refrain says so and asks first. A new Discord Application ID takes
+  effect without a restart.
+- ***Reset all settings to defaults* takes effect at once** instead of
+  waiting for another *Apply*.
+- **A Last.fm connection is saved the moment it is made** and switches
+  scrobbling on, so *Cancel* can no longer lose it; *Disconnect* is saved
+  at once too. Settings ask when an account is connected but scrobbling
+  is off.
+- **Privacy *Off* says what it does:** it pauses the Discord status and
+  Last.fm scrobbling. Privacy has its own group now, together with *Look
+  up songs in Apple's catalog* (was *Fetch album cover art from iTunes*
+  under Notifications), which also gives Discord the song link and the
+  progress bar.
+- **Song notifications are off for new installs.** A config from an
+  earlier version keeps the setting it had.
+- **One name for each thing:** *Application ID* everywhere, as in
+  Discord's Developer Portal, instead of "Client ID"; the *History* tab is
+  *Recently played*, like the window; American spelling throughout. The
+  Advanced tab explains the poll interval, the notification delay and the
+  log levels, and the developer mode switch stays there once unlocked.
+- **Settings fit in every language:** the General tab no longer runs off
+  the right edge when the application's name is shown, Sources and
+  Advanced fit without a scrollbar, hints are no longer slanted in
+  Chinese, Japanese and Korean, and *Turn off history?* has its *Cancel*
+  in the chosen language.
 
 - **Connecting to Last.fm waits for your approval.** After *Connect…*
   opened Last.fm's page, an OK clicked before approving there ended in
@@ -43,7 +130,9 @@ lists every version and why.
 - **The in-app AppImage update checks what it downloads**: it only takes
   files from this project's GitHub releases over HTTPS, for your machine's
   architecture, of the announced size and — from this release on — with
-  a matching checksum.
+  a checksum from a `SHA256SUMS` carrying a valid Ed25519 signature.
+  An update whose checksums are missing, unsigned or signed with another
+  key is refused.
 - **The AppImage is a third of its old size** and ships the licence texts
   of everything it bundles. Qt modules only available under the GPL are
   no longer included.
@@ -59,6 +148,26 @@ lists every version and why.
 - **The licence** now words its liability terms to hold under German law,
   lets contributors keep authorship while granting the use of their
   work, and allows forks that only prepare a pull request.
+
+- **The Status window plays too**: previous, play/pause and next, the time
+  played so far, five recent songs, and a link to the project. Long titles
+  scroll past twice instead of ending in "…".
+- **Over Bluetooth, Refrain shows Apple Music only.** A song played in
+  another service on the phone is left out, and the log says which app it
+  was. Apple Music counts under its translated names too.
+- **The tray menu lost *Pause sharing* and *Settings…***, because a click
+  on the icon already opens the window that holds both.
+- **Every link out of Refrain asks first** and names the page it opens.
+- **Last.fm gets the album** Refrain looked up, when the browser reports
+  none — without it Last.fm shows no cover for the song.
+- **The live log opens at the level Refrain logs at**, the one set under
+  *Advanced*, instead of always at INFO. Its *Developer* tab reads as
+  plain aligned columns now, wide enough for the numbers and without the
+  empty boxes.
+- **The window with "Refrain is already running" closes itself** after a
+  few seconds; there is nothing to decide.
+- **Switching sharing off and on again takes a second**, because Discord
+  loses track of a status that is cleared and set again at once.
 
 ### Fixed
 
@@ -77,7 +186,8 @@ lists every version and why.
 - **A missing system library ended in Qt's crash.** When a pip install
   lacked a library Qt's Wayland or X11 plugin needs, Qt aborted with
   "no Qt platform plugin could be initialized". Refrain now names the
-  missing library and the command that installs it on your distro.
+  missing library and the command that installs it on your distro, as a
+  desktop notification even where `notify-send` is not installed.
 - **With two Bluetooth devices connected, the one playing could go
   unseen.** Without a device chosen in the settings, Refrain took the
   first player BlueZ listed — an idle tablet, say, while music played on
@@ -114,7 +224,7 @@ lists every version and why.
   same number, and after every earlier one.
 - **Uninstalling from the settings hung** instead of quitting.
 - **Cancel did not undo the settings form**, so the next *Apply* saved
-  what had been cancelled — also after *Reset*.
+  what had been canceled — also after *Reset*.
 - **Looking up the Discord application's name could freeze or crash the
   settings window** when Discord was slow to answer.
 - **A single typo in `config.toml` cost every setting.** The file was
@@ -148,6 +258,36 @@ lists every version and why.
   skip while the previous song was still waiting for its cover.
 - **A song title starting with a dash** could be read as an option by
   `notify-send`.
+- **The pointing hand sat on the empty strip beside the tabs**, not only
+  on the tabs themselves.
+- **The Settings window shows a scrollbar on the Advanced tab** with
+  larger fonts; it now opens as tall as its longest tab, within what the
+  screen has.
+- **The Status window showed no cover with the history turned off** — the
+  cover now comes straight from the player's song — and said nothing at
+  all about the list being off.
+- **Discord could drop a song's status for good.** A refusal can also be a
+  hiccup on Discord's side, so Refrain tries once more after 20 seconds.
+- **Songs whose title carries a tag** ("- Remix", "(HardTekk)") are now
+  also looked up without it, which finds covers and lengths that were
+  missed before.
+- **A crash went unmentioned.** If Refrain ended unexpectedly, the next
+  start says so once and opens the report it already wrote
+  (`~/.local/state/refrain/crash.log`) when you click the notice. Nothing
+  is sent anywhere.
+- **Twelve texts were never translated**, among them every startup error
+  ("Refrain is already running", "No system tray", the D-Bus notice) and
+  the uninstall report: a shorthand in the code hid them from the
+  translation tool. They now speak all sixteen languages.
+- **Quitting during an update check could abort Refrain**, because the
+  check's thread was still waiting on the network.
+- **A song without a length never counted for Last.fm, and nothing said
+  why.** The log now names it, and songs under 30 seconds too.
+- **With two Apple Music tabs paused, Refrain could switch between them**
+  from one poll to the next. It now stays with the one it showed.
+- **The live log missed the first lines of a start.** It now shows them.
+- **Debug logs contained your Bluetooth device's full address.** All but
+  the last two bytes are now replaced with `XX`.
 - **The Flatpak manifest could not be built**, and inside the Flatpak the
   MPRIS entry and desktop file name did not match the app.
 - **A player that sent its artist as plain text had it spelled out letter
@@ -1918,7 +2058,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.2...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/Rockykln/refrain/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Rockykln/refrain/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/Rockykln/refrain/compare/v0.4.6...v0.5.1
 [0.4.6]: https://github.com/Rockykln/refrain/compare/v0.4.5...v0.4.6

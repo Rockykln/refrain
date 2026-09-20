@@ -18,6 +18,8 @@
       <li>Reads playback metadata from MPRIS (Apple Music in any major Linux browser)</li>
       <li>Reads playback metadata from BlueZ AVRCP (any AVRCP-capable Bluetooth source)</li>
       <li>Forwards track info plus iTunes-resolved cover art to Discord</li>
+      <li>Status window that says whether Discord and Last.fm are working, with player controls and the songs played recently</li>
+      <li>Optional Last.fm scrobbling with your own credentials, with an offline queue</li>
       <li>System-tray icon with Play / Pause / Next / Previous controls</li>
       <li>Settings window for sources, privacy mode, autostart and Bluetooth device picker</li>
     </ul>
@@ -51,6 +53,21 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.3" date="2026-09-20">
+      <description>
+        <p>
+          Made the AppImage start on every major distribution and check its own
+          updates against the release's checksums, applied settings without a
+          restart, kept a mistyped config file instead of overwriting it, kept
+          the Last.fm offline queue through key and server errors, restored the
+          Discord status after a Discord restart, added a Status window that
+          says whether Discord and Last.fm are working and a switch to pause
+          sharing, added Dutch, Swedish, Czech,
+          Turkish, Ukrainian and Korean, lowered idle CPU use, and added a
+          developer mode that measures timings locally only.
+        </p>
+      </description>
+    </release>
     <release version="0.5.2" date="2026-09-18">
       <description>
         <p>

@@ -12,7 +12,7 @@ script:
   # dbus-python and PyGObject come from apt, built for the bundled Python.
   # PySide6-Essentials only: the PySide6 meta package also pulls in the Addons,
   # some of which are GPL-only. Keep the pin in step with the tested Qt version.
-  - /usr/bin/python3 -m pip install --target AppDir/usr/lib/python3/dist-packages "pypresence>=4.3" "PySide6-Essentials==6.11.2"
+  - /usr/bin/python3 -m pip install --target AppDir/usr/lib/python3/dist-packages "pypresence>=4.5.2,<5" "PySide6-Essentials==6.11.2"
   - /usr/bin/python3 prune_qt.py AppDir/usr/lib/python3/dist-packages
   - install -Dm644 ../../src/refrain/assets/icons/refrain.svg
       AppDir/usr/share/icons/hicolor/scalable/apps/refrain.svg
@@ -22,7 +22,7 @@ AppDir:
     id: io.github.Rockykln.Refrain
     name: Refrain
     icon: refrain
-    version: 0.5.3.dev0
+    version: 0.5.3
     exec: usr/bin/python3
     exec_args: -m refrain $@
 
