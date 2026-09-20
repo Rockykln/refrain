@@ -127,7 +127,7 @@ def test_removal_command_appimage_uses_path():
 def test_purge_removes_everything_and_is_idempotent(iso):
     _seed(iso)
     fake = FakeStore()
-    rep = uninstall.purge(secret_store=fake)
+    rep = uninstall.purge(keyring=fake)
     # 3 xdg dirs (config/state/cache) + autostart file + desktop + icon
     assert len(rep.removed) == 6
     assert rep.failed == []
@@ -135,7 +135,7 @@ def test_purge_removes_everything_and_is_idempotent(iso):
     assert fake.deleted == ["lastfm_shared_secret", "lastfm_session_key"]
     assert uninstall.collect_paths() == []  # actually gone
     # Second run: nothing left, still no error.
-    rep2 = uninstall.purge(secret_store=fake)
+    rep2 = uninstall.purge(keyring=fake)
     assert rep2.removed == [] and rep2.failed == []
 
 
@@ -149,7 +149,7 @@ def test_purge_tolerates_unremovable_path(iso, monkeypatch):
         return real_rmtree(path, *a, **kw)
 
     monkeypatch.setattr(uninstall.shutil, "rmtree", boom)
-    rep = uninstall.purge(secret_store=FakeStore())
+    rep = uninstall.purge(keyring=FakeStore())
     assert any("permission denied" in f for f in rep.failed)
     assert rep.removed  # the other paths still went
 
@@ -161,7 +161,7 @@ def test_purge_secret_failure_is_non_fatal(iso, monkeypatch):
         def delete(self, k):
             raise RuntimeError("keyring down")
 
-    rep = uninstall.purge(secret_store=Raising())
+    rep = uninstall.purge(keyring=Raising())
     assert rep.keyring_cleared is False
     assert rep.removed  # file removal still succeeded
 
@@ -189,7 +189,7 @@ def test_cli_assume_yes_purges(iso, monkeypatch):
     from refrain.app import run_uninstall_cli
 
     # Don't touch the real keyring even though keyring may exist here.
-    monkeypatch.setattr(uninstall, "_purge_secrets", lambda store=None: True)
+    monkeypatch.setattr(uninstall, "_clear_keyring", lambda store=None: True)
     out = io.StringIO()
     with redirect_stdout(out):
         rc = run_uninstall_cli(assume_yes=True)

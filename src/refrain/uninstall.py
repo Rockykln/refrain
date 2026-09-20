@@ -71,7 +71,7 @@ class UninstallReport:
     keyring_cleared: bool = False
 
 
-def _purge_secrets(store=None) -> bool:
+def _clear_keyring(store=None) -> bool:
     """Delete the Last.fm credentials from the keyring (or fallback
     file). Never raises. ``store`` is injectable for
     tests so the suite never touches the real keyring."""
@@ -91,7 +91,7 @@ def _purge_secrets(store=None) -> bool:
         return False
 
 
-def purge(secret_store=None) -> UninstallReport:
+def purge(keyring=None) -> UninstallReport:
     """Delete every file + credential Refrain created. Idempotent and
     failure-tolerant: a missing path is fine, an un-removable one is
     recorded in ``failed`` but never raises (a half-done uninstall
@@ -108,5 +108,5 @@ def purge(secret_store=None) -> UninstallReport:
         except OSError as e:
             report.failed.append(f"{p}: {e}")
             log.warning("Uninstall could not remove %s: %s", p, e)
-    report.keyring_cleared = _purge_secrets(secret_store)
+    report.keyring_cleared = _clear_keyring(keyring)
     return report
