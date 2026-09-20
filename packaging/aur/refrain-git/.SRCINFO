@@ -1,6 +1,6 @@
 pkgbase = refrain-git
 	pkgdesc = Discord Rich Presence for Apple Music on Linux (git)
-	pkgver = 0.5.2.r174.gb717555
+	pkgver = 0.5.3.r211.g4118136
 	pkgrel = 1
 	url = https://github.com/Rockykln/refrain
 	arch = any
