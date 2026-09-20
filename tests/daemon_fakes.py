@@ -47,13 +47,16 @@ class FakeRPC:
         self.connected = True
         self.closed = False
         self.ensure_calls = 0
+        self.pumps = 0
+        self.forced_state = None
+        self.detail = ""
         FakeRPC.instances.append(self)
 
     def update(self, **payload) -> None:
         self.calls.append(("update", payload))
 
-    def clear(self) -> None:
-        self.calls.append(("clear", {}))
+    def clear(self, force: bool = False) -> None:
+        self.calls.append(("clear", {"force": force} if force else {}))
 
     def close(self) -> None:
         self.closed = True
@@ -63,6 +66,23 @@ class FakeRPC:
 
     def _ensure_connected(self) -> None:
         self.ensure_calls += 1
+
+    def pump(self) -> None:
+        self.pumps += 1
+
+    @property
+    def state(self):
+        from refrain.discord_rpc import RPCState
+
+        if self.forced_state is not None:
+            return self.forced_state
+        if not self.client_id:
+            return RPCState.DISABLED
+        if not self.connected:
+            return RPCState.NO_CLIENT
+        if self.calls and self.calls[-1][0] == "update":
+            return RPCState.SHOWING
+        return RPCState.CONNECTED_IDLE
 
     @property
     def updates(self) -> list[dict]:
@@ -99,6 +119,12 @@ class FakeSource:
     def play_pause(self) -> bool:
         return self._control("play_pause")
 
+    def play(self) -> bool:
+        return self._control("play")
+
+    def pause(self) -> bool:
+        return self._control("pause")
+
     def next(self) -> bool:
         return self._control("next")
 
@@ -111,6 +137,7 @@ class FakeCovers:
         self.urls: dict[tuple[str, str], str] = {}
         self.durations: dict[tuple[str, str], int] = {}
         self.song_urls: dict[tuple[str, str], str] = {}
+        self.albums: dict[tuple[str, str], str] = {}
         self.local: dict[tuple[str, str], Path] = {}
         self.requested: list[tuple[str, str]] = []
         self.kept: list[list[str]] = []
@@ -126,6 +153,9 @@ class FakeCovers:
 
     def get_song_url(self, artist: str, title: str, album: str = "") -> str | None:
         return self.song_urls.get((artist, title))
+
+    def get_album(self, artist: str, title: str, album: str = "") -> str:
+        return self.albums.get((artist, title), "")
 
     def get_local_path(self, artist: str, title: str, album: str = "") -> Path | None:
         return self.local.get((artist, title))
@@ -165,6 +195,11 @@ class FakeScrobbler:
         self.calls: list[dict] = []
         self.reconfigured: list = []
         self.shut = False
+        self.invalid = False
+        self.waiting = 0
+
+    def health(self):
+        return self.invalid, self.waiting
 
     def update(self, track, effective_duration_ms, privacy_off, **kwargs) -> None:
         self.calls.append(

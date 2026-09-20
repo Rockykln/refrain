@@ -10,7 +10,7 @@ pytest.importorskip("PySide6")
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QObject, Qt, Signal  # noqa: E402
+from PySide6.QtCore import QEvent, QObject, QPoint, QPointF, Qt, Signal  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
     QAbstractButton,
     QApplication,
@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (  # noqa: E402
     QLineEdit,
     QPushButton,
     QSpinBox,
-    QTabBar,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -27,7 +26,8 @@ from PySide6.QtWidgets import (  # noqa: E402
 
 from refrain.ui.cursors import apply_interactive_cursors  # noqa: E402
 
-CLICKABLE = (QAbstractButton, QComboBox, QTabBar)
+# Tab bars are checked on their own: the hand belongs over a tab, not beside it.
+CLICKABLE = (QAbstractButton, QComboBox)
 
 
 @pytest.fixture(scope="module")
@@ -43,6 +43,71 @@ def missed(root) -> list[str]:
             if w.isEnabled() and w.cursor().shape() != Qt.CursorShape.PointingHandCursor:
                 out.append(f"{type(w).__name__} {getattr(w, 'text', lambda: '')()!r}")
     return out
+
+
+def test_the_hand_follows_the_tabs_not_the_empty_strip(qapp):
+    from PySide6.QtGui import QMouseEvent
+
+    root = QWidget()
+    tabs = QTabWidget()
+    tabs.addTab(QWidget(), "One")
+    tabs.addTab(QWidget(), "Two")
+    QVBoxLayout(root).addWidget(tabs)
+    root.resize(600, 300)
+    apply_interactive_cursors(root)
+    root.show()
+    qapp.processEvents()
+    bar = tabs.tabBar()
+    bar.resize(400, bar.height())  # a real tab bar is wider than its tabs
+
+    def move_to(point):
+        QApplication.sendEvent(
+            bar,
+            QMouseEvent(
+                QEvent.Type.MouseMove,
+                QPointF(point),
+                Qt.MouseButton.NoButton,
+                Qt.MouseButton.NoButton,
+                Qt.KeyboardModifier.NoModifier,
+            ),
+        )
+
+    move_to(bar.tabRect(0).center())
+    assert bar.cursor().shape() == Qt.CursorShape.PointingHandCursor
+
+    move_to(QPoint(bar.tabRect(1).right() + 40, bar.height() // 2))
+    assert bar.cursor().shape() != Qt.CursorShape.PointingHandCursor
+    root.hide()
+
+
+def test_the_hand_leaves_the_tab_bar_along_with_the_mouse(qapp):
+    from PySide6.QtGui import QMouseEvent
+
+    root = QWidget()
+    tabs = QTabWidget()
+    tabs.addTab(QWidget(), "One")
+    QVBoxLayout(root).addWidget(tabs)
+    root.resize(600, 300)
+    apply_interactive_cursors(root)
+    root.show()
+    qapp.processEvents()
+    bar = tabs.tabBar()
+
+    QApplication.sendEvent(
+        bar,
+        QMouseEvent(
+            QEvent.Type.MouseMove,
+            QPointF(bar.tabRect(0).center()),
+            Qt.MouseButton.NoButton,
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+        ),
+    )
+    assert bar.cursor().shape() == Qt.CursorShape.PointingHandCursor
+
+    QApplication.sendEvent(bar, QEvent(QEvent.Type.Leave))
+    assert bar.cursor().shape() != Qt.CursorShape.PointingHandCursor
+    root.hide()
 
 
 def count(root) -> int:

@@ -15,8 +15,8 @@ from refrain.daemon import button_url  # noqa: E402
 def test_a_tab_address_with_spaces_is_encoded():
     """Plasma reports plain spaces; Discord rejects the activity unless they're encoded."""
     assert (
-        button_url("https://music.apple.com/de/search?term=KYANU Fcuk up the Club")
-        == "https://music.apple.com/de/search?term=KYANU%20Fcuk%20up%20the%20Club"
+        button_url("https://music.apple.com/de/search?term=Velvet Static Silk Road Radio")
+        == "https://music.apple.com/de/search?term=Velvet%20Static%20Silk%20Road%20Radio"
     )
 
 

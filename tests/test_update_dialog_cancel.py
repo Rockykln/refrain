@@ -40,7 +40,8 @@ def dialog(qapp, xdg_tmp, monkeypatch):
     monkeypatch.setattr(update_dialog.QMessageBox, "warning", lambda *a, **kw: shown.append(a))
     opened = []
     monkeypatch.setattr(
-        update_dialog.QDesktopServices, "openUrl", lambda url: opened.append(url.toString())
+        "refrain.ui.external_link.confirm_and_open",
+        lambda parent, url, player="": opened.append(url) or True,
     )
     dlg = update_dialog.UpdateDialog(_release())
     dlg.shown = shown
@@ -66,7 +67,7 @@ def test_rejecting_during_the_download_cancels_it(qapp, dialog, monkeypatch):
         while time.monotonic() < deadline:
             if cancelled():
                 seen["cancelled"] = True
-                return update_dialog.UpdateResult(False, "Update cancelled.", cancelled=True)
+                return update_dialog.UpdateResult(False, "Update canceled.", cancelled=True)
             time.sleep(0.01)
         return update_dialog.UpdateResult(True, "Downloaded.", needs_restart=True)
 

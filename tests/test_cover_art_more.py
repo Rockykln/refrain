@@ -186,3 +186,29 @@ def test_a_failed_image_write_leaves_no_temp_file(cover_art, monkeypatch, tmp_pa
     dest.parent.mkdir()
     assert cover_art.download_cover_image("https://is1.example/c.jpg", dest) is None
     assert list(dest.parent.iterdir()) == []
+
+
+def test_an_image_over_the_cap_is_discarded_not_cut_off(
+    cover_art,  # noqa: F811
+    monkeypatch,
+    tmp_path,
+    caplog,
+):
+    monkeypatch.setattr(cover_art, "_MAX_IMAGE_BYTES", 8)
+    monkeypatch.setattr(
+        cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"\xff\xd8" + b"x" * 20)
+    )
+    dest = tmp_path / "covers" / "cover.jpg"
+    dest.parent.mkdir()
+    with caplog.at_level("WARNING", logger="refrain.cover_art"):
+        assert cover_art.download_cover_image("https://is1.example/big.jpg", dest) is None
+    assert list(dest.parent.iterdir()) == []
+    assert len([r for r in caplog.records if "discarded" in r.getMessage()]) == 1
+
+
+def test_an_image_exactly_at_the_cap_is_kept(cover_art, monkeypatch, tmp_path):  # noqa: F811
+    monkeypatch.setattr(cover_art, "_MAX_IMAGE_BYTES", 8)
+    monkeypatch.setattr(cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"12345678"))
+    dest = tmp_path / "cover.jpg"
+    assert cover_art.download_cover_image("https://is1.example/c.jpg", dest) == dest
+    assert dest.read_bytes() == b"12345678"

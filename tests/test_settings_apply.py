@@ -43,33 +43,42 @@ def test_apply_sends_a_new_object_and_leaves_the_old_one_alone(win):
     assert config.advanced.poll_interval_ms == 1500
 
 
-def test_cancel_forgets_the_form(win):
+def test_cancel_and_discard_forgets_the_form(win, monkeypatch):
     window, config, sent = win
     window.poll_spin.setValue(3000)
+    _answer(monkeypatch, "Discard")
     window.reject()
     assert window.poll_spin.value() == 1500
-    window._on_apply_clicked()
-    assert sent[-1].advanced.poll_interval_ms == 1500
+    assert sent == []
 
 
-def test_reset_then_cancel_keeps_everything(win):
+def test_reset_saves_at_once(win):
+    window, config, sent = win
+    window.poll_spin.setValue(3000)
+    _confirm_reset(window)
+    assert len(sent) == 1
+    assert Config.load().advanced.poll_interval_ms == Config().advanced.poll_interval_ms
+    assert window.poll_spin.value() == Config().advanced.poll_interval_ms
+    assert not window.is_dirty()
+
+
+def test_reset_resets_what_the_form_does_not_show(win):
     window, config, sent = win
     _confirm_reset(window)
-    window.reject()
-    window._on_apply_clicked()
-    assert sent[-1].advanced.poll_interval_ms == 1500
-    assert sent[-1].history.window_width == 900
-
-
-def test_reset_then_apply_resets_what_the_form_does_not_show(win):
-    window, config, sent = win
-    _confirm_reset(window)
-    window._on_apply_clicked()
     out = sent[-1]
     assert out.advanced.poll_interval_ms == Config().advanced.poll_interval_ms
     assert out.history.window_width == Config().history.window_width
     assert out.discord.client_id == "1234567890123456789"
     assert out.update.last_check_ts == 1_700_000_000
+
+
+def _answer(monkeypatch, text):
+    def pick(box):
+        button = next(b for b in box.buttons() if b.text() == text)
+        box.clickedButton = lambda: button
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", pick)
 
 
 def _confirm_reset(window):
@@ -245,10 +254,11 @@ def test_privacy_off_in_the_form_already_stops_the_name_lookup(monkeypatch):
 def test_release_note_links_open_https_only(win, monkeypatch):
     from PySide6.QtCore import QUrl
 
-    import refrain.ui.update_dialog as ud
-
     opened = []
-    monkeypatch.setattr(ud.QDesktopServices, "openUrl", lambda url: opened.append(url.toString()))
+    monkeypatch.setattr(
+        "refrain.ui.external_link.confirm_and_open",
+        lambda parent, url, player="": opened.append(url) or True,
+    )
     window, _, _ = win
     assert window.release_notes_view.openLinks() is False
     window.release_notes_view.anchorClicked.emit(QUrl("file:///etc/passwd"))
@@ -257,11 +267,55 @@ def test_release_note_links_open_https_only(win, monkeypatch):
 
 
 def test_the_last_fm_tab_links_back_to_last_fm(win, monkeypatch):
-    import refrain.ui.update_dialog as ud
 
     opened = []
-    monkeypatch.setattr(ud.QDesktopServices, "openUrl", lambda url: opened.append(url.toString()))
+    monkeypatch.setattr(
+        "refrain.ui.external_link.confirm_and_open",
+        lambda parent, url, player="": opened.append(url) or True,
+    )
     window, _, _ = win
     assert "https://www.last.fm" in window.lastfm_attribution.text()
     window.lastfm_attribution.linkActivated.emit("https://www.last.fm")
     assert opened == ["https://www.last.fm"]
+
+
+def _record_boxes(monkeypatch):
+    shown = []
+    for kind in ("warning", "critical"):
+        monkeypatch.setattr(
+            sw.QMessageBox,
+            kind,
+            lambda _parent, title, text, *a, _kind=kind, **k: shown.append((_kind, title, text)),
+        )
+    return shown
+
+
+def test_apply_warns_when_the_last_fm_credentials_cannot_be_stored(win, xdg_tmp, monkeypatch):
+    from refrain import secrets_store
+
+    window, _config, sent = win
+    locked = xdg_tmp["config"] / "locked"
+    locked.mkdir()
+    locked.chmod(0o500)
+    monkeypatch.setattr(secrets_store, "_fallback_path", lambda: locked / "secrets.json")
+    shown = _record_boxes(monkeypatch)
+    window._lastfm_session_key = "sk-12345"
+    window.lastfm_secret_input.setText("shared-12345")
+    try:
+        window._on_apply_clicked()
+    finally:
+        locked.chmod(0o700)
+    assert [(k, t) for k, t, _ in shown] == [("warning", "Could not store Last.fm credentials")]
+    assert "could not store your Last.fm credentials" in shown[0][2]
+    assert len(sent) == 1
+
+
+def test_apply_stays_quiet_when_the_credentials_are_stored(win, xdg_tmp, monkeypatch):
+    window, _config, sent = win
+    shown = _record_boxes(monkeypatch)
+    window._lastfm_session_key = "sk-12345"
+    window.lastfm_secret_input.setText("shared-12345")
+    window._on_apply_clicked()
+    assert shown == []
+    assert len(sent) == 1
+    assert (xdg_tmp["config"] / "refrain" / "secrets.json").exists()

@@ -15,8 +15,8 @@ from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QColor, QPalette  # noqa: E402
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon  # noqa: E402
 
+from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
-from refrain.startup_check import DISABLED, INVALID, OK, UNREACHABLE, CheckResult  # noqa: E402
 from refrain.ui import tray as tray_mod  # noqa: E402
 from refrain.ui.tray import TrayIcon  # noqa: E402
 
@@ -86,9 +86,9 @@ def test_theme_change_redraws_the_icon_for_the_current_state(tray, monkeypatch):
     assert shown == [tray._icons[PlaybackStatus.PLAYING]]
 
 
-def test_left_click_opens_settings_and_middle_click_toggles_playback(tray):
+def test_left_click_opens_the_status_window_and_middle_click_toggles_playback(tray):
     opened, toggled = [], []
-    tray.settingsRequested.connect(lambda: opened.append(1))
+    tray.statusRequested.connect(lambda: opened.append(1))
     tray.playPauseRequested.connect(lambda: toggled.append(1))
 
     tray._on_activated(QSystemTrayIcon.Trigger)
@@ -119,10 +119,9 @@ def test_update_entry_without_a_version_and_hidden_again(tray):
     assert "2.0.0" not in tray._update_action.text()
 
 
-def test_discord_row_goes_back_to_not_connected(tray):
-    tray.set_discord_connected(True)
-    tray.set_discord_connected(False)
-    assert tray._discord_action.text() == "Discord: not connected"
+def test_discord_row_waits_for_the_first_state_instead_of_crying_wolf(tray):
+    assert tray._discord_action.text() == "Discord: checking…"
+    assert not tray._lastfm_action.isVisible()
 
 
 def test_stopping_from_idle_applies_at_once(tray):
@@ -132,38 +131,87 @@ def test_stopping_from_idle_applies_at_once(tray):
     assert tray._play_pause_action.text() == "Play"
 
 
-def test_rejected_discord_id_is_flagged_and_lastfm_stays_hidden_when_off(tray):
-    tray.set_startup_check(CheckResult(DISABLED), CheckResult(INVALID, "bad id"))
-    assert tray._discord_action.text() == "Discord: rejected — check Application ID"
-    assert not tray._lastfm_action.isVisible()
-
-
-def test_unreachable_discord_leaves_the_row_alone(tray):
-    tray.set_discord_connected(True)
-    tray.set_startup_check(CheckResult(DISABLED), CheckResult(UNREACHABLE))
-    assert tray._discord_action.text() == "Discord: connected"
+@pytest.mark.parametrize(
+    ("state", "text"),
+    [
+        (DiscordStatus.NOT_SET_UP, "Discord: not set up — add your Application ID"),
+        (DiscordStatus.NO_CLIENT, "Discord: app isn't running"),
+        (DiscordStatus.REJECTED, "Discord: Application ID rejected — check it"),
+        (DiscordStatus.ERROR, "Discord: not answering"),
+        (DiscordStatus.READY, "Discord: ready — waiting for music"),
+        (DiscordStatus.SHOWING, "Discord: visible on your profile"),
+        (DiscordStatus.SHOWING_MINIMAL, "Discord: showing “Listening to music”"),
+        (DiscordStatus.PAUSED, "Discord: hidden while paused"),
+        (DiscordStatus.PRIVACY_OFF, "Discord: hidden — sharing is off"),
+        (DiscordStatus.STARTING, "Discord: checking…"),
+    ],
+)
+def test_every_discord_state_has_its_own_line(tray, state, text):
+    tray.set_service_status(StatusSnapshot(state))
+    assert tray._discord_action.text() == text
 
 
 @pytest.mark.parametrize(
-    "result,text",
+    ("state", "detail", "text"),
     [
-        (CheckResult(OK, "marlowvance"), "Last.fm: connected as marlowvance"),
-        (CheckResult(OK), "Last.fm: connected"),
-        (CheckResult(INVALID, "Invalid session key"), "Last.fm: session expired — reconnect"),
-        (CheckResult(UNREACHABLE, "timed out"), "Last.fm: could not be verified"),
+        (LastfmStatus.SCROBBLING, "marlowvance", "Last.fm: scrobbling as marlowvance"),
+        (LastfmStatus.SCROBBLING, "", "Last.fm: scrobbling"),
+        (LastfmStatus.WAITING, "3", "Last.fm: 3 scrobble(s) waiting"),
+        (LastfmStatus.WAITING, "?", "Last.fm: 0 scrobble(s) waiting"),
+        (LastfmStatus.EXPIRED, "", "Last.fm: sign-in expired — reconnect"),
+        (LastfmStatus.NOT_CONNECTED, "", "Last.fm: not connected"),
+        (LastfmStatus.CONNECTED_OFF, "", "Last.fm: scrobbling is off"),
+        (LastfmStatus.PAUSED, "", "Last.fm: paused — sharing is off"),
     ],
 )
-def test_lastfm_row_reports_the_check_result(tray, result, text):
-    tray.set_startup_check(result, CheckResult(OK))
+def test_lastfm_row_follows_the_live_state(tray, state, detail, text):
+    tray.set_service_status(StatusSnapshot(DiscordStatus.READY, "", state, detail))
     assert tray._lastfm_action.isVisible()
     assert tray._lastfm_action.text() == text
-    assert tray._discord_action.text() == "Discord: not connected"
 
 
-def test_lastfm_row_hides_again_when_scrobbling_is_switched_off(tray):
-    tray.set_startup_check(CheckResult(OK, "marlowvance"), CheckResult(OK))
-    tray.set_startup_check(CheckResult(DISABLED), CheckResult(OK))
+def test_lastfm_row_hides_again_when_it_was_never_set_up(tray):
+    tray.set_service_status(StatusSnapshot(lastfm=LastfmStatus.SCROBBLING, lastfm_detail="x"))
+    tray.set_service_status(StatusSnapshot(lastfm=LastfmStatus.OFF))
     assert not tray._lastfm_action.isVisible()
+
+
+def test_info_rows_open_the_status_window(tray):
+    opened = []
+    tray.statusRequested.connect(lambda: opened.append(1))
+    for action in (
+        tray._title_action,
+        tray._artist_action,
+        tray._progress_action,
+        tray._discord_action,
+        tray._lastfm_action,
+    ):
+        action.trigger()
+    assert opened == [1] * 5
+
+
+def test_pausing_sharing_and_settings_are_not_in_the_menu(tray):
+    # A click on the icon opens the Status window, which holds both.
+    top = [a.text() for a in tray._menu.actions() if a.text()]
+    assert "Pause sharing" not in top
+    assert "Resume sharing" not in top
+    assert "Settings…" not in top
+    tray.set_sharing_paused(True)
+    assert tray._sharing_paused is True
+
+
+def test_rarely_used_entries_live_under_troubleshooting(tray):
+    top = [a.text() for a in tray._menu.actions() if a.text()]
+    assert "Live log…" not in top
+    assert "Restart Refrain" not in top
+    assert "Troubleshooting" in top
+    assert [a.text() for a in tray._more_menu.actions()] == ["Live log…", "Restart Refrain"]
+    got = []
+    tray.logRequested.connect(lambda: got.append("log"))
+    tray.restartRequested.connect(lambda: got.append("restart"))
+    tray._log_action.trigger()
+    tray._restart_action.trigger()
+    assert got == ["log", "restart"]
 
 
 def test_tooltip_carries_track_and_progress(tray):
@@ -209,3 +257,31 @@ def test_same_track_again_keeps_the_progress(tray):
     tray.set_track(_track(title="Salt Flats", artist="Wren & Ash"))
     assert tray._tray.toolTip() == "Salt Flats\nWren & Ash\n0:30"
     assert tray._progress_action.isVisible()
+
+
+def test_a_pause_asked_for_from_the_tray_shows_at_once(tray):
+    tray.set_status(PlaybackStatus.PLAYING)
+    tray._play_pause_action.trigger()
+    tray.set_status(PlaybackStatus.PAUSED)
+    assert not tray._pause_timer.isActive()
+    assert tray._current_status == PlaybackStatus.PAUSED
+
+
+def test_a_pause_from_elsewhere_waits_out_a_song_change(tray):
+    tray.set_status(PlaybackStatus.PLAYING)
+    tray.set_status(PlaybackStatus.PAUSED)
+    assert tray._pause_timer.isActive()
+    assert tray._pause_timer.interval() == 1000
+    assert tray._current_status == PlaybackStatus.PLAYING
+
+
+def test_only_the_hint_that_asked_for_it_reacts_to_a_click(tray):
+    clicked = []
+    tray.show_hint("Refrain closed unexpectedly last time.", lambda: clicked.append(1))
+    tray._tray.messageClicked.emit()
+    tray._tray.messageClicked.emit()
+    assert clicked == [1]
+
+    tray.show_hint("Refrain keeps running in the tray.")
+    tray._tray.messageClicked.emit()
+    assert clicked == [1]

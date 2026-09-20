@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 from PySide6.QtCore import QCoreApplication, QObject, Qt, QThread, QTimer, Signal
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (
     QDialog,
     QFrame,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from refrain.cover_art import USER_AGENT
 from refrain.discord_app import looks_like_application_id
 from refrain.paths import assets_dir
 from refrain.ui.cursors import apply_interactive_cursors
@@ -99,7 +100,9 @@ def _probe_discord_ipc() -> tuple[bool, str]:
 
 def _probe_itunes() -> tuple[bool, str]:
     try:
-        with urllib.request.urlopen(_ITUNES_TEST_URL, timeout=5) as resp:  # noqa: S310
+        # Named like every other request Refrain makes, so Apple sees who asked.
+        probe = urllib.request.Request(_ITUNES_TEST_URL, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(probe, timeout=5) as resp:  # noqa: S310
             data = json.load(resp)
         if isinstance(data, dict) and "resultCount" in data:
             return True, QCoreApplication.translate("WelcomeDialog", "iTunes Search API reachable.")
@@ -177,8 +180,8 @@ class WelcomeDialog(QDialog):
         # Intro: short one-liner about how to drive refrain after this.
         intro = QLabel(
             self.tr(
-                "Lives in the tray. <b>Right-click</b> for player controls; "
-                "<b>click</b> to open Settings."
+                "Lives in the tray. <b>Click</b> it to see its status; "
+                "<b>right-click</b> for player controls."
             )
         )
         intro.setWordWrap(True)
@@ -189,9 +192,12 @@ class WelcomeDialog(QDialog):
         # an empty box while the probes are running.
         diag_box = QFrame()
         diag_box.setObjectName("diagBox")
+        # palette(mid) nearly vanishes on dark themes; a faint text color shows on both.
+        edge = self.palette().color(QPalette.ColorRole.Text)
         diag_box.setStyleSheet(
             "QFrame#diagBox { background: palette(alternate-base); "
-            "border: 1px solid palette(mid); border-radius: 8px; }"
+            f"border: 1px solid rgba({edge.red()}, {edge.green()}, {edge.blue()}, 70); "
+            "border-radius: 8px; }"
         )
         diag_layout = QVBoxLayout(diag_box)
         diag_layout.setContentsMargins(14, 10, 14, 10)
@@ -318,7 +324,7 @@ class WelcomeDialog(QDialog):
         # diagnostics box only reflows on the next turns of the event
         # loop, and measuring before that reports a deficit the layout
         # was about to absorb by itself.
-        QTimer.singleShot(0, self._grow_to_fit)
+        QTimer.singleShot(0, self, self._grow_to_fit)
         if self._diag_thread is not None:
             self._diag_thread.quit()
             with contextlib.suppress(Exception):

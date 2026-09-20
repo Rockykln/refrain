@@ -5,15 +5,24 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import shlex
 import subprocess
 
 import pytest
 
 import refrain.updater as updater
+from tests.release_signing import PUBLIC_KEY_HEX, signature_for
 
 _DL = "https://github.com/Rockykln/refrain/releases/download/v9.9.9/"
 _NAME = "Refrain-9.9.9-x86_64.AppImage"
 _NEW = b"\x7fELF" + b"12345" * 250_000
+_SUMS = _DL + "SHA256SUMS"
+_SIG = _DL + "SHA256SUMS.sig"
+
+
+@pytest.fixture(autouse=True)
+def _release_key(monkeypatch):
+    monkeypatch.setattr(updater, "RELEASE_PUBLIC_KEY", PUBLIC_KEY_HEX)
 
 
 class _Body:
@@ -169,9 +178,15 @@ def test_release_notes_get_their_bare_links_wrapped():
     assert updater.prepare_release_notes(None) == "_No release notes provided._"
 
 
+def _publish(files, sums):
+    files[_SUMS] = sums
+    files[_SIG] = signature_for(sums)
+
+
 @pytest.fixture
 def serve(monkeypatch):
     files: dict[str, bytes] = {}
+    _publish(files, f"{hashlib.sha256(_NEW).hexdigest()}  {_NAME}\n".encode())
 
     def _open(url, _timeout):
         if url not in files:
@@ -191,7 +206,7 @@ def appimage(tmp_path, monkeypatch):
     return target
 
 
-def _release(*, sums=None, url=_DL + _NAME, size=len(_NEW)):
+def _release(*, sums=_SUMS, url=_DL + _NAME, size=len(_NEW)):
     return updater.ReleaseInfo(
         tag="v9.9.9",
         version="9.9.9",
@@ -202,6 +217,7 @@ def _release(*, sums=None, url=_DL + _NAME, size=len(_NEW)):
         appimage_size=size,
         appimage_name=_NAME,
         sha256sums_url=sums,
+        sha256sums_sig_url=_SIG,
     )
 
 
@@ -227,8 +243,8 @@ def test_a_vanished_appimage_is_replaced_owner_only(serve, appimage):
 def test_checksums_with_binary_markers_and_upper_case_are_understood(serve, appimage):
     serve[_DL + _NAME] = _NEW
     digest = hashlib.sha256(_NEW).hexdigest().upper()
-    serve[_DL + "SHA256SUMS"] = f"{digest} *{_NAME}\n".encode()
-    assert updater._apply_appimage(_release(sums=_DL + "SHA256SUMS")).success is True
+    _publish(serve, f"{digest} *{_NAME}\n".encode())
+    assert updater._apply_appimage(_release()).success is True
     assert appimage.read_bytes() == _NEW
 
 
@@ -334,14 +350,42 @@ def test_the_terminal_falls_back_to_the_next_emulator(monkeypatch):
         spawned.append(argv)
 
     monkeypatch.setattr(updater.subprocess, "Popen", popen)
-    assert updater._run_in_terminal("flatpak update -y io.github.Rockykln.Refrain") is True
-    assert spawned[0][:3] == ["kitty", "bash", "-c"]
+    assert updater._run_in_terminal(updater._FLATPAK_UPDATE) is True
+    assert len(spawned) == 1 and spawned[0][:3] == ["kitty", "bash", "-c"]
     assert spawned[0][3].startswith("flatpak update -y io.github.Rockykln.Refrain; echo; read")
 
 
 def test_without_any_terminal_the_caller_is_told(monkeypatch):
     monkeypatch.setattr(updater.shutil, "which", lambda _n: None)
-    assert updater._run_in_terminal("yay -Syu refrain") is False
+    assert updater._run_in_terminal(("yay", "-Syu", "refrain")) is False
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        ("yay", "-Syu", "refrain; rm -rf ~"),
+        ("yay", "-Syu", "refrain", "--noconfirm"),
+        ("bash", "-c", "true"),
+        (),
+    ],
+)
+def test_only_allowlisted_commands_reach_a_terminal(monkeypatch, cmd):
+    monkeypatch.setattr(updater.shutil, "which", lambda n: f"/usr/bin/{n}")
+    monkeypatch.setattr(updater.subprocess, "Popen", lambda *a, **kw: pytest.fail("spawned"))
+    assert updater._run_in_terminal(cmd) is False
+
+
+@pytest.mark.parametrize("cmd", sorted(updater._TERMINAL_COMMANDS))
+def test_every_allowlisted_command_is_passed_quoted(monkeypatch, cmd):
+    monkeypatch.setattr(
+        updater.shutil, "which", lambda n: "/usr/bin/konsole" if n == "konsole" else None
+    )
+    spawned = []
+    monkeypatch.setattr(updater.subprocess, "Popen", lambda argv, **_kw: spawned.append(argv))
+    assert updater._run_in_terminal(cmd) is True
+    argv = spawned[0]
+    assert argv[:4] == ["konsole", "-e", "bash", "-c"] and len(argv) == 5
+    assert argv[4].startswith(shlex.join(cmd) + "; ")
 
 
 def test_pipx_that_cannot_start_is_reported(monkeypatch):

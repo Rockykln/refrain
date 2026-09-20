@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QCoreApplication, QLibraryInfo, QtMsgType  # noqa: E402
+from PySide6.QtCore import QCoreApplication, QLibraryInfo, QObject, QTimer, QtMsgType  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from refrain import app  # noqa: E402
@@ -101,7 +101,7 @@ def test_sigint_and_sigterm_quit_the_event_loop(qapp, monkeypatch):
     handlers = {}
     monkeypatch.setattr(app.signal, "signal", lambda sig, fn: handlers.__setitem__(sig, fn))
 
-    class FakeApp:
+    class FakeApp(QObject):
         quits = 0
 
         def quit(self):
@@ -113,8 +113,9 @@ def test_sigint_and_sigterm_quit_the_event_loop(qapp, monkeypatch):
     handlers[signal.SIGINT](signal.SIGINT, None)
     handlers[signal.SIGTERM](signal.SIGTERM, None)
     assert fake.quits == 2
-    assert fake._refrain_signal_timer.isActive()
-    fake._refrain_signal_timer.stop()
+    timer = fake.findChild(QTimer)
+    assert timer.isActive()
+    timer.stop()
 
 
 @pytest.fixture

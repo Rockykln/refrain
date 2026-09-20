@@ -50,16 +50,18 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QSpacerItem,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
 
-from refrain.browser import open_url
 from refrain.cover_art import image_path_for_url
 from refrain.history import HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir
+from refrain.ui import clock
 from refrain.ui.cursors import apply_interactive_cursors
+from refrain.ui.external_link import confirm_and_open
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +78,8 @@ _ROW_MARGINS = (10, 7, 12, 7)
 # The right-hand column (time + source) grows to fit its widest row, but
 # never past this — a long Bluetooth device name elides instead.
 _META_MAX_WIDTH = 210
+
+_CONFIRM_MIN_WIDTH = 420
 
 # Freedesktop names, first hit wins; a theme without any of them just
 # shows the source text without an icon.
@@ -220,6 +224,7 @@ class _ElidedLabel(QLabel):
         super().__init__(parent)
         self._full = text
         self._highlights: list[tuple[int, int]] = []
+        self.setProperty("refrainElides", True)
         self.setTextFormat(Qt.TextFormat.PlainText)
         self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         super().setText(text)
@@ -360,6 +365,8 @@ class _SongRow(QWidget):
         parent: QWidget | None = None,
     ):
         super().__init__(parent)
+        # Song titles and device names elide; the layout check leaves rows alone.
+        self.setProperty("refrainElides", True)
         self._entry = entry
         self._when_text = when_text
         self._on_remove = on_remove
@@ -434,7 +441,7 @@ class _SongRow(QWidget):
             when.setFont(accent)
             _set_color(when, self.palette().color(QPalette.ColorRole.Highlight))
         else:
-            when = QLabel(locale.toString(started.time(), QLocale.FormatType.ShortFormat))
+            when = QLabel(clock.when(locale, entry.started_at))
         when_line.addWidget(when)
         meta_col.addLayout(when_line)
 
@@ -589,7 +596,9 @@ class _SongRow(QWidget):
     def _open(self) -> None:
         # Only a browser play names a browser; a Bluetooth device name
         # would never match one anyway, but there's no reason to look.
-        open_url(self._link, self._entry.player if self._entry.source == "mpris" else "")
+        confirm_and_open(
+            self.window(), self._link, self._entry.player if self._entry.source == "mpris" else ""
+        )
 
     def contextMenuEvent(self, event) -> None:
         e = self._entry
@@ -696,6 +705,7 @@ class HistoryWindow(QDialog):
         # ---- list ---------------------------------------------------------
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
+        self._scroll.setProperty("refrainScrolls", True)
         self._scroll.setFrameShape(QFrame.Shape.StyledPanel)
         self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._rows_host = QWidget()
@@ -777,8 +787,8 @@ class HistoryWindow(QDialog):
         """
         ago = self.relative_time(max(0, started.secsTo(QDateTime.currentDateTime())))
         date = self._locale.toString(started.date(), QLocale.FormatType.ShortFormat)
-        clock = self._locale.toString(started.time(), QLocale.FormatType.ShortFormat)
-        return f"{ago} · {date}, {clock} {started.timeZoneAbbreviation()}".rstrip()
+        at = clock.when(self._locale, started.toSecsSinceEpoch())
+        return f"{ago} · {date}, {at} {started.timeZoneAbbreviation()}".rstrip()
 
     def set_snapshot(self, snapshot: HistorySnapshot) -> None:
         if snapshot == self._snapshot:
@@ -926,7 +936,7 @@ class HistoryWindow(QDialog):
         last_day: QDate | None = None
         for entry in shown:
             started = (
-                QDateTime.fromSecsSinceEpoch(entry.started_at)
+                clock.date(self._locale, entry.started_at)
                 if entry.started_at
                 else QDateTime.currentDateTime()
             )
@@ -998,7 +1008,7 @@ class HistoryWindow(QDialog):
         self._rows.addStretch(1)
         # The new rows lay out on the next event-loop pass; restoring the
         # position before that would clamp it to the old, empty range.
-        QTimer.singleShot(0, lambda: bar.setValue(scroll_pos))
+        QTimer.singleShot(0, self, lambda: bar.setValue(scroll_pos))
 
     def _update_filter_bar(self, snap: HistorySnapshot) -> None:
         """Offer the sources in the list, keep the pick, show what's useful."""
@@ -1091,8 +1101,21 @@ class HistoryWindow(QDialog):
         box.setText(self.tr("Remove every song from the history?"))
         box.setInformativeText(self.tr("This cannot be undone."))
         clear = box.addButton(self.tr("Clear history"), QMessageBox.ButtonRole.DestructiveRole)
-        cancel = box.addButton(QMessageBox.StandardButton.Cancel)
+        # Qt's own Cancel button stays English unless Qt's translations
+        # happen to be installed; our string is translated with the rest.
+        cancel = box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
         box.setDefaultButton(cancel)
+        box.setEscapeButton(cancel)
+        # QMessageBox sizes itself to the text and wraps short sentences
+        # into a narrow column; a spacer across the grid keeps it wider.
+        grid = box.layout()
+        grid.addItem(
+            QSpacerItem(_CONFIRM_MIN_WIDTH, 0, QSizePolicy.Policy.Minimum),
+            grid.rowCount(),
+            0,
+            1,
+            grid.columnCount(),
+        )
         box.exec()
         if box.clickedButton() is clear:
             self.clearRequested.emit()

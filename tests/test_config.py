@@ -110,7 +110,7 @@ def test_dataclasses_have_expected_fields():
     assert {"mpris_enabled", "bluetooth_enabled", "bluetooth_device", "browser_hints"} == set(
         SourcesConfig.__dataclass_fields__
     )
-    assert {"mode"} == set(PrivacyConfig.__dataclass_fields__)
+    assert {"mode", "resume_mode"} == set(PrivacyConfig.__dataclass_fields__)
     assert {
         "autostart",
         "notifications",
@@ -118,6 +118,7 @@ def test_dataclasses_have_expected_fields():
         "show_buttons",
         "notify_delay_ms",
         "first_run_complete",
+        "tray_hint_shown",
     } == set(BehaviorConfig.__dataclass_fields__)
     assert {
         "poll_interval_ms",
@@ -125,6 +126,11 @@ def test_dataclasses_have_expected_fields():
         "idle_grace_s",
         "position_stall_s",
         "language",
+        "time_format",
+        "time_zone",
+        "hover_scroll_ms",
+        "developer_mode",
+        "developer_unlocked",
     } == set(AdvancedConfig.__dataclass_fields__)
     from refrain.config import LastfmConfig
 

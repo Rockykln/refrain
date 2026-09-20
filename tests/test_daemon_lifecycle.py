@@ -38,6 +38,8 @@ def qapp():
 def rig(monkeypatch, qapp):
     def build(notify_bin=None, **sections):
         clock, notifier = install(monkeypatch, notify_bin)
+        # Song notifications are off by default; these tests are about them.
+        sections["behavior"] = {"notifications": True, **sections.get("behavior", {})}
         worker = DaemonWorker(make_config(**sections))
         worker._cover_fetcher.urls[(ARTIST, TITLE)] = COVER
         return worker, Player(worker, clock), clock, notifier
@@ -83,7 +85,7 @@ def test_cleanup_clears_discord_and_shuts_everything_down(rig):
     assert worker._timer is None
     assert worker._notify_timer is None
     assert worker._replace_timer is None
-    assert connection.last == ("clear", {})
+    assert connection.last == ("clear", {"force": True})
     assert connection.closed
     assert worker._mpris_server.stopped
     assert worker._scrobbler.shut
@@ -115,7 +117,7 @@ def test_poll_queued_before_cleanup_does_not_run_after_it(rig, qapp):
     worker.cleanup()
     connection = rpc()
     QTest.qWait(20)
-    assert connection.last == ("clear", {})
+    assert connection.last == ("clear", {"force": True})
 
 
 def test_new_app_id_reconnects_discord_straight_away(rig):
@@ -482,3 +484,13 @@ def test_control_stays_with_active_bluetooth(rig):
     worker.control_previous()
     assert worker._bluetooth.controls == ["previous"]
     assert worker._mpris.controls == []
+
+
+def test_play_and_pause_reach_the_active_source_as_themselves(rig):
+    worker, player, _, _ = rig()
+    player.play()
+    player.tick()
+    worker.control_pause()
+    worker.control_pause()
+    worker.control_play()
+    assert worker._mpris.controls == ["pause", "pause", "play"]

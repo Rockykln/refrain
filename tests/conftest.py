@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import os
 import sys
 from pathlib import Path
@@ -70,6 +71,19 @@ def _private_state(tmp_path_factory, monkeypatch):
         raise RuntimeError("the real session bus is off limits in tests")
 
     monkeypatch.setattr(secrets_store, "_session_bus", _no_session_bus)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def collect_between_modules():
+    """Free every dropped Qt object before the next module runs.
+
+    Python decides on its own when to free a widget or daemon a finished
+    test let go of, and Qt deletes the C++ side with it. When that lands
+    while a later test drives the event loop, a timer that was still
+    queued fires into freed memory and the interpreter dies.
+    """
+    yield
+    gc.collect()
 
 
 @pytest.fixture

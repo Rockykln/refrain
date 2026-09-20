@@ -45,7 +45,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from refrain import __version__
+from refrain import __version__, dev_metrics
 from refrain.paths import cover_cache_dir
 
 log = logging.getLogger(__name__)
@@ -53,11 +53,11 @@ log = logging.getLogger(__name__)
 _ITUNES_SEARCH = "https://itunes.apple.com/search"
 # Track the real version (was a hardcoded "Refrain/0.1" that never
 # updated — every iTunes request advertised a fake old version).
-_USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
+USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 5
 _MAX_IMAGE_BYTES = 2_000_000  # 2 MB — well above any 600x600 album cover
 
-_CACHE_VERSION = "v2"
+_CACHE_VERSION = "v3"
 # A miss is asked about again after this long: the catalog grows, and a
 # song that isn't there on release day often is a week later.
 _NEGATIVE_TTL_S = 3 * 24 * 3600
@@ -71,6 +71,9 @@ class TrackLookup:
     # override MPRIS when the browser integration reports a wonky
     # value (preview clips, playlist lengths). 0 means unknown.
     duration_ms: int = 0
+    # The catalog's album name. Browsers often send none, and Last.fm needs one
+    # to find its cover art.
+    album: str = ""
 
 
 # --------------------------------------------------------------------------- #
@@ -98,6 +101,19 @@ def clean_title(title: str) -> str:
     for pattern in (_FEAT_PAREN, _FEAT_TAIL, _TAG_PAREN, _TAG_DASH):
         out = pattern.sub("", out)
     return out.strip() or title.strip()
+
+
+_ANY_TAIL = re.compile(r"\s+[-–—]\s+.*$|\s*[\(\[][^\)\]]*[\)\]]\s*$")
+
+
+def bare_title(title: str) -> str:
+    """The title without any trailing "- …" or "(…)" part, whatever it says.
+
+    Labels tag releases in ways no keyword list keeps up with ("- Remix",
+    "(HardTekk)"), and the catalog often files the song under the plain name.
+    """
+    out = _ANY_TAIL.sub("", clean_title(title)).strip()
+    return out or clean_title(title)
 
 
 def _split_artists(artist: str) -> list[str]:
@@ -146,6 +162,7 @@ def _to_lookup(result: dict) -> TrackLookup:
         cover_url=cover_url,
         song_url=str(result.get("trackViewUrl", "") or ""),
         duration_ms=duration_ms,
+        album=str(result.get("collectionName", "") or ""),
     )
 
 
@@ -192,8 +209,11 @@ def _query(term: str, country: str, limit: int) -> list:
         # Defensive: _ITUNES_SEARCH is a module constant, but be explicit so
         # the urlopen call below cannot ever be coerced into file:// or ftp://.
         return []
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
-    with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r:  # nosec B310
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with (
+        dev_metrics.network("itunes"),
+        urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r,  # nosec B310
+    ):
         data = json.load(r)
     # iTunes can in theory answer with a non-dict (an error string, an
     # unwrapped list…) — anything but the expected shape is "no results".
@@ -212,8 +232,13 @@ def _search(artist: str, title: str, album: str) -> TrackLookup:
         attempts.append((f"{primary} {clean}", local, 10))
     if local != "US":
         attempts.append((f"{primary} {clean}", "US", 10))
+    bare = bare_title(title)
+    if bare != clean:
+        attempts.append((f"{primary} {bare}", local, 10))
     # Last resort: the title alone, checked against the artist.
     attempts.append((clean, local, 25))
+    if bare != clean:
+        attempts.append((bare, local, 25))
 
     reached = False
     for term, country, limit in dict.fromkeys(attempts):
@@ -278,7 +303,7 @@ def _read_cache(key: str) -> TrackLookup | None:
         lines = p.read_text(encoding="utf-8").splitlines()
     except Exception:
         return None
-    if len(lines) < 5 or lines[3].strip() != _CACHE_VERSION:
+    if len(lines) < 6 or lines[3].strip() != _CACHE_VERSION:
         return None  # written by the old first-hit matcher
     cover_url = lines[0].strip()
     try:
@@ -288,7 +313,12 @@ def _read_cache(key: str) -> TrackLookup | None:
         return None
     if not cover_url and time.time() - checked > _NEGATIVE_TTL_S:
         return None  # an old miss — the catalog gets another chance
-    return TrackLookup(cover_url=cover_url, song_url=lines[1].strip(), duration_ms=duration_ms)
+    return TrackLookup(
+        cover_url=cover_url,
+        song_url=lines[1].strip(),
+        duration_ms=duration_ms,
+        album=lines[5].strip(),
+    )
 
 
 def _make_private_dir(d: Path) -> None:
@@ -308,7 +338,7 @@ def _write_cache(key: str, info: TrackLookup) -> None:
         _make_private_dir(d)
         (d / f"{key}.txt").write_text(
             f"{info.cover_url}\n{info.song_url}\n{info.duration_ms}\n"
-            f"{_CACHE_VERSION}\n{int(time.time())}\n",
+            f"{_CACHE_VERSION}\n{int(time.time())}\n{info.album}\n",
             encoding="utf-8",
         )
     except OSError as e:
@@ -382,11 +412,18 @@ def download_cover_image(url: str, dest: Path) -> Path | None:
         return None
     log.debug("Cover download starting: %s → %s", url, dest.name)
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
-        with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r:  # nosec B310
-            data = r.read(_MAX_IMAGE_BYTES)
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with (
+            dev_metrics.network("cover_image"),
+            urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r,  # nosec B310
+        ):
+            # One byte past the cap tells "exactly 2 MB" from "cut off".
+            data = r.read(_MAX_IMAGE_BYTES + 1)
     except Exception as e:
         log.debug("Cover image download failed for %s: %s", url, e)
+        return None
+    if len(data) > _MAX_IMAGE_BYTES:
+        log.warning("Cover image larger than %d bytes, discarded: %s", _MAX_IMAGE_BYTES, url[:120])
         return None
     log.debug("Cover downloaded: %s (%d bytes)", dest.name, len(data))
     # Write to a sibling temp file and atomically rename. Without this,

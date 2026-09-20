@@ -98,6 +98,7 @@ class CoverFetcher:
         self._url_cache: dict[str, str] = {}  # key → cover URL ("" = negative)
         self._song_url_cache: dict[str, str] = {}  # key → song page URL
         self._duration_cache: dict[str, int] = {}  # key → trackTimeMillis (0 = unknown)
+        self._album_cache: dict[str, str] = {}  # key → the catalog's album name
         self._inflight: set[str] = set()
         self._failed_at: dict[str, float] = {}  # key → monotonic ts of last error
         self._image_inflight: set[str] = set()  # cover URLs being downloaded
@@ -162,6 +163,13 @@ class CoverFetcher:
         key = self._key(artist, title, album)
         with self._lock:
             return self._song_url_cache.get(key) or None
+
+    def get_album(self, artist: str, title: str, album: str = "") -> str:
+        """The catalog's album name, or "" until the lookup has one."""
+        if not artist or not title:
+            return ""
+        with self._lock:
+            return self._album_cache.get(self._key(artist, title, album), "")
 
     def get_local_path(self, artist: str, title: str, album: str = "") -> Path | None:
         """Returns the local image path or None.
@@ -294,11 +302,11 @@ class CoverFetcher:
         info: TrackLookup = lookup_track_info(artist, title, album)
         if info.cover_url:
             self._download(info.cover_url)
-        return info.cover_url, info.song_url, info.duration_ms
+        return info.cover_url, info.song_url, info.duration_ms, info.album
 
     def _on_done(self, key: str, future: Future) -> None:
         try:
-            cover_url, song_url, duration_ms = future.result()
+            cover_url, song_url, duration_ms, album_name = future.result()
         except Exception as e:
             log.debug("CoverFetcher background lookup failed: %s", e)
             with self._lock:
@@ -317,6 +325,7 @@ class CoverFetcher:
             self._url_cache[key] = cover_url
             self._song_url_cache[key] = song_url
             self._duration_cache[key] = duration_ms
+            self._album_cache[key] = album_name
             self._inflight.discard(key)
             self._failed_at.pop(key, None)
             self._trim_locked()
@@ -336,3 +345,4 @@ class CoverFetcher:
             self._url_cache.pop(key, None)
             self._song_url_cache.pop(key, None)
             self._duration_cache.pop(key, None)
+            self._album_cache.pop(key, None)

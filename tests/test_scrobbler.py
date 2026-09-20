@@ -3,6 +3,8 @@ Enqueueing is synchronous, so the on-disk queue can be checked without waiting o
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from refrain.config import LastfmConfig
@@ -559,3 +561,34 @@ def test_shorter_wins_only_among_lengths_that_can_be_scrobbled():
     # A track both parties agree is genuinely too short stays too short:
     # choosing cannot rescue it, and no length is invented.
     assert scrobble_duration_ms(0, True, 14_000, 20_000) < 30_000
+
+
+def test_health_counts_only_scrobbles_held_back_after_a_failed_send(tmp_path):
+    sc, q = _scrobbler(tmp_path)
+    assert sc.health() == (False, 0)
+    q.enqueue({"artist": "Art", "track": "One", "timestamp": 1_700_000_000})
+    q.enqueue({"artist": "Art", "track": "Two", "timestamp": 1_700_000_300})
+    assert sc.health() == (False, 2)
+    sc._drain_inflight = True
+    assert sc.health() == (False, 0)
+    sc._drain_inflight = False
+    sc._session_invalid = True
+    assert sc.health() == (True, 2)
+
+
+def test_a_song_without_a_length_is_logged_instead_of_silently_skipped(tmp_path, caplog):
+    clock = [float(T0), 1000.0]
+    sc = _launch(tmp_path)
+    caplog.set_level(logging.INFO, logger="refrain.scrobble")
+    _run(sc, _t("Endless"), 60, clock, eff=0)
+    _next_song(sc, clock)
+    assert _queued(tmp_path) == []
+    _run(sc, _t("Endless"), 40, clock, eff=0)
+    _run(sc, _t("Teaser"), 40, clock, eff=25_000)
+    lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("Not scrobbled")]
+    # Each song is named once, and only after 30 s without a usable length.
+    assert lines == [
+        "Not scrobbled: Art — Endless (the player reported no song length)",
+        "Not scrobbled: Art — Teaser (shorter than 30 seconds)",
+    ]
+    sc.shutdown()

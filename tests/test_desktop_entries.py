@@ -69,3 +69,11 @@ def test_an_installed_entry_keeps_backslashes_in_its_exec_line(tmp_path, monkeyp
     assert app.install_desktop_files() == 0
     text = (tmp_path / "apps" / "refrain.desktop").read_text(encoding="utf-8")
     assert 'Exec="/opt/my\\\\\\\\apps/refrain"' in text
+
+
+def test_desktop_files_follow_xdg_data_home(tmp_path, monkeypatch):
+    import refrain.app as app
+
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "data"))
+    assert app._user_apps_dir() == tmp_path / "data" / "applications"
+    assert app._user_icons_dir() == tmp_path / "data" / "icons" / "hicolor" / "scalable" / "apps"

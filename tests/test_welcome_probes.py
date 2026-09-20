@@ -121,8 +121,9 @@ class _Response(io.BytesIO):
 def _stub_urlopen(monkeypatch, result):
     seen = []
 
-    def urlopen(url, timeout):
-        seen.append((url, timeout))
+    def urlopen(request, timeout):
+        # Refrain names itself on every request; the probe is no exception.
+        seen.append((request.full_url, request.get_header("User-agent"), timeout))
         if isinstance(result, Exception):
             raise result
         return _Response(result)
@@ -134,7 +135,7 @@ def _stub_urlopen(monkeypatch, result):
 def test_an_itunes_answer_means_reachable(app, monkeypatch):
     seen = _stub_urlopen(monkeypatch, json.dumps({"resultCount": 1, "results": []}).encode())
     assert wd._probe_itunes() == (True, "iTunes Search API reachable.")
-    assert seen == [(wd._ITUNES_TEST_URL, 5)]
+    assert seen == [(wd._ITUNES_TEST_URL, wd.USER_AGENT, 5)]
 
 
 def test_an_odd_itunes_payload_is_reported(app, monkeypatch):

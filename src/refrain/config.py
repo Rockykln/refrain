@@ -8,8 +8,12 @@ import logging
 import os
 import re
 import threading
+import time
 import tomllib
+import zoneinfo
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -81,6 +85,19 @@ _DATACLASS_HINTS: dict[str, dict[str, type]] = {}
 
 # Keys older versions wrote that are no longer used; skipped without a warning.
 _RETIRED_KEYS = {("AdvancedConfig", "cover_cache_size")}
+
+# Defaults that changed. A file without the key was written by a Refrain
+# that had the old default, so its user never chose the new one.
+_LEGACY_DEFAULTS: dict[str, dict[str, Any]] = {"behavior": {"notifications": True}}
+
+
+def _with_legacy_defaults(data: dict[str, Any]) -> dict[str, Any]:
+    out = dict(data)
+    for section, old in _LEGACY_DEFAULTS.items():
+        body = out.get(section) or {}
+        if isinstance(body, dict):
+            out[section] = {**old, **body}
+    return out
 
 
 def _construct(cls, payload):
@@ -218,12 +235,16 @@ class SourcesConfig:
 @dataclass
 class PrivacyConfig:
     mode: str = "full"  # "full" | "minimal" | "off"
+    # What "Resume sharing" returns to after "Pause sharing" set mode to off.
+    resume_mode: str = "full"
 
 
 @dataclass
 class BehaviorConfig:
     autostart: bool = False
-    notifications: bool = True
+    # Off for new installs; a config file without this key keeps the old
+    # default, see _LEGACY_DEFAULTS.
+    notifications: bool = False
     cover_art: bool = True
     show_buttons: bool = True
     # How long to wait after a track change before firing the desktop
@@ -234,6 +255,8 @@ class BehaviorConfig:
     # Set to True after the first-run wizard runs once. Prevents the
     # welcome dialog from re-appearing on every launch.
     first_run_complete: bool = False
+    # The one-time "keeps running in the tray" hint has been shown.
+    tray_hint_shown: bool = False
 
 
 @dataclass
@@ -257,6 +280,16 @@ class AdvancedConfig:
     # effect after restarting Refrain — the QTranslator is installed
     # once at app startup.
     language: str = "system"
+    # Not in Settings on purpose: the desktop decides the clock, and these two
+    # are for the rare setup where it decides wrong. "system" follows it.
+    time_format: str = "system"  # "system", "12h" or "24h"
+    time_zone: str = ""  # an IANA name like "Europe/Berlin"; empty = the system's
+    # How long the mouse has to rest on a song in the Status window before its
+    # title scrolls past. 0 turns the scrolling off.
+    hover_scroll_ms: int = 1500
+    developer_mode: bool = False
+    # Once unlocked, the developer switch stays in Settings even while off.
+    developer_unlocked: bool = False
 
 
 @dataclass
@@ -312,6 +345,167 @@ class HistoryConfig:
     window_height: int = 0
 
 
+# A rule returns the value to keep and, when the original was not fine,
+# why. A value that only needed tidying (case, surrounding spaces) comes
+# back changed with no reason and is fixed without a warning.
+_Check = Callable[[Any], tuple[Any, str | None]]
+
+PRIVACY_MODES = ("full", "minimal", "off")
+LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+_WINDOW_SIZE_MAX = 16384
+_MAC_RE = re.compile(r"[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}")
+_CLIENT_ID_RE = re.compile(r"\d{17,20}")
+_CLIENT_ID_JUNK_RE = re.compile(r"\s|[\x00-\x1f\x7f]")
+_BROWSER_HINT_RE = re.compile(r"[a-z0-9][a-z0-9 ._-]{0,63}")
+
+
+def _field_default(cls, key: str) -> Any:
+    return getattr(cls(), key)
+
+
+def _require_int(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(value)
+    return value
+
+
+def _clamp(lo: int, hi: int) -> _Check:
+    def check(value):
+        n = _require_int(value)
+        if n < lo:
+            return lo, f"is below {lo}"
+        if n > hi:
+            return hi, f"is above {hi}"
+        return n, None
+
+    return check
+
+
+def _range_or(default: int, lo: int, hi: int) -> _Check:
+    """For values where the edge of the range would be a poor guess."""
+
+    def check(value):
+        n = _require_int(value)
+        if n != default and not lo <= n <= hi:
+            return default, f"is outside {lo}–{hi}"
+        return n, None
+
+    return check
+
+
+def _one_of(choices: tuple[str, ...], fallback: str, *, upper: bool = False) -> _Check:
+    def check(value):
+        norm = value.strip()
+        norm = norm.upper() if upper else norm.lower()
+        if norm in choices:
+            return norm, None
+        return fallback, f"is not one of {', '.join(choices)}"
+
+    return check
+
+
+@cache
+def shipped_languages() -> frozenset[str]:
+    """Codes that have a real translation next to this module."""
+    folder = Path(__file__).parent / "i18n"
+    return frozenset(
+        p.stem.split("_", 1)[1] for p in folder.glob("refrain_*.qm") if p.stat().st_size > 100
+    )
+
+
+def _check_language(value: str):
+    code = value.strip().replace("-", "_")
+    if not code:
+        return "system", None
+    if code == "system" or code in shipped_languages():
+        return code, None
+    # "de_DE" worked before this check existed; keep it working as "de".
+    base = code.split("_", 1)[0]
+    if base in shipped_languages():
+        return base, "is not a shipped translation code"
+    return "system", "is not a shipped translation"
+
+
+def _check_bluetooth_device(value: str):
+    mac = value.strip()
+    if not mac or _MAC_RE.fullmatch(mac):
+        return mac, None
+    return "", "is not a Bluetooth address like AA:BB:CC:DD:EE:FF"
+
+
+def _check_client_id(value: str):
+    cid = value.strip()
+    if not cid or _CLIENT_ID_RE.fullmatch(cid):
+        return cid, None
+    # A near-miss (a digit short, a stray letter) stays: Settings shows it
+    # with "Expected 17-20 digits", and clearing it would turn Discord off
+    # without the user ever seeing what was wrong with their paste.
+    if len(cid) <= 32 and not _CLIENT_ID_JUNK_RE.search(cid):
+        return cid, "does not look like a Discord Application ID (17-20 digits)"
+    return "", "cannot be a Discord Application ID"
+
+
+def _check_browser_hints(value: str):
+    tokens = [t.strip().lower() for t in value.split(",") if t.strip()]
+    good = [t for t in tokens if _BROWSER_HINT_RE.fullmatch(t)]
+    if not good:
+        return ",".join(DEFAULT_BROWSER_HINTS), "has no usable player name"
+    if len(good) != len(tokens):
+        return ",".join(good), "contains unusable entries"
+    return value, None
+
+
+def _check_timestamp(value):
+    ts = _require_int(value)
+    if ts < 0:
+        return 0, "is negative"
+    # A day of slack for a clock that was briefly wrong.
+    if ts > time.time() + 86400:
+        return 0, "is in the future"
+    return ts, None
+
+
+def _check_time_zone(value: object) -> tuple[object, str]:
+    """An IANA zone name, or "" for the system's own."""
+    if not isinstance(value, str):
+        return "", 'must be a time-zone name like "Europe/Berlin"'
+    name = value.strip()
+    if not name:
+        return "", None
+    try:
+        zoneinfo.ZoneInfo(name)
+    except Exception:
+        return "", "is not a known time zone"
+    return name, None
+
+
+_RULES: tuple[tuple[str, str, _Check], ...] = (
+    ("discord", "client_id", _check_client_id),
+    ("discord", "client_id_mpris", _check_client_id),
+    ("discord", "client_id_bluetooth", _check_client_id),
+    ("sources", "bluetooth_device", _check_bluetooth_device),
+    ("sources", "browser_hints", _check_browser_hints),
+    # Not the default "full": a mistyped mode must not share more than intended.
+    ("privacy", "mode", _one_of(PRIVACY_MODES, "minimal")),
+    ("privacy", "resume_mode", _one_of(("full", "minimal"), "full")),
+    # Same limits as the spin boxes in Settings → Advanced.
+    ("behavior", "notify_delay_ms", _clamp(0, 10_000)),
+    ("advanced", "poll_interval_ms", _clamp(250, 10_000)),
+    ("advanced", "log_level", _one_of(LOG_LEVELS, "INFO", upper=True)),
+    # 0 switches both checks off, so it has to stay reachable.
+    ("advanced", "idle_grace_s", _clamp(0, 3600)),
+    ("advanced", "position_stall_s", _clamp(0, 600)),
+    ("advanced", "language", _check_language),
+    ("advanced", "time_format", _one_of(("system", "12h", "24h"), "system")),
+    ("advanced", "time_zone", _check_time_zone),
+    ("advanced", "hover_scroll_ms", _range_or(1500, 0, 10_000)),
+    ("update", "last_check_ts", _check_timestamp),
+    ("history", "max_entries", _clamp(1, HISTORY_LIMIT_MAX)),
+    ("history", "window_width", _range_or(0, 1, _WINDOW_SIZE_MAX)),
+    ("history", "window_height", _range_or(0, 1, _WINDOW_SIZE_MAX)),
+)
+
+
 @dataclass
 class Config:
     discord: DiscordConfig = field(default_factory=DiscordConfig)
@@ -354,6 +548,7 @@ class Config:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Config:
+        data = _with_legacy_defaults(data)
         return cls(
             discord=_construct(DiscordConfig, data.get("discord")),
             sources=_construct(SourcesConfig, data.get("sources")),
@@ -363,7 +558,33 @@ class Config:
             update=_construct(UpdateConfig, data.get("update")),
             lastfm=_construct(LastfmConfig, data.get("lastfm")),
             history=_construct(HistoryConfig, data.get("history")),
-        )
+        ).validate()
+
+    def validate(self) -> Config:
+        """Replace values that have the right type but make no sense, in place.
+
+        One warning per field. Never writes the file: the next save does, and
+        until then a hand-edit stays visible as the user wrote it.
+        """
+        for section, key, check in _RULES:
+            part = getattr(self, section)
+            value = getattr(part, key)
+            try:
+                fixed, problem = check(value)
+            except (TypeError, ValueError, AttributeError):
+                fixed, problem = _field_default(type(part), key), "has the wrong type"
+            if problem is None:
+                if fixed != value:
+                    setattr(part, key, fixed)
+                continue
+            if fixed == value:
+                log.warning("Config: %s.%s = %r %s; kept as is", section, key, value, problem)
+            else:
+                setattr(part, key, fixed)
+                log.warning(
+                    "Config: %s.%s = %r %s; using %r instead", section, key, value, problem, fixed
+                )
+        return self
 
     def to_dict(self) -> dict[str, Any]:
         lastfm = asdict(self.lastfm)

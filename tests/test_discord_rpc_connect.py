@@ -189,12 +189,13 @@ def test_a_newcomer_that_is_not_ready_keeps_the_existing_client(discord, clock):
     assert rpc._next_retry_ts > clock.now
 
 
-def test_the_status_is_sent_as_listening_unless_told_otherwise(discord):
+def test_the_status_is_sent_as_listening_unless_told_otherwise(discord, clock):
     rpc = drpc.DiscordRPC(CLIENT_ID)
     rpc.update(details="Northbound", state="The Quiet Hours")
     sent = discord.made[0].update.call_args.kwargs
     assert sent["activity_type"] == drpc.ActivityType.LISTENING
 
+    clock.now += 5.0
     rpc.update(details="Northbound", activity_type=drpc.ActivityType.PLAYING)
     assert discord.made[0].update.call_args.kwargs["activity_type"] == drpc.ActivityType.PLAYING
 
@@ -205,6 +206,7 @@ def test_after_discord_restarts_the_same_status_is_sent_again(discord, clock):
     first = discord.made[0]
     first.update.side_effect = BrokenPipeError("Discord closed")
 
+    clock.now += 5.0
     rpc.update(details="Ferrous", state="Oskar Lind", large_text="Iron Garden")
     assert first.close.called
     assert rpc.is_connected() is False
@@ -232,20 +234,23 @@ def test_a_failing_clear_drops_that_client_and_retries_later(discord, clock):
     discord.made[0].clear.side_effect = BrokenPipeError("gone")
     discord.made[0].close.side_effect = OSError("already closed")
 
+    clock.now += 5.0
     rpc.clear()
     assert rpc.is_connected() is False
     assert rpc._cleared is False
     assert rpc._next_retry_ts == clock.now + 2.0
 
 
-def test_clear_keeps_the_clients_that_answered(discord):
+def test_clear_keeps_the_clients_that_answered(discord, clock):
     discord.live = [0, 2]
     rpc = drpc.DiscordRPC(CLIENT_ID, all_clients=True)
     rpc.update(details="Silk Road Radio", state="Ilse Moreau")
     healthy, broken = discord.made
     broken.clear.side_effect = BrokenPipeError("gone")
 
+    clock.now += 5.0
     rpc.clear()
+    clock.now += 5.0
     rpc.clear()
     assert list(rpc._presences) == [0]
     assert healthy.clear.call_count == 1

@@ -11,11 +11,14 @@ import os
 
 import pytest
 
+from tests.release_signing import PUBLIC_KEY_HEX, SEED, release_key, signature_for
+
 
 @pytest.fixture
 def updater(monkeypatch):
     import refrain.updater as u
 
+    monkeypatch.setattr(u, "RELEASE_PUBLIC_KEY", PUBLIC_KEY_HEX)
     return u
 
 
@@ -281,9 +284,9 @@ def test_apply_update_dispatches_per_install_type(updater, monkeypatch):
 
 def test_apply_update_aur_launches_terminal_when_available(updater, monkeypatch):
     """AUR install + a usable terminal → spawn it, mark needs_restart."""
-    spawned: list[str] = []
+    spawned: list[tuple[str, ...]] = []
 
-    def fake_terminal(cmd: str) -> bool:
+    def fake_terminal(cmd: tuple[str, ...]) -> bool:
         spawned.append(cmd)
         return True
 
@@ -293,18 +296,19 @@ def test_apply_update_aur_launches_terminal_when_available(updater, monkeypatch)
     r = updater.apply_update(info, install_type="aur")
     assert r.success is True
     assert r.needs_restart is True
-    assert spawned and "syu refrain" in spawned[0].lower()
+    assert spawned and spawned[0][-2:] == ("-Syu", "refrain")
 
 
 def test_apply_update_flatpak_launches_terminal_when_available(updater, monkeypatch):
-    spawned: list[str] = []
+    spawned: list[tuple[str, ...]] = []
     monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: spawned.append(cmd) or True)
 
     info = updater.ReleaseInfo(tag="v0.2.0", version="0.2.0", name="x", body="", html_url="")
     r = updater.apply_update(info, install_type="flatpak")
     assert r.success is True
     assert r.needs_restart is True
-    assert spawned and "flatpak update" in spawned[0].lower()
+    assert spawned == [("flatpak", "update", "-y", "io.github.Rockykln.Refrain")]
+    assert "flatpak update -y io.github.Rockykln.Refrain" in r.message
 
 
 def test_aur_helper_falls_back_to_pacman(updater, monkeypatch):
@@ -312,9 +316,12 @@ def test_aur_helper_falls_back_to_pacman(updater, monkeypatch):
     bare pacman command. Update dialog will still surface this so
     the user can swap in their preferred helper if they prefer."""
     monkeypatch.setattr(updater.shutil, "which", lambda _name: None)
-    cmd = updater._aur_helper()
-    assert "pacman" in cmd
-    assert "refrain" in cmd
+    assert updater._aur_helper() == ("sudo", "pacman", "-Syu", "refrain")
+
+
+def test_aur_helper_prefers_an_installed_helper(updater, monkeypatch):
+    monkeypatch.setattr(updater.shutil, "which", lambda name: name == "paru")
+    assert updater._aur_helper() == ("paru", "-Syu", "refrain")
 
 
 # ---------------------------------------------------------------------------
@@ -416,16 +423,17 @@ def test_system_packages_are_left_to_the_package_manager(updater, monkeypatch, k
     """The package manager runs in a terminal, where the user confirms sudo."""
     commands = []
     monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: commands.append(cmd) or True)
-    monkeypatch.setattr(updater, "_aur_helper", lambda: "yay -Syu refrain")
+    monkeypatch.setattr(updater, "_aur_helper", lambda: ("yay", "-Syu", "refrain"))
     result = updater.apply_update(_release(updater), install_type=kind)
     assert result.success is True and result.needs_restart is True
     assert len(commands) == 1 and "sudo" not in commands[0]
+    assert commands[0] in updater._TERMINAL_COMMANDS
 
 
 @pytest.mark.parametrize("kind", ["aur", "flatpak"])
 def test_without_a_terminal_the_command_is_shown(updater, monkeypatch, kind):
     monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: False)
-    monkeypatch.setattr(updater, "_aur_helper", lambda: "yay -Syu refrain")
+    monkeypatch.setattr(updater, "_aur_helper", lambda: ("yay", "-Syu", "refrain"))
     result = updater.apply_update(_release(updater), install_type=kind)
     assert result.success is False
     assert "refrain" in result.message.lower()
@@ -447,6 +455,7 @@ def test_the_appimage_for_this_machine_is_picked(monkeypatch, updater):
                 "size": 12345679,
             },
             {"name": "SHA256SUMS", "browser_download_url": base + "SHA256SUMS", "size": 99},
+            {"name": "SHA256SUMS.sig", "browser_download_url": base + "SHA256SUMS.sig"},
         ],
     }
     monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
@@ -457,6 +466,7 @@ def test_the_appimage_for_this_machine_is_picked(monkeypatch, updater):
     assert info.appimage_url == base + "Refrain-9.9.9-aarch64.AppImage"
     assert info.appimage_size == 12345679
     assert info.sha256sums_url == base + "SHA256SUMS"
+    assert info.sha256sums_sig_url == base + "SHA256SUMS.sig"
 
 
 def test_no_appimage_for_an_unbuilt_arch(monkeypatch, updater):
@@ -516,7 +526,11 @@ def running_appimage(tmp_path, monkeypatch):
     return target
 
 
-def _appimage_release(updater, *, url=_DL + _NAME, size=None, sums=None):
+_SUMS = _DL + "SHA256SUMS"
+_SIG = _DL + "SHA256SUMS.sig"
+
+
+def _appimage_release(updater, *, url=_DL + _NAME, size=None, sums=_SUMS, sig=_SIG, name=_NAME):
     return updater.ReleaseInfo(
         tag="v9.9.9",
         version="9.9.9",
@@ -525,8 +539,9 @@ def _appimage_release(updater, *, url=_DL + _NAME, size=None, sums=None):
         html_url="https://github.com/Rockykln/refrain/releases/tag/v9.9.9",
         appimage_url=url,
         appimage_size=len(_NEW_APPIMAGE) if size is None else size,
-        appimage_name=_NAME,
+        appimage_name=name,
         sha256sums_url=sums,
+        sha256sums_sig_url=sig,
     )
 
 
@@ -536,39 +551,146 @@ def _sums_line(data=_NEW_APPIMAGE, name=_NAME):
     return f"{hashlib.sha256(data).hexdigest()}  {name}\n".encode()
 
 
+def _publish(serve, sums, signature=None):
+    serve[_SUMS] = sums
+    serve[_SIG] = signature_for(sums) if signature is None else signature
+
+
+def _refused_unverified(updater, result, serve, running_appimage):
+    assert result.success is False
+    assert updater.RELEASES_PAGE in result.message
+    assert "could not verify" in result.message
+    assert _DL + _NAME not in serve["fetched"]
+    assert running_appimage.read_bytes() == b"old build"
+    assert not running_appimage.with_name(_NAME + ".new").exists()
+
+
 def test_appimage_update_with_matching_checksum(updater, serve, running_appimage):
     serve[_DL + _NAME] = _NEW_APPIMAGE
-    serve[_DL + "SHA256SUMS"] = _sums_line(b"other", "refrain.tar.gz") + _sums_line()
-    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
+    _publish(serve, _sums_line(b"other", "refrain.tar.gz") + _sums_line())
+    result = updater._apply_appimage(_appimage_release(updater))
     assert result.success is True
     assert running_appimage.read_bytes() == _NEW_APPIMAGE
 
 
 def test_appimage_with_a_wrong_checksum_is_refused(updater, serve, running_appimage):
     serve[_DL + _NAME] = _NEW_APPIMAGE
-    serve[_DL + "SHA256SUMS"] = _sums_line(b"tampered")
-    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
+    _publish(serve, _sums_line(b"tampered"))
+    result = updater._apply_appimage(_appimage_release(updater))
     assert result.success is False
+    assert "checksum" in result.message
     assert running_appimage.read_bytes() == b"old build"
     assert not running_appimage.with_name(_NAME + ".new").exists()
 
 
 def test_appimage_missing_from_the_checksums_is_refused(updater, serve, running_appimage):
     serve[_DL + _NAME] = _NEW_APPIMAGE
-    serve[_DL + "SHA256SUMS"] = _sums_line(_NEW_APPIMAGE, "Refrain-9.9.9-aarch64.AppImage")
-    result = updater._apply_appimage(_appimage_release(updater, sums=_DL + "SHA256SUMS"))
-    assert result.success is False
-    assert running_appimage.read_bytes() == b"old build"
+    _publish(serve, _sums_line(_NEW_APPIMAGE, "Refrain-9.9.9-aarch64.AppImage"))
+    result = updater._apply_appimage(_appimage_release(updater))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "no entry" in result.message
 
 
-def test_a_release_without_checksums_still_updates_and_says_so(
-    updater, serve, running_appimage, caplog
-):
+def test_a_release_without_checksums_is_refused(updater, serve, running_appimage):
     serve[_DL + _NAME] = _NEW_APPIMAGE
-    with caplog.at_level("WARNING", logger="refrain.updater"):
-        result = updater._apply_appimage(_appimage_release(updater))
-    assert result.success is True
-    assert "SHA256SUMS" in caplog.text
+    result = updater._apply_appimage(_appimage_release(updater, sums=None, sig=None))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "no SHA256SUMS" in result.message
+
+
+def test_a_release_without_a_signature_is_refused(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    serve[_SUMS] = _sums_line()
+    result = updater._apply_appimage(_appimage_release(updater, sig=None))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "no SHA256SUMS.sig" in result.message
+
+
+@pytest.mark.parametrize(
+    "signature",
+    [
+        signature_for(b"another file"),
+        signature_for(_sums_line(), seed=bytes(32)),
+        b"not base64 at all!\n",
+        b"",
+        b"QUJD\n",
+    ],
+    ids=["other-file", "other-key", "garbage", "empty", "too-short"],
+)
+def test_a_bad_signature_is_refused(updater, serve, running_appimage, signature):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line(), signature)
+    result = updater._apply_appimage(_appimage_release(updater))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "signature" in result.message
+
+
+def test_checksums_changed_after_signing_are_refused(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line(b"evil"), signature_for(_sums_line()))
+    result = updater._apply_appimage(_appimage_release(updater))
+    _refused_unverified(updater, result, serve, running_appimage)
+
+
+@pytest.mark.parametrize("key", ["", "not hex", "ab" * 31])
+def test_without_a_release_key_nothing_is_fetched(
+    updater, serve, running_appimage, monkeypatch, key
+):
+    monkeypatch.setattr(updater, "RELEASE_PUBLIC_KEY", key)
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line())
+    result = updater._apply_appimage(_appimage_release(updater))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert serve["fetched"] == []
+
+
+def test_the_shipped_key_is_a_placeholder_until_the_owner_sets_one():
+    import refrain.updater as u
+
+    assert u.RELEASE_PUBLIC_KEY == "" or len(bytes.fromhex(u.RELEASE_PUBLIC_KEY)) == 32
+
+
+def test_an_older_signed_release_cannot_pose_as_a_newer_one(updater, serve, running_appimage):
+    old = "Refrain-9.9.8-x86_64.AppImage"
+    serve[_DL + old] = _NEW_APPIMAGE
+    _publish(serve, _sums_line(_NEW_APPIMAGE, old))
+    result = updater._apply_appimage(_appimage_release(updater, url=_DL + old, name=old))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert _DL + old not in serve["fetched"]
+
+
+@pytest.mark.parametrize(("which", "limit"), [(_SUMS, 64 * 1024), (_SIG, 1024)])
+def test_oversized_release_files_are_refused(updater, serve, running_appimage, which, limit):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line())
+    serve[which] = serve[which] + b"\n" * limit
+    result = updater._apply_appimage(_appimage_release(updater))
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "larger than" in result.message
+
+
+def test_a_signature_from_elsewhere_is_refused(updater, serve, running_appimage):
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line())
+    result = updater._apply_appimage(
+        _appimage_release(updater, sig="https://example.com/SHA256SUMS.sig")
+    )
+    _refused_unverified(updater, result, serve, running_appimage)
+    assert "not served from the Refrain releases" in result.message
+
+
+def test_a_signature_made_by_the_release_tool_is_accepted(
+    updater, serve, running_appimage, tmp_path
+):
+    sums = tmp_path / "SHA256SUMS"
+    sums.write_bytes(_sums_line())
+    key = tmp_path / "ed25519.key"
+    key.write_text(SEED.hex() + "\n")
+    key.chmod(0o600)
+    assert release_key.main(["--key", str(key), "sign", str(sums)]) == 0
+    serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, sums.read_bytes(), (tmp_path / "SHA256SUMS.sig").read_bytes())
+    assert updater._apply_appimage(_appimage_release(updater)).success is True
 
 
 @pytest.mark.parametrize(
@@ -598,6 +720,7 @@ def test_an_empty_or_tiny_appimage_is_refused(updater, serve, running_appimage, 
 @pytest.mark.parametrize("reported", [len(_NEW_APPIMAGE) - 1, len(_NEW_APPIMAGE) + 1])
 def test_a_size_other_than_reported_is_refused(updater, serve, running_appimage, reported):
     serve[_DL + _NAME] = _NEW_APPIMAGE
+    _publish(serve, _sums_line())
     result = updater._apply_appimage(_appimage_release(updater, size=reported))
     assert result.success is False
     assert running_appimage.read_bytes() == b"old build"

@@ -1,4 +1,4 @@
-"""Bluetooth: only a music app's track is a song."""
+"""Bluetooth: only what Apple Music plays is a song."""
 
 from __future__ import annotations
 
@@ -10,19 +10,16 @@ import refrain.sources.bluetooth as bluetooth  # noqa: E402
 from refrain.sources.base import PlaybackStatus  # noqa: E402
 
 
-@pytest.mark.parametrize("app", ["Music", "Musik", "Spotify", "", "  music "])
-def test_music_apps_play_music(app):
-    assert bluetooth.is_music_app(app, 0)
+@pytest.mark.parametrize(
+    "app", ["Apple Music", "Music", "Musik", "音楽", "", "  music ", "Apple Music (Beta)"]
+)
+def test_apple_music_plays_under_any_of_its_names(app):
+    assert bluetooth.is_apple_music(app)
 
 
-@pytest.mark.parametrize("app", ["Twitch", "YouTube", "Netflix", "Podcasts"])
-def test_streams_and_videos_are_not_music(app):
-    assert not bluetooth.is_music_app(app, 215_000)
-
-
-def test_an_unknown_app_counts_when_its_track_has_a_length():
-    assert bluetooth.is_music_app("Some Player", 215_000)
-    assert not bluetooth.is_music_app("Some Stream", 0)
+@pytest.mark.parametrize("app", ["Spotify", "Tidal", "YouTube Music", "Twitch", "Netflix"])
+def test_anything_else_on_the_phone_is_ignored(app):
+    assert not bluetooth.is_apple_music(app)
 
 
 class _Player:
@@ -56,9 +53,10 @@ def _read(monkeypatch, app):
     return src.read()
 
 
-def test_a_twitch_stream_is_not_a_song(monkeypatch):
-    """A stream's title and channel are no song and artist."""
-    assert _read(monkeypatch, "Twitch").has_track is False
+@pytest.mark.parametrize("app", ["Twitch", "Spotify"])
+def test_what_another_app_plays_is_not_a_song(monkeypatch, app):
+    """Only Apple Music reaches Discord, the history and Last.fm."""
+    assert _read(monkeypatch, app).has_track is False
 
 
 def test_the_music_app_still_plays(monkeypatch):

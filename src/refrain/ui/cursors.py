@@ -4,6 +4,7 @@ button has to remember its own `setCursor`."""
 from __future__ import annotations
 
 from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtGui import QCursor
 from PySide6.QtWidgets import (
     QAbstractButton,
     QApplication,
@@ -16,7 +17,7 @@ from PySide6.QtWidgets import (
 # Widgets a click *does* something to. Text fields are deliberately
 # absent: an I-beam over an editable field is the correct affordance,
 # and a hand there would suggest the text is a link.
-_CLICKABLE = (QAbstractButton, QComboBox, QTabBar)
+_CLICKABLE = (QAbstractButton, QComboBox)
 
 
 class _DisabledCursorGuard(QObject):
@@ -55,6 +56,31 @@ def apply_interactive_cursors(root: QWidget) -> None:
             if widget.isEnabled():
                 widget.setCursor(Qt.PointingHandCursor)
             widget.installEventFilter(guard)
+
+    tab_guard = root.findChild(_TabBarCursorGuard) or _TabBarCursorGuard(root)
+    for bar in root.findChildren(QTabBar):
+        bar.setMouseTracking(True)
+        bar.installEventFilter(tab_guard)
+
+
+class _TabBarCursorGuard(QObject):
+    """A tab bar reaches past its last tab; the hand belongs over the tabs only."""
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if not isinstance(watched, QTabBar):
+            return False
+        if event.type() in (QEvent.MouseMove, QEvent.Enter):
+            where = event.position().toPoint() if hasattr(event, "position") else None
+            index = watched.tabAt(
+                where if where is not None else watched.mapFromGlobal(QCursor.pos())
+            )
+            if index >= 0 and watched.isTabEnabled(index):
+                watched.setCursor(Qt.PointingHandCursor)
+            else:
+                watched.unsetCursor()
+        elif event.type() == QEvent.Leave:
+            watched.unsetCursor()
+        return False
 
 
 class _DialogCursorFilter(QObject):

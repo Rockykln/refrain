@@ -187,3 +187,48 @@ def test_save_from_does_not_raise_when_the_store_breaks(caplog):
         save_from(cfg, store=_RaisingStore(), clear_missing=True)
     assert "Saving Last.fm secrets failed" in caplog.text
     assert "sk-12345" not in caplog.text
+
+
+@pytest.fixture
+def unwritable_fallback(xdg_tmp, monkeypatch):
+    locked = xdg_tmp["config"] / "locked"
+    locked.mkdir()
+    locked.chmod(0o500)
+    monkeypatch.setattr(secrets_store, "_fallback_path", lambda: locked / "secrets.json")
+    yield locked / "secrets.json"
+    locked.chmod(0o700)
+
+
+def test_set_reports_when_neither_keyring_nor_file_takes_the_value(unwritable_fallback, caplog):
+    store = SecretStore()
+    with caplog.at_level(logging.ERROR, logger="refrain.secrets_store"):
+        assert store.set(LASTFM_SESSION_KEY, "sk-12345") is False
+    assert not unwritable_fallback.exists()
+    assert "Could not store" in caplog.text
+    assert "sk-12345" not in caplog.text
+
+
+def test_save_from_reports_a_lost_secret(unwritable_fallback):
+    cfg = LastfmConfig(shared_secret="shared-12345", session_key="sk-12345")
+    assert save_from(cfg, store=SecretStore()) is False
+
+
+def test_save_from_reports_a_broken_store():
+    cfg = LastfmConfig(shared_secret="shared-12345")
+    assert save_from(cfg, store=_RaisingStore()) is False
+
+
+def test_set_and_save_from_report_success_on_the_file(secrets_file):
+    store = SecretStore()
+    assert store.set(LASTFM_SHARED_SECRET, "shared-12345") is True
+    cfg = LastfmConfig(shared_secret="shared-12345", session_key="sk-12345")
+    assert save_from(cfg, store=store) is True
+    assert json.loads(secrets_file.read_text())[LASTFM_SESSION_KEY] == "sk-12345"
+
+
+def test_set_reports_success_in_the_keyring(service):
+    assert SecretStore(bus=service).set(LASTFM_SESSION_KEY, "sk-12345") is True
+
+
+def test_clearing_counts_as_success(secrets_file):
+    assert save_from(LastfmConfig(), store=SecretStore(), clear_missing=True) is True

@@ -202,7 +202,8 @@ class SecretStore:
     """Keyring-first, 0600-file-fallback credential store.
 
     Every method is failure-tolerant: a keyring hiccup degrades to the
-    file (and is logged once), never raises into the app. ``bus`` is
+    file (and is logged once), never raises into the app; ``set``
+    returns whether the value landed anywhere. ``bus`` is
     injectable for tests; default opens the real session bus lazily.
     The Secret Service is spoken directly over dbus-python, so there is
     no ``keyring`` dependency.
@@ -223,7 +224,8 @@ class SecretStore:
         bus = self._get_bus()
         return bus is not None and _keyring_available(bus)
 
-    def set(self, name: str, value: str) -> None:
+    def set(self, name: str, value: str) -> bool:
+        """Store ``value``; False when neither the keyring nor the file took it."""
         bus = self._get_bus()
         if bus is not None and _keyring_available(bus):
             try:
@@ -232,14 +234,17 @@ class SecretStore:
                 # landed in the fallback file, drop it now that the
                 # keyring holds the value.
                 self._file_forget(name)
-                return
+                return True
             except _KeyringUnavailable as e:
                 log.warning("Keyring set failed (%s) — using 0600 file fallback", e)
             except Exception:
                 log.exception("Keyring set unexpectedly failed — using file fallback")
         data = _file_read_all()
         data[name] = value
-        _file_write_all(data)
+        if _file_write_all(data):
+            return True
+        log.error("Could not store %s: keyring unavailable and fallback file not writable", name)
+        return False
 
     def get(self, name: str) -> str | None:
         bus = self._get_bus()
@@ -304,7 +309,7 @@ def load_into(lastfm, store: SecretStore | None = None) -> None:
         log.exception("Loading Last.fm secrets failed; scrobbling may need a reconnect")
 
 
-def save_from(lastfm, store: SecretStore | None = None, *, clear_missing: bool = False) -> None:
+def save_from(lastfm, store: SecretStore | None = None, *, clear_missing: bool = False) -> bool:
     """Persist the Last.fm secrets from a LastfmConfig into secure storage.
     Called on Settings Apply, alongside Config.save().
 
@@ -318,21 +323,27 @@ def save_from(lastfm, store: SecretStore | None = None, *, clear_missing: bool =
     failure into permanent credential loss. Callers that genuinely mean
     "forget this account" pass ``clear_missing=True``.
 
+    Returns False when a value could not be stored anywhere, so Settings
+    can tell the user instead of letting the credentials vanish on restart.
+
     ``store`` is injectable for tests."""
     store = store or _default
+    ok = True
     try:
         if lastfm.shared_secret:
-            store.set(LASTFM_SHARED_SECRET, lastfm.shared_secret)
+            ok = store.set(LASTFM_SHARED_SECRET, lastfm.shared_secret)
         elif clear_missing:
             store.delete(LASTFM_SHARED_SECRET)
         else:
             log.debug("Last.fm shared secret empty; keeping the stored copy")
 
         if lastfm.session_key:
-            store.set(LASTFM_SESSION_KEY, lastfm.session_key)
+            ok = store.set(LASTFM_SESSION_KEY, lastfm.session_key) and ok
         elif clear_missing:
             store.delete(LASTFM_SESSION_KEY)
         else:
             log.debug("Last.fm session key empty; keeping the stored copy")
     except Exception:
         log.exception("Saving Last.fm secrets failed")
+        return False
+    return ok

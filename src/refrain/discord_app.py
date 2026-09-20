@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 
-from refrain import __version__
+from refrain import __version__, dev_metrics
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,10 @@ def fetch_application_name(client_id: str, timeout_s: float = _TIMEOUT_S) -> tup
         return UNREACHABLE, ""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
-        with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
+        with (
+            dev_metrics.network("discord_api"),
+            urllib.request.urlopen(req, timeout=timeout_s) as r,  # nosec B310
+        ):
             data = json.load(r)
     except urllib.error.HTTPError as e:
         # 404 is the documented answer for "no such application", and it

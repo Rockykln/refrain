@@ -52,6 +52,9 @@ def test_legal_md_exists():
         "KDE e.V.",
         # Liability.
         "without warranty of any kind",
+        # Someone to reach when something breaks.
+        "contact@rockykln.com",
+        "rockykln",
     ],
 )
 def test_claim_appears_in_both_copies(claim):

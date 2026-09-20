@@ -5,7 +5,8 @@ queries the GitHub Releases API for the latest tag, and exposes a typed
 ``ReleaseInfo`` plus an ``apply_update()`` action whose behavior is install-
 type-specific:
 
-- **AppImage**: downloads the new ``*.AppImage`` from the release assets and
+- **AppImage**: checks the Ed25519 signature on the release's ``SHA256SUMS``,
+  downloads the new ``*.AppImage``, checks its hash against that file and
   replaces the running binary in place (atomic rename), then prompts restart.
 - **pip / venv**: runs ``pip install --upgrade refrain`` via the same Python
   interpreter the daemon is running on.
@@ -17,6 +18,8 @@ The HTTP client is plain ``urllib`` so the module has no extra deps.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import contextlib
 import hashlib
 import json
@@ -24,17 +27,18 @@ import logging
 import os
 import platform
 import re
+import shlex
 import shutil
 import site
 import subprocess
 import sys
 import urllib.error
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from refrain import __version__
+from refrain import __version__, dev_metrics, ed25519
 
 # Match http(s) URLs not already inside <>, [text](…), or `code`.
 _BARE_URL_RE = re.compile(
@@ -68,10 +72,17 @@ RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 _USER_AGENT = f"Refrain/{__version__} (+https://github.com/{GITHUB_REPO})"
 _TIMEOUT_S = 10
 _DOWNLOAD_PREFIX = f"https://github.com/{GITHUB_REPO}/releases/download/"
+RELEASES_PAGE = f"https://github.com/{GITHUB_REPO}/releases"
+# Hex Ed25519 public key whose signature an AppImage self-update requires on
+# SHA256SUMS; the private key never leaves the owner's machine. Empty: every
+# AppImage self-update is refused. See packaging/README.md.
+RELEASE_PUBLIC_KEY = "b4ffe3f4c0e79c94d91b3c13ddc5d0b0e26159ab66a1f0a78ae35168ad2a516c"
 # Far below any AppImage that can carry Python and Qt.
 _MIN_APPIMAGE_BYTES = 1024 * 1024
 _MAX_SUMS_BYTES = 64 * 1024
 _SUMS_ASSET = "SHA256SUMS"
+_SIG_ASSET = "SHA256SUMS.sig"
+_MAX_SIG_BYTES = 1024
 _ARCH_ALIASES = {"amd64": "x86_64", "arm64": "aarch64"}
 
 
@@ -210,6 +221,7 @@ class ReleaseInfo:
     assets: list[dict] = field(default_factory=list)
     appimage_name: str = ""
     sha256sums_url: str | None = None
+    sha256sums_sig_url: str | None = None
 
     @property
     def is_newer_than_current(self) -> bool:
@@ -230,7 +242,10 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
                 "Accept": "application/vnd.github+json",
             },
         )
-        with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
+        with (
+            dev_metrics.network("github"),
+            urllib.request.urlopen(req, timeout=timeout_s) as r,  # nosec B310
+        ):
             data = json.load(r)
     except Exception as e:
         log.info("Update check failed: %s", e)
@@ -247,11 +262,14 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
     appimage_name = ""
     appimage_size = 0
     sha256sums_url = None
+    sha256sums_sig_url = None
     assets = data.get("assets", []) or []
     for asset in assets:
         name = str(asset.get("name", ""))
         if name == _SUMS_ASSET:
             sha256sums_url = str(asset.get("browser_download_url", ""))
+        elif name == _SIG_ASSET:
+            sha256sums_sig_url = str(asset.get("browser_download_url", ""))
         elif appimage_url is None and name.lower().endswith(arch_suffix):
             appimage_url = str(asset.get("browser_download_url", ""))
             appimage_name = name
@@ -275,6 +293,7 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
         assets=assets,
         appimage_name=appimage_name,
         sha256sums_url=sha256sums_url,
+        sha256sums_sig_url=sha256sums_sig_url,
     )
 
 
@@ -295,22 +314,50 @@ class _DownloadCancelled(Exception):
     """Internal — raised from the chunked download loop on user cancel."""
 
 
-def _expected_sha256(release: ReleaseInfo) -> str | None:
-    """The AppImage's digest from the release's SHA256SUMS, None if there is none."""
-    url = release.sha256sums_url
+class UnverifiedReleaseError(Exception):
+    """The release's SHA256SUMS is missing or not signed with RELEASE_PUBLIC_KEY."""
+
+
+def _fetch_release_file(url: str | None, name: str, limit: int) -> bytes:
     if not url:
-        return None
+        raise UnverifiedReleaseError(f"the release has no {name}")
     if not url.startswith(_DOWNLOAD_PREFIX):
-        raise OSError(f"{_SUMS_ASSET} is not served from the Refrain releases: {url}")
+        raise UnverifiedReleaseError(f"{name} is not served from the Refrain releases: {url}")
     with _open_download(url, _TIMEOUT_S) as r:
-        text = r.read(_MAX_SUMS_BYTES).decode("utf-8", "replace")
-    for line in text.splitlines():
+        data = r.read(limit + 1)
+    if len(data) > limit:
+        raise UnverifiedReleaseError(f"{name} is larger than {limit} bytes")
+    return data
+
+
+def _expected_sha256(release: ReleaseInfo) -> str:
+    """The AppImage's digest from the release's signed SHA256SUMS."""
+    try:
+        public_key = bytes.fromhex(RELEASE_PUBLIC_KEY)
+    except ValueError:
+        public_key = b""
+    if len(public_key) != 32:
+        raise UnverifiedReleaseError("this build of Refrain has no release signing key")
+    sums = _fetch_release_file(release.sha256sums_url, _SUMS_ASSET, _MAX_SUMS_BYTES)
+    sig_text = _fetch_release_file(release.sha256sums_sig_url, _SIG_ASSET, _MAX_SIG_BYTES)
+    try:
+        signature = base64.b64decode(sig_text.strip(), validate=True)
+    except binascii.Error:
+        signature = b""
+    if not ed25519.verify(public_key, sums, signature):
+        raise UnverifiedReleaseError(f"the signature on {_SUMS_ASSET} is not valid")
+    # A validly signed SHA256SUMS of an older release must not pass as this one.
+    if not release.appimage_name.startswith(f"Refrain-{release.version}-"):
+        raise UnverifiedReleaseError(
+            f"{release.appimage_name} is not the AppImage of version {release.version}"
+        )
+    for line in sums.decode("utf-8", "replace").splitlines():
         digest, _, name = line.strip().partition(" ")
         if name.strip().lstrip("*") == release.appimage_name and re.fullmatch(
             r"[0-9a-fA-F]{64}", digest
         ):
             return digest.lower()
-    raise OSError(f"{_SUMS_ASSET} has no entry for {release.appimage_name}")
+    raise UnverifiedReleaseError(f"{_SUMS_ASSET} has no entry for {release.appimage_name}")
 
 
 def cleanup_orphan_downloads() -> None:
@@ -337,35 +384,44 @@ def cleanup_orphan_downloads() -> None:
 
 
 # Terminal emulators we know how to launch a command inside, in
-# preference order. Each entry is ``(binary, argv_template)`` where
-# ``argv_template[i] == "{cmd}"`` gets replaced with the shell command
-# string. The shell wrapper pauses at the end so the user can read
-# output before the window closes.
-_TERMINAL_PROBES: tuple[tuple[str, list[str]], ...] = (
-    ("konsole", ["konsole", "-e", "bash", "-c", "{cmd}"]),
-    ("gnome-terminal", ["gnome-terminal", "--", "bash", "-c", "{cmd}"]),
-    ("xfce4-terminal", ["xfce4-terminal", "-x", "bash", "-c", "{cmd}"]),
-    ("kitty", ["kitty", "bash", "-c", "{cmd}"]),
-    ("alacritty", ["alacritty", "-e", "bash", "-c", "{cmd}"]),
-    ("foot", ["foot", "bash", "-c", "{cmd}"]),
-    ("xterm", ["xterm", "-e", "bash", "-c", "{cmd}"]),
-    ("wezterm", ["wezterm", "start", "--", "bash", "-c", "{cmd}"]),
+# preference order, with the arguments that precede the command.
+_TERMINAL_PROBES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("konsole", ("konsole", "-e")),
+    ("gnome-terminal", ("gnome-terminal", "--")),
+    ("xfce4-terminal", ("xfce4-terminal", "-x")),
+    ("kitty", ("kitty",)),
+    ("alacritty", ("alacritty", "-e")),
+    ("foot", ("foot",)),
+    ("xterm", ("xterm", "-e")),
+    ("wezterm", ("wezterm", "start", "--")),
+)
+
+_FLATPAK_UPDATE = ("flatpak", "update", "-y", "io.github.Rockykln.Refrain")
+_AUR_HELPERS = ("yay", "paru", "trizen", "pikaur")
+_PACMAN_UPDATE = ("sudo", "pacman", "-Syu", "refrain")
+# The only commands that ever reach the shell in _run_in_terminal.
+_TERMINAL_COMMANDS = frozenset(
+    {_FLATPAK_UPDATE, _PACMAN_UPDATE, *((helper, "-Syu", "refrain") for helper in _AUR_HELPERS)}
 )
 
 
-def _run_in_terminal(cmd: str) -> bool:
-    """Pop up a terminal emulator running ``cmd`` (a shell string).
+def _run_in_terminal(cmd: Sequence[str]) -> bool:
+    """Pop up a terminal emulator running ``cmd``, one of ``_TERMINAL_COMMANDS``.
 
-    Wraps the command so the terminal stays open after it exits — the
-    user can read the package-manager output and any error before the
-    window vanishes. Returns True iff we successfully spawned a
-    terminal; False (silently) if no known emulator is on PATH.
+    bash keeps the terminal open after the command exits, so the user can
+    read the package-manager output and any error before the window
+    vanishes. Returns True iff we successfully spawned a terminal; False
+    if the command isn't allowed or no known emulator is on PATH.
     """
-    wrapped = f"{cmd}; echo; read -rp 'Press Enter to close…'"
-    for binary, template in _TERMINAL_PROBES:
+    cmd = tuple(cmd)
+    if cmd not in _TERMINAL_COMMANDS:
+        log.warning("Refusing to run a command that isn't allowlisted: %r", cmd)
+        return False
+    script = f"{shlex.join(cmd)}; echo; read -rp 'Press Enter to close…'"
+    for binary, prefix in _TERMINAL_PROBES:
         if not shutil.which(binary):
             continue
-        argv = [arg.format(cmd=wrapped) for arg in template]
+        argv = [*prefix, "bash", "-c", script]
         try:
             subprocess.Popen(argv, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             log.info("Spawned %s for update command", binary)
@@ -376,16 +432,16 @@ def _run_in_terminal(cmd: str) -> bool:
     return False
 
 
-def _aur_helper() -> str:
+def _aur_helper() -> tuple[str, ...]:
     """Pick the user's AUR helper. Falls back to bare ``pacman -Syu``
     when no helper is on PATH (won't update AUR packages, but at least
     won't be wrong — the user gets to see the issue + run their own
     helper manually).
     """
-    for helper in ("yay", "paru", "trizen", "pikaur"):
+    for helper in _AUR_HELPERS:
         if shutil.which(helper):
-            return f"{helper} -Syu refrain"
-    return "sudo pacman -Syu refrain"
+            return (helper, "-Syu", "refrain")
+    return _PACMAN_UPDATE
 
 
 def apply_update(
@@ -413,13 +469,13 @@ def apply_update(
             "`git pull` and reinstall with `pip install -e .`.",
         )
     if install_type == "flatpak":
-        cmd = "flatpak update -y io.github.Rockykln.Refrain"
+        cmd = _FLATPAK_UPDATE
         if _run_in_terminal(cmd):
             return UpdateResult(
                 success=True,
                 message=(
                     "Launched the update in a new terminal:\n\n"
-                    f"    {cmd}\n\n"
+                    f"    {shlex.join(cmd)}\n\n"
                     "Confirm any prompts there. Restart Refrain afterwards "
                     "to load the new version."
                 ),
@@ -427,7 +483,7 @@ def apply_update(
             )
         return UpdateResult(
             success=False,
-            message=f"Flatpak install detected. Update via:\n\n    {cmd}",
+            message=f"Flatpak install detected. Update via:\n\n    {shlex.join(cmd)}",
         )
     if install_type == "aur":
         cmd = _aur_helper()
@@ -436,7 +492,7 @@ def apply_update(
                 success=True,
                 message=(
                     "Launched the update in a new terminal:\n\n"
-                    f"    {cmd}\n\n"
+                    f"    {shlex.join(cmd)}\n\n"
                     "Confirm any sudo prompt there. Restart Refrain "
                     "afterwards to load the new version."
                 ),
@@ -444,7 +500,7 @@ def apply_update(
             )
         return UpdateResult(
             success=False,
-            message=f"AUR install detected. Update via your AUR helper:\n\n    {cmd}",
+            message=f"AUR install detected. Update via your AUR helper:\n\n    {shlex.join(cmd)}",
         )
     return UpdateResult(
         success=False,
@@ -494,8 +550,6 @@ def _apply_appimage(
 
     try:
         expected_sha256 = _expected_sha256(release)
-        if expected_sha256 is None:
-            log.warning("Release %s has no %s; checking the size only", release.tag, _SUMS_ASSET)
         digest = hashlib.sha256()
         written = 0
         # Chunked read so we can poll the cancel flag between blocks.
@@ -520,7 +574,7 @@ def _apply_appimage(
             raise OSError(
                 f"size mismatch — downloaded {written} bytes, expected {release.appimage_size}"
             )
-        if expected_sha256 is not None and digest.hexdigest() != expected_sha256:
+        if digest.hexdigest() != expected_sha256:
             raise OSError("SHA-256 checksum does not match the release's SHA256SUMS")
         if cancelled is not None and cancelled():
             raise _DownloadCancelled()
@@ -539,12 +593,22 @@ def _apply_appimage(
         os.chmod(tmp, preserved_mode)
         os.replace(tmp, target)
         log.info("AppImage update complete: %s now at v%s", target, release.version)
+    except UnverifiedReleaseError as e:
+        log.warning("AppImage update refused: %s", e)
+        return UpdateResult(
+            success=False,
+            message=(
+                f"Refrain could not verify this update: {e}.\n\n"
+                "Your AppImage was not changed. Download the new one "
+                f"from the Releases page instead:\n\n    {RELEASES_PAGE}"
+            ),
+        )
     except _DownloadCancelled:
         log.info("AppImage update cancelled by user")
         if tmp.exists():
             with contextlib.suppress(Exception):
                 tmp.unlink()
-        return UpdateResult(success=False, message="Update cancelled.", cancelled=True)
+        return UpdateResult(success=False, message="Update canceled.", cancelled=True)
     except Exception as e:
         log.warning("AppImage update aborted: %s", e)
         if tmp.exists():

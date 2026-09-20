@@ -117,6 +117,7 @@ def test_the_qt_bridge_forwards_every_record():
     [(msg, level)] = got
     assert level == logging.DEBUG
     assert msg.endswith("[DEBUG] refrain.test: Cover found for Low Tide")
+    assert list(bridge.backlog)[-1] == (msg, level)
 
 
 def test_the_qt_bridge_is_installed_only_once():

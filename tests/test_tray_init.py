@@ -14,6 +14,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from refrain.service_status import DiscordStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from refrain.ui.tray import TrayIcon  # noqa: E402
 
@@ -102,13 +103,13 @@ def test_first_dispatch_fills_the_menu(app):
     tray.set_track(track)
     tray.set_status(PlaybackStatus.PLAYING)
     tray.set_progress(42_000, 180_000)
-    tray.set_discord_connected(True)
+    tray.set_service_status(StatusSnapshot(DiscordStatus.SHOWING))
     tray.set_update_available(True, "1.0.0")
     assert tray._title_action.text() == "Some Track"
     assert tray._artist_action.text() == "Some Artist • Some Album"
     assert tray._play_pause_action.text() == "Pause"
     assert tray._progress_action.text().startswith("0:42 / 3:00")
-    assert tray._discord_action.text() == "Discord: connected"
+    assert tray._discord_action.text() == "Discord: visible on your profile"
     assert tray._update_action.isVisible()
     assert "1.0.0" in tray._update_action.text()
 

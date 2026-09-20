@@ -4,8 +4,7 @@ Inline because the wheel doesn't ship ``LEGAL.md``; ``tests/test_legal_notice.py
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -57,7 +56,8 @@ def _sections() -> list[tuple[str, str]]:
             "certification or origin. Refrain does not redistribute, modify or "
             "circumvent any of these products; it talks to interfaces they "
             "expose on your own machine and to their public web APIs. The "
-            "GitHub logo in the settings window is GitHub's unmodified mark, "
+            "GitHub logo in the settings and Status windows is GitHub's unmodified "
+            "mark, "
             "used only as a link to Refrain's repository."
             "<br><br>"
             "Cover art comes from Apple's iTunes Search API and remains the "
@@ -109,6 +109,14 @@ def _sections() -> list[tuple[str, str]]:
             "own configuration directory.",
         ),
         (
+            "Contact",
+            "Refrain is written by <b>Rockykln</b>. Questions, bug reports and "
+            "ideas are welcome by email at "
+            "<a href='mailto:contact@rockykln.com'>contact@rockykln.com</a>, on "
+            "Discord as <b>rockykln</b>, or as an issue at "
+            f"<a href='{GITHUB_URL}/issues'>{GITHUB_URL}/issues</a>.",
+        ),
+        (
             "No warranty",
             "The software is provided <b>“as is”, without warranty of any "
             "kind</b>, express or implied, including the warranties of "
@@ -127,7 +135,7 @@ class LegalDialog(QDialog):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setWindowTitle(self.tr("Legal Notice"))
+        self.setWindowTitle(self.tr("Legal notice"))
         self.setMinimumSize(560, 520)
 
         inner = QWidget()
@@ -166,6 +174,8 @@ class LegalDialog(QDialog):
         inner_layout.addStretch()
 
         scroll = QScrollArea()
+        # A long notice is meant to scroll; the layout watcher must not flag it.
+        scroll.setProperty("refrainScrolls", True)
         scroll.setWidget(inner)
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.NoFrame)
@@ -187,6 +197,7 @@ class LegalDialog(QDialog):
         # see refrain.ui.cursors.
         apply_interactive_cursors(self)
 
-    @staticmethod
-    def _open_link(url: str) -> None:
-        QDesktopServices.openUrl(QUrl(url))
+    def _open_link(self, url: str) -> None:
+        from refrain.ui.external_link import confirm_and_open
+
+        confirm_and_open(self, url)

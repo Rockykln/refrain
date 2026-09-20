@@ -281,7 +281,9 @@ class MPRISSource:
         if not candidates:
             self._control_fallback_names = fallbacks
             return TrackInfo.empty()
-        candidates.sort(key=lambda c: c[0], reverse=True)
+        # On a tie (two paused tabs) stay with the last one instead of D-Bus name order.
+        last = self._last_player_name
+        candidates.sort(key=lambda c: (c[0], c[2] == last), reverse=True)
         best = candidates[0]
         self._last_player_name = best[2]
         # Every other apple-music candidate (typically the browser-native
@@ -328,6 +330,18 @@ class MPRISSource:
         # start it again.
         return self._dispatch_action(
             "PlayPause", "CanPause", deprioritise_plasma=False, prefer=self._native_apple_names
+        )
+
+    def play(self) -> bool:
+        # Play and Pause are no toggles, so a repeated Pause never restarts
+        # the music. Same player order as the toggle.
+        return self._dispatch_action(
+            "Play", "CanPlay", deprioritise_plasma=False, prefer=self._native_apple_names
+        )
+
+    def pause(self) -> bool:
+        return self._dispatch_action(
+            "Pause", "CanPause", deprioritise_plasma=False, prefer=self._native_apple_names
         )
 
     def next(self) -> bool:

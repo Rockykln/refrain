@@ -77,7 +77,7 @@ def check_discord(rpc) -> CheckResult:
     if status == "rejected":
         log.warning(
             "%s Discord: handshake REJECTED (%s) — check the Application ID "
-            "in Settings → Discord, and that you are signed in",
+            "in Settings → General → Discord, and that you are signed in",
             MARKER,
             detail,
         )

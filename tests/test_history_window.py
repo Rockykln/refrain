@@ -20,6 +20,7 @@ import refrain  # noqa: E402
 from refrain.cover_art import image_path_for_url  # noqa: E402
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
 from refrain.ui.history_window import (  # noqa: E402
+    _CONFIRM_MIN_WIDTH,
     HistoryWindow,
     _ElidedLabel,
     _read_scaled,
@@ -27,6 +28,7 @@ from refrain.ui.history_window import (  # noqa: E402
     highlight_ranges,
     song_link,
 )
+from refrain.ui.layout_check import check_layout  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -375,6 +377,48 @@ def test_clear_asks_first(win, monkeypatch):
     assert fired == [True]
 
 
+def _clear_box(win, monkeypatch) -> QMessageBox:
+    shown = []
+
+    def _exec(box):
+        box.show()
+        QApplication.processEvents()
+        shown.append(box)
+        box.close()
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", _exec)
+    win._on_clear_clicked()
+    return shown[0]
+
+
+def test_clear_cancel_is_our_own_translatable_button(win, monkeypatch):
+    box = _clear_box(win, monkeypatch)
+    [cancel] = [b for b in box.buttons() if box.buttonRole(b) == QMessageBox.ButtonRole.RejectRole]
+    assert cancel.text() == "Cancel"
+    assert box.standardButton(cancel) == QMessageBox.StandardButton.NoButton
+    assert box.defaultButton() is cancel
+    assert box.escapeButton() is cancel
+
+
+def test_clear_box_is_wide_enough_for_its_sentences(win, monkeypatch):
+    box = _clear_box(win, monkeypatch)
+    assert box.width() >= _CONFIRM_MIN_WIDTH
+    text = box.findChild(QLabel, "qt_msgbox_label")
+    assert text.height() <= text.fontMetrics().lineSpacing() + 2
+
+
+def test_song_rows_are_left_to_elide(win):
+    long_title = "An extremely long demo song title " * 6
+    win.set_snapshot(HistorySnapshot(entries=_entries(3, title=long_title)))
+    QApplication.processEvents()
+    row = win.findChildren(_SongRow)[0]
+    assert row.property("refrainElides") is True
+    assert all(label.property("refrainElides") for label in row.findChildren(_ElidedLabel))
+    paths = [f.path for f in check_layout(win)]
+    assert not any("_SongRow" in p or "_ElidedLabel" in p for p in paths)
+
+
 # --------------------------------------------------------------------------- #
 # Every song is a link                                                         #
 # --------------------------------------------------------------------------- #
@@ -498,7 +542,8 @@ def test_a_cover_that_lands_later_replaces_the_placeholder(win):
 def test_clicking_a_row_opens_it_in_the_browser_that_played_it(win, monkeypatch):
     opened = []
     monkeypatch.setattr(
-        "refrain.ui.history_window.open_url", lambda url, player="": opened.append((url, player))
+        "refrain.ui.history_window.confirm_and_open",
+        lambda parent, url, player="": opened.append((url, player)),
     )
     entries = (
         HistoryEntry(title="A", source="mpris", player="Chromium", url="https://x/song/a"),

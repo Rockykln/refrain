@@ -27,13 +27,14 @@ from PySide6.QtCore import (
     QTimer,
     QtMsgType,
     QTranslator,
+    QUrl,
     Signal,
     qInstallMessageHandler,
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
-from refrain import __version__, qt_libraries
+from refrain import __version__, dev_metrics, qt_libraries
 from refrain.autostart import disable as autostart_disable
 from refrain.autostart import enable as autostart_enable
 from refrain.autostart import is_enabled as autostart_is_enabled
@@ -43,13 +44,17 @@ from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.discord_app import NAME_TTL_S, refresh_application_name
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
-from refrain.paths import assets_dir, desktop_entry, state_dir
-from refrain.single_instance import AlreadyRunning, SessionBusUnavailable
+from refrain.paths import _xdg, assets_dir, desktop_entry, state_dir
+from refrain.service_status import ServiceStatus
+from refrain.single_instance import AlreadyRunning, SessionBusUnavailable, listen_for_activation
 from refrain.single_instance import acquire as acquire_lock
+from refrain.ui import clock
+from refrain.ui import status_window as status_window_mod
 from refrain.ui.cursors import install_global_interactive_cursors
 from refrain.ui.history_window import HistoryWindow
 from refrain.ui.log_window import LogWindow
 from refrain.ui.settings_window import SettingsWindow
+from refrain.ui.status_window import StatusWindow
 from refrain.ui.tray import TrayIcon
 from refrain.ui.update_dialog import UpdateDialog
 from refrain.ui.welcome_dialog import WelcomeDialog
@@ -67,7 +72,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument(
         "--silent",
         action="store_true",
-        help="Start minimized to tray; don't open the settings window",
+        help="Start in the tray; open the Status window only when something needs you",
     )
     p.add_argument(
         "--install-desktop",
@@ -233,11 +238,11 @@ def _augment_qt_plugin_path() -> None:
 
 
 def _user_apps_dir() -> Path:
-    return Path.home() / ".local" / "share" / "applications"
+    return _xdg("XDG_DATA_HOME", ".local/share") / "applications"
 
 
 def _user_icons_dir() -> Path:
-    return Path.home() / ".local" / "share" / "icons" / "hicolor" / "scalable" / "apps"
+    return _xdg("XDG_DATA_HOME", ".local/share") / "icons" / "hicolor" / "scalable" / "apps"
 
 
 def install_desktop_files() -> int:
@@ -358,6 +363,27 @@ def ui_locale(language_override: str = "system") -> QLocale:
     return QLocale.system()
 
 
+_ALREADY_RUNNING_MS = 6000
+_SHARING_SWITCH_GAP_S = 1.0
+
+
+def _notify_without_qt(title: str, text: str) -> None:
+    # Started from the menu, stderr goes nowhere; this is the only thing the user sees.
+    if notify := shutil.which("notify-send"):
+        subprocess.run([notify, "-a", "Refrain", title, text], check=False)
+        return
+    try:
+        import dbus
+
+        bus = dbus.SessionBus()
+        server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        dbus.Interface(server, "org.freedesktop.Notifications").Notify(
+            "Refrain", 0, "", title, text, [], {}, -1
+        )
+    except Exception as e:
+        log.warning("Could not show the notification either: %s", e)
+
+
 def _install_translators(app: QApplication, language_override: str = "system") -> list[QTranslator]:
     """Load Refrain's own .qm files plus Qt's built-in translations.
 
@@ -445,10 +471,9 @@ def _install_signal_handlers(app: QApplication) -> None:
     signal.signal(signal.SIGTERM, lambda *_: app.quit())
     # Qt's event loop blocks Python signal delivery on Linux; a no-op timer
     # wakes Python frequently enough to deliver them.
-    timer = QTimer()
+    timer = QTimer(app)
     timer.start(500)
     timer.timeout.connect(lambda: None)
-    app._refrain_signal_timer = timer  # keep a strong reference
 
 
 def _sync_autostart(config: Config) -> None:
@@ -570,6 +595,13 @@ class UpdateOrchestrator(QObject):
         self._worker.finished_with_release.connect(self._on_check_finished)
         self._thread.start()
 
+    def stop(self) -> None:
+        """Qt aborts the process if a running QThread is destroyed, and a
+        check started at boot can still be waiting on DNS when Refrain quits."""
+        if self._thread is not None and self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait(2000)
+
     def _on_check_finished(self, release: ReleaseInfo | None) -> None:
         manual = self._manual
         silent = self._silent
@@ -655,6 +687,30 @@ def _open_crash_log(path: Path) -> int:
     return fd
 
 
+def _crash_reports(path: Path) -> int:
+    """How many crash dumps crash.log holds; every start only adds a stamp line."""
+    try:
+        return path.read_text(encoding="utf-8", errors="replace").count("Fatal Python error")
+    except OSError:
+        return 0
+
+
+def _crash_since_last_start(path: Path) -> bool:
+    """True when another crash was written since the last start looked."""
+    try:
+        seen = int((state_dir() / "crash-seen").read_text(encoding="utf-8").strip())
+    except (OSError, ValueError):
+        return False
+    return _crash_reports(path) > seen
+
+
+def _remember_crash_reports(path: Path) -> None:
+    try:
+        (state_dir() / "crash-seen").write_text(str(_crash_reports(path)), encoding="utf-8")
+    except OSError as e:
+        log.debug("Could not remember the crash reports: %s", e)
+
+
 @contextlib.contextmanager
 def _crash_log():
     """While it lasts, a fatal signal writes every thread's Python stack
@@ -668,17 +724,20 @@ def _crash_log():
     Python opens aren't inherited.
     """
     fd = None
+    path = state_dir() / "crash.log"
+    crashed = _crash_since_last_start(path)
     try:
         state_dir().mkdir(parents=True, exist_ok=True)
-        fd = _open_crash_log(state_dir() / "crash.log")
+        fd = _open_crash_log(path)
+        _remember_crash_reports(path)
     except OSError as e:
         log.debug("crash.log unavailable (%s) — crashes leave no Python stack", e)
     if fd is None:
-        yield
+        yield crashed
         return
     try:
         faulthandler.enable(file=fd, all_threads=True)
-        yield
+        yield crashed
     finally:
         faulthandler.disable()
         os.close(fd)
@@ -732,11 +791,11 @@ def main() -> int:
     global _forced_debug
     _forced_debug = bool(args.debug)
     setup_logging("DEBUG" if args.debug else "INFO")
-    with _crash_log():
-        return _run(args)
+    with _crash_log() as crashed_before:
+        return _run(args, crashed_before)
 
 
-def _run(args: argparse.Namespace) -> int:
+def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     """The app itself, from the config on — with logging and crash.log up."""
     log_bridge = attach_qt_log_bridge()
     qInstallMessageHandler(_qt_message_handler)
@@ -756,6 +815,8 @@ def _run(args: argparse.Namespace) -> int:
         log.debug("dbus-glib loop init skipped: %s", e)
 
     config = Config.load()
+    dev_metrics.set_enabled(config.advanced.developer_mode)
+    dev_metrics.mark("config_loaded")
     if not args.debug:
         _apply_log_level(config)
     log.info("Refrain %s starting", __version__)
@@ -770,11 +831,11 @@ def _run(args: argparse.Namespace) -> int:
         text = qt_libraries.message(missing)
         log.error("%s", text.replace("\n", " "))
         print(text, file=sys.stderr)
-        if notify := shutil.which("notify-send"):
-            subprocess.run([notify, "-a", "Refrain", "Refrain can't start", text], check=False)
+        _notify_without_qt("Refrain can't start", text)
         return 1
 
     app = QApplication(sys.argv)
+    dev_metrics.qt_ready()
     # Qt's glib dispatcher now owns the default GMainContext, so this is
     # normally a no-op; it only spins our own loop when Qt isn't
     # glib-backed. Must come after QApplication — starting a GLib loop
@@ -803,23 +864,27 @@ def _run(args: argparse.Namespace) -> int:
     # ones Qt builds for us in QMessageBox.warning(...) and friends.
     app._refrain_cursor_filter = install_global_interactive_cursors(app)
 
-    _tr = QCoreApplication.translate
-
     try:
-        bus_lock = acquire_lock()
-    except AlreadyRunning:
-        QMessageBox.information(
-            None,
-            _tr("app", "Already running"),
-            _tr("app", "Refrain is already running."),
+        bus_lock = acquire_lock(activate=True)
+    except AlreadyRunning as e:
+        if e.activated:
+            return 0
+        box = QMessageBox(
+            QMessageBox.Icon.Information,
+            QCoreApplication.translate("app", "Already running"),
+            QCoreApplication.translate("app", "Refrain is already running."),
+            QMessageBox.StandardButton.Ok,
         )
+        # Nothing to decide here, so it goes away on its own.
+        QTimer.singleShot(_ALREADY_RUNNING_MS, box, box.accept)
+        box.exec()
         return 0
     except SessionBusUnavailable as e:
         log.error("Cannot start without a session bus")
         QMessageBox.critical(
             None,
-            _tr("app", "D-Bus session bus unavailable"),
-            _tr(
+            QCoreApplication.translate("app", "D-Bus session bus unavailable"),
+            QCoreApplication.translate(
                 "app",
                 "Refrain needs a working D-Bus session bus to run "
                 "(it's used for the single-instance lock, MPRIS metadata "
@@ -849,8 +914,8 @@ def _run(args: argparse.Namespace) -> int:
         log.error("No system tray available — refusing to start")
         QMessageBox.critical(
             None,
-            _tr("app", "No system tray"),
-            _tr(
+            QCoreApplication.translate("app", "No system tray"),
+            QCoreApplication.translate(
                 "app",
                 "No system tray available. Refrain lives in the tray, so it "
                 "needs a StatusNotifierItem-aware host. Common fixes:\n\n"
@@ -869,26 +934,77 @@ def _run(args: argparse.Namespace) -> int:
         return 1
 
     tray = TrayIcon()
+    dev_metrics.mark("tray_visible")
     daemon = Daemon(config)
-    settings = SettingsWindow(config)
+    with dev_metrics.build("settings"):
+        settings = SettingsWindow(config)
     updater = UpdateOrchestrator(config)
+    app.aboutToQuit.connect(updater.stop)
     log_window = LogWindow(log_bridge)
-    history_window = HistoryWindow(
-        ui_locale(config.advanced.language),
-        (config.history.window_width, config.history.window_height),
+    log_window.use_config(config)
+    settings.applied.connect(log_window.use_config)
+    log_window.set_log_level(
+        logging.DEBUG
+        if _forced_debug
+        else getattr(logging, config.advanced.log_level, logging.INFO)
     )
+    clock.configure(config.advanced.time_format, config.advanced.time_zone)
+    status_window_mod.set_hover_delay(config.advanced.hover_scroll_ms)
+    with dev_metrics.build("history"):
+        history_window = HistoryWindow(
+            # Dates and times follow the desktop's locale, whatever language
+            # the texts are in: that is the clock format people expect.
+            QLocale.system(),
+            (config.history.window_width, config.history.window_height),
+        )
     # First snapshot straight from the history the daemon loaded; every
     # later one arrives through historyChanged, queued from its thread.
     history_window.set_snapshot(daemon.worker.history_snapshot())
     tray.set_history_enabled(config.history.enabled)
+    services = ServiceStatus()
+    app._refrain_services = services
+    with dev_metrics.build("status"):
+        status_window = StatusWindow(QLocale.system())
+    status_window.set_history(daemon.worker.history_snapshot())
 
     daemon.worker.trackChanged.connect(tray.set_track)
+    daemon.worker.trackChanged.connect(status_window.set_track)
     daemon.worker.statusChanged.connect(tray.set_status)
+    daemon.worker.statusChanged.connect(status_window.set_playback)
     daemon.worker.progressTick.connect(tray.set_progress)
-    daemon.worker.discordConnectionChanged.connect(tray.set_discord_connected)
-    tray.settingsRequested.connect(settings.show)
-    tray.settingsRequested.connect(settings.raise_)
-    tray.settingsRequested.connect(settings.activateWindow)
+    daemon.worker.progressTick.connect(status_window.set_progress)
+    status_window.playPauseRequested.connect(daemon.worker.control_play_pause)
+    status_window.nextRequested.connect(daemon.worker.control_next)
+    status_window.previousRequested.connect(daemon.worker.control_previous)
+    daemon.worker.discordStateChanged.connect(services.set_discord)
+    daemon.worker.lastfmStateChanged.connect(services.set_lastfm)
+    services.changed.connect(tray.set_service_status)
+    services.changed.connect(status_window.set_status)
+
+    def _show_status() -> None:
+        status_window.show()
+        status_window.raise_()
+        status_window.activateWindow()
+
+    # A second start asks this one, over the bus name it holds, to come forward.
+    app._refrain_activator = listen_for_activation(bus_lock, _show_status)
+    tray.statusRequested.connect(_show_status)
+
+    def _show_settings(page: str = "") -> None:
+        tabs = getattr(settings, "tabs", None)
+        if tabs is not None and page:
+            pages = getattr(settings, "tab_pages", {})
+            # The Application ID lives on the first page, so anything unknown lands there.
+            tabs.setCurrentIndex(pages.get(page, 0))
+        settings.show()
+        settings.raise_()
+        settings.activateWindow()
+        field = getattr(settings, "client_id_input", None)
+        if page == "discord" and field is not None:
+            field.setFocus()
+
+    tray.settingsRequested.connect(_show_settings)
+    status_window.settingsRequested.connect(_show_settings)
     tray.playPauseRequested.connect(daemon.worker.control_play_pause)
     tray.nextRequested.connect(daemon.worker.control_next)
     tray.previousRequested.connect(daemon.worker.control_previous)
@@ -916,7 +1032,7 @@ def _run(args: argparse.Namespace) -> int:
         worker.moveToThread(thread)
         _startup_check_refs.extend((thread, worker))
         thread.started.connect(worker.run)
-        worker.finished.connect(tray.set_startup_check)
+        worker.finished.connect(services.set_startup_check)
         worker.finished.connect(thread.quit)
         thread.start()
 
@@ -927,7 +1043,7 @@ def _run(args: argparse.Namespace) -> int:
                 obj.wait(2000)
 
     app.aboutToQuit.connect(_stop_startup_check)
-    QTimer.singleShot(5000, _run_startup_check)
+    QTimer.singleShot(5000, app, _run_startup_check)
 
     # Keep the cached Discord application name current, so Settings can
     # show it the instant it opens instead of pausing on a lookup. One
@@ -949,7 +1065,7 @@ def _run(args: argparse.Namespace) -> int:
     app_name_timer.setInterval(int(NAME_TTL_S * 1000))
     app_name_timer.timeout.connect(_refresh_app_name)
     app_name_timer.start()
-    QTimer.singleShot(3000, _refresh_app_name)
+    QTimer.singleShot(3000, app, _refresh_app_name)
 
     # Two connections: worker.update_config gets queued onto the worker thread,
     # _sync_autostart runs on the main thread (file I/O, OK).
@@ -957,23 +1073,33 @@ def _run(args: argparse.Namespace) -> int:
     settings.applied.connect(updater.use_config)
     settings.applied.connect(_sync_autostart)
     settings.applied.connect(_apply_log_level)
+    settings.applied.connect(
+        lambda c: clock.configure(c.advanced.time_format, c.advanced.time_zone)
+    )
+    settings.applied.connect(
+        lambda c: status_window_mod.set_hover_delay(c.advanced.hover_scroll_ms)
+    )
 
     # Updater wireup — Settings button = manual check (always shows feedback);
     # the auto-check on startup goes through maybe_check_on_startup() which
     # passes manual=False and stays silent on no-update / error.
     settings.checkUpdatesRequested.connect(lambda: updater.check_now(manual=True))
     tray.updateRequested.connect(_open_update_dialog_factory(updater, settings))
+    status_window.updateRequested.connect(_open_update_dialog_factory(updater, settings))
     updater.updateAvailable.connect(lambda r: tray.set_update_available(True, r.version))
+    updater.updateAvailable.connect(lambda r: status_window.set_update_available(r.version))
     updater.updateAvailable.connect(_open_update_dialog_factory(updater, settings))
     updater.checkUpToDate.connect(
         lambda v: QMessageBox.information(
             settings,
-            _tr("app", "Updates"),
-            _tr("app", "You're already on the latest version ({version}).").format(version=v),
+            QCoreApplication.translate("app", "Updates"),
+            QCoreApplication.translate(
+                "app", "You're already on the latest version ({version})."
+            ).format(version=v),
         )
     )
     updater.checkFailed.connect(
-        lambda msg: QMessageBox.warning(settings, _tr("app", "Updates"), msg)
+        lambda msg: QMessageBox.warning(settings, QCoreApplication.translate("app", "Updates"), msg)
     )
     updater.releaseInfoFetched.connect(settings.set_latest_release)
 
@@ -985,6 +1111,21 @@ def _run(args: argparse.Namespace) -> int:
 
     tray.logRequested.connect(_show_log)
     settings.showLogRequested.connect(_show_log)
+
+    def _apply_developer_mode(c: Config) -> None:
+        on = c.advanced.developer_mode
+        dev_metrics.set_enabled(on)
+        tray.set_developer_mode(on)
+        log_window.set_developer_mode(on)
+
+    def _show_developer() -> None:
+        _show_log()
+        log_window.show_developer_tab()
+
+    _apply_developer_mode(config)
+    settings.applied.connect(_apply_developer_mode)
+    settings.applied.connect(lambda _c: dev_metrics.window_applied(settings))
+    tray.developerRequested.connect(_show_developer)
 
     # History-window wireup. Clearing runs on the daemon thread (the
     # worker owns the history); the fresh snapshot comes back through
@@ -1019,6 +1160,8 @@ def _run(args: argparse.Namespace) -> int:
     history_window.sizeRemembered.connect(_remember_history_size)
 
     daemon.worker.historyChanged.connect(history_window.set_snapshot)
+    daemon.worker.historyChanged.connect(status_window.set_history)
+    status_window.historyRequested.connect(_show_history)
     history_window.clearRequested.connect(daemon.worker.clear_history)
     history_window.removeRequested.connect(daemon.worker.remove_from_history)
     tray.historyRequested.connect(_show_history)
@@ -1035,6 +1178,114 @@ def _run(args: argparse.Namespace) -> int:
 
     tray.restartRequested.connect(_restart)
     settings.restartRequested.connect(_restart)
+
+    # Pause sharing is privacy "Off" with the way back saved in the config,
+    # so Resume returns to the paused mode across a restart too.
+    def _show_sharing(c: Config) -> None:
+        paused = c.privacy.mode == "off"
+        tray.set_sharing_paused(paused)
+        status_window.set_sharing_paused(paused)
+
+    last_sharing_switch = [0.0]
+
+    def _set_sharing_paused(pause: bool) -> None:
+        if pause == (config.privacy.mode == "off"):
+            return
+        # Discord loses track when the status is cleared and set again in
+        # quick succession, so the switch only moves once a second.
+        now = time.monotonic()
+        if now - last_sharing_switch[0] < _SHARING_SWITCH_GAP_S:
+            log.debug("Sharing switch ignored: too soon after the last one")
+            _show_sharing(config)
+            return
+        last_sharing_switch[0] = now
+        new = copy.deepcopy(config)
+        if pause:
+            new.privacy.resume_mode = config.privacy.mode
+            new.privacy.mode = "off"
+        else:
+            new.privacy.mode = config.privacy.resume_mode
+        log.info("Sharing %s", "paused" if pause else f"resumed ({new.privacy.mode})")
+        try:
+            new.save()
+        except Exception as e:
+            log.warning("Could not save the sharing switch: %s", e)
+        settings.use_config(new)
+        settings.applied.emit(new)
+
+    _show_sharing(config)
+    settings.applied.connect(_show_sharing)
+    tray.sharingToggled.connect(_set_sharing_paused)
+    status_window.sharingToggled.connect(_set_sharing_paused)
+
+    # Closing the first window can look like quitting; say once where Refrain went.
+    def _hint_tray_once(_result: int = 0) -> None:
+        if config.behavior.tray_hint_shown:
+            return
+        tray.show_hint(QCoreApplication.translate("app", "Refrain keeps running in the tray."))
+        new = copy.deepcopy(config)
+        new.behavior.tray_hint_shown = True
+        try:
+            new.save()
+        except Exception as e:
+            log.warning("Could not remember the tray hint: %s", e)
+        settings.use_config(new)
+        settings.applied.emit(new)
+
+    # A popup over the window that already shows the song helps nobody.
+    status_window.visibilityChanged.connect(daemon.worker.set_notifications_muted)
+    daemon.worker.coverChanged.connect(status_window.set_cover)
+
+    status_window.finished.connect(_hint_tray_once)
+    settings.finished.connect(_hint_tray_once)
+
+    if crashed_before:
+        crash_log = state_dir() / "crash.log"
+        log.warning("The last run ended in a crash; the report is in %s", crash_log)
+
+        def _open_crash_report() -> None:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(str(crash_log)))
+
+        tray.show_hint(
+            QCoreApplication.translate(
+                "app", "Refrain closed unexpectedly last time. Click to open the report."
+            ),
+            _open_crash_report,
+        )
+        # A notification is easy to miss and not clickable everywhere.
+        status_window.set_crash_report(crash_log)
+
+    # A new Last.fm login makes the startup check's verdict stale.
+    def _lastfm_identity(c: Config) -> tuple:
+        lf = c.lastfm
+        return (lf.enabled, lf.api_key, lf.shared_secret, lf.session_key)
+
+    checked_lastfm = _lastfm_identity(config)
+
+    def _recheck_lastfm(c: Config) -> None:
+        nonlocal checked_lastfm
+        if _lastfm_identity(c) == checked_lastfm:
+            return
+        checked_lastfm = _lastfm_identity(c)
+        services.forget_lastfm_check()
+        QTimer.singleShot(0, app, _run_startup_check)
+
+    settings.applied.connect(_recheck_lastfm)
+
+    # Autostart stays quiet unless the user has to do something — and then
+    # says so once per problem, not at every change of state.
+    announced: set[str] = set()
+    wizard_open = False
+
+    def _show_if_needed(snapshot) -> None:
+        new = snapshot.needs_attention - announced
+        if not new or wizard_open:
+            return
+        announced.update(new)
+        log.info("Status window opened for: %s", ", ".join(sorted(new)))
+        _show_status()
+
+    services.changed.connect(_show_if_needed)
 
     # Uninstall wireup — the SettingsWindow already showed + confirmed
     # the destructive dialog. Stop the daemon first (so nothing rewrites
@@ -1055,7 +1306,7 @@ def _run(args: argparse.Namespace) -> int:
             len(report.failed),
             report.secrets_purged,
         )
-        body = _tr(
+        body = QCoreApplication.translate(
             "app",
             "All Refrain data and the Last.fm keyring credentials were "
             "removed. Refrain will now close.\n\nTo remove the program "
@@ -1064,11 +1315,11 @@ def _run(args: argparse.Namespace) -> int:
         if report.failed:
             body += (
                 "\n\n"
-                + _tr("app", "Some files could not be removed:")
+                + QCoreApplication.translate("app", "Some files could not be removed:")
                 + "\n"
                 + "\n".join(f"  {f}" for f in report.failed)
             )
-        QMessageBox.information(settings, _tr("app", "Uninstall"), body)
+        QMessageBox.information(settings, QCoreApplication.translate("app", "Uninstall"), body)
         app.quit()
 
     settings.uninstallRequested.connect(_uninstall)
@@ -1084,6 +1335,7 @@ def _run(args: argparse.Namespace) -> int:
     # the Application ID. Skipping is fine — the user can paste it later
     # from Settings → General.
     if not config.behavior.first_run_complete and not config.discord.client_id:
+        wizard_open = True
         welcome = WelcomeDialog()
         # Pin so neither the QDialog nor its diagnostics QThread are
         # collected before the user closes the wizard. Without this,
@@ -1130,15 +1382,13 @@ def _run(args: argparse.Namespace) -> int:
         welcome.applied.connect(_on_welcome_applied)
 
         def _after_wizard(_result: int) -> None:
+            nonlocal wizard_open
             log.info("Welcome wizard closed (result=%s)", _result)
-            if not args.silent:
-                try:
-                    settings.show()
-                    settings.raise_()
-                    settings.activateWindow()
-                    log.info("Settings window shown")
-                except Exception as e:
-                    log.exception("Could not open Settings after wizard: %s", e)
+            wizard_open = False
+            # Whatever the wizard left undone is in the window already.
+            announced.update(services.snapshot.needs_attention)
+            status_window.set_welcome(True)
+            _show_status()
 
         welcome.finished.connect(_after_wizard)
         welcome.show()
@@ -1146,13 +1396,13 @@ def _run(args: argparse.Namespace) -> int:
         welcome.activateWindow()
         welcome.start_diagnostics()
     elif not args.silent:
-        settings.show()
+        _show_status()
 
     if args.debug:
         _show_log()
 
     # Run the auto-check shortly after the window is up — non-blocking.
-    QTimer.singleShot(2000, updater.maybe_check_on_startup)
+    QTimer.singleShot(2000, app, updater.maybe_check_on_startup)
 
     rc = app.exec()
     daemon.stop()

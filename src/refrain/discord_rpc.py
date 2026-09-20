@@ -1,14 +1,20 @@
 """Discord IPC client around `pypresence.Presence`: backoff on connection failures,
-silent no-op when Discord isn't running, reconnect on update errors."""
+silent no-op when Discord isn't running, payloads fitted to Discord's limits,
+rate-limited writes and bounded waits on a client that stops answering."""
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
+import json
 import logging
 import os
 import socket
 import time
+from collections import deque
+from enum import StrEnum
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pypresence import ActivityType, Presence
 from pypresence import exceptions as ppx
@@ -101,6 +107,148 @@ _IPC_RESCAN_INTERVAL_S = 5.0
 # An unchanged status is still sent this often. Writing is the only way to
 # notice that Discord restarted and the pipe is dead.
 _RESEND_S = 30.0
+# Discord takes about five activity changes per 20 s and queues or drops the
+# rest. Each write spends a token that comes back 20 s later, so a song change
+# goes out at once while tokens are left and no 20 s window holds more than five.
+_WRITE_TOKENS = 5
+_WRITE_WINDOW_S = 20.0
+# pypresence waits 30 s to connect, 10 s for a reply and forever during the
+# handshake; a frozen client would hold up the daemon tick that long.
+_CONNECT_TIMEOUT_S = 2.0
+_RESPONSE_TIMEOUT_S = 3.0
+_REFUSED_MEMORY = 64
+# Discord answers a hiccup with the same "Unknown error" as a bad payload, so a
+# refusal is given one more chance before the song is written off.
+_REFUSED_RETRY_S = 20.0
+
+_TEXT_FIELDS = frozenset({"name", "details", "state", "large_text", "small_text"})
+_IMAGE_FIELDS = frozenset({"large_image", "small_image"})
+_LINK_FIELDS = frozenset({"details_url", "state_url", "large_url", "small_url"})
+_TEXT_MIN = 2
+_TEXT_MAX = 128
+_IMAGE_MAX = 256
+_LINK_MAX = 256
+_BUTTON_LABEL_MAX = 32
+_BUTTON_URL_MAX = 512
+_BUTTONS_MAX = 2
+# Discord refuses text shorter than two characters. A braille blank is not
+# whitespace, so trimming on Discord's side keeps it, and it renders empty.
+_PAD = "\N{BRAILLE PATTERN BLANK}"
+_ELLIPSIS = "…"
+
+_TIMEOUTS = (TimeoutError, ppx.ConnectionTimeout, ppx.ResponseTimeout)
+_CLEAR = object()
+
+
+class RPCState(StrEnum):
+    DISABLED = "disabled"
+    NO_CLIENT = "no_client"
+    REJECTED = "rejected"
+    CONNECTED_IDLE = "connected_idle"
+    SHOWING = "showing"
+    ERROR = "error"
+
+
+def _utf16_len(text: str) -> int:
+    return len(text.encode("utf-16-le")) // 2
+
+
+def _fit(text: str, limit: int) -> str:
+    """Shorten to ``limit`` UTF-16 units, the unit Discord counts in."""
+    if _utf16_len(text) <= limit:
+        return text
+    # A surrogate pair cut in half is dropped by "ignore".
+    kept = text.encode("utf-16-le")[: (limit - 1) * 2].decode("utf-16-le", "ignore")
+    return kept.rstrip() + _ELLIPSIS
+
+
+def _clean_text(value: object, limit: int, minimum: int = _TEXT_MIN) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    if not text:
+        return None
+    text = _fit(text, limit)
+    return text + _PAD * max(0, minimum - _utf16_len(text))
+
+
+def _clean_url(
+    value: object, limit: int, schemes: tuple[str, ...] = ("https", "http")
+) -> str | None:
+    if not isinstance(value, str):
+        return None
+    url = value.strip()
+    if not url or _utf16_len(url) > limit or any(ch.isspace() for ch in url):
+        return None
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return None
+    if parts.scheme.lower() not in schemes or not parts.netloc:
+        return None
+    return url
+
+
+def _clean_image(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+    image = value.strip()
+    if "://" in image:
+        return _clean_url(image, _IMAGE_MAX)
+    if not image or _utf16_len(image) > _IMAGE_MAX:
+        return None
+    return image
+
+
+def _clean_buttons(value: object) -> list[dict] | None:
+    if not isinstance(value, (list, tuple)):
+        return None
+    buttons = []
+    for button in value:
+        if not isinstance(button, dict):
+            continue
+        label = _clean_text(button.get("label"), _BUTTON_LABEL_MAX, minimum=1)
+        url = _clean_url(button.get("url"), _BUTTON_URL_MAX, ("https",))
+        if label and url:
+            buttons.append({"label": label, "url": url})
+    return buttons[:_BUTTONS_MAX] or None
+
+
+def sanitize_activity(payload: dict) -> dict:
+    """Fit an activity into Discord's limits; Discord refuses the whole
+    payload over a single field that breaks them."""
+    clean: dict = {}
+    for key, value in payload.items():
+        if key in _TEXT_FIELDS:
+            value = _clean_text(value, _TEXT_MAX)
+        elif key in _IMAGE_FIELDS:
+            value = _clean_image(value)
+        elif key in _LINK_FIELDS:
+            value = _clean_url(value, _LINK_MAX)
+        elif key == "buttons":
+            value = _clean_buttons(value)
+        if value is not None:
+            clean[key] = value
+    start, end = clean.get("start"), clean.get("end")
+    if start is not None and end is not None and end <= start:
+        del clean["end"]
+    return clean
+
+
+def _fingerprint(payload: dict) -> str:
+    return json.dumps(payload, sort_keys=True, default=str)
+
+
+def _discard(presence: Presence) -> None:
+    """Close the socket of a connection whose handshake did not finish."""
+    loop = getattr(presence, "loop", None)
+    writer = getattr(presence, "sock_writer", None)
+    with contextlib.suppress(Exception):
+        if writer is not None:
+            writer.close()
+            loop.run_until_complete(writer.wait_closed())
+    with contextlib.suppress(Exception):
+        loop.close()
 
 
 def _runtime_dir() -> Path | None:
@@ -172,6 +320,15 @@ class DiscordRPC:
         self._last_payload: dict | None = None
         self._last_sent_mono = 0.0
         self._cleared = False
+        # What Discord should show next: a payload, _CLEAR, or None once sent.
+        # A burst of changes collapses into whichever came last.
+        self._pending: object = None
+        self._writes: deque[float] = deque()
+        # fingerprint → (first refusal, how often)
+        self._refused: dict[str, tuple[float, int]] = {}
+        # Set while something is wrong beyond "Discord is not running":
+        # a refused payload or a client that stopped answering.
+        self._fault = ""
         # Remembered so a changing client line-up is logged once, not per tick.
         self._last_live_pipes: list[int] = []
         # Why we are not connected, for the startup check and the tray.
@@ -211,6 +368,42 @@ class DiscordRPC:
 
     def is_connected(self) -> bool:
         return bool(self._presences)
+
+    @property
+    def state(self) -> RPCState:
+        if not self.client_id:
+            return RPCState.DISABLED
+        if not self._presences:
+            if self.status == "rejected":
+                return RPCState.REJECTED
+            return RPCState.ERROR if self._fault else RPCState.NO_CLIENT
+        if self._fault:
+            return RPCState.ERROR
+        if self._last_payload is not None:
+            return RPCState.SHOWING
+        return RPCState.CONNECTED_IDLE
+
+    @property
+    def detail(self) -> str:
+        """The reason behind ``state``, or the pipes served while all is well."""
+        return self._fault or self.status_detail
+
+    def _open(self, target: object) -> Presence:
+        p = Presence(self.client_id) if target == "auto" else Presence(self.client_id, pipe=target)
+        p.connection_timeout = _CONNECT_TIMEOUT_S
+        p.response_timeout = _RESPONSE_TIMEOUT_S
+        handshake = p.handshake
+
+        async def bounded_handshake():
+            await asyncio.wait_for(handshake(), _RESPONSE_TIMEOUT_S)
+
+        p.handshake = bounded_handshake
+        try:
+            p.connect()
+        except Exception:
+            _discard(p)
+            raise
+        return p
 
     def _ensure_connected(self) -> bool:
         # With all_clients we keep looking for newcomers (a second client
@@ -263,26 +456,17 @@ class DiscordRPC:
             targets = targets[:1]
         targets = [t for t in targets if t not in self._presences]
         if not targets:
-            if self._presences:
-                # Everyone visible is already served. Push the next sweep
-                # out so watching for newcomers does not run on every tick.
-                self._next_retry_ts = time.monotonic() + _IPC_RESCAN_INTERVAL_S
-                return True
-            self._schedule_retry()
-            return False
+            # Everyone visible is already served. Push the next sweep
+            # out so watching for newcomers does not run on every tick.
+            self._next_retry_ts = time.monotonic() + _IPC_RESCAN_INTERVAL_S
+            return True
 
         connected_now: list[object] = []
         last_error: Exception | None = None
         rejected = False
         for target in targets:
             try:
-                p = (
-                    Presence(self.client_id)
-                    if target == "auto"
-                    else Presence(self.client_id, pipe=target)
-                )
-                p.connect()
-                self._presences[target] = p
+                self._presences[target] = self._open(target)
                 connected_now.append(target)
             except ppx.DiscordError as e:
                 # Discord answered but refused the handshake — a bad
@@ -294,6 +478,7 @@ class DiscordRPC:
                 if not self._presences:
                     self.status = "rejected"
                     self.status_detail = str(e)
+                    self._fault = ""
                     self._backoff_s = self._max_backoff_s
                     self._schedule_retry()
                     return False
@@ -315,6 +500,7 @@ class DiscordRPC:
             # showing nothing until the daemon picks up a change).
             self._last_payload = None
             self._cleared = False
+            self._fault = ""
             self.status = "connected"
             self.status_detail = ", ".join(
                 "auto" if t == "auto" else f"discord-ipc-{t}"
@@ -336,66 +522,146 @@ class DiscordRPC:
 
         self.status = "no_client"
         self.status_detail = str(last_error) if last_error else "no client reachable"
+        self._fault = "Discord did not answer in time" if isinstance(last_error, _TIMEOUTS) else ""
         self._schedule_retry()
         return False
 
     def update(self, **payload) -> None:
         if not self._ensure_connected():
             return
-        # Default to Discord's "Listening" activity type so the status renders
-        # as "Listening to <song>" — matching what users expect from a music
-        # RPC and what Spotify / other Discord music apps show. Without this,
-        # Discord defaults to type=PLAYING ("Playing Refrain").
+        # Without a type Discord renders "Playing Refrain" instead of
+        # "Listening to <song>".
         payload.setdefault("activity_type", ActivityType.LISTENING)
-        # Skip when the payload is byte-for-byte identical to what we
-        # already pushed — Discord's rate-limit (5/20 s) drops most of
-        # them anyway, but the IPC write + json-encode + Discord-side
-        # state recompute is wasted work. The cache key intentionally
-        # round-trips through dict-equality so any field change (start
-        # drift-resync, cover URL arrival, button URL change) re-pushes.
-        if payload == self._last_payload and time.monotonic() - self._last_sent_mono < _RESEND_S:
+        self._pending = sanitize_activity(payload)
+        self.pump()
+
+    def clear(self, force: bool = False) -> None:
+        """``force`` skips the rate limit — used on the way out, where a
+        held-back clear would leave the last song on the profile."""
+        self._pending = _CLEAR
+        self.pump(force=force)
+
+    def pump(self, force: bool = False) -> None:
+        """Send what Discord still owes the user once the rate limit allows.
+
+        update() and clear() call it; calling it on every tick as well lets a
+        held-back last state go out even when nothing new comes in.
+        """
+        pending = self._pending
+        if pending is None or not self._presences:
             return
+        now = time.monotonic()
+        # An unchanged status is still written now and then: only a write
+        # notices that Discord restarted and the pipe is dead.
+        recent = now - self._last_sent_mono < _RESEND_S
+        if pending is _CLEAR:
+            if self._cleared and recent:
+                self._pending = None
+                return
+        elif (pending == self._last_payload and recent) or self._written_off(pending, now):
+            self._pending = None
+            return
+        if not force and not self._has_token(now):
+            return
+        if pending is _CLEAR:
+            self._send_clear(now)
+        else:
+            self._send_update(pending, now)
+
+    def _written_off(self, payload: object, now: float) -> bool:
+        seen = self._refused.get(_fingerprint(payload)) if isinstance(payload, dict) else None
+        if seen is None:
+            return False
+        first, times = seen
+        return times > 1 or now - first < _REFUSED_RETRY_S
+
+    def _has_token(self, now: float) -> bool:
+        while self._writes and now - self._writes[0] >= _WRITE_WINDOW_S:
+            self._writes.popleft()
+        return len(self._writes) < _WRITE_TOKENS
+
+    def _send_update(self, payload: dict, now: float) -> None:
         # Fan out, and judge each connection on its own: one client being
         # closed mid-song must not drop the status from the others.
         failed: list[object] = []
         delivered = 0
+        refused: Exception | None = None
+        hung = False
         for target, presence in list(self._presences.items()):
             try:
                 presence.update(**payload)
                 delivered += 1
+            except ppx.ServerError as e:
+                # Discord read the payload and said no; the pipe is fine.
+                refused = e
             except Exception as e:
                 log.warning("Discord RPC update failed on %s: %s", target, e)
                 failed.append(target)
+                hung = hung or isinstance(e, _TIMEOUTS)
         for target in failed:
             with contextlib.suppress(Exception):
                 self._presences.pop(target).close()
+        if delivered or refused is not None:
+            self._writes.append(now)
         if delivered:
+            self._pending = None
             self._last_payload = dict(payload)
-            self._last_sent_mono = time.monotonic()
+            self._last_sent_mono = now
             self._cleared = False
+            self._fault = ""
+        elif refused is not None:
+            self._pending = None
+            key = _fingerprint(payload)
+            first, times = self._refused.get(key, (now, 0))
+            self._refused[key] = (first, times + 1)
+            while len(self._refused) > _REFUSED_MEMORY:
+                del self._refused[next(iter(self._refused))]
+            self._fault = f"Discord refused the status: {refused}"
+            again = times + 1 > 1
+            log.warning(
+                "Discord refused the status (%s) — %s. Fields: %s",
+                refused,
+                "not sending it again"
+                if again
+                else f"trying once more in {_REFUSED_RETRY_S:.0f} s",
+                ", ".join(sorted(payload)),
+            )
+            log.debug("Refused payload: %r", payload)
         else:
             self._last_payload = None
+            if hung:
+                self._fault = "Discord did not answer in time"
             self._schedule_retry()
 
-    def clear(self) -> None:
-        if not self._presences or self._cleared:
-            return
-        # Whatever the user just listened to is no longer current; the
-        # next update() must push (don't dedupe against a previous
-        # identical payload).
+    def _send_clear(self, now: float) -> None:
+        # Whatever the user just listened to is no longer current; the next
+        # update() must go out even if it repeats the last one.
         self._last_payload = None
+        refused = False
         for target, presence in list(self._presences.items()):
             try:
                 presence.clear()
+            except ppx.ServerError as e:
+                log.debug("Discord refused to clear the status on %s: %s", target, e)
+                refused = True
             except Exception as e:
                 log.debug("Discord RPC clear failed on %s: %s", target, e)
                 with contextlib.suppress(Exception):
                     self._presences.pop(target).close()
-        self._cleared = bool(self._presences)
         if not self._presences:
+            # A closed pipe takes its activity with it; nothing left to clear.
+            self._cleared = False
             self._schedule_retry()
+            return
+        self._writes.append(now)
+        if refused:
+            return
+        self._pending = None
+        self._cleared = True
+        self._last_sent_mono = now
 
     def close(self) -> None:
+        self._pending = None
         if not self._presences:
             return
         for presence in self._presences.values():

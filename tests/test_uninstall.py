@@ -62,6 +62,38 @@ def test_collect_paths_only_existing(iso):
     assert sum(p.name == "refrain" for p in uninstall.collect_paths()) == 3
 
 
+def _seed_desktop_files(data):
+    apps = data / "applications" / "refrain.desktop"
+    icon = data / "icons" / "hicolor" / "scalable" / "apps" / "refrain.svg"
+    for path in (apps, icon):
+        path.parent.mkdir(parents=True)
+        path.write_text("x", encoding="utf-8")
+    return apps, icon
+
+
+def test_collect_paths_follows_xdg_data_home(xdg_tmp, monkeypatch, tmp_path):
+    home = tmp_path / "home"
+    data = tmp_path / "data"
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_DATA_HOME", str(data))
+    # A copy in the default place is not ours once XDG_DATA_HOME points elsewhere.
+    _seed_desktop_files(home / ".local" / "share")
+    apps, icon = _seed_desktop_files(data)
+    assert uninstall.collect_paths() == [apps, icon]
+
+
+@pytest.mark.parametrize("value", [None, "", "relative/share"])
+def test_collect_paths_defaults_to_local_share(xdg_tmp, monkeypatch, tmp_path, value):
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    if value is None:
+        monkeypatch.delenv("XDG_DATA_HOME", raising=False)
+    else:
+        monkeypatch.setenv("XDG_DATA_HOME", value)
+    apps, icon = _seed_desktop_files(home / ".local" / "share")
+    assert uninstall.collect_paths() == [apps, icon]
+
+
 # --------------------------------------------------------------------------- #
 # removal_command                                                             #
 # --------------------------------------------------------------------------- #

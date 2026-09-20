@@ -5,9 +5,11 @@ from __future__ import annotations
 import socket
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from pypresence import exceptions as real_exceptions
 
 
 @pytest.fixture
@@ -17,9 +19,8 @@ def fake_pypresence(monkeypatch):
     fake_module.Presence = MagicMock(return_value=MagicMock())
     fake_module.ActivityType = MagicMock()
     fake_module.ActivityType.LISTENING = "listening"
-    fake_module.exceptions = MagicMock()
+    fake_module.exceptions = real_exceptions
     monkeypatch.setitem(sys.modules, "pypresence", fake_module)
-    monkeypatch.setitem(sys.modules, "pypresence.exceptions", fake_module.exceptions)
     # Re-imported against the fake, and put back afterwards for the tests
     # that imported the real one.
     import refrain
@@ -27,6 +28,20 @@ def fake_pypresence(monkeypatch):
     monkeypatch.delitem(sys.modules, "refrain.discord_rpc", raising=False)
     monkeypatch.delattr(refrain, "discord_rpc", raising=False)
     yield fake_module
+
+
+@pytest.fixture
+def clock(fake_pypresence, monkeypatch):
+    """A controllable monotonic clock for the freshly imported module."""
+    import refrain.discord_rpc as discord_rpc
+
+    now = SimpleNamespace(t=1000.0)
+    monkeypatch.setattr(discord_rpc, "time", SimpleNamespace(monotonic=lambda: now.t))
+    return now
+
+
+def _later(clock):
+    clock.t += 5.0
 
 
 # ---------------------------------------------------------------------------
@@ -50,7 +65,7 @@ def test_identical_consecutive_payloads_only_send_once(fake_pypresence):
     assert presence_mock.update.call_count == 1
 
 
-def test_different_payload_pushes_again(fake_pypresence):
+def test_different_payload_pushes_again(fake_pypresence, clock):
     from refrain.discord_rpc import DiscordRPC
 
     rpc = DiscordRPC("123456789012345678")
@@ -58,13 +73,14 @@ def test_different_payload_pushes_again(fake_pypresence):
     presence_mock = rpc._presence
 
     rpc.update(details="Track A", state="Artist")
+    _later(clock)
     rpc.update(details="Track B", state="Artist")  # title changed
     rpc.update(details="Track B", state="Artist")  # same again — dedup
 
     assert presence_mock.update.call_count == 2
 
 
-def test_clear_resets_dedup_cache(fake_pypresence):
+def test_clear_resets_dedup_cache(fake_pypresence, clock):
     """After clear() even an identical update pushes again."""
     from refrain.discord_rpc import DiscordRPC
 
@@ -74,7 +90,9 @@ def test_clear_resets_dedup_cache(fake_pypresence):
 
     payload = {"details": "Track A"}
     rpc.update(**payload)
+    _later(clock)
     rpc.clear()
+    _later(clock)
     rpc.update(**payload)
 
     assert presence_mock.update.call_count == 2
@@ -99,7 +117,7 @@ def test_an_unchanged_status_is_sent_again_after_a_while(fake_pypresence, monkey
     assert presence_mock.update.call_count == 2
 
 
-def test_a_paused_song_clears_once(fake_pypresence):
+def test_a_paused_song_clears_once(fake_pypresence, clock):
     from refrain.discord_rpc import DiscordRPC
 
     rpc = DiscordRPC("123456789012345678")
@@ -108,9 +126,12 @@ def test_a_paused_song_clears_once(fake_pypresence):
 
     rpc.update(details="Track A")
     for _ in range(5):
+        _later(clock)
         rpc.clear()
     assert presence_mock.clear.call_count == 1
+    _later(clock)
     rpc.update(details="Track A")
+    _later(clock)
     rpc.clear()
     assert presence_mock.clear.call_count == 2
 

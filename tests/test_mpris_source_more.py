@@ -156,6 +156,7 @@ def _player(
         "PlaybackStatus": status,
         "Position": position,
         "Metadata": meta,
+        "CanPlay": True,
         "CanPause": True,
         "CanGoNext": True,
         "CanGoPrevious": True,
@@ -572,3 +573,31 @@ def test_a_play_pause_the_primary_rejects_is_handed_to_the_next_player(bus):
     src._control_fallback_names = [FIREFOX]
     assert src.play_pause() is True
     assert fake.calls == [(FIREFOX, "PlayPause")]
+
+
+@pytest.mark.parametrize(("control", "method"), [("play", "Play"), ("pause", "Pause")])
+def test_play_and_pause_are_no_toggles(bus, control, method):
+    fake = bus(
+        {FIREFOX: _player(identity="Firefox", title="Silk Road Radio", artist=["Ilse Moreau"])}
+    )
+    src = mpris.MPRISSource()
+    src.read()
+    assert getattr(src, control)() is True
+    assert fake.calls == [(FIREFOX, method)]
+
+
+def test_two_equal_tabs_keep_the_one_shown_before(bus):
+    bus(
+        {
+            FIREFOX: _player("Paused", title="Late Train Home", artist=["Velvet Static"]),
+            CHROMIUM: _player("Paused", title="Salt Flats", artist=["Wren & Ash"]),
+        }
+    )
+    src = mpris.MPRISSource()
+    first = src.read().title
+    shown = src._last_player_name
+    for _ in range(3):
+        src._names_stale = True
+        assert src.read().title == first
+    src._last_player_name = FIREFOX if shown == CHROMIUM else CHROMIUM
+    assert src.read().title != first

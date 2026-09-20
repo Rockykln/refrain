@@ -39,7 +39,7 @@ def form(win, xdg_tmp, monkeypatch):
     """The window re-driven from a fresh default config, keyring stubbed."""
     # Apply also writes the Last.fm secrets to the OS keyring; a test
     # has no business touching the real one.
-    monkeypatch.setattr("refrain.secrets_store.save_from", lambda *a, **k: None)
+    monkeypatch.setattr("refrain.secrets_store.save_from", lambda *a, **k: True)
     win._config = Config()
     win._load_into_form()
     return win
@@ -54,7 +54,7 @@ def test_history_has_its_own_tab(form):
         "General",
         "Sources",
         "Last.fm",
-        "History",
+        "Recently played",
         "Updates",
         "Advanced",
     ]

@@ -18,7 +18,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from refrain import __version__
+from refrain import __version__, dev_metrics
 from refrain.config import LastfmConfig
 from refrain.paths import state_dir
 from refrain.scrobble_queue import ScrobbleQueue
@@ -209,7 +209,10 @@ class LastfmClient:
             else:
                 url = f"{API_ROOT}?{urllib.parse.urlencode(req_params)}"
                 request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
-            with urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r:
+            with (
+                dev_metrics.network("lastfm"),
+                urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r,
+            ):
                 payload = json.load(r)
         except LastfmError:
             raise
@@ -410,6 +413,8 @@ class Scrobbler:
         self._duration_ms = 0
         self._position_ms: int | None = None  # the player's, last tick
         self._nowplaying_key: str | None = None
+        self._skipped_key: str | None = None
+        self._skipped_since: float | None = None
         # Across a restart. The play in progress is written to
         # `_current_path` on quit and every PROGRESS_SAVE_EVERY_MS of play;
         # `_resume` is that play as the last run left it, until the first
@@ -511,6 +516,13 @@ class Scrobbler:
                 # its file stays for the next launch to settle.
                 self._save_current_locked(self._last_wall)
 
+    def health(self) -> tuple[bool, int]:
+        """Whether Last.fm refused the session, and how many scrobbles
+        wait for a retry after a failed send."""
+        with self._lock:
+            invalid, sending = self._session_invalid, self._drain_inflight
+        return invalid, 0 if sending else len(self._queue)
+
     # ----------------------------------------------------------- core
 
     def update(
@@ -546,6 +558,8 @@ class Scrobbler:
 
             candidate = self._is_candidate(track, effective_duration_ms)
             key = self._content_key(track) if candidate else None
+            if not candidate:
+                self._note_too_short_locked(track, effective_duration_ms, now_mono)
             # Not before a song shows up: a first poll that sees nothing
             # yet says nothing about whether the saved play is still going.
             if self._resume is not None and key is not None:
@@ -612,6 +626,35 @@ class Scrobbler:
             self._maybe_drain_locked(now_mono)
 
     # ---- internals (call with self._lock held) -------------------------
+
+    def _note_too_short_locked(
+        self, track: TrackInfo, effective_duration_ms: int, now_mono: float
+    ) -> None:
+        # Without this a song that never counts looks like a Last.fm fault.
+        if not (
+            track.has_track
+            and track.title
+            and track.artist
+            and track.status == PlaybackStatus.PLAYING
+        ):
+            return
+        skipped = self._content_key(track)
+        if skipped != self._skipped_key:
+            # Browsers report the buffered length first; wait for the real one.
+            self._skipped_key = skipped
+            self._skipped_since = now_mono
+            return
+        if self._skipped_since is None or now_mono - self._skipped_since < _MIN_TRACK_MS / 1000:
+            return
+        self._skipped_since = None
+        log.info(
+            "Not scrobbled: %s — %s (%s)",
+            track.artist,
+            track.title,
+            "the player reported no song length"
+            if effective_duration_ms <= 0
+            else "shorter than 30 seconds",
+        )
 
     def _finalize_current_locked(self) -> None:
         if self._key is None:

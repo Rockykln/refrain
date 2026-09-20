@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import time
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
+from refrain import dev_metrics
 from refrain.paths import assets_dir
+from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
 log = logging.getLogger(__name__)
@@ -47,7 +50,16 @@ def _detect_color_scheme() -> str:
     return result
 
 
+# A menu is as wide as its longest entry, and a shell cannot elide it for us.
+_MENU_CHARS = 52
+
+
+def _menu_width(text: str) -> str:
+    return text if len(text) <= _MENU_CHARS else text[: _MENU_CHARS - 1].rstrip() + "…"
+
+
 class TrayIcon(QObject):
+    statusRequested = Signal()
     settingsRequested = Signal()
     quitRequested = Signal()
     restartRequested = Signal()
@@ -57,23 +69,30 @@ class TrayIcon(QObject):
     updateRequested = Signal()
     logRequested = Signal()
     historyRequested = Signal()
+    developerRequested = Signal()
+    sharingToggled = Signal(bool)  # True = pause sharing
 
-    # Apple Music reports "paused" for a poll or two between songs. The
-    # icon and the Play/Pause entry only follow a pause once it has lasted
-    # this long, so they don't flash at every song change.
-    _PAUSE_SHOWN_AFTER_MS = 2000
+    # Apple Music reports "paused" for under a second between songs (measured
+    # 0.56-0.71 s). The icon and the Play/Pause entry only follow a pause once
+    # it has lasted this long, so they don't flash at every song change.
+    _PAUSE_SHOWN_AFTER_MS = 1000
+    # A pause asked for from the tray itself is real; show it at once.
+    _OWN_CONTROL_WINDOW_S = 3.0
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
         self._icons_dir = assets_dir() / "icons"
         self._current_status: PlaybackStatus = PlaybackStatus.STOPPED
         self._pending_status: PlaybackStatus | None = None
+        self._own_control_at = -1e9
         self._pause_timer = QTimer(self)
         self._pause_timer.setSingleShot(True)
         self._pause_timer.timeout.connect(self._apply_pending_status)
         self._icons = self._build_icons_for_current_theme()
         self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
         self._tray.setToolTip("Refrain")
+        self._hint_click = None
+        self._tray.messageClicked.connect(self._on_message_clicked)
         # Tray menu actions are rendered via DBusMenu by the system shell;
         # action text changes do NOT propagate while the menu is open. We
         # mirror the live track + progress info into the tray *tooltip* too
@@ -81,38 +100,39 @@ class TrayIcon(QObject):
         self._current_track_line = ""
         self._current_progress_line = ""
 
-        # Info rows: title / artist / progress / Discord-status.
+        # Info rows: title / artist / progress / Discord / Last.fm.
         # Left ENABLED on purpose — KDE Plasma's DBusMenu renderer (and
         # GNOME's AppIndicator) draw disabled QActions in a muted /
         # greyed-out style, which makes the song info read like
         # broken rows next to the white action labels below.
-        # Enabled rows render in the standard
-        # menu-item colour. Click-handlers for these rows fall back
-        # to opening Settings (their natural "tell me more" target);
-        # we don't want them to look greyed-out + indented + iconless.
+        # A click on one opens the Status window, which says the same
+        # thing in full and offers the fix.
         self._title_action = QAction(self.tr("(nothing playing)"))
         self._title_action.setIcon(QIcon.fromTheme("view-media-track"))
-        self._title_action.triggered.connect(self.settingsRequested.emit)
+        self._title_action.triggered.connect(self.statusRequested.emit)
         self._artist_action = QAction("")
         self._artist_action.setIcon(QIcon.fromTheme("view-media-artist"))
-        self._artist_action.triggered.connect(self.settingsRequested.emit)
+        self._artist_action.triggered.connect(self.statusRequested.emit)
         # Hidden until a real track populates it — otherwise it
         # renders as a tall empty row right under "(nothing playing)".
         self._artist_action.setVisible(False)
         self._progress_action = QAction("")
         self._progress_action.setIcon(QIcon.fromTheme("chronometer"))
-        self._progress_action.triggered.connect(self.settingsRequested.emit)
+        self._progress_action.triggered.connect(self.statusRequested.emit)
         self._progress_action.setVisible(False)
-        self._discord_action = QAction(self.tr("Discord: not connected"))
+        self._discord_action = QAction(self.tr("Discord: checking…"))
         self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
-        self._discord_action.triggered.connect(self.settingsRequested.emit)
-        # Sits next to the Discord row and stays hidden until the startup
-        # check has something to say — an empty "Last.fm: —" line would
-        # just be noise for the majority who never enable scrobbling.
-        self._lastfm_action = QAction(self.tr("Last.fm: not connected"))
+        self._discord_action.triggered.connect(self.statusRequested.emit)
+        # Hidden while Last.fm was never set up — a "Last.fm: off" line
+        # would just be noise for the majority who never scrobble.
+        self._lastfm_action = QAction("")
         self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
-        self._lastfm_action.triggered.connect(self.settingsRequested.emit)
+        self._lastfm_action.triggered.connect(self.statusRequested.emit)
         self._lastfm_action.setVisible(False)
+        self._developer_action = QAction(self.tr("Developer mode"))
+        self._developer_action.setIcon(QIcon.fromTheme("applications-development"))
+        self._developer_action.triggered.connect(self.developerRequested.emit)
+        self._developer_action.setVisible(False)
 
         # Once any item in a QMenu has an icon, the menu reserves the
         # icon column for ALL items. Without icons here the playback /
@@ -127,7 +147,7 @@ class TrayIcon(QObject):
         self._previous_action.triggered.connect(self.previousRequested.emit)
         self._play_pause_action = QAction(self.tr("Play"))
         self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
-        self._play_pause_action.triggered.connect(self.playPauseRequested.emit)
+        self._play_pause_action.triggered.connect(self._request_play_pause)
         self._next_action = QAction(self.tr("Next"))
         self._next_action.setIcon(QIcon.fromTheme("media-skip-forward"))
         self._next_action.triggered.connect(self.nextRequested.emit)
@@ -138,6 +158,7 @@ class TrayIcon(QObject):
         menu.addAction(self._progress_action)
         menu.addAction(self._discord_action)
         menu.addAction(self._lastfm_action)
+        menu.addAction(self._developer_action)
         menu.addSeparator()
         menu.addAction(self._previous_action)
         menu.addAction(self._play_pause_action)
@@ -162,17 +183,21 @@ class TrayIcon(QObject):
         self._history_action = QAction(self.tr("Recently played…"))
         self._history_action.setIcon(QIcon.fromTheme("document-open-recent"))
         self._history_action.triggered.connect(self.historyRequested.emit)
+        # Pausing sharing and the settings live in the Status window, which a
+        # click on the icon already opens — the menu keeps what a click cannot do.
+        self._sharing_paused = False
         menu.addAction(self._history_action)
-        settings_action = menu.addAction(self.tr("Settings…"))
-        settings_action.setIcon(QIcon.fromTheme("configure"))
-        settings_action.triggered.connect(self.settingsRequested.emit)
-        log_action = menu.addAction(self.tr("Live log…"))
-        log_action.setIcon(QIcon.fromTheme("view-list-text"))
-        log_action.triggered.connect(self.logRequested.emit)
+        # Rarely needed, and Restart sat right above Quit: tucked away,
+        # still two clicks from the top.
+        self._more_menu = menu.addMenu(self.tr("Troubleshooting"))
+        self._more_menu.setIcon(QIcon.fromTheme("tools-report-bug"))
+        self._log_action = self._more_menu.addAction(self.tr("Live log…"))
+        self._log_action.setIcon(QIcon.fromTheme("view-list-text"))
+        self._log_action.triggered.connect(self.logRequested.emit)
+        self._restart_action = self._more_menu.addAction(self.tr("Restart Refrain"))
+        self._restart_action.setIcon(QIcon.fromTheme("view-refresh"))
+        self._restart_action.triggered.connect(self.restartRequested.emit)
         menu.addSeparator()
-        restart_action = menu.addAction(self.tr("Restart Refrain"))
-        restart_action.setIcon(QIcon.fromTheme("view-refresh"))
-        restart_action.triggered.connect(self.restartRequested.emit)
         quit_action = menu.addAction(self.tr("Quit Refrain"))
         # Red "✕" icon marks the destructive action — KDE Plasma's
         # DBusMenu renderer shows it in the menu's icon column, GNOME
@@ -186,6 +211,8 @@ class TrayIcon(QObject):
             quit_action.setIconVisibleInMenu(True)
         quit_action.triggered.connect(self.quitRequested.emit)
 
+        menu.triggered.connect(self._on_menu_triggered)
+        self._menu = menu
         self._tray.setContextMenu(menu)
         self._tray.activated.connect(self._on_activated)
         self._tray.show()
@@ -219,16 +246,35 @@ class TrayIcon(QObject):
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.Trigger:
-            self.settingsRequested.emit()
+            self.statusRequested.emit()
         elif reason == QSystemTrayIcon.MiddleClick:
             # Middle-click toggles playback on the current MPRIS source —
             # same path as the tray-menu Play/Pause item, so a Bluetooth
             # headphone driving Refrain via MPRIS-server gets the same
             # PlayPause command as a click on the Apple Music tab.
-            self.playPauseRequested.emit()
+            self._request_play_pause()
+
+    def show_hint(self, text: str, on_click=None) -> None:
+        self._hint_click = on_click
+        self._tray.showMessage("Refrain", text, self._tray.icon(), 6000)
+
+    def _on_message_clicked(self) -> None:
+        # Only the hint that asked for it reacts, so a later one is not its click.
+        handler, self._hint_click = self._hint_click, None
+        if handler is not None:
+            handler()
+
+    def _request_play_pause(self) -> None:
+        self._own_control_at = time.monotonic()
+        self.playPauseRequested.emit()
 
     def set_status(self, status: PlaybackStatus) -> None:
-        if status != PlaybackStatus.PLAYING and self._current_status == PlaybackStatus.PLAYING:
+        own = time.monotonic() - self._own_control_at < self._OWN_CONTROL_WINDOW_S
+        if (
+            status != PlaybackStatus.PLAYING
+            and self._current_status == PlaybackStatus.PLAYING
+            and not own
+        ):
             # Leaving "playing": wait and see. Back to playing within the
             # window cancels it; the end of playback shows after the delay.
             self._pending_status = status
@@ -265,50 +311,69 @@ class TrayIcon(QObject):
             self._update_action.setText(self.tr("Update available"))
         self._update_action.setVisible(available)
 
+    def _on_menu_triggered(self, action: QAction) -> None:
+        if not dev_metrics.enabled():
+            return
+        name = next((k.lstrip("_") for k, v in vars(self).items() if v is action), None)
+        dev_metrics.tray_action(name or f"action{self._menu.actions().index(action)}")
+
+    def set_developer_mode(self, on: bool) -> None:
+        self._developer_action.setVisible(on)
+
     def set_history_enabled(self, enabled: bool) -> None:
         self._history_action.setVisible(enabled)
 
-    def set_discord_connected(self, connected: bool) -> None:
-        if connected:
-            self._discord_action.setText(self.tr("Discord: connected"))
-            self._discord_action.setIcon(QIcon.fromTheme("network-connect"))
+    def set_sharing_paused(self, paused: bool) -> None:
+        """Kept for the status lines; pausing itself lives in the Status window."""
+        self._sharing_paused = paused
+
+    def set_service_status(self, status: StatusSnapshot) -> None:
+        """The Discord and Last.fm rows, from the live state."""
+        d = status.discord
+        if d is DiscordStatus.NOT_SET_UP:
+            text, icon = self.tr("Discord: not set up — add your Application ID"), "dialog-warning"
+        elif d is DiscordStatus.NO_CLIENT:
+            text, icon = self.tr("Discord: app isn't running"), "network-disconnect"
+        elif d is DiscordStatus.REJECTED:
+            text, icon = self.tr("Discord: Application ID rejected — check it"), "dialog-warning"
+        elif d is DiscordStatus.ERROR:
+            text, icon = self.tr("Discord: not answering"), "dialog-warning"
+        elif d is DiscordStatus.READY:
+            text, icon = self.tr("Discord: ready — waiting for music"), "network-connect"
+        elif d is DiscordStatus.SHOWING:
+            text, icon = self.tr("Discord: visible on your profile"), "network-connect"
+        elif d is DiscordStatus.SHOWING_MINIMAL:
+            text, icon = self.tr("Discord: showing “Listening to music”"), "network-connect"
+        elif d is DiscordStatus.PAUSED:
+            text, icon = self.tr("Discord: hidden while paused"), "network-disconnect"
+        elif d is DiscordStatus.PRIVACY_OFF:
+            text, icon = self.tr("Discord: hidden — sharing is off"), "network-disconnect"
         else:
-            self._discord_action.setText(self.tr("Discord: not connected"))
-            self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
+            text, icon = self.tr("Discord: checking…"), "network-disconnect"
+        self._discord_action.setText(text)
+        self._discord_action.setIcon(QIcon.fromTheme(icon))
 
-    def set_startup_check(self, lastfm, discord) -> None:
-        """Show what the startup credential check found.
-
-        Only a *rejected* credential changes what the row says: the user
-        has to go and fix something, and otherwise nothing tells them —
-        Discord silently publishes nothing, Last.fm silently scrobbles
-        nothing. "Cannot reach it right now" is left alone, because the
-        normal connected/disconnected updates already cover that and will
-        correct themselves.
-        """
-        from refrain.startup_check import DISABLED, INVALID, OK
-
-        if discord.state == INVALID:
-            self._discord_action.setText(self.tr("Discord: rejected — check Application ID"))
-            self._discord_action.setIcon(QIcon.fromTheme("dialog-warning"))
-
-        if lastfm.state == DISABLED:
-            self._lastfm_action.setVisible(False)
-            return
-        self._lastfm_action.setVisible(True)
-        if lastfm.state == OK:
-            self._lastfm_action.setText(
-                self.tr("Last.fm: connected as {user}").format(user=lastfm.detail)
-                if lastfm.detail
-                else self.tr("Last.fm: connected")
-            )
-            self._lastfm_action.setIcon(QIcon.fromTheme("network-connect"))
-        elif lastfm.state == INVALID:
-            self._lastfm_action.setText(self.tr("Last.fm: session expired — reconnect"))
-            self._lastfm_action.setIcon(QIcon.fromTheme("dialog-warning"))
+        f = status.lastfm
+        self._lastfm_action.setVisible(f is not LastfmStatus.OFF)
+        if f is LastfmStatus.CONNECTED_OFF:
+            text, icon = self.tr("Last.fm: scrobbling is off"), "network-disconnect"
+        elif f is LastfmStatus.NOT_CONNECTED:
+            text, icon = self.tr("Last.fm: not connected"), "dialog-warning"
+        elif f is LastfmStatus.WAITING:
+            count = int(status.lastfm_detail) if status.lastfm_detail.isdigit() else 0
+            text = self.tr("Last.fm: %n scrobble(s) waiting", "", count)
+            icon = "network-disconnect"
+        elif f is LastfmStatus.EXPIRED:
+            text, icon = self.tr("Last.fm: sign-in expired — reconnect"), "dialog-warning"
+        elif f is LastfmStatus.PAUSED:
+            text, icon = self.tr("Last.fm: paused — sharing is off"), "network-disconnect"
+        elif f is LastfmStatus.SCROBBLING and status.lastfm_detail:
+            text = self.tr("Last.fm: scrobbling as {user}").format(user=status.lastfm_detail)
+            icon = "network-connect"
         else:
-            self._lastfm_action.setText(self.tr("Last.fm: could not be verified"))
-            self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
+            text, icon = self.tr("Last.fm: scrobbling"), "network-connect"
+        self._lastfm_action.setText(text)
+        self._lastfm_action.setIcon(QIcon.fromTheme(icon))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         """Render the progress line. A negative position hides it.
@@ -352,14 +417,14 @@ class TrayIcon(QObject):
             self._current_progress_line = ""
             self._tray.setToolTip("Refrain")
             return
-        self._title_action.setText(track.title)
+        self._title_action.setText(_menu_width(track.title))
         if track.artist and track.album:
             line = f"{track.artist} • {track.album}"
         elif track.artist:
             line = track.artist
         else:
             line = track.album or "—"
-        self._artist_action.setText(line)
+        self._artist_action.setText(_menu_width(line))
         self._artist_action.setVisible(True)
         new_track_line = f"{track.title}\n{line}"
         # If the track text actually changed, drop the stale progress

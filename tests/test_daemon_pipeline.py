@@ -199,11 +199,19 @@ def test_second_line_falls_back_when_the_artist_is_missing(rig, artist, album, s
     assert "large_text" not in payload
 
 
-def test_long_title_is_cut_to_discords_limit(rig):
+def test_long_title_is_left_to_the_rpc_client_to_fit(rig):
     worker, player, _ = rig(behavior={"cover_art": False})
     player.play(title="x" * 300)
     player.tick()
-    assert len(rpc().last[1]["details"]) == 128
+    assert rpc().last[1]["details"] == "x" * 300
+
+
+def test_a_blank_title_clears_instead_of_sending(rig):
+    worker, player, _ = rig(behavior={"cover_art": False})
+    player.play(title="   ")
+    player.tick()
+    assert rpc().last == ("clear", {})
+    assert rpc().updates == []
 
 
 def test_short_song_gets_no_timer(rig):
@@ -515,16 +523,6 @@ def test_mpris_server_gets_the_corrected_length_and_cover(rig):
     assert (track.title, cover, length) == (TITLE, COVER, 200_000)
 
 
-def test_discord_connection_changes_are_signalled_once(rig):
-    worker, player, _ = rig()
-    changes = signals(worker, "discordConnectionChanged")
-    player.play()
-    player.tick(n=2)
-    rpc().connected = False
-    player.tick(n=2)
-    assert changes == [(True,), (False,)]
-
-
 def test_a_failing_source_read_is_logged_not_raised(rig, caplog):
     worker, player, _ = rig()
 
@@ -595,3 +593,17 @@ def test_skipping_during_the_cover_wait_gives_the_next_song_its_full_wait(rig):
     player.play(title="Silk Road Radio")
     player.tick(n=2)
     assert rpc().updates == []
+
+
+def test_a_song_change_never_leaves_the_old_song_on_the_profile(rig):
+    """Waiting for a cover is fine before the first song, not after it."""
+    worker, player, _ = rig()
+    player.play()
+    player.tick()
+    assert rpc().last[1]["details"] == TITLE
+
+    player.play(title="Salt Flats", artist="Wren & Ash")
+    player.tick()
+    # Out at once with the logo; the cover follows when it lands.
+    assert rpc().last[1]["details"] == "Salt Flats"
+    assert rpc().last[1]["large_image"] == "refrain"

@@ -448,5 +448,26 @@ def test_a_non_music_app_is_logged_once_not_every_poll(system_bus, caplog):
         for _ in range(3):
             assert src.read().has_track is False
     assert [r.getMessage() for r in caplog.records].count(
-        "Bluetooth: Twitch is playing — not music, ignored"
+        "Bluetooth: Twitch is playing — not Apple Music, ignored"
     ) == 1
+
+
+@pytest.mark.parametrize(("control", "method"), [("play", "Play"), ("pause", "Pause")])
+@pytest.mark.parametrize("status", ["playing", "paused"])
+def test_play_and_pause_are_sent_as_asked_whatever_the_status(system_bus, control, method, status):
+    bus = _one_player_bus(status)
+    system_bus[0].append(bus)
+    src = bluetooth.BluetoothSource()
+    assert getattr(src, control)() is True
+    assert bus.calls == [(_player(MAC), method)]
+
+
+def test_debug_logs_never_carry_a_whole_device_address():
+    masked = bluetooth._masked(
+        "/org/bluez/hci0/dev_12_34_56_78_9A_BC/player0 gone, 12:34:56:78:9A:BC unreachable"
+    )
+    assert (
+        masked
+        == "/org/bluez/hci0/dev_XX_XX_XX_XX_9A_BC/player0 gone, XX:XX:XX:XX:9A:BC unreachable"
+    )
+    assert bluetooth._masked("/org/bluez/hci0") == "/org/bluez/hci0"

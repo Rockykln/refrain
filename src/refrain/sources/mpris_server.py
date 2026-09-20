@@ -242,11 +242,15 @@ class MPRISServer(dbus.service.Object):
         on_play_pause: Callable[[], None],
         on_next: Callable[[], None],
         on_previous: Callable[[], None],
+        on_play: Callable[[], None] | None = None,
+        on_pause: Callable[[], None] | None = None,
     ) -> None:
         # Constructed lazily in `start()` — bus_name registration may fail.
         self._on_play_pause = on_play_pause
         self._on_next = on_next
         self._on_previous = on_previous
+        self._on_play = on_play
+        self._on_pause = on_pause
         self._bus_name: dbus.service.BusName | None = None
         self._track: TrackInfo = TrackInfo.empty()
         self._cover_url: str | None = None
@@ -406,22 +410,31 @@ class MPRISServer(dbus.service.Object):
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Play(self) -> None:
         with self._safe("Play"):
-            if self._track.status != PlaybackStatus.PLAYING:
+            if self._on_play is not None:
+                self._on_play()
+            elif self._track.status != PlaybackStatus.PLAYING:
                 self._on_play_pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Pause(self) -> None:
         with self._safe("Pause"):
-            if self._track.status == PlaybackStatus.PLAYING:
-                self._on_play_pause()
+            self._pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Stop(self) -> None:
         # No real stop in the sources; pausing is the nearest thing, and
         # Plasma offers "Stop" for every controllable player regardless.
         with self._safe("Stop"):
-            if self._track.status == PlaybackStatus.PLAYING:
-                self._on_play_pause()
+            self._pause()
+
+    def _pause(self) -> None:
+        # The published state can lag the player by a poll: a tool that pauses
+        # every player at once (e.g. on taking out an earbud) would otherwise
+        # find us still "Playing" and toggle the music back on.
+        if self._on_pause is not None:
+            self._on_pause()
+        elif self._track.status == PlaybackStatus.PLAYING:
+            self._on_play_pause()
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def Next(self) -> None:

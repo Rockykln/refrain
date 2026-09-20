@@ -108,39 +108,43 @@ def test_a_result_by_someone_else_is_rejected(monkeypatch, cover_art):
 def test_the_matching_result_wins_over_the_first(monkeypatch, cover_art):
     results = [
         _song(
-            "Darius & Finlay",
-            "Close My Eyes (feat. Max Landry)",
+            "Wren & Ash",
+            "Close My Eyes (feat. Marlow Vance)",
             art="https://x/wrong/100x100bb.jpg",
         ),
         _song(
-            "Darius & Finlay & Adam Bü",
-            "Possible (feat. Max Landry)",
+            "Wren & Ash & Oskar Lind",
+            "Possible (feat. Marlow Vance)",
             art="https://x/right/100x100bb.jpg",
         ),
     ]
     _install(monkeypatch, cover_art, _Store(default=results))
-    info = cover_art.lookup_track_info("Darius & Finlay & Adam Bü", "Possible (feat. Max Landry)")
+    info = cover_art.lookup_track_info("Wren & Ash & Oskar Lind", "Possible (feat. Marlow Vance)")
     assert info.cover_url == "https://x/right/600x600bb.jpg"
 
 
 def test_several_artists_fall_back_to_the_first(monkeypatch, cover_art):
     """MPRIS joins every credited artist; the catalog often lists fewer."""
-    hit = _song("Darius & Finlay", "Only If You Love Me")
+    hit = _song("Wren & Ash", "Only If You Love Me")
     store = _install(
         monkeypatch,
         cover_art,
-        _Store({("Darius & Finlay Only If You Love Me", "DE"): [hit]}),
+        _Store({("Wren & Ash Only If You Love Me", "DE"): [hit]}),
     )
-    info = cover_art.lookup_track_info("Darius & Finlay, Lotus & Mougleta", "Only If You Love Me")
+    info = cover_art.lookup_track_info(
+        "Wren & Ash, Kite Theory & Ilse Moreau", "Only If You Love Me"
+    )
     assert info.cover_url
-    assert store.queries[0] == ("Darius & Finlay, Lotus & Mougleta Only If You Love Me", "DE")
+    assert store.queries[0] == ("Wren & Ash, Kite Theory & Ilse Moreau Only If You Love Me", "DE")
 
 
 def test_feat_and_remaster_tags_leave_the_search(monkeypatch, cover_art):
-    hit = _song("KYANU", "Talk Talk Talk")
+    hit = _song("Velvet Static", "Late Train Home")
     store = _install(monkeypatch, cover_art, _Store(default=[hit]))
-    assert cover_art.lookup_track_info("KYANU", "Talk Talk Talk (feat. Lena Sue)").cover_url
-    assert store.queries[0][0] == "KYANU Talk Talk Talk"
+    assert cover_art.lookup_track_info(
+        "Velvet Static", "Late Train Home (feat. Ilse Moreau)"
+    ).cover_url
+    assert store.queries[0][0] == "Velvet Static Late Train Home"
 
 
 def test_falls_back_to_the_us_store(monkeypatch, cover_art):
@@ -153,11 +157,11 @@ def test_falls_back_to_the_us_store(monkeypatch, cover_art):
 @pytest.mark.parametrize(
     "title,clean",
     [
-        ("Talk Talk Talk (feat. Lena Sue)", "Talk Talk Talk"),
+        ("Late Train Home (feat. Ilse Moreau)", "Late Train Home"),
         ("Hey Jude - Remastered 2015", "Hey Jude"),
         ("Song [Radio Edit]", "Song"),
         ("Song (Live)", "Song"),
-        ("Possible feat. Max Landry", "Possible"),
+        ("Possible feat. Marlow Vance", "Possible"),
         ("(Don't Fear) The Reaper", "(Don't Fear) The Reaper"),
     ],
 )
@@ -218,19 +222,20 @@ def test_cache_key_is_stable_and_lowercase(cover_art):
 
 
 def test_cache_file_format(monkeypatch, cover_art):
-    """Cover URL, song URL, catalog length, format version, checked-at."""
+    """Cover URL, song URL, catalog length, format version, checked-at, album."""
     _install(
         monkeypatch, cover_art, _Store(default=[_song("Oskar Lind", "Ferrous", "Iron Garden")])
     )
     cover_art.lookup_track_info("Oskar Lind", "Ferrous", "Iron Garden")
     key = cover_art._key("Oskar Lind", "Ferrous", "Iron Garden")
     lines = (cover_art.cover_cache_dir() / f"{key}.txt").read_text().strip().splitlines()
-    assert len(lines) == 5
+    assert len(lines) == 6
     assert lines[0].endswith("600x600bb.jpg")
     assert lines[1].startswith("https://music.apple.com/")
     assert lines[2] == "215000"
     assert lines[3] == cover_art._CACHE_VERSION
     assert abs(int(lines[4]) - time.time()) < 60
+    assert lines[5] == "Iron Garden"
 
 
 def test_entries_from_the_old_matcher_are_looked_up_again(monkeypatch, cover_art):

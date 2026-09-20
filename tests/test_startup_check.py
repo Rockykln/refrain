@@ -118,6 +118,7 @@ def test_discord_rejected_handshake_demands_attention(caplog):
     assert result.state == INVALID
     assert result.needs_attention
     assert "REJECTED" in caplog.text
+    assert "Settings → General → Discord" in caplog.text
 
 
 def test_running_client_is_not_reported_as_missing(runtime_dir, caplog):

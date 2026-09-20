@@ -11,7 +11,7 @@ import contextlib
 import logging
 
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QIcon
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -64,9 +64,11 @@ class _UpdateRunner(QThread):
         self.finished_with_result.emit(result)
 
 
-def _open_https_link(url: QUrl) -> None:
+def _open_https_link(url: QUrl, parent=None) -> None:
     if url.scheme() == "https":
-        QDesktopServices.openUrl(url)
+        from refrain.ui.external_link import confirm_and_open
+
+        confirm_and_open(parent, url.toString())
     else:
         log.info("Ignored non-https link in the update dialog: %s", url.toString())
 
@@ -94,6 +96,7 @@ class UpdateDialog(QDialog):
         header.setTextFormat(Qt.RichText)
         layout.addWidget(header)
 
+        layout.addSpacing(6)
         notes_label = QLabel(self.tr("<b>Release notes</b>"))
         layout.addWidget(notes_label)
 
@@ -194,7 +197,7 @@ class UpdateDialog(QDialog):
         if self._runner is None or not self._runner.isRunning():
             return
         log.info("User requested update cancel")
-        self.status_label.setText(self.tr("Cancelling…"))
+        self.status_label.setText(self.tr("Canceling…"))
         self.close_btn.setEnabled(False)
         self._runner.requestInterruption()
 
@@ -211,7 +214,7 @@ class UpdateDialog(QDialog):
 
     def _show_result(self, result: UpdateResult) -> None:
         if result.cancelled:
-            self.status_label.setText(self.tr("Update cancelled."))
+            self.status_label.setText(self.tr("Update canceled."))
             return
         if result.success:
             QMessageBox.information(self, self.tr("Update complete"), result.message)

@@ -7,9 +7,11 @@ import logging
 import logging.handlers
 import os
 import sys
+from collections import deque
 
 from refrain.paths import log_path, state_dir
 
+_BACKLOG_LINES = 500
 _FMT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
@@ -85,6 +87,11 @@ def attach_qt_log_bridge():
     class _Bridge(QObject):
         log_record = Signal(str, int)  # formatted_message, level
 
+        def __init__(self):
+            super().__init__()
+            # The live log is built after startup has already logged; it replays these.
+            self.backlog: deque[tuple[str, int]] = deque(maxlen=_BACKLOG_LINES)
+
     bridge = _Bridge()
 
     class _QtLogHandler(logging.Handler):
@@ -95,6 +102,7 @@ def attach_qt_log_bridge():
         def emit(self, record: logging.LogRecord) -> None:
             try:
                 msg = self.format(record)
+                self._owner.backlog.append((msg, record.levelno))
                 self._owner.log_record.emit(msg, record.levelno)
             except Exception:
                 self.handleError(record)

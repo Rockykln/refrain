@@ -137,7 +137,7 @@ def test_cancelled_result_only_updates_the_status_line(make_dialog):
     update_dialog, make = make_dialog
     dlg = make("appimage")
     dlg._show_result(update_dialog.UpdateResult(False, "ignored", cancelled=True))
-    assert dlg.status_label.text() == "Update cancelled."
+    assert dlg.status_label.text() == "Update canceled."
     assert dlg.boxes == []
 
 
@@ -159,7 +159,7 @@ def test_cancel_button_interrupts_the_download(qapp, make_dialog, monkeypatch):
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and not cancelled():
             time.sleep(0.01)
-        return update_dialog.UpdateResult(False, "Update cancelled.", cancelled=cancelled())
+        return update_dialog.UpdateResult(False, "Update canceled.", cancelled=cancelled())
 
     monkeypatch.setattr(update_dialog, "apply_update", fake_apply)
     dlg._on_update_clicked()
@@ -167,12 +167,12 @@ def test_cancel_button_interrupts_the_download(qapp, make_dialog, monkeypatch):
     assert started.wait(2)
 
     dlg.close_btn.click()
-    assert dlg.status_label.text() == "Cancelling…"
+    assert dlg.status_label.text() == "Canceling…"
     assert not dlg.close_btn.isEnabled()
 
     dlg._runner.wait(3000)
     _pump(qapp, 0.2)
-    assert dlg.status_label.text() == "Update cancelled."
+    assert dlg.status_label.text() == "Update canceled."
     assert dlg.close_btn.text() == "Later"
     assert dlg.close_btn.isEnabled()
     assert dlg.boxes == []

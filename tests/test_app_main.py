@@ -8,6 +8,7 @@ import os
 import sys
 import threading
 import time
+from pathlib import Path
 
 import pytest
 
@@ -15,11 +16,12 @@ pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QCoreApplication, QObject, Signal  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
 from refrain import app, uninstall  # noqa: E402
 from refrain.config import Config  # noqa: E402
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable  # noqa: E402
+from refrain.startup_check import INVALID, OK, CheckResult  # noqa: E402
 from refrain.updater import ReleaseInfo  # noqa: E402
 
 CLIENT_ID = "1234567890123456789"
@@ -49,6 +51,18 @@ class _Window(_Recorder):
 
     def hide(self):
         self._rec("hide")
+
+    def set_developer_mode(self, on):
+        self._rec("set_developer_mode", on)
+
+    def set_log_level(self, level):
+        self._rec("set_log_level", level)
+
+    def use_config(self, config):
+        self._rec("use_config", config)
+
+    def show_developer_tab(self):
+        self._rec("show_developer_tab")
 
 
 class FakeApp(_Recorder):
@@ -88,6 +102,8 @@ class FakeApp(_Recorder):
 
 
 class FakeTray(_Recorder):
+    statusRequested = Signal()
+    sharingToggled = Signal(bool)
     settingsRequested = Signal()
     quitRequested = Signal()
     restartRequested = Signal()
@@ -97,6 +113,7 @@ class FakeTray(_Recorder):
     updateRequested = Signal()
     logRequested = Signal()
     historyRequested = Signal()
+    developerRequested = Signal()
 
     def set_track(self, t):
         self._rec("set_track", t)
@@ -107,25 +124,33 @@ class FakeTray(_Recorder):
     def set_progress(self, pos, dur):
         self._rec("set_progress", pos, dur)
 
-    def set_discord_connected(self, ok):
-        self._rec("set_discord_connected", ok)
+    def set_service_status(self, snapshot):
+        self._rec("set_service_status", snapshot)
+
+    def set_sharing_paused(self, paused):
+        self._rec("set_sharing_paused", paused)
+
+    def show_hint(self, text, on_click=None):
+        self._rec("show_hint", text, on_click)
 
     def set_history_enabled(self, on):
         self._rec("set_history_enabled", on)
 
+    def set_developer_mode(self, on):
+        self._rec("set_developer_mode", on)
+
     def set_update_available(self, on, version):
         self._rec("set_update_available", on, version)
-
-    def set_startup_check(self, lastfm, discord):
-        self._rec("set_startup_check", lastfm, discord)
 
 
 class FakeWorker(_Recorder):
     trackChanged = Signal(object)
     statusChanged = Signal(object)
     progressTick = Signal(int, int)
-    discordConnectionChanged = Signal(bool)
+    discordStateChanged = Signal(str, str)
+    lastfmStateChanged = Signal(str, str)
     historyChanged = Signal(object)
+    coverChanged = Signal(str)
 
     _rpc = None
 
@@ -143,6 +168,9 @@ class FakeWorker(_Recorder):
 
     def update_config(self, c):
         self._rec("update_config", c)
+
+    def set_notifications_muted(self, muted):
+        self._rec("set_notifications_muted", muted)
 
     def clear_history(self):
         self._rec("clear_history")
@@ -167,6 +195,7 @@ class FakeDaemon:
 
 class FakeSettings(_Window):
     applied = Signal(object)
+    finished = Signal(int)
     checkUpdatesRequested = Signal()
     showLogRequested = Signal()
     showHistoryRequested = Signal()
@@ -187,6 +216,59 @@ class FakeHistory(_Window):
 
     def set_snapshot(self, s):
         self._rec("set_snapshot", s)
+
+
+class FakeStatus(_Window):
+    finished = Signal(int)
+    visibilityChanged = Signal(bool)
+    playPauseRequested = Signal()
+    nextRequested = Signal()
+    previousRequested = Signal()
+    settingsRequested = Signal(str)
+    historyRequested = Signal()
+    updateRequested = Signal()
+    sharingToggled = Signal(bool)
+
+    def __init__(self):
+        super().__init__()
+        self.visible = False
+
+    def show(self):
+        self.visible = True
+        self._rec("show")
+
+    def isVisible(self):
+        return self.visible
+
+    def set_track(self, t):
+        self._rec("set_track", t)
+
+    def set_playback(self, s):
+        self._rec("set_playback", s)
+
+    def set_cover(self, url):
+        self._rec("set_cover", url)
+
+    def set_crash_report(self, path):
+        self._rec("set_crash_report", path)
+
+    def set_progress(self, position_ms, duration_ms):
+        self._rec("set_progress", position_ms, duration_ms)
+
+    def set_history(self, s):
+        self._rec("set_history", s)
+
+    def set_status(self, s):
+        self._rec("set_status", s)
+
+    def set_sharing_paused(self, paused):
+        self._rec("set_sharing_paused", paused)
+
+    def set_update_available(self, version):
+        self._rec("set_update_available", version)
+
+    def set_welcome(self, on):
+        self._rec("set_welcome", on)
 
 
 class FakeWelcome(_Window):
@@ -210,8 +292,13 @@ class Harness:
         self.history = None
         self.log_window = None
         self.welcome = None
+        self.status = None
+        self.activation = None
+        self.acquire_kwargs: list[dict] = []
         self.updater = None
         self.boxes: list[tuple[str, str]] = []
+        self.shown_boxes: list = []
+        self.closed_boxes: list = []
         self.dialogs: list = []
         self.shots: list[tuple[int, object]] = []
         self.timers: list = []
@@ -235,7 +322,14 @@ class Harness:
         h, mp = self, self.mp
         mp.setattr(app, "_forced_debug", False)
         mp.setattr(app, "setup_logging", lambda level: h.log_levels.append(level))
-        mp.setattr(app, "_crash_log", contextlib.nullcontext)
+        # Real detection, without arming faulthandler on a real descriptor.
+        mp.setattr(
+            app,
+            "_crash_log",
+            lambda: contextlib.nullcontext(
+                app._crash_since_last_start(app.state_dir() / "crash.log")
+            ),
+        )
         mp.setattr(app, "attach_qt_log_bridge", lambda: "bridge")
         mp.setattr(app, "qInstallMessageHandler", lambda fn: None)
         mp.setattr("refrain.sources.mpris_server._ensure_dbus_glib_loop", lambda: None)
@@ -260,6 +354,21 @@ class Harness:
         mp.setattr(app, "QSystemTrayIcon", Tray)
 
         class Box:
+            Icon = QMessageBox.Icon
+            StandardButton = QMessageBox.StandardButton
+
+            def __init__(self, icon, title, text, buttons=None):
+                h.boxes.append(("information", text))
+                self.accepted = False
+
+            def accept(self):
+                self.accepted = True
+                h.closed_boxes.append(self)
+
+            def exec(self):
+                h.shown_boxes.append(self)
+                return 0
+
             @staticmethod
             def information(parent, title, text):
                 h.boxes.append(("information", text))
@@ -288,8 +397,8 @@ class Harness:
                 pass
 
             @staticmethod
-            def singleShot(ms, fn):
-                h.shots.append((ms, fn))
+            def singleShot(ms, context, fn=None):
+                h.shots.append((ms, fn if fn is not None else context))
 
         mp.setattr(app, "QTimer", Timer)
         mp.setattr(app, "TrayIcon", lambda: self._keep("tray", FakeTray()))
@@ -298,6 +407,8 @@ class Harness:
         mp.setattr(app, "LogWindow", lambda bridge: self._keep("log_window", _Window()))
         mp.setattr(app, "HistoryWindow", lambda loc, size: self._keep("history", FakeHistory()))
         mp.setattr(app, "WelcomeDialog", lambda: self._keep("welcome", FakeWelcome()))
+        mp.setattr(app, "StatusWindow", lambda locale: self._keep("status", FakeStatus()))
+        mp.setattr(app, "listen_for_activation", self._listen)
 
         class Updater(app.UpdateOrchestrator):
             def __init__(self, config):
@@ -325,7 +436,12 @@ class Harness:
         setattr(self, name, obj)
         return obj
 
-    def _acquire(self):
+    def _listen(self, bus, on_activate):
+        self.activation = (bus, on_activate)
+        return "activator"
+
+    def _acquire(self, **kwargs):
+        self.acquire_kwargs.append(kwargs)
         if isinstance(self.lock, Exception):
             raise self.lock
         return self.lock
@@ -383,11 +499,15 @@ def test_missing_qt_libraries_stop_before_qt(h, monkeypatch, capsys):
     assert notified[0][-1] == "need xcb-cursor"
 
 
-def test_second_instance_says_so_and_exits_cleanly(h):
+def test_second_instance_says_so_and_closes_the_note_by_itself(h):
     h.lock = AlreadyRunning()
     assert h.run() == 0
     assert h.boxes == [("information", "Refrain is already running.")]
     assert h.daemon is None
+    # Nothing to decide, so the note goes away on its own.
+    (box,) = h.shown_boxes
+    h.shot(app._ALREADY_RUNNING_MS)()
+    assert box.accepted is True
 
 
 @pytest.mark.parametrize(
@@ -414,7 +534,7 @@ def test_first_instance_loads_secrets_and_cleans_up_once_it_holds_the_lock(h, mo
     monkeypatch.setattr("refrain.secrets_store.load_into", lambda lastfm: h.order.append("keyring"))
     lock = h.lock
 
-    def acquire():
+    def acquire(**kwargs):
         h.order.append("lock")
         return lock
 
@@ -448,9 +568,11 @@ def test_normal_start_runs_the_daemon_around_the_event_loop(h):
     assert h.app.called("quit_on_last_window") == [(False,)]
     assert h.app._refrain_bus_lock is h.lock
     assert h.app._refrain_translators == ["translator", "system"]
-    assert h.settings.called("show") == [()]
+    assert h.settings.called("show") == []
+    assert h.status.called("show") == [()]
     assert h.log_window.called("show") == []
     assert h.history.called("set_snapshot") == [("snapshot-0",)]
+    assert h.status.called("set_history") == [("snapshot-0",)]
     assert h.tray.called("set_history_enabled") == [(True,)]
     assert h.shot(2000) == h.updater.maybe_check_on_startup
 
@@ -460,9 +582,10 @@ def test_exit_code_of_the_event_loop_is_returned(h):
     assert h.run() == 3
 
 
-def test_silent_start_keeps_settings_hidden(h):
+def test_silent_start_keeps_every_window_hidden(h):
     h.run("--silent")
     assert h.settings.called("show") == []
+    assert h.status.called("show") == []
 
 
 def test_debug_logs_everything_and_opens_the_live_log(h, monkeypatch):
@@ -502,19 +625,29 @@ def test_tray_buttons_reach_daemon_settings_and_app(h):
     assert h.app.called("quit") == [()]
 
 
-def test_daemon_updates_reach_the_tray(h):
+def test_daemon_updates_reach_the_tray_and_the_status_window(h):
     h.run()
     h.daemon.worker.trackChanged.emit("track")
     h.daemon.worker.statusChanged.emit("playing")
     h.daemon.worker.progressTick.emit(1000, 2000)
-    h.daemon.worker.discordConnectionChanged.emit(True)
-    assert [c[0] for c in h.tray.calls[-4:]] == [
+    h.daemon.worker.discordStateChanged.emit("ready", "")
+    h.daemon.worker.lastfmStateChanged.emit("scrobbling", "refrain_demo")
+    assert [c[0] for c in h.tray.calls[-5:]] == [
         "set_track",
         "set_status",
         "set_progress",
-        "set_discord_connected",
+        "set_service_status",
+        "set_service_status",
     ]
     assert h.tray.called("set_progress") == [(1000, 2000)]
+    assert h.status.called("set_track") == [("track",)]
+    assert h.status.called("set_playback") == [("playing",)]
+    (last,) = h.status.called("set_status")[-1]
+    assert (last.discord, last.lastfm, last.lastfm_detail) == (
+        "ready",
+        "scrobbling",
+        "refrain_demo",
+    )
 
 
 def test_applied_settings_reach_daemon_updater_and_autostart(h):
@@ -645,7 +778,9 @@ def test_first_run_shows_the_wizard_instead_of_settings(h):
     assert h.settings.called("show") == []
     assert h.app._refrain_welcome is h.welcome
     h.welcome.finished.emit(1)
-    assert h.settings.called("show") == [()]
+    assert h.settings.called("show") == []
+    assert h.status.called("set_welcome") == [(True,)]
+    assert h.status.called("show") == [()]
 
 
 def test_wizard_hands_its_client_id_to_everyone(h, monkeypatch):
@@ -665,9 +800,10 @@ def test_wizard_hands_its_client_id_to_everyone(h, monkeypatch):
     assert h.config.discord.client_id == ""
     h.welcome.finished.emit(0)
     assert h.settings.called("show") == []
+    assert h.status.called("show") == [()]
 
 
-def test_startup_check_reports_to_the_tray_and_stops_on_quit(h, monkeypatch):
+def test_startup_check_reports_an_expired_lastfm_session_and_stops_on_quit(h, monkeypatch):
     class Worker(QObject):
         finished = Signal(object, object)
 
@@ -675,17 +811,19 @@ def test_startup_check_reports_to_the_tray_and_stops_on_quit(h, monkeypatch):
             super().__init__()
 
         def run(self):
-            self.finished.emit("lastfm-ok", "discord-ok")
+            self.finished.emit(CheckResult(INVALID, "Invalid session key"), CheckResult(OK))
 
     monkeypatch.setattr("refrain.startup_check.StartupCheckWorker", Worker)
-    h.run()
+    h.run("--silent")
+    h.daemon.worker.lastfmStateChanged.emit("scrobbling", "refrain_demo")
     h.shot(5000)()
     deadline = time.monotonic() + 5
-    while not h.tray.called("set_startup_check"):
+    while not h.status.called("show"):
         assert time.monotonic() < deadline
         QCoreApplication.processEvents()
         time.sleep(0.002)
-    assert h.tray.called("set_startup_check") == [("lastfm-ok", "discord-ok")]
+    (last,) = h.tray.called("set_service_status")[-1]
+    assert last.lastfm == "expired"
     h.app.aboutToQuit.emit()
 
 
@@ -780,3 +918,370 @@ def test_plain_quit_does_not_restart(h):
     h.during_exec = lambda h: h.tray.quitRequested.emit()
     assert h.run() == 0
     assert h.execs == []
+
+
+# Status window
+
+
+def test_second_start_asks_the_running_one_and_exits_quietly(h):
+    h.lock = AlreadyRunning("in use", activated=True)
+    assert h.run() == 0
+    assert h.acquire_kwargs == [{"activate": True}]
+    assert h.boxes == []
+    assert h.daemon is None
+
+
+def test_an_activation_from_a_second_start_brings_up_the_status_window(h):
+    h.run("--silent")
+    bus, on_activate = h.activation
+    assert bus is h.lock
+    assert h.app._refrain_activator == "activator"
+    on_activate()
+    assert [c[0] for c in h.status.calls[-3:]] == ["show", "raise_", "activateWindow"]
+
+
+def test_tray_click_opens_the_status_window_and_the_menu_keeps_settings(h):
+    h.run("--silent")
+    h.tray.statusRequested.emit()
+    assert h.status.called("show") == [()]
+    assert h.settings.called("show") == []
+    h.tray.settingsRequested.emit()
+    assert h.settings.called("show") == [()]
+
+
+@pytest.mark.parametrize(
+    ("state", "shown"),
+    [("not_set_up", True), ("rejected", True), ("ready", False), ("no_client", False)],
+)
+def test_autostart_opens_the_status_window_only_when_discord_needs_the_user(h, state, shown):
+    h.run("--silent")
+    h.daemon.worker.discordStateChanged.emit(state, "")
+    assert bool(h.status.called("show")) is shown
+
+
+def test_autostart_opens_it_for_an_expired_lastfm_session(h):
+    h.run("--silent")
+    h.daemon.worker.lastfmStateChanged.emit("expired", "")
+    assert h.status.called("show") == [()]
+
+
+def test_each_problem_opens_the_window_once(h):
+    h.run("--silent")
+    worker = h.daemon.worker
+    worker.discordStateChanged.emit("rejected", "Invalid Client ID")
+    worker.discordStateChanged.emit("ready", "")
+    worker.discordStateChanged.emit("rejected", "Invalid Client ID")
+    assert h.status.called("show") == [()]
+    worker.lastfmStateChanged.emit("expired", "")
+    assert h.status.called("show") == [(), ()]
+
+
+def test_the_wizard_is_not_covered_by_the_status_window(h):
+    h.config.behavior.first_run_complete = False
+    h.config.discord.client_id = ""
+    h.run("--silent")
+    h.daemon.worker.discordStateChanged.emit("not_set_up", "")
+    assert h.status.called("show") == []
+    h.welcome.finished.emit(0)
+    assert h.status.called("show") == [()]
+    h.daemon.worker.discordStateChanged.emit("ready", "")
+    h.daemon.worker.discordStateChanged.emit("not_set_up", "")
+    assert h.status.called("show") == [()]
+
+
+class _Tabs:
+    def __init__(self, names):
+        self.names = names
+        self.current = None
+
+    def count(self):
+        return len(self.names)
+
+    def tabText(self, i):
+        return self.names[i]
+
+    def setCurrentIndex(self, i):
+        self.current = i
+
+
+class _Field:
+    def __init__(self):
+        self.focused = False
+
+    def setFocus(self):
+        self.focused = True
+
+
+def test_status_actions_open_the_right_settings_page(h):
+    h.run()
+    h.settings.tabs = _Tabs(["General", "Sources", "Last.fm", "History"])
+    h.settings.tab_pages = {"general": 0, "sources": 1, "lastfm": 2, "history": 3}
+    h.settings.client_id_input = _Field()
+    h.status.settingsRequested.emit("lastfm")
+    assert h.settings.tabs.current == 2
+    h.status.settingsRequested.emit("history")
+    assert h.settings.tabs.current == 3
+    assert not h.settings.client_id_input.focused
+    h.status.settingsRequested.emit("discord")
+    assert h.settings.tabs.current == 0
+    assert h.settings.client_id_input.focused
+    h.settings.tabs.current = None
+    h.status.settingsRequested.emit("")
+    assert h.settings.tabs.current is None
+    assert h.settings.called("show") == [(), (), (), ()]
+
+
+def test_status_window_opens_the_history_and_the_update(h):
+    h.run()
+    h.status.historyRequested.emit()
+    assert h.history.called("show") == [()]
+    h.updater._latest = _release()
+    h.status.updateRequested.emit()
+    assert h.dialogs == [h.updater._latest]
+    h.daemon.worker.historyChanged.emit("snapshot-1")
+    assert h.status.called("set_history")[-1] == ("snapshot-1",)
+
+
+def _sharing_clock(monkeypatch):
+    """Lets a test switch sharing as often as it likes, seconds apart."""
+    now = [1000.0]
+
+    def tick(step=2.0):
+        now[0] += step
+
+    monkeypatch.setattr(app.time, "monotonic", lambda: now[0])
+    return tick
+
+
+def _pausable(h, monkeypatch, mode="full"):
+    saved = []
+    monkeypatch.setattr(Config, "save", lambda self, path=None: saved.append(self.privacy.mode))
+    del h.config.save
+    h.config.privacy.mode = mode
+    return saved
+
+
+def test_pause_sharing_turns_privacy_off_and_resume_restores_the_mode(h, monkeypatch):
+    saved = _pausable(h, monkeypatch, mode="minimal")
+    tick = _sharing_clock(monkeypatch)
+    h.run()
+    assert h.tray.called("set_sharing_paused") == [(False,)]
+    h.status.sharingToggled.emit(True)
+    (paused,) = h.daemon.worker.called("update_config")[-1]
+    assert paused.privacy.mode == "off"
+    assert h.settings.called("use_config")[-1] == (paused,)
+    assert h.tray.called("set_sharing_paused")[-1] == (True,)
+    assert h.status.called("set_sharing_paused")[-1] == (True,)
+    tick()
+    h.tray.sharingToggled.emit(True)
+    tick()
+    h.tray.sharingToggled.emit(False)
+    (resumed,) = h.daemon.worker.called("update_config")[-1]
+    assert resumed.privacy.mode == "minimal"
+    assert saved == ["off", "minimal"]
+    assert h.status.called("set_sharing_paused")[-1] == (False,)
+
+
+def test_switching_sharing_twice_in_a_second_only_counts_once(h, monkeypatch):
+    _pausable(h, monkeypatch, mode="full")
+    tick = _sharing_clock(monkeypatch)
+    h.run()
+    h.status.sharingToggled.emit(True)
+    h.status.sharingToggled.emit(False)  # too soon: Discord would lose track
+    (paused,) = h.daemon.worker.called("update_config")[-1]
+    assert paused.privacy.mode == "off"
+    assert h.status.called("set_sharing_paused")[-1] == (True,)
+    tick()
+    h.status.sharingToggled.emit(False)
+    (resumed,) = h.daemon.worker.called("update_config")[-1]
+    assert resumed.privacy.mode == "full"
+
+
+def test_resume_after_a_restart_with_sharing_off_goes_back_to_full(h, monkeypatch):
+    _pausable(h, monkeypatch, mode="off")
+    h.run()
+    assert h.status.called("set_sharing_paused") == [(True,)]
+    h.status.sharingToggled.emit(False)
+    (resumed,) = h.daemon.worker.called("update_config")[-1]
+    assert resumed.privacy.mode == "full"
+
+
+def test_a_sharing_switch_that_cannot_be_saved_still_applies(h, monkeypatch, caplog):
+    def refuse(self, path=None):
+        raise OSError("read-only")
+
+    monkeypatch.setattr(Config, "save", refuse)
+    del h.config.save
+    h.run()
+    h.status.sharingToggled.emit(True)
+    assert "read-only" in caplog.text
+    (paused,) = h.daemon.worker.called("update_config")[-1]
+    assert paused.privacy.mode == "off"
+
+
+def test_first_closed_window_says_once_that_refrain_keeps_running(h, monkeypatch):
+    saved = []
+    monkeypatch.setattr(
+        Config, "save", lambda self, path=None: saved.append(self.behavior.tray_hint_shown)
+    )
+    del h.config.save
+    h.run()
+    h.status.finished.emit(0)
+    assert [c[0] for c in h.tray.called("show_hint")] == ["Refrain keeps running in the tray."]
+    assert saved == [True]
+    (remembered,) = h.settings.called("use_config")[-1]
+    assert remembered.behavior.tray_hint_shown
+    h.settings.applied.emit(remembered)
+    h.settings.finished.emit(0)
+    h.status.finished.emit(0)
+    assert len(h.tray.called("show_hint")) == 1
+    assert saved == [True]
+
+
+def test_tray_hint_stays_quiet_once_shown(h):
+    h.config.behavior.tray_hint_shown = True
+    h.run()
+    h.settings.finished.emit(0)
+    assert h.tray.called("show_hint") == []
+
+
+def test_tray_hint_that_cannot_be_saved_is_still_shown_and_logged(h, monkeypatch, caplog):
+    def refuse(self, path=None):
+        raise OSError("read-only")
+
+    monkeypatch.setattr(Config, "save", refuse)
+    del h.config.save
+    h.run()
+    h.status.finished.emit(0)
+    assert len(h.tray.called("show_hint")) == 1
+    assert "read-only" in caplog.text
+
+
+def test_new_lastfm_credentials_check_again(h):
+    h.run()
+    before = len([ms for ms, _ in h.shots if ms == 0])
+    same = Config()
+    same.save = lambda: None
+    h.settings.applied.emit(same)
+    assert len([ms for ms, _ in h.shots if ms == 0]) == before
+    changed = Config()
+    changed.save = lambda: None
+    changed.lastfm.enabled = True
+    changed.lastfm.session_key = "new-session"
+    h.settings.applied.emit(changed)
+    assert len([ms for ms, _ in h.shots if ms == 0]) == before + 1
+
+
+def test_update_found_at_startup_opens_the_dialog_and_the_status_hint(h, monkeypatch):
+    """The owner never saw the startup popup: run the real check end to end."""
+    release = _release()
+    monkeypatch.setattr(app, "check_latest_release", lambda: release)
+    h.config.update.auto_check = True
+    h.config.update.last_check_ts = 0
+    h.run()
+    real_check = type(h.updater).__mro__[1].check_now
+    monkeypatch.setattr(h.updater, "check_now", lambda **kw: real_check(h.updater, **kw))
+    h.shot(2000)()
+    deadline = time.monotonic() + 5
+    while not h.dialogs:
+        assert time.monotonic() < deadline
+        QCoreApplication.processEvents()
+        time.sleep(0.002)
+    assert h.dialogs == [release]
+    assert h.tray.called("set_update_available") == [(True, "999.0.0")]
+    assert h.status.called("set_update_available") == [("999.0.0",)]
+
+
+def test_auto_check_off_never_looks_for_an_update(h):
+    h.config.update.auto_check = False
+    h.run()
+    h.shot(2000)()
+    assert h.updater.checks == []
+
+
+def test_missing_qt_libraries_are_reported_over_d_bus_without_notify_send(h, monkeypatch):
+    sent = []
+
+    class Bus:
+        def get_object(self, name, path):
+            return (name, path)
+
+    class Notifications:
+        def __init__(self, obj, interface):
+            pass
+
+        def Notify(self, *args):
+            sent.append(args)
+
+    h.missing = ["libxcb-cursor.so.0"]
+    monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
+    monkeypatch.setattr(app.shutil, "which", lambda name: None)
+    monkeypatch.setattr("dbus.SessionBus", Bus)
+    monkeypatch.setattr("dbus.Interface", Notifications)
+    assert h.run() == 1
+    assert sent[0][3:5] == ("Refrain can't start", "need xcb-cursor")
+
+
+def test_no_way_to_notify_is_only_logged(h, monkeypatch, caplog):
+    def no_bus():
+        raise RuntimeError("no session bus")
+
+    h.missing = ["libxcb-cursor.so.0"]
+    monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
+    monkeypatch.setattr(app.shutil, "which", lambda name: None)
+    monkeypatch.setattr("dbus.SessionBus", no_bus)
+    assert h.run() == 1
+    assert "no session bus" in caplog.text
+
+
+def _crash_log_with(size_seen: int) -> Path:
+    state = Path(os.environ["XDG_STATE_HOME"]) / "refrain"
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "crash.log").write_text("--- Refrain, pid 1\nFatal Python error: Aborted\n")
+    (state / "crash-seen").write_text(str(size_seen))
+    return state / "crash.log"
+
+
+def test_a_crash_last_time_is_said_once_and_opens_the_report(h, monkeypatch):
+    crash_log = _crash_log_with(0)
+    opened = []
+    monkeypatch.setattr(
+        app.QDesktopServices, "openUrl", lambda url: opened.append(url.toLocalFile())
+    )
+    h.run()
+    ((text, on_click),) = h.tray.called("show_hint")
+    assert text == "Refrain closed unexpectedly last time. Click to open the report."
+    on_click()
+    assert opened == [str(crash_log)]
+    assert h.status.called("set_crash_report") == [(crash_log,)]
+
+
+def test_a_clean_start_says_nothing_about_crashes(h):
+    crash_log = _crash_log_with(0)
+    crash_log.parent.joinpath("crash-seen").write_text(str(crash_log.stat().st_size))
+    h.run()
+    assert h.tray.called("show_hint") == []
+
+
+def test_an_unreadable_crash_marker_is_no_crash(tmp_path):
+    (tmp_path / "crash-seen").write_text("not a number")
+    assert app._crash_since_last_start(tmp_path / "missing.log") is False
+
+
+def test_a_start_remembers_the_reports_so_the_next_one_stays_quiet():
+    crash_log = _crash_log_with(0)
+    assert app._crash_since_last_start(crash_log) is True
+    app._remember_crash_reports(crash_log)
+    assert app._crash_since_last_start(crash_log) is False
+
+
+def test_another_version_starting_is_not_a_crash():
+    crash_log = _crash_log_with(0)
+    app._remember_crash_reports(crash_log)
+    # An older Refrain only stamps its start into the same file.
+    with crash_log.open("a", encoding="utf-8") as fh:
+        fh.write("--- Refrain 0.5.2, pid 12345, started 2026-09-20 17:18:56\n")
+    assert app._crash_since_last_start(crash_log) is False
+    with crash_log.open("a", encoding="utf-8") as fh:
+        fh.write("Fatal Python error: Segmentation fault\n")
+    assert app._crash_since_last_start(crash_log) is True

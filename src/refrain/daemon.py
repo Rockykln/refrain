@@ -15,12 +15,14 @@ import urllib.parse
 
 from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Slot
 
+from refrain import dev_metrics
 from refrain.config import AdvancedConfig, Config
 from refrain.cover_fetcher import CoverFetcher
-from refrain.discord_rpc import DiscordRPC
+from refrain.discord_rpc import DiscordRPC, RPCState
 from refrain.history import HistorySnapshot, PlayHistory
 from refrain.paths import assets_dir
 from refrain.scrobble import Scrobbler, mmss
+from refrain.service_status import discord_status, lastfm_status
 from refrain.song_lengths import LearnedLengths
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.sources.bluetooth import BluetoothSource
@@ -299,8 +301,11 @@ class DaemonWorker(QObject):
     trackChanged = Signal(object)  # TrackInfo
     statusChanged = Signal(object)  # PlaybackStatus
     progressTick = Signal(int, int)  # position_ms, duration_ms (only when playing)
-    discordConnectionChanged = Signal(bool)  # True = connected, False = disconnected
+    # A refrain.service_status value and the reason behind it; only on change.
+    discordStateChanged = Signal(str, str)
+    lastfmStateChanged = Signal(str, str)
     historyChanged = Signal(object)  # HistorySnapshot
+    coverChanged = Signal(str)  # cover URL of the song playing now, "" when there is none
 
     def __init__(self, config: Config):
         super().__init__()
@@ -313,6 +318,9 @@ class DaemonWorker(QObject):
         # applies.
         self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
         self._rpc_active_client_id: str = config.discord.client_id
+        # The Status window shows the same song; a popup on top of it is noise.
+        self._notifications_muted = False
+        self._cover_emitted = ""
         self._cover_fetcher = CoverFetcher()
         # Last.fm scrobbling — opt-in, alongside (never replacing) the
         # Discord RPC. Constructed always; inert until the user enables
@@ -340,6 +348,7 @@ class DaemonWorker(QObject):
         self._history_error_logged = False
         self._scrobbler = Scrobbler(config.lastfm, on_queued=self._on_scrobble_queued)
         self._timer: QTimer | None = None
+        self._clock = dev_metrics.NULL_CLOCK
         self._stopped = False
         self._notify_timer: QTimer | None = None
         self._pending_notify_track: TrackInfo | None = None
@@ -357,7 +366,9 @@ class DaemonWorker(QObject):
         self._last_track_fp = ""
         self._last_status: PlaybackStatus | None = None
         self._last_notified_fp = ""
-        self._last_rpc_connected: bool | None = None
+        self._last_rpc_connected = False
+        self._last_discord_state: tuple[str, str] | None = None
+        self._last_lastfm_state: tuple[str, str] | None = None
         self._active_source: str = "none"
         # RPC `start` is recomputed only when the track *content* changes,
         # not every tick — otherwise Discord's elapsed timer jitters.
@@ -402,6 +413,8 @@ class DaemonWorker(QObject):
         # running the sources on two threads at once.
         self._mpris_server = MPRISServer(
             on_play_pause=lambda: self._queue_control("control_play_pause"),
+            on_play=lambda: self._queue_control("control_play"),
+            on_pause=lambda: self._queue_control("control_pause"),
             on_next=lambda: self._queue_control("control_next"),
             on_previous=lambda: self._queue_control("control_previous"),
         )
@@ -412,10 +425,11 @@ class DaemonWorker(QObject):
     def start_polling(self) -> None:
         """Called on the worker thread once the QThread's event loop is up."""
         log.info("Daemon started")
+        dev_metrics.mark("daemon_started")
         # Pure-polling design (default 500 ms; user-configurable via
         # advanced.poll_interval_ms, floored at 250 ms). Not signal-driven:
         # PySide6's QDBusConnection connect-signature handling is too brittle.
-        self._timer = QTimer()
+        self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
         # Publish ourselves as an MPRIS player so KDE Plasma's panel
@@ -442,7 +456,9 @@ class DaemonWorker(QObject):
         with contextlib.suppress(Exception):
             self._mpris_server.stop()
         with contextlib.suppress(Exception):
-            self._rpc.clear()
+            # Past the rate limit: the socket closes right after, and a
+            # held-back clear would leave the last song on the profile.
+            self._rpc.clear(force=True)
         with contextlib.suppress(Exception):
             self._rpc.close()
         with contextlib.suppress(Exception):
@@ -491,7 +507,7 @@ class DaemonWorker(QObject):
                 self._rpc._ensure_connected()
             # Trigger an immediate poll so any currently-playing track
             # shows up in Discord without waiting for the next tick.
-            QTimer.singleShot(0, self._tick)
+            QTimer.singleShot(0, self, self._tick)
         if self._timer is not None and config.advanced.poll_interval_ms != old_interval:
             self._timer.setInterval(max(config.advanced.poll_interval_ms, 250))
         # Last.fm: pick up enable/disable, new credentials, or a freshly
@@ -509,6 +525,10 @@ class DaemonWorker(QObject):
 
     def history_snapshot(self) -> HistorySnapshot:
         return self._history.snapshot()
+
+    @Slot(bool)
+    def set_notifications_muted(self, muted: bool) -> None:
+        self._notifications_muted = muted
 
     @Slot()
     def clear_history(self) -> None:
@@ -571,6 +591,14 @@ class DaemonWorker(QObject):
         self._control("play_pause")
 
     @Slot()
+    def control_play(self) -> None:
+        self._control("play")
+
+    @Slot()
+    def control_pause(self) -> None:
+        self._control("pause")
+
+    @Slot()
     def control_next(self) -> None:
         self._control("next")
 
@@ -625,7 +653,7 @@ class DaemonWorker(QObject):
             # slower mediaSession ack while keeping the worst case
             # under one second.
             for delay_ms in (0, 50, 150, 350, 750):
-                QTimer.singleShot(delay_ms, self._tick)
+                QTimer.singleShot(delay_ms, self, self._tick)
         else:
             log.debug("control %s: no source dispatched", action)
 
@@ -635,16 +663,22 @@ class DaemonWorker(QObject):
         if self._stopped:
             return
         self._tick_known = None
+        self._clock = dev_metrics.poll_clock()
         try:
             track = self._poll()
             self._dispatch(track)
+            self._clock.done()
         except Exception:
             log.exception("Daemon tick failed")
+        finally:
+            self._clock = dev_metrics.NULL_CLOCK
 
     def _poll(self) -> TrackInfo:
         track = self._poll_sources()
-        track = self._resolve_position(track)
-        return self._apply_idle_detection(track)
+        self._clock.lap("source")
+        track = self._apply_idle_detection(self._resolve_position(track))
+        self._clock.lap("position")
+        return track
 
     def _poll_sources(self) -> TrackInfo:
         mpris_t = self._mpris.read() if self._config.sources.mpris_enabled else None
@@ -922,6 +956,7 @@ class DaemonWorker(QObject):
             self._drop_old_temp_covers(track)
             if (
                 self._config.behavior.notifications
+                and not self._notifications_muted
                 and track.has_track
                 and track.status == PlaybackStatus.PLAYING
                 and fp != self._last_notified_fp
@@ -964,7 +999,21 @@ class DaemonWorker(QObject):
             else:
                 self.progressTick.emit(max(0, track.position_ms), 0)
 
+        self._clock.lap("tray")
+        # The Status window shows the cover whether or not the history keeps it.
+        cover_now = ""
+        if track.has_track and self._config.behavior.cover_art:
+            cover_now = self._cover_fetcher.get(track.artist, track.title, track.album) or ""
+            if not track.album:
+                # Browsers rarely send one, and without it Last.fm finds no cover.
+                found = self._cover_fetcher.get_album(track.artist, track.title, track.album)
+                if found:
+                    track = dataclasses.replace(track, album=found)
+        if cover_now != self._cover_emitted:
+            self._cover_emitted = cover_now
+            self.coverChanged.emit(cover_now)
         self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
+        self._clock.lap("discord")
 
         # Last.fm and the history judge "played" from the same length:
         # the iTunes-corrected duration the RPC + tray see, except where
@@ -982,6 +1031,7 @@ class DaemonWorker(QObject):
         # computed position starts again at zero along with Refrain.
         player_pos_ms = track.position_ms if self._position_tier is PositionTier.REPORTED else None
         self._update_history(track, played_dur_ms, player_pos_ms, self._track_restarted)
+        self._clock.lap("history")
 
         # Last.fm scrobbling. Gated on privacy "off" (the global
         # no-external-broadcasting kill switch); the Scrobbler itself is
@@ -995,6 +1045,7 @@ class DaemonWorker(QObject):
                 position_ms=player_pos_ms,
                 restarted=self._track_restarted,
             )
+        self._clock.lap("scrobble")
 
         # Push the same track + cover URL to the published MPRIS server
         # so KDE Plasma's panel media-controls applet (and any other
@@ -1007,6 +1058,7 @@ class DaemonWorker(QObject):
                 if self._config.behavior.cover_art
                 else None
             )
+            self._clock.lap("covers")
             # Publishing a length with no position to go with it leaves
             # Plasma's applet showing a progress bar pinned at 0:00, so
             # an unresolvable position drops the length too and the
@@ -1016,13 +1068,29 @@ class DaemonWorker(QObject):
                 cover_for_mpris,
                 effective_dur_ms if self._position_known else 0,
             )
+        self._clock.lap("mpris")
 
-        # Surface RPC connect/disconnect transitions so the tray can show
-        # a "● Discord connected" indicator.
+        # A status held back by the rate limit goes out even on a tick
+        # that brings nothing new.
+        self._rpc.pump()
+        self._emit_service_states(track)
+
+    def _emit_service_states(self, track: TrackInfo) -> None:
         rpc_connected = self._rpc.is_connected()
-        if rpc_connected != self._last_rpc_connected:
-            self.discordConnectionChanged.emit(rpc_connected)
-            self._last_rpc_connected = rpc_connected
+        if rpc_connected and not self._last_rpc_connected:
+            dev_metrics.mark("discord_connected")
+        self._last_rpc_connected = rpc_connected
+        privacy = self._config.privacy.mode
+        discord = (str(discord_status(self._rpc.state, privacy, track)), self._rpc.detail)
+        if discord != self._last_discord_state:
+            self._last_discord_state = discord
+            self.discordStateChanged.emit(*discord)
+        session_invalid, waiting = self._scrobbler.health()
+        state, detail = lastfm_status(self._config.lastfm, privacy, session_invalid, waiting)
+        lastfm = (str(state), detail)
+        if lastfm != self._last_lastfm_state:
+            self._last_lastfm_state = lastfm
+            self.lastfmStateChanged.emit(*lastfm)
 
     def _drop_old_temp_covers(self, track: TrackInfo) -> None:
         """The previous song's notification is done with its image.
@@ -1056,7 +1124,7 @@ class DaemonWorker(QObject):
         latency the user feels as "the popup is way too late".
         """
         if self._notify_timer is None:
-            self._notify_timer = QTimer()
+            self._notify_timer = QTimer(self)
             self._notify_timer.setSingleShot(True)
             self._notify_timer.timeout.connect(self._fire_pending_notify)
         self._pending_notify_track = track
@@ -1114,7 +1182,7 @@ class DaemonWorker(QObject):
 
     def _start_cover_replace_watch(self, track: TrackInfo) -> None:
         if self._replace_timer is None:
-            self._replace_timer = QTimer()
+            self._replace_timer = QTimer(self)
             self._replace_timer.setSingleShot(True)
             self._replace_timer.timeout.connect(self._fire_cover_replace)
         self._replace_track = track
@@ -1155,21 +1223,6 @@ class DaemonWorker(QObject):
         effective_duration_ms: int,
         itunes_dur_ms: int,
     ) -> None:
-        if self._config.privacy.mode == "off":
-            self._rpc.clear()
-            return
-        if track.status != PlaybackStatus.PLAYING or not track.has_track:
-            self._rpc.clear()
-            return
-
-        if self._config.privacy.mode == "minimal":
-            self._rpc.update(
-                details="Listening to music",
-                large_image="refrain",
-                large_text="Refrain",
-            )
-            return
-
         # Per-source Discord application: the active source picks which
         # client_id RPC connects under. Switching sources reconnects so
         # each source can render with its own application name + uploaded
@@ -1192,11 +1245,31 @@ class DaemonWorker(QObject):
             # no longer has any state for the old activity.
             self._rpc_track_key = ""
 
+        if self._config.privacy.mode == "off":
+            self._rpc.clear()
+            return
+        if track.status != PlaybackStatus.PLAYING or not track.title.strip():
+            # Connected while idle too, so "ready" and a refused Application
+            # ID show before the first song, not only once one plays.
+            self._rpc._ensure_connected()
+            self._rpc.clear()
+            return
+
+        if self._config.privacy.mode == "minimal":
+            self._rpc.update(
+                details="Listening to music",
+                large_image="refrain",
+                large_text="Refrain",
+            )
+            return
+
         track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
         is_new_track = track_key != self._rpc_track_key
 
-        # Hold a new song back for up to 3 polls until its cover is cached,
-        # so Discord doesn't flash the Refrain logo before the cover lands.
+        # Hold a new song back for up to 3 polls until its cover is cached, so
+        # Discord doesn't flash the Refrain logo before the cover lands. Only
+        # while nothing is on the profile yet: leaving the song before showing
+        # would be telling Discord's viewers something untrue.
         cover_url: str | None = None
         if self._config.behavior.cover_art:
             cover_url = self._cover_fetcher.get(track.artist, track.title, track.album)
@@ -1209,6 +1282,7 @@ class DaemonWorker(QObject):
             and self._config.behavior.cover_art
             and cover_url is None
             and self._rpc_cover_wait_count < 3
+            and self._rpc.state is not RPCState.SHOWING
         ):
             self._rpc_cover_wait_count += 1
             return
@@ -1289,8 +1363,8 @@ class DaemonWorker(QObject):
         send_timing = not is_short_track and self._position_known
 
         payload: dict = {
-            "details": details[:128],
-            "state": state[:128],
+            "details": details,
+            "state": state,
             "large_image": large_image,
         }
         # Discord's LISTENING activity type intentionally does
@@ -1306,7 +1380,7 @@ class DaemonWorker(QObject):
         # as a third visible line for LISTENING activity, and an
         # echo of `state` looks broken to viewers.
         if album_for_display and album_for_display.lower() != state.lower():
-            payload["large_text"] = album_for_display[:128]
+            payload["large_text"] = album_for_display
 
         if send_timing and effective_duration_ms > 0:
             payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)

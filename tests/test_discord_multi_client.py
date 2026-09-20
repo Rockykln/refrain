@@ -158,15 +158,24 @@ def test_watching_for_newcomers_does_not_sweep_every_tick(rpc_factory, monkeypat
     rpc, made = rpc_factory([0], all_clients=True)
     rpc._ensure_connected()
 
+    import time
+    from types import SimpleNamespace
+
+    now = [time.monotonic()]
+    monkeypatch.setattr("refrain.discord_rpc.time", SimpleNamespace(monotonic=lambda: now[0]))
     calls = []
     monkeypatch.setattr(
         "refrain.discord_rpc._scan_ipc_pipes", lambda: (calls.append(1), ([0], []))[1]
     )
     for i in range(20):  # 20 ticks == 10 s at the default poll interval
+        now[0] += 0.5
         rpc.update(details=f"Song {i}")
 
     assert len(calls) <= 2, f"swept the sockets {len(calls)} times in 20 ticks"
-    assert made[0].update.call_count == 20, "updates must still go out"
+    assert made[0].update.call_count == 5, "updates must still go out, rate-limited"
+    now[0] += 20.0
+    rpc.pump()
+    assert made[0].update.call_args.kwargs["details"] == "Song 19"
 
 
 def test_the_multi_client_notice_is_logged_once_not_every_sweep(rpc_factory, caplog):

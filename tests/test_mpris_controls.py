@@ -117,3 +117,21 @@ def test_a_length_arriving_late_reaches_the_panel():
     server._apply(track, None, 157_000)
     assert len(sent) == 1
     assert sent[0]["Metadata"]["mpris:length"] == 157_000_000
+
+
+@pytest.mark.parametrize(
+    ("method", "expected"), [("Play", "play"), ("Pause", "pause"), ("Stop", "pause")]
+)
+@pytest.mark.parametrize("status", [PlaybackStatus.PLAYING, PlaybackStatus.PAUSED])
+def test_play_and_pause_reach_the_source_as_themselves(method, expected, status):
+    calls: list[str] = []
+    server = MPRISServer(
+        on_play_pause=lambda: calls.append("toggle"),
+        on_next=lambda: None,
+        on_previous=lambda: None,
+        on_play=lambda: calls.append("play"),
+        on_pause=lambda: calls.append("pause"),
+    )
+    server._track = TrackInfo(source="mpris", title="Glass Tides", status=status)
+    getattr(server, method)()
+    assert calls == [expected]

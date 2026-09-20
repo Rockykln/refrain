@@ -44,6 +44,7 @@ def win(monkeypatch, boxes):
     window.applied.connect(window.sent.append)
     window.restartRequested.connect(lambda: window.restarts.append(1))
     yield window
+    window._mark_clean()
     window.close()
     window.deleteLater()
     app.processEvents()
@@ -73,30 +74,31 @@ def _release(version):
 # ------------------------------------------------------------------ Apply
 
 
-def test_apply_without_restart_worthy_changes_just_closes(win):
+def test_apply_saves_and_keeps_the_window_open(win):
     win.show()
     win.poll_spin.setValue(2500)
     win._on_apply_clicked()
     assert win.sent[-1].advanced.poll_interval_ms == 2500
     assert win.restarts == []
-    assert not win.isVisible()
+    assert win.isVisible()
 
 
-def test_a_new_language_restarts_refrain(win):
+def test_a_new_language_restarts_refrain_after_asking(win, monkeypatch):
     other = next(
         i for i in range(win.language_combo.count()) if win.language_combo.itemData(i) != "system"
     )
     win.language_combo.setCurrentIndex(other)
+    _click(monkeypatch, "Save and restart")
     win._on_apply_clicked()
     assert win.sent[-1].advanced.language == win.language_combo.itemData(other)
     assert win.restarts == [1]
 
 
-def test_a_new_discord_client_id_restarts_refrain(win):
+def test_a_new_discord_client_id_applies_without_a_restart(win):
     win.client_id_input.setText(" 1234567890123456780 ")
     win._on_apply_clicked()
     assert win.sent[-1].discord.client_id == "1234567890123456780"
-    assert win.restarts == [1]
+    assert win.restarts == []
 
 
 def test_per_source_ids_are_dropped_when_the_switch_is_off(win):
@@ -240,7 +242,7 @@ def test_an_approved_token_connects_the_account(win, monkeypatch, boxes):
         (
             "information",
             "Last.fm",
-            "Connected as marlowvance. Click Apply to save — scrobbling starts on the next track.",
+            "Connected as marlowvance. Scrobbling starts with the next song.",
         )
     ]
 
@@ -269,10 +271,9 @@ def test_cancelling_the_approval_says_nothing(win, monkeypatch, boxes):
 
 
 def test_a_session_without_a_user_name_still_connects(win, boxes):
-    win._lastfm_disconnect_requested = True
     win._on_lastfm_session("12345session", "")
-    assert win._lastfm_disconnect_requested is False
-    assert boxes[-1][2].startswith("Connected. Click Apply")
+    assert win._lastfm_session_key == "12345session"
+    assert boxes[-1][2] == "Connected. Scrobbling starts with the next song."
 
 
 def test_a_failed_token_request_is_shown(win, boxes):

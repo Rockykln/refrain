@@ -32,3 +32,16 @@ def test_lowering_the_filter_shows_earlier_debug_lines():
     assert "debug line" in window.view.toPlainText()
     window.level_combo.setCurrentIndex(window.level_combo.findData(logging.WARNING))
     assert window.view.toPlainText() == ""
+
+
+def test_lines_logged_before_the_window_existed_are_shown():
+    QApplication.instance() or QApplication(sys.argv)
+    bridge = _Bridge()
+    bridge.backlog = [("Refrain starting", logging.INFO), ("Config loaded", logging.INFO)]
+    window = LogWindow(bridge)
+    bridge.log_record.emit("Tray ready", logging.INFO)
+    assert window.view.toPlainText().splitlines() == [
+        "Refrain starting",
+        "Config loaded",
+        "Tray ready",
+    ]

@@ -9,19 +9,18 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from refrain.paths import autostart_path, cache_dir, config_dir, state_dir
+from refrain.paths import _xdg, autostart_path, cache_dir, config_dir, state_dir
 
 log = logging.getLogger(__name__)
 
 
 def _user_apps_desktop() -> Path:
-    return Path.home() / ".local" / "share" / "applications" / "refrain.desktop"
+    return _xdg("XDG_DATA_HOME", ".local/share") / "applications" / "refrain.desktop"
 
 
 def _user_icon_svg() -> Path:
-    return (
-        Path.home() / ".local" / "share" / "icons" / "hicolor" / "scalable" / "apps" / "refrain.svg"
-    )
+    data = _xdg("XDG_DATA_HOME", ".local/share")
+    return data / "icons" / "hicolor" / "scalable" / "apps" / "refrain.svg"
 
 
 def collect_paths() -> list[Path]:

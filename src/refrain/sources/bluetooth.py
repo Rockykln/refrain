@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 
 import dbus
 import dbus.mainloop
@@ -12,6 +13,15 @@ import dbus.mainloop
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
 log = logging.getLogger(__name__)
+
+_ADDRESS = re.compile(
+    r"([0-9A-Fa-f]{2})([_:])(?:[0-9A-Fa-f]{2}\2){3}([0-9A-Fa-f]{2}\2[0-9A-Fa-f]{2})"
+)
+
+
+def _masked(text: object) -> str:
+    """Hide all but the last two bytes of device addresses: logs get shared in bug reports."""
+    return _ADDRESS.sub(lambda m: f"XX{m[2]}XX{m[2]}XX{m[2]}XX{m[2]}{m[3]}", str(text))
 
 
 def _bluez_owned(bus) -> bool | None:
@@ -43,51 +53,40 @@ def _device_name(objects, player_props) -> str:
         return ""
 
 
-# What a phone names the app playing over AVRCP, lower-cased. Refrain shows
-# music; a stream or a video playing through the same headphones is not a
-# song to put on Discord, in the history or on Last.fm.
-_MUSIC_APPS = frozenset(
+# What a phone names Apple Music over AVRCP, lower-cased and localised.
+# Refrain is an Apple Music companion, so a song from another service on the
+# same headphones is not one to put on Discord, in the history or on Last.fm.
+_APPLE_MUSIC_APPS = frozenset(
     {
+        "apple music",
         "music",
         "musik",
-        "apple music",
-        "spotify",
-        "deezer",
-        "tidal",
-        "youtube music",
-        "amazon music",
-        "soundcloud",
-        "qobuz",
-    }
-)
-_NOT_MUSIC_APPS = frozenset(
-    {
-        "twitch",
-        "youtube",
-        "netflix",
-        "prime video",
-        "disney+",
-        "podcasts",
-        "audible",
-        "tiktok",
-        "instagram",
-        "kick",
+        "musique",
+        "música",
+        "musica",
+        "muziek",
+        "musikk",
+        "muzyka",
+        "hudba",
+        "музыка",
+        "музика",
+        "müzik",
+        "音楽",
+        "音乐",
+        "뮤직",
+        "음악",
     }
 )
 
 
-def is_music_app(app: str, duration_ms: int) -> bool:
-    """Does the app playing over Bluetooth play music?
+def is_apple_music(app: str) -> bool:
+    """Is Apple Music what the phone is playing?
 
-    An app neither list knows counts when its track has a length: a live
-    stream has none.
+    A phone that names no app at all still counts — AVRCP leaves the name
+    optional, and an empty one is no reason to ignore the song.
     """
     name = app.strip().casefold()
-    if not name or name in _MUSIC_APPS:
-        return True
-    if name in _NOT_MUSIC_APPS:
-        return False
-    return duration_ms > 0
+    return not name or name in _APPLE_MUSIC_APPS or "apple music" in name
 
 
 class BluetoothSource:
@@ -181,9 +180,9 @@ class BluetoothSource:
                 app = str(props.Get("org.bluez.MediaPlayer1", "Name"))
             except Exception:
                 app = ""  # optional in AVRCP
-            if not is_music_app(app, duration_ms):
+            if not is_apple_music(app):
                 if app != self._ignored_app:
-                    log.info("Bluetooth: %s is playing — not music, ignored", app)
+                    log.info("Bluetooth: %s is playing — not Apple Music, ignored", app)
                     self._ignored_app = app
                 return TrackInfo.empty()
             self._ignored_app = ""
@@ -200,7 +199,7 @@ class BluetoothSource:
                 loop_track=repeat == "singletrack",
             )
         except Exception as e:
-            log.debug("Bluetooth player %s unreadable: %s", player_path, e)
+            log.debug("Bluetooth player %s unreadable: %s", _masked(player_path), _masked(e))
             return TrackInfo.empty()
 
     def play_pause(self) -> bool:
@@ -214,10 +213,16 @@ class BluetoothSource:
             props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
             status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
         except Exception as e:
-            log.debug("Bluetooth status query failed: %s", e)
+            log.debug("Bluetooth status query failed: %s", _masked(e))
             status = "stopped"
         method = "Pause" if status == "playing" else "Play"
         return self._call_method(method)
+
+    def play(self) -> bool:
+        return self._call_method("Play")
+
+    def pause(self) -> bool:
+        return self._call_method("Pause")
 
     def next(self) -> bool:
         return self._call_method("Next")
@@ -238,7 +243,7 @@ class BluetoothSource:
             getattr(iface, method)()
             return True
         except dbus.DBusException as e:
-            log.debug("BlueZ %s on %s failed: %s", method, path, e)
+            log.debug("BlueZ %s on %s failed: %s", method, _masked(path), _masked(e))
             self._last_player_path = None
             return False
         except Exception:
@@ -257,7 +262,7 @@ class BluetoothSource:
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
         except Exception as e:
-            log.debug("Bluetooth: GetManagedObjects failed: %s", e)
+            log.debug("Bluetooth: GetManagedObjects failed: %s", _masked(e))
             return None
 
         mac_token = self._device_mac.replace(":", "_").lower() if self._device_mac else ""
@@ -295,7 +300,7 @@ class BluetoothSource:
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
         except Exception as e:
-            log.debug("Bluetooth list_paired_devices failed: %s", e)
+            log.debug("Bluetooth list_paired_devices failed: %s", _masked(e))
             return []
 
         devices: list[dict] = []
