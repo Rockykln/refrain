@@ -190,14 +190,22 @@ def test_info_rows_open_the_status_window(tray):
     assert opened == [1] * 5
 
 
-def test_pausing_sharing_and_settings_are_not_in_the_menu(tray):
-    # A click on the icon opens the Status window, which holds both.
+def test_pausing_sharing_is_not_in_the_menu_but_settings_is(tray):
+    # A click on the icon opens the Status window, which holds the pause
+    # switch; Settings is where people look for it, so it stays here too.
     top = [a.text() for a in tray._menu.actions() if a.text()]
     assert "Pause sharing" not in top
     assert "Resume sharing" not in top
-    assert "Settings…" not in top
+    assert "Settings…" in top
     tray.set_sharing_paused(True)
     assert tray._sharing_paused is True
+
+
+def test_the_settings_entry_asks_for_the_settings_window(tray):
+    asked = []
+    tray.settingsRequested.connect(lambda: asked.append(1))
+    tray._settings_action.trigger()
+    assert asked == [1]
 
 
 def test_rarely_used_entries_live_under_troubleshooting(tray):

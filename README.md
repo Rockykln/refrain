@@ -278,11 +278,12 @@ no unicode-glyph prefixes.
 | Next              | Skip forward on the active source                         |
 | Update available — vX.Y.Z | Only visible when a newer release exists          |
 | Recently played…  | Open the history window (hidden while the history is off) |
+| Settings…         | Open the settings window                                  |
 | Troubleshooting ▸ | *Live log…* and *Restart Refrain* (releases the D-Bus name and Discord connection, then starts the same binary again) |
 | Quit Refrain      | Stop the daemon and exit                                  |
 
 Left-click the tray icon opens the Status window — which also holds
-*Pause sharing* and *Settings…* — **middle-click toggles play/pause**,
+*Pause sharing* — **middle-click toggles play/pause**,
 right-click shows this menu. (DBusMenu keeps an open
 menu's text static, so the progress line is a snapshot from when you
 opened it — hover the tray icon for a live-updating tooltip.)
@@ -665,7 +666,7 @@ inside the app under **Settings → Legal**.
 | Lines in the repository | 87,223 |
 | Words in the repository | 306,660 |
 | Words of documentation | 46,958 |
-| Automated tests | 2,128 |
+| Automated tests | 2,133 |
 | Test coverage | 100 % |
 | Days since the first release | 138 |
 | Versions released | 24 |

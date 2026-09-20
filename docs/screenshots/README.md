@@ -20,7 +20,7 @@ control, a reworded hint).
 | `update-dialog.png`     | The update-available popup                                                    |
 | `live-log.png`          | The live-log window with a real session's records in it                       |
 | `history.png`           | Recently played: covers, lengths, times, sources, the song playing on top, search and source filter |
-| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Recently played, Troubleshooting (Live log, Restart), Quit |
+| `tray-menu.png`         | The tray menu: track / artist / progress / Discord + Last.fm rows, transport, update, Recently played, Settings, Troubleshooting (Live log, Restart), Quit |
 | `notification.png`      | A track-change desktop notification                                           |
 | `discord-rpc.png`       | Discord's "Listening to" card                                                 |
 | `demo-cover.png`        | Not a screenshot: the cover of the demo track, drawn for these shots — see below |

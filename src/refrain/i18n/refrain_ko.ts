@@ -1632,17 +1632,17 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     <name>TrayIcon</name>
     <message>
         <location filename="../ui/tray.py" line="110"/>
-        <location filename="../ui/tray.py" line="410"/>
+        <location filename="../ui/tray.py" line="415"/>
         <source>(nothing playing)</source>
         <translation>(재생 중인 항목 없음)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="344"/>
+        <location filename="../ui/tray.py" line="349"/>
         <source>Discord: visible on your profile</source>
         <translation>Discord: 프로필에 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="361"/>
+        <location filename="../ui/tray.py" line="366"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: 연결되지 않음</translation>
     </message>
@@ -1653,7 +1653,7 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/tray.py" line="123"/>
-        <location filename="../ui/tray.py" line="352"/>
+        <location filename="../ui/tray.py" line="357"/>
         <source>Discord: checking…</source>
         <translation>Discord: 확인 중…</translation>
     </message>
@@ -1664,7 +1664,7 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/tray.py" line="148"/>
-        <location filename="../ui/tray.py" line="302"/>
+        <location filename="../ui/tray.py" line="307"/>
         <source>Play</source>
         <translation>재생</translation>
     </message>
@@ -1675,7 +1675,7 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/tray.py" line="173"/>
-        <location filename="../ui/tray.py" line="311"/>
+        <location filename="../ui/tray.py" line="316"/>
         <source>Update available</source>
         <translation>업데이트 있음</translation>
     </message>
@@ -1685,104 +1685,109 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
         <translation>최근 재생한 곡…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="192"/>
+        <location filename="../ui/tray.py" line="191"/>
+        <source>Settings…</source>
+        <translation>설정…</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="197"/>
         <source>Troubleshooting</source>
         <translation>문제 해결</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="194"/>
+        <location filename="../ui/tray.py" line="199"/>
         <source>Live log…</source>
         <translation>실시간 로그…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="197"/>
+        <location filename="../ui/tray.py" line="202"/>
         <source>Restart Refrain</source>
         <translation>Refrain 다시 시작</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="201"/>
+        <location filename="../ui/tray.py" line="206"/>
         <source>Quit Refrain</source>
         <translation>Refrain 종료</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="299"/>
+        <location filename="../ui/tray.py" line="304"/>
         <source>Pause</source>
         <translation>일시 정지</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="308"/>
+        <location filename="../ui/tray.py" line="313"/>
         <source>Update available — v{version}</source>
         <translation>업데이트 있음 — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="334"/>
+        <location filename="../ui/tray.py" line="339"/>
         <source>Discord: not set up — add your Application ID</source>
         <translation>Discord: 설정되지 않음 — Application ID 추가</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="336"/>
+        <location filename="../ui/tray.py" line="341"/>
         <source>Discord: app isn&apos;t running</source>
         <translation>Discord: 앱이 실행되고 있지 않음</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="338"/>
+        <location filename="../ui/tray.py" line="343"/>
         <source>Discord: Application ID rejected — check it</source>
         <translation>Discord: Application ID가 거부됨 — 확인 필요</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="340"/>
+        <location filename="../ui/tray.py" line="345"/>
         <source>Discord: not answering</source>
         <translation>Discord: 응답 없음</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="342"/>
+        <location filename="../ui/tray.py" line="347"/>
         <source>Discord: ready — waiting for music</source>
         <translation>Discord: 준비됨 — 음악 대기 중</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="346"/>
+        <location filename="../ui/tray.py" line="351"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: “Listening to music” 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="348"/>
+        <location filename="../ui/tray.py" line="353"/>
         <source>Discord: hidden while paused</source>
         <translation>Discord: 일시 정지 중 숨김</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="350"/>
+        <location filename="../ui/tray.py" line="355"/>
         <source>Discord: hidden — sharing is off</source>
         <translation>Discord: 숨김 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="359"/>
+        <location filename="../ui/tray.py" line="364"/>
         <source>Last.fm: scrobbling is off</source>
         <translation>Last.fm: 스크로블이 꺼져 있음</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="364"/>
+        <location filename="../ui/tray.py" line="369"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: 전송 대기 중인 스크로블 %n개</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="367"/>
+        <location filename="../ui/tray.py" line="372"/>
         <source>Last.fm: sign-in expired — reconnect</source>
         <translation>Last.fm: 로그인 만료 — 다시 연결하세요</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="369"/>
+        <location filename="../ui/tray.py" line="374"/>
         <source>Last.fm: paused — sharing is off</source>
         <translation>Last.fm: 일시 중지됨 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="371"/>
+        <location filename="../ui/tray.py" line="376"/>
         <source>Last.fm: scrobbling as {user}</source>
         <translation>Last.fm: {user}(으)로 스크로블 중</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="374"/>
+        <location filename="../ui/tray.py" line="379"/>
         <source>Last.fm: scrobbling</source>
         <translation>Last.fm: 스크로블 중</translation>
     </message>

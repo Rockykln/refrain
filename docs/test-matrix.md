@@ -31,7 +31,7 @@ driver and should be tested on every commit; the rest before each tag.
 | [ ] | **Arch Linux** (rolling) | KDE Plasma 6 | X11 | AUR `refrain` | | alternate display server |
 | [ ] | **Fedora 42 Workstation** | GNOME 47 | Wayland | AppImage + PyPI | | RPM world + GNOME tray ext. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
-| ❌ | **Ubuntu 25.04** | GNOME 48 | Wayland | PyPI | 2026-05-07 / v0.2.2 | Tested + **failed**. Settings window came up with the gnome-control-center icon (Wayland app-id matching heuristic; fixed in `1e759ba` by setting per-window icon explicitly). Snap-sandboxed Firefox + Chrome both refused to publish MPRIS so Refrain saw no players — distro-external, workaround is a deb-channel browser (Brave / Mozilla apt repo). 25 s `org.bluez` activation timeout per poll when bluez isn't present (fast-fail via `NameHasOwner` added in follow-up). Re-test with v0.2.3+ once those fixes ship. |
+| [ ] | **Ubuntu 25.04** | GNOME 48 | Wayland | PyPI | | Failed once, 2026-05-07 against v0.2.2, for three reasons that have since been fixed: the settings window wore the gnome-control-center icon (`1e759ba`), and a missing bluez cost 25 s per poll (`NameHasOwner` fast-fail). What remains is distro-external: snap-sandboxed Firefox and Chrome publish no MPRIS, so Refrain sees no player — use a browser from a deb channel (Brave, Mozilla's apt repo). Not re-tested since; the row is open, not failed. |
 | [ ] | **Debian 13** (Trixie) | KDE Plasma 6 | Wayland | AppImage | | Plasma outside Arch; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | [ ] | **openSUSE Tumbleweed** | KDE Plasma 6 | Wayland | PyPI in venv | | rolling non-Arch; pip builds dbus-python here (see README). 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | [ ] | **Linux Mint 22** | Cinnamon 6 | X11 | AppImage | | Cinnamon tray, X11 |
@@ -96,7 +96,7 @@ These are documented as **unsupported** — don't open issues for them.
 | Ubuntu 20.04 LTS | Python 3.8 too old |
 | Ubuntu 22.04 LTS (PyPI) | Python 3.10 too old — the AppImage (0.5.3+) runs, tested in a container 2026-09-18 |
 | Linux Mint 21.x | Python 3.10 — too old |
-| **CentOS Stream 10** | Tested 2026-05-07 against v0.2.2 — **failed**. AppImage in mounted mode needs `fuse` (not just `fuse-libs`) which the docs didn't surface; in `--appimage-extract-and-run` mode raises `No module named refrain` on a fresh extract. PyPI install starts but GNOME default ships no AppIndicator package out of the box — Refrain refuses to launch with "No system tray". Reachable only with manual Extension-Manager dance. Not Tier-1/2 worth. |
+| **CentOS Stream 10** | Tested 2026-05-07 against v0.2.2 — failed, and only one of the two reasons is gone: the AppImage's `No module named refrain` was the bug fixed in 0.5.3, but a stock GNOME here still ships no AppIndicator package, so Refrain refuses to start with "No system tray" until one is installed by hand. Mounted mode also needs `fuse`, not just `fuse-libs`. Not worth Tier 1 or 2. |
 | CentOS Stream 9 | glibc 2.34 < 2.35 (AppImage breaks); Python 3.9 default |
 | RHEL 9 / Rocky 9 / AlmaLinux 9 | same family as CentOS Stream 9 |
 | RHEL 8 / Rocky 8 / AlmaLinux 8 | glibc 2.28; Python 3.6 default |
@@ -120,7 +120,7 @@ minute; the whole sweep is ≈ 6 minutes per system.
 
 ### 2. Settings round-trip
 
-- Tray icon → Status window → *Settings…* opens the window.
+- Tray icon → Status window → *Settings…*, or *Settings…* in the tray menu, opens the window.
 - Toggle any setting (e.g. *Notifications*), hit *Apply*.
 - Window stays open, *Apply* greys out again, setting persists in
   `~/.config/refrain/config.toml`; *OK* saves and closes.

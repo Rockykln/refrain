@@ -1644,17 +1644,17 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
     <name>TrayIcon</name>
     <message>
         <location filename="../ui/tray.py" line="110"/>
-        <location filename="../ui/tray.py" line="410"/>
+        <location filename="../ui/tray.py" line="415"/>
         <source>(nothing playing)</source>
         <translation>(nic nie jest odtwarzane)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="344"/>
+        <location filename="../ui/tray.py" line="349"/>
         <source>Discord: visible on your profile</source>
         <translation>Discord: widoczne w Twoim profilu</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="361"/>
+        <location filename="../ui/tray.py" line="366"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: nie połączono</translation>
     </message>
@@ -1665,7 +1665,7 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
     </message>
     <message>
         <location filename="../ui/tray.py" line="123"/>
-        <location filename="../ui/tray.py" line="352"/>
+        <location filename="../ui/tray.py" line="357"/>
         <source>Discord: checking…</source>
         <translation>Discord: sprawdzanie…</translation>
     </message>
@@ -1676,7 +1676,7 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
     </message>
     <message>
         <location filename="../ui/tray.py" line="148"/>
-        <location filename="../ui/tray.py" line="302"/>
+        <location filename="../ui/tray.py" line="307"/>
         <source>Play</source>
         <translation>Odtwórz</translation>
     </message>
@@ -1687,7 +1687,7 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
     </message>
     <message>
         <location filename="../ui/tray.py" line="173"/>
-        <location filename="../ui/tray.py" line="311"/>
+        <location filename="../ui/tray.py" line="316"/>
         <source>Update available</source>
         <translation>Dostępna aktualizacja</translation>
     </message>
@@ -1697,82 +1697,87 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
         <translation>Ostatnio słuchane…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="192"/>
+        <location filename="../ui/tray.py" line="191"/>
+        <source>Settings…</source>
+        <translation>Ustawienia…</translation>
+    </message>
+    <message>
+        <location filename="../ui/tray.py" line="197"/>
         <source>Troubleshooting</source>
         <translation>Rozwiązywanie problemów</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="194"/>
+        <location filename="../ui/tray.py" line="199"/>
         <source>Live log…</source>
         <translation>Dziennik na żywo…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="197"/>
+        <location filename="../ui/tray.py" line="202"/>
         <source>Restart Refrain</source>
         <translation>Uruchom ponownie Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="201"/>
+        <location filename="../ui/tray.py" line="206"/>
         <source>Quit Refrain</source>
         <translation>Zakończ Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="299"/>
+        <location filename="../ui/tray.py" line="304"/>
         <source>Pause</source>
         <translation>Wstrzymaj</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="308"/>
+        <location filename="../ui/tray.py" line="313"/>
         <source>Update available — v{version}</source>
         <translation>Dostępna aktualizacja — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="334"/>
+        <location filename="../ui/tray.py" line="339"/>
         <source>Discord: not set up — add your Application ID</source>
         <translation>Discord: nie skonfigurowano — dodaj swoje Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="336"/>
+        <location filename="../ui/tray.py" line="341"/>
         <source>Discord: app isn&apos;t running</source>
         <translation>Discord: aplikacja nie jest uruchomiona</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="338"/>
+        <location filename="../ui/tray.py" line="343"/>
         <source>Discord: Application ID rejected — check it</source>
         <translation>Discord: Application ID odrzucone — sprawdź je</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="340"/>
+        <location filename="../ui/tray.py" line="345"/>
         <source>Discord: not answering</source>
         <translation>Discord: nie odpowiada</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="342"/>
+        <location filename="../ui/tray.py" line="347"/>
         <source>Discord: ready — waiting for music</source>
         <translation>Discord: gotowe — oczekiwanie na muzykę</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="346"/>
+        <location filename="../ui/tray.py" line="351"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: pokazuje „Listening to music”</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="348"/>
+        <location filename="../ui/tray.py" line="353"/>
         <source>Discord: hidden while paused</source>
         <translation>Discord: ukryte podczas wstrzymania</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="350"/>
+        <location filename="../ui/tray.py" line="355"/>
         <source>Discord: hidden — sharing is off</source>
         <translation>Discord: ukryte — udostępnianie jest wyłączone</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="359"/>
+        <location filename="../ui/tray.py" line="364"/>
         <source>Last.fm: scrobbling is off</source>
         <translation>Last.fm: scrobblowanie jest wyłączone</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="364"/>
+        <location filename="../ui/tray.py" line="369"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: oczekuje %n scrobble</numerusform>
@@ -1781,22 +1786,22 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
         </translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="367"/>
+        <location filename="../ui/tray.py" line="372"/>
         <source>Last.fm: sign-in expired — reconnect</source>
         <translation>Last.fm: sesja logowania wygasła — połącz ponownie</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="369"/>
+        <location filename="../ui/tray.py" line="374"/>
         <source>Last.fm: paused — sharing is off</source>
         <translation>Last.fm: wstrzymane — udostępnianie jest wyłączone</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="371"/>
+        <location filename="../ui/tray.py" line="376"/>
         <source>Last.fm: scrobbling as {user}</source>
         <translation>Last.fm: scrobblowanie jako {user}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="374"/>
+        <location filename="../ui/tray.py" line="379"/>
         <source>Last.fm: scrobbling</source>
         <translation>Last.fm: scrobblowanie</translation>
     </message>

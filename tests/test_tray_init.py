@@ -41,6 +41,7 @@ def test_tray_init_creates_all_actions(app):
         "_next_action",
         "_update_action",
         "_history_action",
+        "_settings_action",
     ):
         assert hasattr(tray, attr), f"TrayIcon missing {attr} after __init__"
 

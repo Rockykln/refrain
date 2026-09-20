@@ -183,10 +183,15 @@ class TrayIcon(QObject):
         self._history_action = QAction(self.tr("Recently played…"))
         self._history_action.setIcon(QIcon.fromTheme("document-open-recent"))
         self._history_action.triggered.connect(self.historyRequested.emit)
-        # Pausing sharing and the settings live in the Status window, which a
-        # click on the icon already opens — the menu keeps what a click cannot do.
+        # Pausing sharing lives in the Status window, which a click on the icon
+        # already opens; Settings stays here too, because this menu is where
+        # people look for it.
         self._sharing_paused = False
         menu.addAction(self._history_action)
+        self._settings_action = QAction(self.tr("Settings…"))
+        self._settings_action.setIcon(QIcon.fromTheme("configure"))
+        self._settings_action.triggered.connect(self.settingsRequested.emit)
+        menu.addAction(self._settings_action)
         # Rarely needed, and Restart sat right above Quit: tucked away,
         # still two clicks from the top.
         self._more_menu = menu.addMenu(self.tr("Troubleshooting"))

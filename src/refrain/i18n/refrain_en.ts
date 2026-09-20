@@ -58,7 +58,7 @@
 <context>
     <name>TrayIcon</name>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="364"/>
+        <location filename="../ui/tray.py" line="369"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: %n scrobble waiting</numerusform>
