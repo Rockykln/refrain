@@ -109,6 +109,13 @@ else only happens once the user sets it up:
 
 [`PRIVACY.md`](PRIVACY.md) lists every data flow in detail.
 
+## Contact
+
+Refrain is written by **Rockykln**. Questions, bug reports and ideas are
+welcome by email at [contact@rockykln.com](mailto:contact@rockykln.com), on
+Discord as **rockykln**, or as an issue at
+<https://github.com/Rockykln/refrain/issues>.
+
 ## No warranty
 
 The software is provided **"as is", without warranty of any kind**, express

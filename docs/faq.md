@@ -11,7 +11,7 @@ detected automatically.
 
 Three things to check:
 
-1. *Settings → General → Fetch album cover art from iTunes* is on.
+1. *Settings → General → Privacy → Look up songs in Apple's catalog* is on.
 2. The track exists in the iTunes catalog. Refrain asks the store of your
    own country first, then the US store, with "feat." credits and
    remaster tags left out of the search, and falls back to the first of
@@ -36,8 +36,11 @@ once it arrives. Later plays of the same track use the cached image.
 
 ## Does Refrain support Spotify / Tidal / YouTube Music?
 
-No, and there are no plans to. Refrain is Apple-Music-focused. Other
-services have first-class Discord-RPC apps already.
+No, and there are no plans to — in the browser and over Bluetooth alike.
+Refrain is an Apple Music companion: it looks for Apple Music in the
+browser, and over Bluetooth it shows a song only when the phone says Apple
+Music is what plays it. Other services have first-class Discord-RPC apps
+already.
 
 ## I don't have a system tray (GNOME Wayland).
 
@@ -85,7 +88,7 @@ substring is `floorp`. Save with *Apply*.
 
 Tick *Look up the application's name on Discord* in
 *Settings → General*. The application's name then appears next to the
-Client ID — the same name Discord puts after "Listening to". If it says
+Application ID — the same name Discord puts after "Listening to". If it says
 *No such Discord application*, the ID is wrong; if it names something
 you don't recognise, you pasted a different app's ID.
 
@@ -102,16 +105,18 @@ connect it, start music on the phone, then in Refrain
 *Settings → Sources → Bluetooth* turn the toggle on and pick the
 device from the dropdown.
 
-## Refrain is already running but the settings window won't reopen.
+## Refrain is already running but no window opens.
 
-Click the tray icon. The settings window is normally hidden, not closed —
-clicking the tray brings it back. *Quit Refrain* from the tray menu fully
-exits.
+Start Refrain again from the menu, or click its tray icon: either brings
+up the Status window of the Refrain that is already running, with
+*Settings…* one click away. Windows you close are only hidden; *Quit
+Refrain* from the tray menu fully exits.
 
 ## What does "Privacy: Off" do?
 
-The Discord status is cleared and never updated. The tray icon, player
-controls, and notifications keep working. Use this when streaming or when
+The Discord status is cleared and never updated, and Last.fm scrobbling
+pauses too. The tray icon, player controls, notifications and the recently
+played list keep working. Use this when streaming or when
 you don't want your Discord profile to surface what you're listening to.
 
 ## The Discord status disappears when I pause.
@@ -180,7 +185,7 @@ entirely, at the cost of a closed tab leaving a stale status behind.
 
 ## Where is my listening history, and how do I get rid of it?
 
-*Tray → Recently played…* shows it; *Settings → History* switches it off
+*Tray → Recently played…* shows it; *Settings → Recently played* switches it off
 or sets how many songs it keeps (10 to 100, 30 by default). It lives in
 `~/.local/state/refrain/history.json`, readable only by you, and is never
 sent anywhere — which is why the privacy mode doesn't affect it.
@@ -217,23 +222,36 @@ is already paused.
 
 ## Refrain was suddenly gone.
 
-Look at `~/.local/state/refrain/crash.log`. If Refrain died inside Qt or
-D-Bus, it holds the Python stack of every thread at that moment — attach
-it to a [bug report](https://github.com/Rockykln/refrain/issues/new?template=bug_report.yml)
+The next start says so with a notification; clicking it opens the report.
+You can also open `~/.local/state/refrain/crash.log` yourself. If Refrain
+died inside Qt or D-Bus, it holds the Python stack of every thread at
+that moment — attach it to a [bug report](https://github.com/Rockykln/refrain/issues/new?template=bug_report.yml)
 together with the end of `refrain.log`. `coredumpctl list` shows whether
 the system recorded a crash at the same time.
 
 ## How do I update?
 
-| Install method | How to update                                      |
-|----------------|----------------------------------------------------|
-| AUR            | `yay -Syu refrain` (or your AUR helper of choice)  |
-| Flatpak        | `flatpak update io.github.Rockykln.Refrain`        |
-| AppImage       | *Settings → Updates → Check for updates now* — Refrain replaces the running AppImage in place |
-| pip            | *Settings → Updates → Check for updates now* — runs `pip install --upgrade refrain` for you |
+*Settings → Updates → Check for updates now* looks for a new release and
+always tells you the result, even when you're already on the latest
+version. If there is one, the update dialog names the install type
+Refrain detected and offers the matching step:
 
-The "Check for updates now" button always tells you the result, even
-when you're already on the latest version.
+| Install method | What the update dialog does | By hand |
+|----------------|-----------------------------|---------|
+| AppImage       | Downloads the new AppImage, checks it against the release's signed checksums and replaces the running file. Restart Refrain afterwards. | Download it from the Releases page |
+| pipx           | Runs `pipx upgrade refrain`. If `pipx` isn't on `PATH`, it shows the command instead. | `pipx upgrade refrain` |
+| pip / venv     | Runs `pip install --upgrade refrain` with the Python Refrain runs on. | `pip install --upgrade refrain` |
+| AUR            | Opens a terminal running `yay -Syu refrain` (or paru, trizen, pikaur — whichever is installed), so you confirm the sudo prompt yourself. | `yay -Syu refrain` |
+| Other distro package | Only tells you to update through your package manager. | Your package manager |
+| Source checkout | Never updates in place. | `git pull`, then `pip install -e .` |
+
+After pip or pipx, restart Refrain to load the new version. If no known
+terminal emulator is installed, the AUR entry shows the command to run
+instead.
+
+There is no published Flatpak. If you built one yourself from the
+manifest in the repository, the dialog opens a terminal running
+`flatpak update -y io.github.Rockykln.Refrain`.
 
 ## Where are the logs?
 

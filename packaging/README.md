@@ -122,7 +122,69 @@ and `LICENSES/` with the full texts at build time.
 The release workflow starts the AppImage once with `--version`, checks
 that the notices are inside and no GPL-only Qt module is, and stops the
 release otherwise. It publishes `THIRD-PARTY-NOTICES` and `SHA256SUMS`
-next to the AppImage.
+next to the AppImage; `SHA256SUMS.sig` is added by hand, see below.
+
+## Signed releases
+
+The release workflow creates the GitHub release as a **draft**. A running
+AppImage only replaces itself when the release carries `SHA256SUMS.sig`, an
+Ed25519 signature over `SHA256SUMS` made with a key that exists only on the
+maintainer's machine. The public half is `RELEASE_PUBLIC_KEY` in
+`src/refrain/updater.py`. Without a valid signature the updater downloads
+nothing and points the user to the Releases page. A compromised GitHub account
+or workflow can therefore replace release files, but cannot make installed
+AppImages accept them.
+
+`packaging/release_key.py` (standard library plus Refrain's own verifier)
+does the key work:
+
+```sh
+python packaging/release_key.py generate        # once; ~/.config/refrain-release/ed25519.key, mode 600
+python packaging/release_key.py sign FILE       # writes FILE.sig
+python packaging/release_key.py verify FILE FILE.sig PUBKEY_HEX
+python packaging/release_key.py release vX.Y.Z  # sign the draft, then offer to publish it
+```
+
+`generate` refuses to overwrite an existing key. Back the key file up offline
+right away: without it no AppImage can update itself again until users install
+a build with a new public key by hand; anyone who has it can sign updates.
+
+Per release, after the tag's workflow has finished:
+
+1. `python packaging/release_key.py release vX.Y.Z`
+   - downloads `SHA256SUMS` from the draft (`gh release download`),
+   - checks its build provenance (`gh attestation verify … --signer-workflow
+     …/release.yml --source-ref refs/tags/vX.Y.Z`), so only a file built by this
+     repository's release workflow from that tag gets signed,
+   - signs it and uploads `SHA256SUMS.sig` (`gh release upload --clobber`),
+   - then asks `Publish the release vX.Y.Z now? [y/N]` and on `y` runs
+     `gh release edit vX.Y.Z --draft=false`.
+2. Answered `N`? Publish later with
+   `gh release edit vX.Y.Z --repo Rockykln/refrain --draft=false`.
+
+The tool refuses to sign when the key's public half differs from
+`RELEASE_PUBLIC_KEY`, since the released app would reject the signature.
+PyPI is still published by the workflow right after the draft is created, so
+pip and pipx users can get the version before the GitHub release is public.
+
+Every file of a release also has a build provenance attestation:
+
+```sh
+gh attestation verify Refrain-X.Y.Z-x86_64.AppImage --repo Rockykln/refrain
+```
+
+## CI dependencies
+
+CI installs pinned, hash-checked versions from `requirements-dev.lock`; the
+ranges live in `pyproject.toml`. Regenerate the lock after changing them, or
+when the pip-audit job reports a finding in it:
+
+```sh
+uv pip compile pyproject.toml --extra dev --universal --python-version 3.11 --generate-hashes -o requirements-dev.lock
+```
+
+The `lowest` job in `tests.yml` runs the suite against the lower bounds in
+`requirements-lowest.txt`; raise both together.
 
 ## Flatpak
 
@@ -169,8 +231,8 @@ cd packaging/flatpak
 cat > /tmp/refrain-flatpak-requirements.txt <<EOF
 meson-python
 hatchling
-pypresence>=4.3
-dbus-python>=1.3
+pypresence>=4.5.2,<5
+dbus-python>=1.3.2,<2
 EOF
 flatpak-pip-generator \
     --runtime org.kde.Sdk//6.10 \
@@ -197,6 +259,7 @@ in `metainfo.xml` per Flathub policy.
 
 ```
 packaging/
+├── release_key.py                     — release signing key and draft-release signing
 ├── aur/
 │   ├── refrain/PKGBUILD               — release build (stable, pinned tarball)
 │   └── refrain-git/PKGBUILD           — git build (auto-bumping pkgver)

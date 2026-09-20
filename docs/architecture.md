@@ -338,6 +338,7 @@ name and exit. No lockfile in `/tmp`.
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` (`0600`, atomic; one play, kept across a restart) |
 | Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 10–100 songs, 30 by default) |
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` (`0600`, atomic; 1000-song cap; hashed keys, one line each) |
+| Developer-mode metrics | `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (`0600`, appended; rotated to `.1` at 5 MB; only while developer mode is on, see [developer-mode.md](developer-mode.md)) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |
 
 The user-installed desktop file (via `--install-desktop`) goes to

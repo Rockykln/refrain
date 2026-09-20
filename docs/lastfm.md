@@ -94,8 +94,12 @@ The authorisation wasn't completed in the browser before you clicked
 OK, or the API key/secret are wrong. Re-check the key + secret and
 click **Connect…** again.
 
-**Live log shows "Last.fm session invalid — reconnect in Settings".**
-The session was revoked on last.fm (or the API key changed). Open
+**Live log shows "Last.fm session invalid … reconnect in Settings → Last.fm".**
+The full warning reads
+`Last.fm session invalid (scrobble) — reconnect in Settings → Last.fm. Queued scrobbles are kept and will submit after reconnect.`
+with `now-playing` instead of `scrobble` when the Now playing update
+was the request that failed. The session was revoked on last.fm (or
+the API key changed). Open
 *Settings → Last.fm*, click **Connect…**, re-authorise, **Apply**.
 Queued scrobbles are kept, songs you play in the meantime are queued as
 well, and all of them submit automatically once you reconnect.

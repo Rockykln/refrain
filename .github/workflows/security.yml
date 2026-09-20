@@ -22,15 +22,16 @@ jobs:
     name: bandit (python SAST)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-dev.lock
 
       - name: Install bandit
-        run: pip install bandit
+        run: pip install --require-hashes -c requirements-dev.lock bandit
 
       - name: Run bandit (medium + high severity only)
         # Config (skips, exclude_dirs) lives in pyproject.toml [tool.bandit].
@@ -41,12 +42,13 @@ jobs:
     name: pip-audit (dependency CVEs)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-dev.lock
 
       - name: Install system headers for dbus-python build
         # dbus-python is a C-extension module; pip-audit's resolver tries
@@ -59,8 +61,7 @@ jobs:
 
       - name: Install pip-audit
         run: |
-          python -m pip install --upgrade pip
-          pip install pip-audit
+          pip install --require-hashes -c requirements-dev.lock pip-audit
 
       - name: Run pip-audit on requirements.txt
         # --strict makes the job fail on any known vulnerability in the
@@ -68,11 +69,16 @@ jobs:
         # noise is minimal.
         run: pip-audit -r requirements.txt --strict
 
+      - name: Run pip-audit on the pinned dev/CI lock
+        # Nothing updates requirements-dev.lock on its own; a finding here
+        # means: regenerate it (command at the top of the file).
+        run: pip-audit -r requirements-dev.lock --require-hashes --disable-pip --strict
+
   trufflehog:
     name: trufflehog (secret detection)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
 

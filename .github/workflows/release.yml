@@ -6,9 +6,9 @@ on:
     tags:
       - "v*.*.*"
 
-# Build tools are installed unpinned, so the job that runs them only gets
-# read access; the write and OIDC permissions sit on the two small
-# publishing jobs below.
+# The AppImage build tools are installed unpinned, so the job that runs them
+# only gets read access; the write and OIDC permissions sit on the small
+# attestation and publishing jobs below.
 permissions:
   contents: read
 
@@ -18,18 +18,18 @@ jobs:
 
     steps:
       - name: Checkout (full history for changelog)
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements-dev.lock
 
       - name: Install + run tests (gate the release)
         run: |
-          python -m pip install --upgrade pip
           # System libs: dbus-python needs the *-dev headers at build
           # time; PySide6.QtWidgets needs the EGL/xkbcommon/GL/fontconfig
           # runtime libs to import (even under QT_QPA_PLATFORM=offscreen).
@@ -37,10 +37,10 @@ jobs:
           sudo apt-get install -y \
             libdbus-1-dev libglib2.0-dev pkg-config \
             libegl1 libxkbcommon0 libfontconfig1 libgl1
-          # Install the package itself so the test imports get every
-          # runtime dep (PySide6, pypresence, dbus-python) — without
-          # this the new test_daemon_*.py files fail at collection.
-          pip install -e ".[dev]"
+          # The pinned, hash-checked tool and runtime versions, then
+          # Refrain itself on top.
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
           pytest -q
 
       - name: Verify tag matches package version
@@ -78,7 +78,6 @@ jobs:
 
       - name: Build wheel + sdist
         run: |
-          pip install build
           python -m build
           # Keep a clean copy of just the Python distributions for PyPI;
           # the AppImage step writes additional files into dist/ later.
@@ -138,7 +137,8 @@ jobs:
           fi
           rm -rf "$tmp"
 
-      # The in-app updater refuses an AppImage whose checksum doesn't match.
+      # The in-app updater only installs an AppImage listed here, and only once
+      # the owner has signed this file (SHA256SUMS.sig, see packaging/README.md).
       - name: Checksums for the in-app updater
         run: |
           cd dist
@@ -186,7 +186,7 @@ jobs:
           NOTES
 
       - name: Hand the release files to the publishing jobs
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: release
           path: |
@@ -195,32 +195,59 @@ jobs:
           if-no-files-found: error
 
       - name: Hand the PyPI files to the publishing job
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: pypi-dist
           path: pypi-dist/
           if-no-files-found: error
 
-  github-release:
+  attest:
     needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write       # Sigstore signing certificate for the attestation
+      attestations: write   # store the attestation with the repository
+
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: release
+
+      # Verify with: gh attestation verify <file> --repo Rockykln/refrain
+      - name: Attest build provenance of the release files
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8  # v4.2.2
+        with:
+          subject-path: |
+            dist/*.whl
+            dist/*.tar.gz
+            dist/*.AppImage
+            dist/*.AppImage.zsync
+            dist/SHA256SUMS
+            dist/THIRD-PARTY-NOTICES
+
+  github-release:
+    needs: [build, attest]
     runs-on: ubuntu-24.04
     permissions:
       contents: write   # required to create the release
 
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: release
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
+      # A draft: the owner signs SHA256SUMS on their own machine and only then
+      # publishes it (packaging/release_key.py release <tag>).
+      - name: Create GitHub release (draft)
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64  # v3.0.3
         with:
           # Use our CHANGELOG section (extracted above), not GitHub's
           # auto-generated notes — the in-app update dialog renders
           # this body verbatim so it has to actually be the changelog.
           body_path: release-notes.md
           generate_release_notes: false
-          draft: false
+          draft: true
           prerelease: ${{ contains(github.ref, '-') }}   # e.g. v0.2.0-rc1
           name: "Refrain ${{ github.ref_name }}"
           files: |
@@ -242,7 +269,7 @@ jobs:
       id-token: write   # required by PyPA Trusted Publishers (OIDC) for PyPI upload
 
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
           name: pypi-dist
           path: pypi-dist/
@@ -254,7 +281,7 @@ jobs:
       # Skips silently if the version already exists on PyPI so re-running
       # a release for AppImage-only fixes doesn't fail the workflow.
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
         with:
           packages-dir: pypi-dist/
           skip-existing: true

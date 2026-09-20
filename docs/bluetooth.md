@@ -35,9 +35,8 @@ manager:
 
 ## Pairing
 
-1. Put the phone (or other source) into pairing mode. On iOS this is
-   *Settings → Bluetooth*; on Android it's *Settings → Connected
-   devices*.
+1. Put the phone (or other source) into pairing mode, usually by
+   opening its Bluetooth settings.
 2. Open your desktop's Bluetooth applet, scan for new devices, click
    *Pair* on the phone entry, confirm the matching PIN on both ends.
 3. Enable *Audio*. Some applets surface this as a toggle after
@@ -58,23 +57,23 @@ manager:
    bluetoothctl info <MAC> | grep "Connected:"
    ```
    should show `Connected: yes`.
-2. Start music on the phone. Spotify, Apple Music, the iOS Music
-   app, anything that publishes track metadata via the AVRCP
-   profile. Streams and videos — Twitch, YouTube, Netflix, podcasts —
-   are left out: the phone names the app playing, and Refrain only
-   shows music.
+2. Start a song in **Apple Music** on the phone. The phone names the app
+   it is playing over the AVRCP profile, and Refrain shows Apple Music
+   only — another music service, a stream or a video on the same
+   headphones is left out.
 3. In Refrain, open *Settings → Sources → Bluetooth*:
    - Toggle **Enable Bluetooth source** on.
-   - Pick the device from the dropdown. It should show the phone's
-     Bluetooth name (e.g. *Alex's Phone*) and its MAC address.
+   - Pick the device from the dropdown. Each entry shows a paired
+     device's Bluetooth name and MAC address; connected ones are marked
+     *(connected)*.
    - Hit **Apply**.
 4. Within ~1 s, the tray menu shows the track title + artist.
    Within ~2 s, Discord renders the listening status.
 
-The dropdown's `(auto-detect)` entry picks whichever device is
-currently exposing AVRCP — useful if you switch between phone and
-headphones with the same Refrain config. The MAC-pinned variant is
-stricter but stable when multiple sources are connected at once.
+The dropdown's `(auto-detect)` entry reads whichever connected device
+exposes an AVRCP player, preferring one that is playing over one that
+is paused — useful if you switch between a phone and a tablet with the
+same Refrain config. Picking a specific device ignores all others.
 
 ## Per-source Discord profile (optional)
 
@@ -85,57 +84,69 @@ playback:
 1. Register a second Discord application at
    <https://discord.com/developers/applications> — call it e.g.
    "Refrain (Bluetooth)" and upload a Bluetooth glyph as the icon.
-2. Copy the new Client ID.
-3. *Settings → General → Bluetooth Client ID* — paste, *Apply*.
+2. Copy the new Application ID.
+3. *Settings → General*, tick *Use a separate Discord application per
+   source*, paste it into *Bluetooth*, then *OK*.
 
 Refrain reconnects RPC under the per-source ID the moment a track
 arrives from Bluetooth.
 
 ## Troubleshooting
 
-### Refrain says "no track" while music is clearly playing on the phone
+### The tray shows "(nothing playing)" while music plays on the phone
 
-- Confirm AVRCP is actually working:
+- Confirm AVRCP is actually working. BlueZ publishes the phone's
+  player as an object below the device, usually `…/player0`:
   ```sh
-  busctl --system call org.bluez /org/bluez/hci0/dev_<MAC_with_underscores> \
-      org.freedesktop.DBus.Properties Get ss org.bluez.MediaPlayer1 Track
+  busctl --system tree org.bluez | grep player
+  busctl --system get-property org.bluez \
+      /org/bluez/hci0/dev_<MAC_with_underscores>/player0 \
+      org.bluez.MediaPlayer1 Track
   ```
-  This should return the current track. If it errors with
-  `org.bluez.Error.DoesNotExist`, the phone isn't exposing AVRCP — try
-  disconnect / reconnect, and verify the *Audio profile* box on the
+  The second command should return the current track. If the first
+  lists no player at all, the phone isn't exposing AVRCP — disconnect
+  and reconnect, and check that the audio profile is enabled for the
   pairing.
-- Check the tray-menu source label or the live log
-  (tray → *Live log…*). Look for `Track change [bluetooth]: …` lines.
-  If you see `[mpris]` instead, the browser is winning the source
-  race — close the music tab so Bluetooth becomes the only candidate.
-- A line `Bluetooth: <app> is playing — not music, ignored` means the
-  phone names an app Refrain doesn't take for music. An app it doesn't
-  know counts as long as its track has a length; a live stream has none.
+- Open the live log (tray → *Live log…*) and look for
+  `Track change [bluetooth]: …` lines. If you see `[mpris]` instead,
+  the browser is playing too: a source that is playing wins over a
+  paused one, and when both play, the browser comes first. Pause or
+  close the music tab.
+- An INFO line `Bluetooth: <app> is playing — not Apple Music, ignored`
+  means the phone is playing something else. Apple Music counts under its
+  translated names as well, and a phone that names no app at all counts too.
 
-### `bluetoothd` D-Bus activation timeout warning in the log
+### Bluetooth errors in the log
 
-You'll see something like
-`Bluetooth: GetManagedObjects failed: ... service_start_timeout=25000ms`
-on a system without `bluez` installed (typical of VMs and minimal
-installs). v0.2.3+ fast-fails before the activation timeout fires;
-on older builds you'd want to disable the Bluetooth source toggle.
+Refrain first asks D-Bus whether BlueZ is running at all, so a system
+without `bluez` (VMs, minimal installs) costs nothing and logs nothing.
+Everything that can go wrong while talking to BlueZ is logged at DEBUG
+level only, so it shows up when you start Refrain with `--debug` or set
+*Settings → Advanced → Log level* to DEBUG:
 
-### The dropdown is empty
+- `Bluetooth: cannot reach system bus: …`
+- `Bluetooth: NameHasOwner(org.bluez) failed: …`
+- `Bluetooth: GetManagedObjects failed: …`
+- `Bluetooth player <path> unreadable: …`
 
-That means BlueZ is running but no `org.bluez.Device1` entries exist.
-Pair at least one device first (Section "Pairing" above), then click
-**Apply** in Refrain to refresh the dropdown.
+Refrain retries on the next poll, so a single line after a disconnect
+or a BlueZ restart is harmless.
+
+### The dropdown only offers "(auto-detect)"
+
+Either BlueZ isn't running or no device is paired yet. Pair at least
+one device first (Section "Pairing" above), then click **Refresh**
+next to the dropdown.
 
 ### Track shows but Play/Pause/Next/Previous don't work
 
-AVRCP control depends on the phone's app supporting
-`AVRCP-CT 1.4` or higher. iOS Music, Apple Music, and Spotify all
-do. Some Android battery-saver settings disable AVRCP control —
-check the per-app battery / background settings on the phone.
+Controls go over AVRCP too, and whether they work depends on the app
+playing on the phone. Some battery-saver settings stop apps from
+reacting to them — check the app's battery / background settings on
+the phone.
 
-### Multiple paired devices, wrong one gets picked
+### Multiple connected devices, wrong one gets picked
 
-Set *Settings → Sources → Bluetooth → Device* to the specific MAC.
-The `(auto-detect)` mode picks the first eligible AVRCP player from
-BlueZ's enumeration order, which isn't stable when several phones
-are paired.
+`(auto-detect)` prefers a device that is playing, then one that is
+paused. If two are playing at once, or you always want the same one,
+set *Settings → Sources → Bluetooth → Device* to that device.
