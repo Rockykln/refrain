@@ -40,3 +40,20 @@ def test_a_malformed_log_record_does_not_crash_the_bridge_or_lose_later_messages
     assert not any("broken" in msg for msg, _level in got), "the broken record never reached it"
     assert any(msg.endswith("still logging afterwards") for msg, _level in got)
     assert any(msg.endswith("still logging afterwards") for msg, _level in bridge.backlog)
+
+
+def test_a_log_file_that_cannot_be_locked_down_leaves_no_descriptor_open(tmp_path, monkeypatch):
+    handler = ls._PrivateRotatingFileHandler.__new__(ls._PrivateRotatingFileHandler)
+    handler.baseFilename = str(tmp_path / "refrain.log")
+    handler.mode = "a"
+    handler.encoding = "utf-8"
+    handler.errors = None
+    closed = []
+    monkeypatch.setattr(ls.os, "fchmod", lambda *_: (_ for _ in ()).throw(OSError("nope")))
+    real_close = ls.os.close
+    monkeypatch.setattr(ls.os, "close", lambda fd: (closed.append(fd), real_close(fd))[1])
+
+    with pytest.raises(OSError):
+        handler._open()
+
+    assert len(closed) == 1

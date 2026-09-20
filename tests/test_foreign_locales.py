@@ -40,6 +40,13 @@ def _songs():
     )
 
 
+def _close(qapp, window):
+    """Let Qt take the window apart, in its own order."""
+    window.hide()
+    window.deleteLater()
+    qapp.processEvents()
+
+
 @pytest.mark.parametrize("name", LOCALES)
 def test_the_status_window_renders_in_any_locale(qapp, name):
     locale = QLocale(name)
@@ -68,7 +75,7 @@ def test_the_status_window_renders_in_any_locale(qapp, name):
     row = rows.itemAt(0).widget()
     started = QDateTime.fromSecsSinceEpoch(row.entry.started_at)
     assert row.when.text() == locale.toString(started.time(), QLocale.FormatType.ShortFormat)
-    window.hide()
+    _close(qapp, window)
 
 
 @pytest.mark.parametrize("name", LOCALES)
@@ -78,4 +85,4 @@ def test_the_history_window_renders_in_any_locale(qapp, name, xdg_tmp):
     window.show()
     qapp.processEvents()
     assert [f.message() for f in check_layout(window) if f.missing > TOLERANCE_PX] == []
-    window.hide()
+    _close(qapp, window)

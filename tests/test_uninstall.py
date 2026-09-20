@@ -131,7 +131,7 @@ def test_purge_removes_everything_and_is_idempotent(iso):
     # 3 xdg dirs (config/state/cache) + autostart file + desktop + icon
     assert len(rep.removed) == 6
     assert rep.failed == []
-    assert rep.secrets_purged is True
+    assert rep.keyring_cleared is True
     assert fake.deleted == ["lastfm_shared_secret", "lastfm_session_key"]
     assert uninstall.collect_paths() == []  # actually gone
     # Second run: nothing left, still no error.
@@ -162,7 +162,7 @@ def test_purge_secret_failure_is_non_fatal(iso, monkeypatch):
             raise RuntimeError("keyring down")
 
     rep = uninstall.purge(secret_store=Raising())
-    assert rep.secrets_purged is False
+    assert rep.keyring_cleared is False
     assert rep.removed  # file removal still succeeded
 
 

@@ -210,11 +210,9 @@ def _query(term: str, country: str, limit: int) -> list:
         # the urlopen call below cannot ever be coerced into file:// or ftp://.
         return []
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with (
-        dev_metrics.network("itunes"),
-        urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r,  # nosec B310
-    ):
-        data = json.load(r)
+    with dev_metrics.network("itunes"):
+        with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r:  # nosec B310
+            data = json.load(r)
     # iTunes can in theory answer with a non-dict (an error string, an
     # unwrapped list…) — anything but the expected shape is "no results".
     results = data.get("results", []) if isinstance(data, dict) else []

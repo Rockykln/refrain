@@ -242,11 +242,9 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
                 "Accept": "application/vnd.github+json",
             },
         )
-        with (
-            dev_metrics.network("github"),
-            urllib.request.urlopen(req, timeout=timeout_s) as r,  # nosec B310
-        ):
-            data = json.load(r)
+        with dev_metrics.network("github"):
+            with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
+                data = json.load(r)
     except Exception as e:
         log.info("Update check failed: %s", e)
         return None

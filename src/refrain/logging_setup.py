@@ -23,8 +23,12 @@ class _PrivateRotatingFileHandler(logging.handlers.RotatingFileHandler):
 
     def _open(self):
         fd = os.open(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-        os.fchmod(fd, 0o600)
-        return open(fd, self.mode, encoding=self.encoding, errors=self.errors)
+        try:
+            os.fchmod(fd, 0o600)
+            return open(fd, self.mode, encoding=self.encoding, errors=self.errors)
+        except OSError:
+            os.close(fd)
+            raise
 
 
 def setup_logging(level: str = "INFO") -> None:

@@ -1008,7 +1008,7 @@ class HistoryWindow(QDialog):
         self._rows.addStretch(1)
         # The new rows lay out on the next event-loop pass; restoring the
         # position before that would clamp it to the old, empty range.
-        QTimer.singleShot(0, self, lambda: bar.setValue(scroll_pos))
+        QTimer.singleShot(0, lambda: bar.setValue(scroll_pos))
 
     def _update_filter_bar(self, snap: HistorySnapshot) -> None:
         """Offer the sources in the list, keep the pick, show what's useful."""

@@ -73,16 +73,26 @@ def _private_state(tmp_path_factory, monkeypatch):
     monkeypatch.setattr(secrets_store, "_session_bus", _no_session_bus)
 
 
-@pytest.fixture(scope="module", autouse=True)
-def collect_between_modules():
-    """Free every dropped Qt object before the next module runs.
+@pytest.fixture(autouse=True)
+def free_dropped_qt_objects():
+    """Free every Qt object a test let go of, before the next one starts.
 
-    Python decides on its own when to free a widget or daemon a finished
-    test let go of, and Qt deletes the C++ side with it. When that lands
-    while a later test drives the event loop, a timer that was still
-    queued fires into freed memory and the interpreter dies.
+    Python decides on its own when to free a widget or daemon, and Qt
+    deletes the C++ side with it. Left to chance that lands in the middle
+    of a later test driving the event loop, where a timer that was still
+    queued fires into freed memory and takes the interpreter down. Doing
+    it here means it happens with no event loop running.
     """
     yield
+    try:
+        from PySide6.QtCore import QCoreApplication, QEvent
+    except ImportError:
+        gc.collect()
+        return
+    app = QCoreApplication.instance()
+    # A test may have put a stand-in in its place.
+    if isinstance(app, QCoreApplication):
+        app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
     gc.collect()
 
 

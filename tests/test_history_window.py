@@ -11,8 +11,17 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QDate, QDateTime, QLocale, Qt, QTime, QTranslator  # noqa: E402
-from PySide6.QtGui import QColor, QImage  # noqa: E402
+from PySide6.QtCore import (  # noqa: E402
+    QDate,
+    QDateTime,
+    QEvent,
+    QLocale,
+    QPointF,
+    Qt,
+    QTime,
+    QTranslator,
+)
+from PySide6.QtGui import QColor, QEnterEvent, QImage  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel, QMessageBox  # noqa: E402
 
@@ -558,3 +567,31 @@ def test_clicking_a_row_opens_it_in_the_browser_that_played_it(win, monkeypatch)
         # A Bluetooth device is no browser — the default one gets it.
         ("https://music.apple.com/search?term=Art%20B", ""),
     ]
+
+
+def test_a_search_word_gets_a_background_behind_it(_window):
+    label = _ElidedLabel("Glass Tides — Neon Harbor")
+    label.resize(300, 24)
+    plain = label.grab().toImage()
+    label.set_highlights(["tides"])
+    marked = label.grab().toImage()
+    assert marked != plain
+
+
+def test_an_elided_label_paints_only_the_words_still_on_screen(_window):
+    label = _ElidedLabel("Glass Tides — Neon Harbor")
+    label.resize(40, 24)
+    label.set_highlights(["harbor"])
+    assert label.grab().toImage() == label.grab().toImage()
+
+
+def test_a_row_lights_up_under_the_mouse(win):
+    win.set_snapshot(HistorySnapshot(entries=_entries(3)))
+    row = win.findChildren(_SongRow)[-1]
+    quiet = row.grab().toImage()
+    row.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    assert row._hover is True
+    assert row.grab().toImage() != quiet
+    row.leaveEvent(QEvent(QEvent.Type.Leave))
+    assert row._hover is False
+    assert row.grab().toImage() == quiet

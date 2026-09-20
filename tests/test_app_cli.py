@@ -135,7 +135,7 @@ def test_uninstall_cli_accepts_yes_typed_in(uninstall_env, monkeypatch, capsys):
 
 
 def test_uninstall_cli_reports_secrets_and_failures(uninstall_env, monkeypatch, capsys):
-    report = UninstallReport(removed=["/tmp/a"], failed=["/tmp/b"], secrets_purged=True)
+    report = UninstallReport(removed=["/tmp/a"], failed=["/tmp/b"], keyring_cleared=True)
     monkeypatch.setattr(uninstall, "purge", lambda: report)
     assert app.run_uninstall_cli(assume_yes=True) == 0
     out = capsys.readouterr().out

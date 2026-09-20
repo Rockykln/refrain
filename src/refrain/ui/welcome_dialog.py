@@ -324,7 +324,7 @@ class WelcomeDialog(QDialog):
         # diagnostics box only reflows on the next turns of the event
         # loop, and measuring before that reports a deficit the layout
         # was about to absorb by itself.
-        QTimer.singleShot(0, self, self._grow_to_fit)
+        QTimer.singleShot(0, self._grow_to_fit)
         if self._diag_thread is not None:
             self._diag_thread.quit()
             with contextlib.suppress(Exception):

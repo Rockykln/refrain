@@ -397,8 +397,8 @@ class Harness:
                 pass
 
             @staticmethod
-            def singleShot(ms, context, fn=None):
-                h.shots.append((ms, fn if fn is not None else context))
+            def singleShot(ms, fn):
+                h.shots.append((ms, fn))
 
         mp.setattr(app, "QTimer", Timer)
         mp.setattr(app, "TrayIcon", lambda: self._keep("tray", FakeTray()))

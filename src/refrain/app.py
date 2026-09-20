@@ -336,7 +336,7 @@ def run_uninstall_cli(assume_yes: bool = False) -> int:
         print("Removed:")
         for r in report.removed:
             print(f"  {r}")
-    if report.secrets_purged:
+    if report.keyring_cleared:
         print("  Last.fm credentials cleared from the keyring")
     if report.failed:
         print("Could not remove (check permissions):")
@@ -876,7 +876,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
             QMessageBox.StandardButton.Ok,
         )
         # Nothing to decide here, so it goes away on its own.
-        QTimer.singleShot(_ALREADY_RUNNING_MS, box, box.accept)
+        QTimer.singleShot(_ALREADY_RUNNING_MS, box.accept)
         box.exec()
         return 0
     except SessionBusUnavailable as e:
@@ -1043,7 +1043,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
                 obj.wait(2000)
 
     app.aboutToQuit.connect(_stop_startup_check)
-    QTimer.singleShot(5000, app, _run_startup_check)
+    QTimer.singleShot(5000, _run_startup_check)
 
     # Keep the cached Discord application name current, so Settings can
     # show it the instant it opens instead of pausing on a lookup. One
@@ -1065,7 +1065,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     app_name_timer.setInterval(int(NAME_TTL_S * 1000))
     app_name_timer.timeout.connect(_refresh_app_name)
     app_name_timer.start()
-    QTimer.singleShot(3000, app, _refresh_app_name)
+    QTimer.singleShot(3000, _refresh_app_name)
 
     # Two connections: worker.update_config gets queued onto the worker thread,
     # _sync_autostart runs on the main thread (file I/O, OK).
@@ -1268,7 +1268,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
             return
         checked_lastfm = _lastfm_identity(c)
         services.forget_lastfm_check()
-        QTimer.singleShot(0, app, _run_startup_check)
+        QTimer.singleShot(0, _run_startup_check)
 
     settings.applied.connect(_recheck_lastfm)
 
@@ -1301,10 +1301,10 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
             daemon.stop()
         report = purge()
         log.info(
-            "Uninstall purge: %d removed, %d failed, secrets=%s",
+            "Uninstall purge: %d removed, %d failed, keyring cleared=%s",
             len(report.removed),
             len(report.failed),
-            report.secrets_purged,
+            report.keyring_cleared,
         )
         body = QCoreApplication.translate(
             "app",
@@ -1402,7 +1402,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         _show_log()
 
     # Run the auto-check shortly after the window is up — non-blocking.
-    QTimer.singleShot(2000, app, updater.maybe_check_on_startup)
+    QTimer.singleShot(2000, updater.maybe_check_on_startup)
 
     rc = app.exec()
     daemon.stop()

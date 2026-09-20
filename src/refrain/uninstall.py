@@ -68,7 +68,7 @@ def removal_command(install_type: str, appimage_path: str | None = None) -> str:
 class UninstallReport:
     removed: list[str] = field(default_factory=list)
     failed: list[str] = field(default_factory=list)
-    secrets_purged: bool = False
+    keyring_cleared: bool = False
 
 
 def _purge_secrets(store=None) -> bool:
@@ -108,5 +108,5 @@ def purge(secret_store=None) -> UninstallReport:
         except OSError as e:
             report.failed.append(f"{p}: {e}")
             log.warning("Uninstall could not remove %s: %s", p, e)
-    report.secrets_purged = _purge_secrets(secret_store)
+    report.keyring_cleared = _purge_secrets(secret_store)
     return report
