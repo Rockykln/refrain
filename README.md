@@ -662,16 +662,16 @@ inside the app under **Settings → Legal**.
 
 | Stat | Value |
 |---|---|
-| Lines of code | 13,036 |
-| Lines in the repository | 87,223 |
-| Words in the repository | 306,660 |
-| Words of documentation | 46,958 |
+| Lines of code | 13,038 |
+| Lines in the repository | 87,382 |
+| Words in the repository | 306,980 |
+| Words of documentation | 46,967 |
 | Automated tests | 2,133 |
 | Test coverage | 100 % |
 | Days since the first release | 138 |
 | Versions released | 24 |
 | Downloads | 2,676 |
-| Commits | 211 |
+| Commits | 213 |
 | Languages | 16 |
 | Runtime dependencies | 3 |
 | Browsers tested | 5 (Chrome, Chromium, Brave, Firefox, Zen) |
