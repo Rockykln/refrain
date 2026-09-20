@@ -30,7 +30,10 @@ def _defaults(monkeypatch, cafile, capath):
 def test_a_missing_built_in_path_falls_back_to_the_hosts_bundle(no_ssl_env, monkeypatch, tmp_path):
     bundle = tmp_path / "ca-bundle.crt"
     bundle.write_text("certs", encoding="utf-8")
-    _defaults(monkeypatch, "/usr/lib/ssl/cert.pem", "/usr/lib/ssl/certs")
+    # Not /usr/lib/ssl: on the distributions that have it, the test would
+    # be asserting what the host looks like rather than what the code does.
+    missing = tmp_path / "no-openssl-here"
+    _defaults(monkeypatch, str(missing / "cert.pem"), str(missing / "certs"))
     app.use_system_certificates((str(tmp_path / "missing.crt"), str(bundle)))
     assert os.environ["SSL_CERT_FILE"] == str(bundle)
 
