@@ -89,7 +89,7 @@ compiling its own:
 
 | Distro | Command |
 |--------|---------|
-| Ubuntu 24.04, Linux Mint 22, Debian 13 | `sudo apt install pipx python3-dbus python3-gi` |
+| Ubuntu 24.04, Linux Mint 22, Debian 13 | `sudo apt install pipx python3-dbus python3-gi libxcb-cursor0` |
 | Fedora 42 | `sudo dnf install pipx python3-dbus python3-gobject` |
 | openSUSE Tumbleweed | `sudo zypper install python313-pipx python313-gobject gcc pkgconf dbus-1-devel glib2-devel python313-devel` |
 

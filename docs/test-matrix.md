@@ -33,8 +33,9 @@ driver and should be tested on every commit; the rest before each tag.
 | [ ] | **Ubuntu 24.04 LTS** | GNOME 46 | Wayland | AppImage | | LTS; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
 | [ ] | **Ubuntu 25.04** | GNOME 48 | Wayland | PyPI | | Failed once, 2026-05-07 against v0.2.2, for three reasons that have since been fixed: the settings window wore the gnome-control-center icon (`1e759ba`), and a missing bluez cost 25 s per poll (`NameHasOwner` fast-fail). What remains is distro-external: snap-sandboxed Firefox and Chrome publish no MPRIS, so Refrain sees no player — use a browser from a deb channel (Brave, Mozilla's apt repo). Not re-tested since; the row is open, not failed. |
 | [ ] | **Debian 13** (Trixie) | KDE Plasma 6 | Wayland | AppImage | | Plasma outside Arch; needs `libfuse2t64` for the AppImage. 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
+| ✓ | **Debian 13** (Trixie) | GNOME 48 | Wayland | PyPI (pipx) | 2026-09-20 / v0.5.3 | Install, menu entry, tray with the AppIndicator extension, Discord, Firefox, cover, Recently played, developer mode. Without a tray Refrain stops without a word when started from the menu (fix planned). |
 | [ ] | **openSUSE Tumbleweed** | KDE Plasma 6 | Wayland | PyPI in venv | | rolling non-Arch; pip builds dbus-python here (see README). 2026-09-18 / 0.5.3 (dev): in a distrobox container on a Plasma 6 host — install, start, tray, Apple Music in Chrome; the distro's own desktop not tested. |
-| [ ] | **Linux Mint 22** | Cinnamon 6 | X11 | AppImage | | Cinnamon tray, X11 |
+| ✓ | **Linux Mint 22.3** | Cinnamon 6 | X11 | PyPI (pipx) | 2026-09-21 / v0.5.3 | Needs `libxcb-cursor0` under X11 — Refrain names it and the command. Cinnamon's own tray works. Vivaldi recognised with the Plasma Browser Integration (see Players). The AppImage is untested here. |
 | [ ] | **Manjaro** Stable | KDE Plasma 6 | Wayland | AUR `refrain` | | delayed Arch mirror |
 
 ## Tier 2 — supported, spot-check
@@ -79,10 +80,11 @@ track, position and length differently.
 | ✓ | Player | Reports through | Last verified | Notes |
 |---|---|---|---|---|
 | ✓ | Apple Music in **Chromium** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | segment lengths; the tab's entry decides playing vs. paused |
-| ✓ | Apple Music in **Firefox** | Firefox's own MPRIS (no Plasma extension) | 2026-09-18 / v0.5.2 | no length reported — the catalog's or a measured one is used; position in whole seconds |
+| ✓ | Apple Music in **Firefox** | Firefox's own MPRIS (no Plasma extension) | 2026-09-20 / v0.5.3 | on KDE no length reported, Firefox ESR 140 on Debian 13 reports one; position in whole seconds |
 | ✓ | Apple Music in **Google Chrome** | plasma-browser-integration + the tab's own MPRIS entry | 2026-09-18 / v0.5.2 | as Chromium |
 | ✓ | Apple Music in **Brave** | plasma-browser-integration + Brave's own MPRIS entry | 2026-09-18 / 0.5.3 (dev) | as Chrome |
 | ✓ | Apple Music in **Zen** | Zen's own MPRIS | 2026-09-18 / v0.5.2 | as Firefox; position to the second |
+| ✓ | Apple Music in **Vivaldi** | Vivaldi's own MPRIS + the Plasma Browser Integration | 2026-09-21 / v0.5.3 | on Linux Mint 22.3 / Cinnamon. Without the integration Vivaldi reports no page and Refrain doesn't recognise it — the same goes for every Chromium-based browser outside KDE; the integration works outside Plasma too. Its own length grows with the buffer. |
 | ✓ | **Tablet** over Bluetooth (AVRCP) | BlueZ `MediaPlayer1` | 2026-09-18 / v0.5.2 | names the playing app; Twitch is left out |
 | ✓ | **Phone** over Bluetooth (AVRCP), tablet connected too | BlueZ `MediaPlayer1` | 2026-09-18 / 0.5.3 (dev) | the playing device is picked; position to the second |
 
