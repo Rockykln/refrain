@@ -667,7 +667,7 @@ to see what your Discord Application ID is actually called.
 
 - **The multi-client Discord notice repeated every five seconds.** The
   set of live clients was recorded so the line could be logged on change
-  only; nothing ever read it back. Anyone running Discord and Vesktop
+  only; nothing ever read it back. Anyone running two Discord apps
   together got the same INFO line for the whole session, which is most
   of what the live log had to show.
 
@@ -758,8 +758,8 @@ untranslated tab, and a legal notice that did not exist.
   thread and reports in the tray, marking every log line with
   `[startup-check]`. It separates what the user must act on from what
   sorts itself out.
-- **Optional multi-client Discord support.** Discord and Vencord/Vesktop
-  are separate programs with separate IPC sockets, so a status sent to
+- **Optional multi-client Discord support.** Two Discord apps running at
+  once are separate programs with separate IPC sockets, so a status sent to
   one is invisible in the other. Settings → Discord can now publish to
   every running client. Off by default; each connection is judged on its
   own, so closing one client mid-song does not drop the status from the

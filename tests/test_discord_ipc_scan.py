@@ -69,7 +69,7 @@ def test_pypresence_alone_aborts_on_the_stale_socket(runtime_dir):
 
 
 def test_several_live_clients_are_all_reported(runtime_dir):
-    """Discord + Vencord: both are listening, and we say so."""
+    """Two Discord apps are listening, and we say so."""
     from refrain.discord_rpc import _scan_ipc_pipes
 
     keep = []

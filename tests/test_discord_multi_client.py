@@ -111,7 +111,7 @@ def test_close_shuts_every_client_down(rpc_factory):
 
 
 def test_a_client_started_later_is_picked_up(rpc_factory, monkeypatch):
-    """Vencord opened after Refrain should still get the status."""
+    """A second Discord app opened after Refrain should still get the status."""
     rpc, made = rpc_factory([0], all_clients=True)
     rpc._ensure_connected()
     assert sorted(rpc._presences) == [0]

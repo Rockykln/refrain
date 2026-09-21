@@ -160,7 +160,7 @@ def test_stale_sockets_are_named_but_not_counted_as_clients(runtime_dir, caplog)
 
 
 def test_several_clients_are_reported(runtime_dir, caplog):
-    """Discord + Vencord both listening."""
+    """Two Discord apps both listening."""
     keep = []
     try:
         _live_socket(runtime_dir / "discord-ipc-0", keep)
