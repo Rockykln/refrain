@@ -16,6 +16,7 @@ class DiscordStatus(StrEnum):
     NOT_SET_UP = "not_set_up"
     NO_CLIENT = "no_client"
     REJECTED = "rejected"
+    NOT_LOGGED_IN = "not_logged_in"
     ERROR = "error"
     READY = "ready"
     SHOWING = "showing"
@@ -41,6 +42,8 @@ def discord_status(rpc_state: RPCState, privacy_mode: str, track: TrackInfo) -> 
         return DiscordStatus.NOT_SET_UP
     if rpc_state is RPCState.REJECTED:
         return DiscordStatus.REJECTED
+    if rpc_state is RPCState.NOT_LOGGED_IN:
+        return DiscordStatus.NOT_LOGGED_IN
     if rpc_state is RPCState.ERROR:
         return DiscordStatus.ERROR
     if rpc_state is RPCState.NO_CLIENT:
@@ -85,7 +88,11 @@ class StatusSnapshot:
     def needs_attention(self) -> frozenset[str]:
         """The states only the user can fix, by name, for showing each once."""
         found = set()
-        if self.discord in (DiscordStatus.NOT_SET_UP, DiscordStatus.REJECTED):
+        if self.discord in (
+            DiscordStatus.NOT_SET_UP,
+            DiscordStatus.REJECTED,
+            DiscordStatus.NOT_LOGGED_IN,
+        ):
             found.add(f"discord:{self.discord}")
         if self.lastfm is LastfmStatus.EXPIRED:
             found.add("lastfm:expired")

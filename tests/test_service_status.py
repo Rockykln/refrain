@@ -31,6 +31,7 @@ NOTHING = TrackInfo.empty()
         (RPCState.SHOWING, "off", PLAYING, DiscordStatus.PRIVACY_OFF),
         (RPCState.DISABLED, "full", PLAYING, DiscordStatus.NOT_SET_UP),
         (RPCState.REJECTED, "full", PLAYING, DiscordStatus.REJECTED),
+        (RPCState.NOT_LOGGED_IN, "full", PLAYING, DiscordStatus.NOT_LOGGED_IN),
         (RPCState.ERROR, "full", PLAYING, DiscordStatus.ERROR),
         (RPCState.NO_CLIENT, "full", NOTHING, DiscordStatus.NO_CLIENT),
         (RPCState.SHOWING, "full", PLAYING, DiscordStatus.SHOWING),
@@ -78,6 +79,7 @@ def test_needs_attention_names_only_what_the_user_must_fix():
     snap = StatusSnapshot(DiscordStatus.REJECTED, "", LastfmStatus.EXPIRED)
     assert snap.needs_attention == {"discord:rejected", "lastfm:expired"}
     assert StatusSnapshot(DiscordStatus.NOT_SET_UP).needs_attention == {"discord:not_set_up"}
+    assert StatusSnapshot(DiscordStatus.NOT_LOGGED_IN).needs_attention == {"discord:not_logged_in"}
 
 
 @pytest.fixture

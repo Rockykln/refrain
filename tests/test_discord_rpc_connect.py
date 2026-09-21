@@ -130,6 +130,31 @@ def test_a_rejected_handshake_waits_the_longest(discord, clock):
     assert rpc._next_retry_ts == clock.now + 15.0
 
 
+def test_a_signed_out_discord_is_not_treated_as_rejected(discord, clock):
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "User logged out")
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    assert rpc._ensure_connected() is False
+    assert rpc.status == "not_logged_in"
+    assert rpc.state is drpc.RPCState.NOT_LOGGED_IN
+    assert "User logged out" in rpc.status_detail
+    # Ordinary backoff, not the 15 s a permanent rejection gets — logging
+    # in later must be noticed quickly, without a restart.
+    assert rpc._next_retry_ts == clock.now + 2.0
+
+
+def test_a_signed_out_discord_recovers_once_the_user_logs_in(discord, clock):
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "User logged out")
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    assert rpc._ensure_connected() is False
+    assert rpc.status == "not_logged_in"
+
+    clock.now = rpc._next_retry_ts
+    del discord.failures[0]
+    assert rpc._ensure_connected() is True
+    assert rpc.status == "connected"
+    assert rpc.state is drpc.RPCState.CONNECTED_IDLE
+
+
 def test_a_rejection_stops_trying_the_remaining_clients(discord):
     discord.live = [0, 2]
     discord.failures[0] = drpc.ppx.DiscordError(4000, "Invalid Client ID")

@@ -144,6 +144,7 @@ class RPCState(StrEnum):
     DISABLED = "disabled"
     NO_CLIENT = "no_client"
     REJECTED = "rejected"
+    NOT_LOGGED_IN = "not_logged_in"
     CONNECTED_IDLE = "connected_idle"
     SHOWING = "showing"
     ERROR = "error"
@@ -334,7 +335,9 @@ class DiscordRPC:
         # Why we are not connected, for the startup check and the tray.
         # "disabled" (no client_id) / "no_client" (nothing listening) /
         # "rejected" (Discord answered but refused the handshake — a bad
-        # Application ID or a signed-out client) / "connected".
+        # Application ID) / "not_logged_in" (Discord answered but the user
+        # is signed out — recovers on its own, unlike "rejected") /
+        # "connected".
         self.status: str = "disabled" if not self.client_id else "no_client"
         self.status_detail: str = ""
         # Cap retry backoff at 15 s instead of 60 s — autostart launches
@@ -376,6 +379,8 @@ class DiscordRPC:
         if not self._presences:
             if self.status == "rejected":
                 return RPCState.REJECTED
+            if self.status == "not_logged_in":
+                return RPCState.NOT_LOGGED_IN
             return RPCState.ERROR if self._fault else RPCState.NO_CLIENT
         if self._fault:
             return RPCState.ERROR
@@ -464,15 +469,25 @@ class DiscordRPC:
         connected_now: list[object] = []
         last_error: Exception | None = None
         rejected = False
+        not_logged_in = False
         for target in targets:
             try:
                 self._presences[target] = self._open(target)
                 connected_now.append(target)
             except ppx.DiscordError as e:
+                if e.code == 1000:
+                    # Discord is running and the app ID is fine, but the
+                    # user is signed out. Unlike a bad Application ID this
+                    # clears up on its own once they log in, so it gets the
+                    # ordinary backoff instead of `_max_backoff_s` and never
+                    # sets "rejected" — same treatment as "no client yet".
+                    log.info("Discord RPC: %s is not logged in: %s", target, e)
+                    not_logged_in = True
+                    last_error = e
+                    continue
                 # Discord answered but refused the handshake — a bad
-                # Application ID or a signed-out client. Likely the same
-                # verdict from the clients after it, so stop here instead of
-                # asking each one.
+                # Application ID. Likely the same verdict from the clients
+                # after it, so stop here instead of asking each one.
                 log.info("Discord RPC handshake rejected on %s: %s", target, e)
                 rejected = True
                 if not self._presences:
@@ -491,6 +506,9 @@ class DiscordRPC:
             # A client that accepted is served, so the status stays
             # "connected"; the one that refused is asked again later.
             self._next_retry_ts = time.monotonic() + self._max_backoff_s
+        elif not_logged_in:
+            # Same idea, but the ordinary cadence — it may log in any moment.
+            self._next_retry_ts = time.monotonic() + self._backoff_s
 
         if connected_now:
             self._backoff_s = 2.0
@@ -520,7 +538,7 @@ class DiscordRPC:
                 self._schedule_retry()
             return True
 
-        self.status = "no_client"
+        self.status = "not_logged_in" if not_logged_in else "no_client"
         self.status_detail = str(last_error) if last_error else "no client reachable"
         self._fault = "Discord did not answer in time" if isinstance(last_error, _TIMEOUTS) else ""
         self._schedule_retry()

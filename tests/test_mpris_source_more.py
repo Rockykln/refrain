@@ -504,6 +504,54 @@ def test_without_an_apple_music_tab_browser_players_stay_available_for_controls(
     assert src._native_apple_names == []
 
 
+VIVALDI = "org.mpris.MediaPlayer2.vivaldi.instance12345"
+
+
+def test_a_playing_browser_with_no_url_at_all_surfaces_as_a_hint(bus):
+    """Chromium-based browsers outside KDE expose no xesam:url — Refrain can't
+    tell whether it's Apple Music, but it can still say who is playing."""
+    bus({VIVALDI: _player(identity="Vivaldi", url=None)})
+    track = mpris.MPRISSource().read()
+    assert track.has_track is False
+    assert track.player == "Vivaldi"
+
+
+def test_a_non_apple_url_is_just_not_apple_music_no_hint(bus):
+    bus({FIREFOX: _player(identity="Firefox", url="https://www.youtube.com/watch?v=demo12345")})
+    track = mpris.MPRISSource().read()
+    assert track.has_track is False
+    assert track.player == ""
+
+
+def test_a_paused_browser_with_no_url_gets_no_hint(bus):
+    """The hint is for "I can see it's playing but not what" — a paused
+    tab with no URL isn't distinguishable from one that just has no media."""
+    bus({VIVALDI: _player("Paused", identity="Vivaldi", url=None)})
+    track = mpris.MPRISSource().read()
+    assert track.player == ""
+
+
+def test_the_hint_is_suppressed_once_apple_music_is_found_elsewhere(bus):
+    bus(
+        {
+            PLASMA: _plasma("Playing"),
+            CHROMIUM: _tab("Playing"),
+            VIVALDI: _player(identity="Vivaldi", url=None),
+        }
+    )
+    track = mpris.MPRISSource().read()
+    assert track.title == "Overexposed"
+    assert track.player == "Chromium"
+
+
+def test_the_hint_disappears_once_the_browser_stops(bus):
+    fake = bus({VIVALDI: _player(identity="Vivaldi", url=None)})
+    src = mpris.MPRISSource()
+    assert src.read().player == "Vivaldi"
+    fake.players[VIVALDI]["PlaybackStatus"] = "Stopped"
+    assert src.read().player == ""
+
+
 def test_controls_report_failure_when_the_bus_is_unreachable(bus):
     bus.state["error"] = FakeDBusException("no session bus")
     src = mpris.MPRISSource()
