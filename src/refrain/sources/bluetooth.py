@@ -35,7 +35,7 @@ def _bluez_owned(bus) -> bool | None:
         dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
         dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
         return bool(dbus_iface.NameHasOwner("org.bluez"))
-    except Exception as e:
+    except dbus.exceptions.DBusException as e:
         log.debug("Bluetooth: NameHasOwner(org.bluez) failed: %s", e)
         return None
 
@@ -47,6 +47,8 @@ def _device_name(objects, player_props) -> str:
     falls back to ``Name`` inside BlueZ anyway.
     """
     try:
+        # Pure dict lookups on an already-fetched GetManagedObjects() reply, not a D-Bus
+        # call — broad on purpose, since a device can shape that reply oddly.
         device = objects.get(player_props.get("Device", ""), {}).get("org.bluez.Device1", {})
         return str(device.get("Alias", "") or device.get("Name", "") or "")
     except Exception:
@@ -120,13 +122,16 @@ class BluetoothSource:
     def _drop_bus(self) -> None:
         bus, self._bus = self._bus, None
         if bus is not None:
+            # Broad on purpose: closing a dying connection can fail below the
+            # D-Bus protocol (socket/OS errors), and must never block opening
+            # a fresh one on the next read.
             with contextlib.suppress(Exception):
                 bus.close()
 
     def read(self) -> TrackInfo:
         try:
             bus = self._system_bus()
-        except Exception as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth: cannot reach system bus: %s", e)
             self._drop_bus()
             return TrackInfo.empty()
@@ -150,20 +155,22 @@ class BluetoothSource:
             album = str(track.get("Album", "") or "")
 
             try:
+                # track.get() is a plain dict lookup, not a D-Bus call — broad on
+                # purpose, since a device can put anything in "Duration".
                 duration_ms = int(track.get("Duration", 0))
             except Exception:
                 duration_ms = 0
             try:
                 position_ms = int(props.Get("org.bluez.MediaPlayer1", "Position"))
-            except Exception:
+            except dbus.exceptions.DBusException:
                 position_ms = 0
             try:
                 raw_status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
-            except Exception:
+            except dbus.exceptions.DBusException:
                 raw_status = "stopped"
             try:
                 repeat = str(props.Get("org.bluez.MediaPlayer1", "Repeat")).lower()
-            except Exception:
+            except dbus.exceptions.DBusException:
                 repeat = ""  # optional in AVRCP; many devices don't report it
 
             status = (
@@ -178,7 +185,7 @@ class BluetoothSource:
 
             try:
                 app = str(props.Get("org.bluez.MediaPlayer1", "Name"))
-            except Exception:
+            except dbus.exceptions.DBusException:
                 app = ""  # optional in AVRCP
             if not is_apple_music(app):
                 if app != self._ignored_app:
@@ -198,6 +205,8 @@ class BluetoothSource:
                 player=self._player_name,
                 loop_track=repeat == "singletrack",
             )
+        # Broad on purpose: this block also runs is_apple_music() and builds the
+        # TrackInfo, not just D-Bus calls.
         except Exception as e:
             log.debug("Bluetooth player %s unreadable: %s", _masked(player_path), _masked(e))
             return TrackInfo.empty()
@@ -212,7 +221,7 @@ class BluetoothSource:
             obj = bus.get_object("org.bluez", path, introspect=False)
             props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
             status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
-        except Exception as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth status query failed: %s", _masked(e))
             status = "stopped"
         method = "Pause" if status == "playing" else "Play"
@@ -242,7 +251,7 @@ class BluetoothSource:
             iface = dbus.Interface(obj, "org.bluez.MediaPlayer1")
             getattr(iface, method)()
             return True
-        except dbus.DBusException as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("BlueZ %s on %s failed: %s", method, _masked(path), _masked(e))
             self._last_player_path = None
             return False
@@ -252,6 +261,8 @@ class BluetoothSource:
 
     def _find_player_safe(self) -> str | None:
         try:
+            # Broad on purpose: _find_player() also walks and ranks the
+            # GetManagedObjects() reply, not just the D-Bus call.
             return self._find_player(self._system_bus())
         except Exception:
             return None
@@ -261,7 +272,7 @@ class BluetoothSource:
             obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
-        except Exception as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth: GetManagedObjects failed: %s", _masked(e))
             return None
 
@@ -290,7 +301,7 @@ class BluetoothSource:
         """Enumerate paired devices (for the settings-window picker)."""
         try:
             bus = dbus.SystemBus()
-        except Exception as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth list_paired_devices: bus connect failed: %s", e)
             return []
         if not _bluez_owned(bus):
@@ -299,7 +310,7 @@ class BluetoothSource:
             obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
             objects = mgr.GetManagedObjects()
-        except Exception as e:
+        except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth list_paired_devices failed: %s", _masked(e))
             return []
 

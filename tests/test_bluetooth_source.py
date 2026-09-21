@@ -38,7 +38,12 @@ class _Obj:
 
     def Get(self, iface, prop):  # noqa: N802
         assert iface == "org.bluez.MediaPlayer1"
-        return self._bus.props[self._path][prop]
+        try:
+            return self._bus.props[self._path][prop]
+        except KeyError:
+            # Real BlueZ raises this for an optional AVRCP property the device
+            # doesn't implement, not a plain KeyError.
+            raise bluetooth.dbus.DBusException(f"No such property {prop}") from None
 
     def __getattr__(self, method):
         def call():
@@ -324,7 +329,8 @@ def test_drop_bus_survives_a_failing_close():
     assert src._bus is None
 
 
-def test_bluez_owned_is_unknown_when_the_query_fails():
+def test_bluez_owned_is_unknown_when_the_query_fails(monkeypatch):
+    monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: obj)
     bus = _Bus()
     bus.dead = True
     assert bluetooth._bluez_owned(bus) is None
@@ -471,3 +477,42 @@ def test_debug_logs_never_carry_a_whole_device_address():
         == "/org/bluez/hci0/dev_XX_XX_XX_XX_9A_BC/player0 gone, XX:XX:XX:XX:9A:BC unreachable"
     )
     assert bluetooth._masked("/org/bluez/hci0") == "/org/bluez/hci0"
+
+
+def test_bluez_owned_lets_a_programming_error_through(monkeypatch):
+    """A DBusException means "can't tell"; anything else is a bug and must not be hidden."""
+
+    class BrokenIface:
+        def NameHasOwner(self, name):
+            raise TypeError("boom")
+
+    monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: BrokenIface())
+    with pytest.raises(TypeError):
+        bluetooth._bluez_owned(_Bus())
+
+
+def test_find_player_lets_a_programming_error_through(monkeypatch):
+    class BrokenMgr:
+        def GetManagedObjects(self):  # noqa: N802
+            raise TypeError("boom")
+
+    monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: BrokenMgr())
+    with pytest.raises(TypeError):
+        bluetooth.BluetoothSource()._find_player(_Bus())
+
+
+def test_read_stops_using_a_field_once_its_getter_has_a_bug(system_bus, monkeypatch):
+    """A DBusException from Position's Get() falls back to a default (see
+    test_missing_optional_properties_fall_back_to_defaults); a bug there must not."""
+    bus = _one_player_bus()
+    system_bus[0].append(bus)
+
+    real_get = _Obj.Get
+
+    def broken_get(self, iface, prop):
+        if prop == "Position":
+            raise TypeError("boom")
+        return real_get(self, iface, prop)
+
+    monkeypatch.setattr(_Obj, "Get", broken_get)
+    assert bluetooth.BluetoothSource().read().has_track is False
