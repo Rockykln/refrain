@@ -252,6 +252,9 @@ class BehaviorConfig:
     # `_fire_pending_notify` still polls up to 2 s for the cover image
     # to land before falling back to the brand fallback.
     notify_delay_ms: int = 0
+    # The icon has to suit the panel, not the app theme, and most panels are
+    # dark even under a light theme. "auto" follows the system colour scheme.
+    tray_icon: str = "white"
     # Set to True after the first-run wizard runs once. Prevents the
     # welcome dialog from re-appearing on every launch.
     first_run_complete: bool = False
@@ -352,6 +355,7 @@ _Check = Callable[[Any], tuple[Any, str | None]]
 
 PRIVACY_MODES = ("full", "minimal", "off")
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
+TRAY_ICONS = ("white", "black", "auto")
 _WINDOW_SIZE_MAX = 16384
 _MAC_RE = re.compile(r"[0-9A-Fa-f]{2}(?::[0-9A-Fa-f]{2}){5}")
 _CLIENT_ID_RE = re.compile(r"\d{17,20}")
@@ -490,6 +494,7 @@ _RULES: tuple[tuple[str, str, _Check], ...] = (
     ("privacy", "resume_mode", _one_of(("full", "minimal"), "full")),
     # Same limits as the spin boxes in Settings → Advanced.
     ("behavior", "notify_delay_ms", _clamp(0, 10_000)),
+    ("behavior", "tray_icon", _one_of(TRAY_ICONS, "white")),
     ("advanced", "poll_interval_ms", _clamp(250, 10_000)),
     ("advanced", "log_level", _one_of(LOG_LEVELS, "INFO", upper=True)),
     # 0 switches both checks off, so it has to stay reachable.

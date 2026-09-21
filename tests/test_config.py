@@ -117,6 +117,7 @@ def test_dataclasses_have_expected_fields():
         "cover_art",
         "show_buttons",
         "notify_delay_ms",
+        "tray_icon",
         "first_run_complete",
         "tray_hint_shown",
     } == set(BehaviorConfig.__dataclass_fields__)

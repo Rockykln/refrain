@@ -69,21 +69,70 @@ def test_color_scheme_falls_back_to_the_text_colour_when_the_hint_fails(
     assert tray_mod._detect_color_scheme() == expected
 
 
-def test_light_theme_uses_the_dark_glyphs(tray, monkeypatch):
-    monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: "light")
+def _glyphs(tray):
+    return {s: os.path.basename(p) for s, p in tray._build_icons().items()}
+
+
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+def test_the_icon_is_white_by_default_whatever_the_theme(app, monkeypatch, scheme):
+    monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: scheme)
+    tray = TrayIcon()
     monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
-    icons = tray._build_icons_for_current_theme()
-    assert icons[PlaybackStatus.PLAYING].endswith("tray-playing-dark.svg")
-    assert icons[PlaybackStatus.STOPPED].endswith("tray-stopped-dark.svg")
+    assert _glyphs(tray) == {
+        PlaybackStatus.PLAYING: "tray-playing.svg",
+        PlaybackStatus.PAUSED: "tray-paused.svg",
+        PlaybackStatus.STOPPED: "tray-stopped.svg",
+    }
 
 
-def test_theme_change_redraws_the_icon_for_the_current_state(tray, monkeypatch):
+@pytest.mark.parametrize("scheme", ["light", "dark"])
+def test_a_black_icon_stays_black_whatever_the_theme(app, monkeypatch, scheme):
+    monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: scheme)
+    tray = TrayIcon(icon="black")
+    monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
+    assert _glyphs(tray) == {
+        PlaybackStatus.PLAYING: "tray-playing-dark.svg",
+        PlaybackStatus.PAUSED: "tray-paused-dark.svg",
+        PlaybackStatus.STOPPED: "tray-stopped-dark.svg",
+    }
+
+
+@pytest.mark.parametrize(
+    "scheme,glyph", [("light", "tray-playing-dark.svg"), ("dark", "tray-playing.svg")]
+)
+def test_an_auto_icon_follows_the_theme(app, monkeypatch, scheme, glyph):
+    monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: scheme)
+    tray = TrayIcon(icon="auto")
+    monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
+    assert _glyphs(tray)[PlaybackStatus.PLAYING] == glyph
+
+
+def test_switching_the_icon_redraws_it_for_the_current_state(app, monkeypatch):
+    tray = TrayIcon()
+    tray.set_status(PlaybackStatus.PAUSED)
+    monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
+    shown = []
+    monkeypatch.setattr(tray._tray, "setIcon", shown.append)
+    tray.set_icon("black")
+    tray.set_icon("black")
+    assert [os.path.basename(p) for p in shown] == ["tray-paused-dark.svg"]
+
+
+def test_theme_change_redraws_an_auto_icon_for_the_current_state(app, monkeypatch):
+    tray = TrayIcon(icon="auto")
     tray.set_status(PlaybackStatus.PLAYING)
     shown = []
     monkeypatch.setattr(tray._tray, "setIcon", shown.append)
     monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: "dark")
     tray._on_color_scheme_changed()
     assert shown == [tray._icons[PlaybackStatus.PLAYING]]
+
+
+def test_theme_change_leaves_a_fixed_icon_alone(tray, monkeypatch):
+    shown = []
+    monkeypatch.setattr(tray._tray, "setIcon", shown.append)
+    tray._on_color_scheme_changed()
+    assert shown == []
 
 
 def test_left_click_opens_the_status_window_and_middle_click_toggles_playback(tray):
@@ -137,6 +186,7 @@ def test_stopping_from_idle_applies_at_once(tray):
         (DiscordStatus.NOT_SET_UP, "Discord: not set up — add your Application ID"),
         (DiscordStatus.NO_CLIENT, "Discord: app isn't running"),
         (DiscordStatus.REJECTED, "Discord: Application ID rejected — check it"),
+        (DiscordStatus.NOT_LOGGED_IN, "Discord: not logged in — log in to show your status"),
         (DiscordStatus.ERROR, "Discord: not answering"),
         (DiscordStatus.READY, "Discord: ready — waiting for music"),
         (DiscordStatus.SHOWING, "Discord: visible on your profile"),

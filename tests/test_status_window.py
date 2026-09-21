@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QEvent, QPointF, Qt  # noqa: E402
 from PySide6.QtGui import QColor, QEnterEvent, QFont, QImage, QMouseEvent, QPalette  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
 
 from refrain.cover_art import image_path_for_url  # noqa: E402
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
@@ -70,6 +70,18 @@ def test_nothing_playing_says_how_to_start(window):
     assert not window.cover.pixmap().isNull()
 
 
+def test_a_browser_playing_with_no_url_gets_a_troubleshooting_hint(window):
+    window.set_track(TrackInfo(source="none", player="Vivaldi"))
+    assert window.title.text() == "Nothing playing"
+    assert not window.hint.isHidden()
+    assert "Vivaldi" in window.hint.text()
+    assert "Plasma" in window.hint.text()
+
+    window.set_track(TrackInfo.empty())
+    assert "Vivaldi" not in window.hint.text()
+    assert "Apple Music" in window.hint.text()
+
+
 def test_the_current_song_with_its_source(window):
     window.set_track(_playing())
     assert window.title.text() == "Glass Tides"
@@ -115,6 +127,12 @@ DISCORD = [
     (DiscordStatus.NOT_SET_UP, "Not set up yet", "Set up…", "warn"),
     (DiscordStatus.NO_CLIENT, "The Discord app isn't running", "", "warn"),
     (DiscordStatus.REJECTED, "Application ID rejected", "Fix…", "bad"),
+    (
+        DiscordStatus.NOT_LOGGED_IN,
+        "Discord is open but not logged in. Log in to Discord to show your status.",
+        "",
+        "warn",
+    ),
     (DiscordStatus.ERROR, "Discord isn't answering right now", "", "warn"),
     (DiscordStatus.READY, "Ready — waiting for music", "", "ok"),
     (DiscordStatus.SHOWING, "Visible on your profile", "", "ok"),
@@ -447,6 +465,29 @@ def test_a_recent_row_only_scrolls_after_a_moment_of_hovering(window):
     assert row._hover.isActive() is False
 
 
+def test_a_recent_song_is_underlined_only_while_the_mouse_is_on_it(window):
+    window.set_history(_history(n=3))
+    row, other = (window.recent_rows.itemAt(i).widget() for i in range(2))
+    assert row.title.font().underline() is False
+    row.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+    assert row.title.font().underline() is True
+    assert row.when.font().underline() is False
+    assert other.title.font().underline() is False
+    row.leaveEvent(QEvent(QEvent.Type.Leave))
+    assert row.title.font().underline() is False
+
+
+def test_a_recent_song_is_underlined_even_with_hover_scrolling_off(window):
+    sw.set_hover_delay(0)
+    try:
+        window.set_history(_history(n=3))
+        row = window.recent_rows.itemAt(0).widget()
+        row.enterEvent(QEnterEvent(QPointF(1, 1), QPointF(1, 1), QPointF(1, 1)))
+        assert row.title.font().underline() is True
+    finally:
+        sw.set_hover_delay(1500)
+
+
 def test_the_playing_title_scrolls_once_when_the_mouse_arrives(window):
     window.title.setText("A title far too long for any window this size to show at once")
     window.title.resize(60, 20)
@@ -455,10 +496,42 @@ def test_the_playing_title_scrolls_once_when_the_mouse_arrives(window):
     assert window.title._passes == 1
 
 
+def test_no_button_opens_with_the_focus_but_tab_still_reaches_them(window, app):
+    window.present()
+    for _ in range(3):
+        app.processEvents()
+    assert window.focusWidget() is window
+    window.focusNextChild()
+    assert isinstance(window.focusWidget(), QPushButton)
+
+
 def test_a_window_with_no_room_left_shows_no_songs(window):
     window.set_history(_history(n=5))
-    window._chrome_px = window.height() + 500  # nothing left over
+    window.recent_box.resize(window.recent_box.width(), 10)  # nothing left over
     assert window._fits() == 0
+
+
+def test_songs_keep_their_full_height_once_a_track_shows_up(window, app):
+    """The cover and controls push the list down; it must drop a row, not squeeze them all."""
+    many = HistorySnapshot(
+        entries=tuple(
+            HistoryEntry(f"Song {i}", "Marlow Vance", "", "mpris", "Chromium", NOW - 60 * i)
+            for i in range(12)
+        ),
+        now_playing=False,
+        enabled=True,
+    )
+    window.resize(520, 520)
+    window.show()
+    window.set_history(many)
+    for _ in range(3):
+        app.processEvents()
+    window.set_track(_playing())
+    for _ in range(3):
+        app.processEvents()
+    rows = [window.recent_rows.itemAt(i).widget() for i in range(window.recent_rows.count())]
+    assert rows
+    assert [r.height() for r in rows] == [r.sizeHint().height() for r in rows]
 
 
 def test_a_short_recent_list_stays_together_at_the_top(window, app):

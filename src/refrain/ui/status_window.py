@@ -12,6 +12,7 @@ from pathlib import Path
 from PySide6.QtCore import (
     QByteArray,
     QCoreApplication,
+    QEvent,
     QLocale,
     QRectF,
     QSize,
@@ -76,6 +77,7 @@ _DISCORD_TONE = {
     DiscordStatus.NOT_SET_UP: "warn",
     DiscordStatus.NO_CLIENT: "warn",
     DiscordStatus.REJECTED: "bad",
+    DiscordStatus.NOT_LOGGED_IN: "warn",
     DiscordStatus.ERROR: "warn",
     DiscordStatus.READY: "ok",
     DiscordStatus.SHOWING: "ok",
@@ -320,12 +322,20 @@ def set_hover_delay(ms: int) -> None:
 class _RecentRow(QWidget):
     def enterEvent(self, event) -> None:
         super().enterEvent(event)
+        self._underline(True)
         if _hover_ms:
             self._hover.start(_hover_ms)
 
     def leaveEvent(self, event) -> None:
         super().leaveEvent(event)
+        self._underline(False)
         self._hover.stop()
+
+    def _underline(self, on: bool) -> None:
+        # Shows the row is a link, the way a browser does, without cluttering the list.
+        font = QFont(self.title.font())
+        font.setUnderline(on)
+        self.title.setFont(font)
 
     def __init__(self, entry: HistoryEntry, when: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -402,7 +412,6 @@ class StatusWindow(QDialog):
         self._cover_source = ""
         # Measured from the window itself once it has rows; guesses until then.
         self._row_px = 0
-        self._chrome_px = 0
 
         self._recount = QTimer(self)
         self._recount.setSingleShot(True)
@@ -497,8 +506,10 @@ class StatusWindow(QDialog):
         recent = QVBoxLayout(self.recent_box)
         recent.setContentsMargins(0, 0, 0, 0)
         recent.setSpacing(2)
-        recent.addWidget(_separator())
+        self._recent_line = _separator()
+        recent.addWidget(self._recent_line)
         head = QHBoxLayout()
+        self._recent_head = head
         heading = QLabel(self.tr("Recently played"))
         heading.setFont(self.discord.name.font())
         head.addWidget(heading)
@@ -523,6 +534,9 @@ class StatusWindow(QDialog):
         # left and gives it back when the window shrinks.
         self.recent_box.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Ignored)
         self.recent_box.setMinimumHeight(0)
+        # The song above the list grows once a track with cover and controls
+        # shows up, without the window changing size.
+        self.recent_box.installEventFilter(self)
         layout.addWidget(self.recent_box, 1)
 
         layout.addWidget(_separator())
@@ -550,13 +564,13 @@ class StatusWindow(QDialog):
         version_row.addWidget(self.github_btn)
         layout.addLayout(version_row)
 
-        # Everything but the song rows, measured while there are none: the rows
-        # get whatever the window has beyond this, and never more.
-        self._chrome_px = self.sizeHint().height()
-
         # Enter must not fire whichever action happens to be first.
         for button in self.findChildren(QPushButton):
             button.setAutoDefault(False)
+        # Nor should the first button open with a focus frame, as if chosen:
+        # the window holds the focus until Tab moves it.
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setFocus()
         self._restore_geometry()
         self._refresh()
         apply_interactive_cursors(self)
@@ -652,11 +666,22 @@ class StatusWindow(QDialog):
             self.source.setText("")
             self.artist.setVisible(False)
             self.source.setVisible(False)
-            self.hint.setText(
-                self.tr(
-                    "Start a song in Apple Music in your browser, or on your phone over Bluetooth."
+            if track.player:
+                # A browser is playing but MPRIS gave no URL to recognise
+                # Apple Music by — Chromium outside KDE, typically.
+                self.hint.setText(
+                    self.tr(
+                        "{player} is playing, but doesn't say which page. Install Plasma "
+                        "Browser Integration (package plasma-browser-integration plus the "
+                        'browser extension "Plasma Integration") or use Firefox.'
+                    ).format(player=track.player)
                 )
-            )
+            else:
+                self.hint.setText(
+                    self.tr(
+                        "Start a song in Apple Music in your browser, or on your phone over Bluetooth."
+                    )
+                )
             self.hint.setVisible(True)
             self.cover.setPixmap(_placeholder(self.palette(), _COVER_PX, dpr))
             self._cover_url = ""
@@ -731,6 +756,10 @@ class StatusWindow(QDialog):
         elif d is DiscordStatus.REJECTED:
             text = self.tr("Application ID rejected")
             button, action = self.tr("Fix…"), "discord"
+        elif d is DiscordStatus.NOT_LOGGED_IN:
+            text = self.tr(
+                "Discord is open but not logged in. Log in to Discord to show your status."
+            )
         elif d is DiscordStatus.ERROR:
             text = self.tr("Discord isn't answering right now")
         elif d is DiscordStatus.READY:
@@ -812,7 +841,9 @@ class StatusWindow(QDialog):
         """How many songs fit in the space the list actually has right now."""
         if not self._row_px:
             return _RECENT_GUESS
-        room = self.height() - self._chrome_px
+        spacing = self.recent_box.layout().spacing()
+        head = self._recent_line.sizeHint().height() + self._recent_head.sizeHint().height()
+        room = self.recent_box.height() - head - 2 * spacing
         if room <= 0:
             return 0
         return int(room // self._row_px)
@@ -821,6 +852,11 @@ class StatusWindow(QDialog):
         super().resizeEvent(event)
         # After the layout has settled: only then is the list's own height real.
         self._recount.start()
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.recent_box and event.type() == QEvent.Type.Resize:
+            self._recount.start()
+        return super().eventFilter(watched, event)
 
     def _recount_rows(self) -> None:
         if self._fits() != self.recent_rows.count():

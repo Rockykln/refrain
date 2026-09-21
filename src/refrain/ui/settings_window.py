@@ -237,6 +237,7 @@ class _ElidedHint(QLabel):
     def __init__(self) -> None:
         super().__init__()
         self._full = ""
+        self.setProperty("refrainElides", True)
         self.setStyleSheet(_hint_style())
 
     def text(self) -> str:
@@ -1537,8 +1538,9 @@ class SettingsWindow(QDialog):
         msg.setText(
             self.tr(
                 "Reset every setting to its default? All three Discord "
-                "Application IDs (default + per-source) and your connected "
-                "Last.fm account stay untouched — everything else (sources, "
+                "Application IDs (default + per-source), your connected "
+                "Last.fm account and your Recently played list stay "
+                "untouched — everything else (sources, "
                 "privacy, autostart, advanced) goes back to the shipped "
                 "defaults.\n\n"
                 "The reset is saved right away, and changes you haven't "

@@ -941,7 +941,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         )
         return 1
 
-    tray = TrayIcon()
+    tray = TrayIcon(icon=config.behavior.tray_icon)
     dev_metrics.mark("tray_visible")
     daemon = Daemon(config)
     with dev_metrics.build("settings"):
@@ -1092,6 +1092,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     settings.applied.connect(
         lambda c: status_window_mod.set_hover_delay(c.advanced.hover_scroll_ms)
     )
+    settings.applied.connect(lambda c: tray.set_icon(c.behavior.tray_icon))
 
     # Updater wireup — Settings button = manual check (always shows feedback);
     # the auto-check on startup goes through maybe_check_on_startup() which

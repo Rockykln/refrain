@@ -205,6 +205,7 @@ notifications = false              # new installs; a config from before 0.5.3 ke
 cover_art = true                   # look songs up in Apple's catalog: cover, song link, length
 show_buttons = true
 notify_delay_ms = 0                # 0 = fire ASAP; the cover-art retry loop still waits up to ~2 s
+tray_icon = "white"                # not in Settings: "white", "black", or "auto" to follow the system colour scheme
 
 [advanced]
 poll_interval_ms = 500

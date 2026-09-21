@@ -115,6 +115,13 @@ class FakeTray(_Recorder):
     historyRequested = Signal()
     developerRequested = Signal()
 
+    def __init__(self, icon="white"):
+        super().__init__()
+        self.icon = icon
+
+    def set_icon(self, icon):
+        self._rec("set_icon", icon)
+
     def set_track(self, t):
         self._rec("set_track", t)
 
@@ -401,7 +408,7 @@ class Harness:
                 h.shots.append((ms, fn))
 
         mp.setattr(app, "QTimer", Timer)
-        mp.setattr(app, "TrayIcon", lambda: self._keep("tray", FakeTray()))
+        mp.setattr(app, "TrayIcon", lambda **kw: self._keep("tray", FakeTray(**kw)))
         mp.setattr(app, "Daemon", lambda c: FakeDaemon(h, c))
         mp.setattr(app, "SettingsWindow", lambda c: self._keep("settings", FakeSettings()))
         mp.setattr(app, "LogWindow", lambda bridge: self._keep("log_window", _Window()))
@@ -658,6 +665,17 @@ def test_applied_settings_reach_daemon_updater_and_autostart(h):
     assert h.daemon.worker.called("update_config") == [(new,)]
     assert h.updater._config is new
     assert h.order.count("autostart") == 2
+
+
+def test_the_tray_icon_colour_comes_from_the_config_and_follows_apply(h):
+    h.config.behavior.tray_icon = "black"
+    h.run()
+    assert h.tray.icon == "black"
+    new = Config()
+    new.save = lambda: None
+    new.behavior.tray_icon = "auto"
+    h.settings.applied.emit(new)
+    assert h.tray.called("set_icon") == [("auto",)]
 
 
 def test_check_button_asks_for_a_manual_check(h):

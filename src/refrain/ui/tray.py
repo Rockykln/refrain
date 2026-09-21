@@ -81,16 +81,17 @@ class TrayIcon(QObject):
     # A pause asked for from the tray itself is real; show it at once.
     _OWN_CONTROL_WINDOW_S = 3.0
 
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, parent: QObject | None = None, icon: str = "white"):
         super().__init__(parent)
         self._icons_dir = assets_dir() / "icons"
+        self._icon = icon
         self._current_status: PlaybackStatus = PlaybackStatus.STOPPED
         self._pending_status: PlaybackStatus | None = None
         self._own_control_at = -1e9
         self._pause_timer = QTimer(self)
         self._pause_timer.setSingleShot(True)
         self._pause_timer.timeout.connect(self._apply_pending_status)
-        self._icons = self._build_icons_for_current_theme()
+        self._icons = self._build_icons()
         self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
         self._tray.setToolTip("Refrain")
         self._hint_click = None
@@ -232,21 +233,34 @@ class TrayIcon(QObject):
             with contextlib.suppress(Exception):
                 signal.connect(self._on_color_scheme_changed)
 
-    def _build_icons_for_current_theme(self) -> dict[PlaybackStatus, QIcon]:
-        # On a dark system theme the tray panel is dark, so the glyph has
-        # to be bright (the existing `tray-<state>.svg` set). On a light
-        # theme it has to be dark — that's the `*-dark.svg` variants.
-        scheme = _detect_color_scheme()
-        suffix = "-dark" if scheme == "light" else ""
+    def _build_icons(self) -> dict[PlaybackStatus, QIcon]:
+        # `tray-<state>.svg` is the white glyph, `*-dark.svg` the black one.
+        if self._icon == "auto":
+            black = _detect_color_scheme() == "light"
+        else:
+            black = self._icon == "black"
+        suffix = "-dark" if black else ""
         return {
             PlaybackStatus.PLAYING: QIcon(str(self._icons_dir / f"tray-playing{suffix}.svg")),
             PlaybackStatus.PAUSED: QIcon(str(self._icons_dir / f"tray-paused{suffix}.svg")),
             PlaybackStatus.STOPPED: QIcon(str(self._icons_dir / f"tray-stopped{suffix}.svg")),
         }
 
+    def set_icon(self, icon: str) -> None:
+        """Switch between the "white", "black" and "auto" tray icon."""
+        if icon == self._icon:
+            return
+        self._icon = icon
+        self._redraw_icon()
+
     def _on_color_scheme_changed(self, *_args) -> None:
+        if self._icon != "auto":
+            return
         log.debug("System color scheme changed; refreshing tray icons")
-        self._icons = self._build_icons_for_current_theme()
+        self._redraw_icon()
+
+    def _redraw_icon(self) -> None:
+        self._icons = self._build_icons()
         icon = self._icons.get(self._current_status)
         if icon is not None:
             self._tray.setIcon(icon)
@@ -343,6 +357,11 @@ class TrayIcon(QObject):
             text, icon = self.tr("Discord: app isn't running"), "network-disconnect"
         elif d is DiscordStatus.REJECTED:
             text, icon = self.tr("Discord: Application ID rejected — check it"), "dialog-warning"
+        elif d is DiscordStatus.NOT_LOGGED_IN:
+            text, icon = (
+                self.tr("Discord: not logged in — log in to show your status"),
+                "dialog-warning",
+            )
         elif d is DiscordStatus.ERROR:
             text, icon = self.tr("Discord: not answering"), "dialog-warning"
         elif d is DiscordStatus.READY:

@@ -18,6 +18,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 import refrain.ui.settings_window as sw  # noqa: E402
 from refrain.config import Config  # noqa: E402
+from refrain.ui.layout_check import CLIPPED, check_layout  # noqa: E402
 
 
 @pytest.fixture
@@ -56,6 +57,35 @@ def test_a_slow_lookup_neither_blocks_nor_aborts(slow_lookup):
     slow_lookup.set()
     _pump(app, lambda: not win._app_name_workers)
     assert "12345678901234568" in win.app_name_label.text()
+
+
+def test_the_elided_app_name_label_is_skipped_by_the_layout_checker(monkeypatch):
+    """app_name_label shortens its text on purpose (refrainElides); the layout
+    checker's normal QLabel heuristic would otherwise flag it as clipped whenever
+    that heuristic and the widget's own elision disagree by even a few pixels."""
+    from PySide6.QtCore import QSize
+    from PySide6.QtWidgets import QLabel
+
+    app = QApplication.instance() or QApplication(sys.argv)
+    config = Config()
+    win = sw.SettingsWindow(config)
+    win.app_name_label.setText("A rather long demo application name")
+    win.app_name_label.setVisible(True)
+    win.show()
+    app.processEvents()
+
+    real_hint = QLabel.minimumSizeHint
+
+    def inflated(self):
+        if self is win.app_name_label:
+            return QSize(9999, real_hint(self).height())
+        return real_hint(self)
+
+    monkeypatch.setattr(QLabel, "minimumSizeHint", inflated)
+    findings = check_layout(win)
+    assert not any(f.kind == CLIPPED and "_ElidedHint" in f.path for f in findings)
+    win.close()
+    win.deleteLater()
 
 
 def test_the_window_can_go_while_a_lookup_runs(slow_lookup):

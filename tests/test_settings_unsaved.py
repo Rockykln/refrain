@@ -315,6 +315,7 @@ def test_reset_saves_at_once_and_says_so(win, answer):
     answer("Reset")
     win._on_reset_clicked()
     assert "saved right away" in answer.asked[0][0]
+    assert "Recently played list stay untouched" in answer.asked[0][0]
     assert answer.asked[0][1] == ""
     assert win.sent[-1].advanced.poll_interval_ms == Config().advanced.poll_interval_ms
     assert Config.load().advanced.poll_interval_ms == Config().advanced.poll_interval_ms
