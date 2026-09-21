@@ -14,6 +14,7 @@ from refrain import dev_metrics
 from refrain.paths import assets_dir
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
+from refrain.ui import icons
 
 log = logging.getLogger(__name__)
 
@@ -111,29 +112,29 @@ class TrayIcon(QObject):
         # A click on one opens the Status window, which says the same
         # thing in full and offers the fix.
         self._title_action = QAction(self.tr("(nothing playing)"))
-        self._title_action.setIcon(QIcon.fromTheme("view-media-track"))
+        self._title_action.setIcon(icons.themed_icon("view-media-track"))
         self._title_action.triggered.connect(self.statusRequested.emit)
         self._artist_action = QAction("")
-        self._artist_action.setIcon(QIcon.fromTheme("view-media-artist"))
+        self._artist_action.setIcon(icons.themed_icon("view-media-artist"))
         self._artist_action.triggered.connect(self.statusRequested.emit)
         # Hidden until a real track populates it — otherwise it
         # renders as a tall empty row right under "(nothing playing)".
         self._artist_action.setVisible(False)
         self._progress_action = QAction("")
-        self._progress_action.setIcon(QIcon.fromTheme("chronometer"))
+        self._progress_action.setIcon(icons.themed_icon("chronometer"))
         self._progress_action.triggered.connect(self.statusRequested.emit)
         self._progress_action.setVisible(False)
         self._discord_action = QAction(self.tr("Discord: checking…"))
-        self._discord_action.setIcon(QIcon.fromTheme("network-disconnect"))
+        self._discord_action.setIcon(icons.themed_icon("network-disconnect"))
         self._discord_action.triggered.connect(self.statusRequested.emit)
         # Hidden while Last.fm was never set up — a "Last.fm: off" line
         # would just be noise for the majority who never scrobble.
         self._lastfm_action = QAction("")
-        self._lastfm_action.setIcon(QIcon.fromTheme("network-disconnect"))
+        self._lastfm_action.setIcon(icons.themed_icon("network-disconnect"))
         self._lastfm_action.triggered.connect(self.statusRequested.emit)
         self._lastfm_action.setVisible(False)
         self._developer_action = QAction(self.tr("Developer mode"))
-        self._developer_action.setIcon(QIcon.fromTheme("applications-development"))
+        self._developer_action.setIcon(icons.themed_icon("applications-development"))
         self._developer_action.triggered.connect(self.developerRequested.emit)
         self._developer_action.setVisible(False)
 
@@ -146,13 +147,13 @@ class TrayIcon(QObject):
         # icon falls back to a null QIcon and the row degrades to
         # text-only without breaking layout.
         self._previous_action = QAction(self.tr("Previous"))
-        self._previous_action.setIcon(QIcon.fromTheme("media-skip-backward"))
+        self._previous_action.setIcon(icons.themed_icon("media-skip-backward"))
         self._previous_action.triggered.connect(self.previousRequested.emit)
         self._play_pause_action = QAction(self.tr("Play"))
-        self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
+        self._play_pause_action.setIcon(icons.themed_icon("media-playback-start"))
         self._play_pause_action.triggered.connect(self._request_play_pause)
         self._next_action = QAction(self.tr("Next"))
-        self._next_action.setIcon(QIcon.fromTheme("media-skip-forward"))
+        self._next_action.setIcon(icons.themed_icon("media-skip-forward"))
         self._next_action.triggered.connect(self.nextRequested.emit)
 
         menu = QMenu()
@@ -184,7 +185,7 @@ class TrayIcon(QObject):
         # — a menu entry that opens an empty "turned off" window is a
         # dead end.
         self._history_action = QAction(self.tr("Recently played…"))
-        self._history_action.setIcon(QIcon.fromTheme("document-open-recent"))
+        self._history_action.setIcon(icons.themed_icon("document-open-recent"))
         self._history_action.triggered.connect(self.historyRequested.emit)
         # Pausing sharing lives in the Status window, which a click on the icon
         # already opens; Settings stays here too, because this menu is where
@@ -192,18 +193,18 @@ class TrayIcon(QObject):
         self._sharing_paused = False
         menu.addAction(self._history_action)
         self._settings_action = QAction(self.tr("Settings…"))
-        self._settings_action.setIcon(QIcon.fromTheme("configure"))
+        self._settings_action.setIcon(icons.themed_icon("configure"))
         self._settings_action.triggered.connect(self.settingsRequested.emit)
         menu.addAction(self._settings_action)
         # Rarely needed, and Restart sat right above Quit: tucked away,
         # still two clicks from the top.
         self._more_menu = menu.addMenu(self.tr("Troubleshooting"))
-        self._more_menu.setIcon(QIcon.fromTheme("tools-report-bug"))
+        self._more_menu.setIcon(icons.themed_icon("tools-report-bug"))
         self._log_action = self._more_menu.addAction(self.tr("Live log…"))
-        self._log_action.setIcon(QIcon.fromTheme("view-list-text"))
+        self._log_action.setIcon(icons.themed_icon("view-list-text"))
         self._log_action.triggered.connect(self.logRequested.emit)
         self._restart_action = self._more_menu.addAction(self.tr("Restart Refrain"))
-        self._restart_action.setIcon(QIcon.fromTheme("view-refresh"))
+        self._restart_action.setIcon(icons.themed_icon("view-refresh"))
         self._restart_action.triggered.connect(self.restartRequested.emit)
         menu.addSeparator()
         quit_action = menu.addAction(self.tr("Quit Refrain"))
@@ -318,10 +319,10 @@ class TrayIcon(QObject):
             self._tray.setIcon(icon)
         if status == PlaybackStatus.PLAYING:
             self._play_pause_action.setText(self.tr("Pause"))
-            self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-pause"))
+            self._play_pause_action.setIcon(icons.themed_icon("media-playback-pause"))
         else:
             self._play_pause_action.setText(self.tr("Play"))
-            self._play_pause_action.setIcon(QIcon.fromTheme("media-playback-start"))
+            self._play_pause_action.setIcon(icons.themed_icon("media-playback-start"))
 
     def set_update_available(self, available: bool, version: str = "") -> None:
         if available and version:
@@ -377,7 +378,7 @@ class TrayIcon(QObject):
         else:
             text, icon = self.tr("Discord: checking…"), "network-disconnect"
         self._discord_action.setText(text)
-        self._discord_action.setIcon(QIcon.fromTheme(icon))
+        self._discord_action.setIcon(icons.themed_icon(icon))
 
         f = status.lastfm
         self._lastfm_action.setVisible(f is not LastfmStatus.OFF)
@@ -399,7 +400,7 @@ class TrayIcon(QObject):
         else:
             text, icon = self.tr("Last.fm: scrobbling"), "network-connect"
         self._lastfm_action.setText(text)
-        self._lastfm_action.setIcon(QIcon.fromTheme(icon))
+        self._lastfm_action.setIcon(icons.themed_icon(icon))
 
     def set_progress(self, position_ms: int, duration_ms: int) -> None:
         """Render the progress line. A negative position hides it.

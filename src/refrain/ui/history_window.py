@@ -59,7 +59,7 @@ from PySide6.QtWidgets import (
 from refrain.cover_art import image_path_for_url
 from refrain.history import HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir
-from refrain.ui import clock
+from refrain.ui import clock, icons
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
 
@@ -112,11 +112,10 @@ def _source_text(entry: HistoryEntry) -> str:
 
 
 def _source_icon(source: str) -> QIcon:
-    for name in _SOURCE_ICONS.get(source, ()):
-        icon = QIcon.fromTheme(name)
-        if not icon.isNull():
-            return icon
-    return QIcon()
+    names = _SOURCE_ICONS.get(source)
+    if not names:
+        return QIcon()
+    return icons.themed_icon(names[0], *names[1:])
 
 
 def _subtitle(entry: HistoryEntry) -> str:
@@ -336,7 +335,7 @@ def _placeholder_cover(palette: QPalette, dpr: float) -> QPixmap:
     path = QPainterPath()
     path.addRoundedRect(QRectF(0, 0, px, px), _COVER_RADIUS * dpr, _COVER_RADIUS * dpr)
     p.fillPath(path, _with_alpha(palette.color(QPalette.ColorRole.WindowText), 0.09))
-    icon = QIcon.fromTheme("audio-x-generic")
+    icon = icons.themed_icon("audio-x-generic")
     if icon.isNull():
         icon = QIcon(str(assets_dir() / "icons" / "refrain.svg"))
     glyph = round(px * 0.5)
@@ -604,17 +603,17 @@ class _SongRow(QWidget):
         e = self._entry
         menu = QMenu(self)
         open_ = menu.addAction(
-            QIcon.fromTheme("internet-web-browser"),
+            icons.themed_icon("internet-web-browser", "applications-internet"),
             QCoreApplication.translate("HistoryWindow", "Open in Apple Music"),
         )
         copy = menu.addAction(
-            QIcon.fromTheme("edit-copy"),
+            icons.themed_icon("edit-copy"),
             QCoreApplication.translate("HistoryWindow", "Copy artist and title"),
         )
         menu.addSeparator()
         # No "are you sure?": it's one song, and not a file on disk.
         remove = menu.addAction(
-            QIcon.fromTheme("edit-delete"),
+            icons.themed_icon("edit-delete"),
             QCoreApplication.translate("HistoryWindow", "Remove from history"),
         )
         chosen = menu.exec(event.globalPos())
@@ -667,7 +666,7 @@ class HistoryWindow(QDialog):
         # ---- top bar ------------------------------------------------------
         self.count_label = QLabel()
         self.clear_btn = QPushButton(self.tr("Clear history…"))
-        self.clear_btn.setIcon(QIcon.fromTheme("edit-clear-history"))
+        self.clear_btn.setIcon(icons.themed_icon("edit-clear-history"))
         self.clear_btn.clicked.connect(self._on_clear_clicked)
         top = QHBoxLayout()
         top.addWidget(self.count_label)
@@ -720,7 +719,7 @@ class HistoryWindow(QDialog):
         ev.addStretch(1)
         empty_icon = QLabel()
         empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        glyph = QIcon.fromTheme("document-open-recent")
+        glyph = icons.themed_icon("document-open-recent")
         if glyph.isNull():
             glyph = QIcon(str(icon_path))
         empty_icon.setPixmap(glyph.pixmap(48, 48))

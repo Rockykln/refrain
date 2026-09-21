@@ -50,7 +50,7 @@ from refrain.history import HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir, state_dir
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
-from refrain.ui import clock
+from refrain.ui import clock, icons
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
 from refrain.ui.history_window import _ElidedLabel, _muted, _read_scaled, _set_color, song_link
@@ -460,14 +460,14 @@ class StatusWindow(QDialog):
         controls = QHBoxLayout()
         controls.setSpacing(0)
         self.previous_btn = QToolButton()
-        self.previous_btn.setIcon(QIcon.fromTheme("media-skip-backward"))
+        self.previous_btn.setIcon(icons.themed_icon("media-skip-backward"))
         self.previous_btn.setToolTip(self.tr("Previous song"))
         self.previous_btn.clicked.connect(self.previousRequested.emit)
         self.play_btn = QToolButton()
         self.play_btn.setToolTip(self.tr("Play or pause"))
         self.play_btn.clicked.connect(self.playPauseRequested.emit)
         self.next_btn = QToolButton()
-        self.next_btn.setIcon(QIcon.fromTheme("media-skip-forward"))
+        self.next_btn.setIcon(icons.themed_icon("media-skip-forward"))
         self.next_btn.setToolTip(self.tr("Next song"))
         self.next_btn.clicked.connect(self.nextRequested.emit)
         self.controls = (self.previous_btn, self.play_btn, self.next_btn)
@@ -546,7 +546,7 @@ class StatusWindow(QDialog):
         buttons.addWidget(self.sharing_btn)
         buttons.addStretch(1)
         self.settings_btn = QPushButton(self.tr("Settings…"))
-        self.settings_btn.setIcon(QIcon.fromTheme("configure"))
+        self.settings_btn.setIcon(icons.themed_icon("configure"))
         self.settings_btn.clicked.connect(lambda: self.settingsRequested.emit(""))
         buttons.addWidget(self.settings_btn)
         layout.addLayout(buttons)
@@ -712,7 +712,7 @@ class StatusWindow(QDialog):
     def _refresh_controls(self) -> None:
         playing = self._track.status == PlaybackStatus.PLAYING
         self.play_btn.setIcon(
-            QIcon.fromTheme("media-playback-pause" if playing else "media-playback-start")
+            icons.themed_icon("media-playback-pause" if playing else "media-playback-start")
         )
         for button in self.controls:
             button.setEnabled(self._track.has_track)
@@ -893,13 +893,13 @@ class StatusWindow(QDialog):
     def _refresh_sharing(self) -> None:
         if self._sharing_paused:
             self.sharing_btn.setText(self.tr("Resume sharing"))
-            self.sharing_btn.setIcon(QIcon.fromTheme("media-playback-start"))
+            self.sharing_btn.setIcon(icons.themed_icon("media-playback-start"))
             self.sharing_btn.setToolTip(
                 self.tr("Show your song in Discord and scrobble to Last.fm again.")
             )
         else:
             self.sharing_btn.setText(self.tr("Pause sharing"))
-            self.sharing_btn.setIcon(QIcon.fromTheme("media-playback-pause"))
+            self.sharing_btn.setIcon(icons.themed_icon("media-playback-pause"))
             self.sharing_btn.setToolTip(
                 self.tr("Hide your Discord status and stop scrobbling until you resume.")
             )
