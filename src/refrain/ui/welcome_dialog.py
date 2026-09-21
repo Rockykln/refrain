@@ -102,7 +102,7 @@ def _probe_itunes() -> tuple[bool, str]:
     try:
         # Named like every other request Refrain makes, so Apple sees who asked.
         probe = urllib.request.Request(_ITUNES_TEST_URL, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(probe, timeout=5) as resp:  # noqa: S310
+        with urllib.request.urlopen(probe, timeout=5) as resp:  # nosec B310
             data = json.load(resp)
         if isinstance(data, dict) and "resultCount" in data:
             return True, QCoreApplication.translate("WelcomeDialog", "iTunes Search API reachable.")

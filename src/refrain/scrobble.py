@@ -211,7 +211,7 @@ class LastfmClient:
                 request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
             with (
                 dev_metrics.network("lastfm"),
-                urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r,
+                urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r,  # nosec B310
             ):
                 payload = json.load(r)
         except LastfmError:

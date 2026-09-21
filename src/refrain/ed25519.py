@@ -90,6 +90,10 @@ def verify(public_key: bytes, message: bytes, signature: bytes) -> bool:
     a = decompress(public_key)
     if a is None:
         return False
+    # With a small-order key h*A vanishes for some messages, so anyone could
+    # forge those. RFC 8032 allows such keys; no real key has small order.
+    if _equal(scalar_mult(8, a), (0, 1, 1, 0)):
+        return False
     r_bytes = signature[:32]
     r = decompress(r_bytes)
     if r is None:
