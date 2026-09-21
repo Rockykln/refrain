@@ -69,13 +69,13 @@ def button_url(link: str) -> str:
 
 
 def scrobble_duration_ms(
-    effective_ms: int, disputed: bool, reported_length_ms: int, catalog_ms: int
+    effective_ms: int, disputed: bool, reported_length_ms: int, known_ms: int
 ) -> int:
     """The length to hand Last.fm, which is not always the one we display.
 
-    When the source and the catalog disagree about how long a track is,
-    Refrain shows no total at all: a confident wrong number is worse
-    than an honest blank. Last.fm can't work that way — its rules are
+    When the source and the length measured from whole plays disagree
+    about how long a track is, Refrain shows no total at all: a
+    confident wrong number is worse than an honest blank. Last.fm can't work that way — its rules are
     written in terms of length (a 30-second floor, then half the track
     or four minutes, whichever comes first), so withholding it doesn't
     mean "we're not sure", it means the play never counts.
@@ -96,13 +96,13 @@ def scrobble_duration_ms(
     """
     if not disputed:
         return effective_ms
-    usable = [ms for ms in (reported_length_ms, catalog_ms) if ms >= 30_000]
+    usable = [ms for ms in (reported_length_ms, known_ms) if ms >= 30_000]
     if usable:
         return min(usable)
     # Neither candidate clears the floor, so the choice cannot rescue the
     # scrobble and the track may genuinely be that short. Fall back to the
     # ordinary pick rather than inventing a length.
-    return pick_effective_duration_ms(reported_length_ms, catalog_ms)
+    return pick_effective_duration_ms(reported_length_ms, 0, known_ms)
 
 
 def compute_idle_state(
@@ -338,8 +338,12 @@ class DaemonWorker(QObject):
         # The known length of the song this tick is about, shared by every
         # pipeline stage; dropped at the start of each tick so a catalog
         # answer that arrived since is picked up.
-        self._tick_known: tuple[tuple, int] | None = None
+        self._tick_known: tuple[tuple, tuple[int, int]] | None = None
         self._album_display: tuple[tuple[str, str, str], str] = (("", "", ""), "")
+        # (source, title, artist) of the song playing, the album it is known
+        # under for this play, and the one the history and Last.fm keep.
+        self._song_album: tuple[tuple[str, str, str], str, str] = (("", "", ""), "", "")
+        self._catalog_album: tuple[tuple[str, str, str], str] = (("", "", ""), "")
         self._prev_track: TrackInfo | None = None
         self._max_reported_ms = 0
         # When we last skipped a song ourselves: a play we cut short says
@@ -364,6 +368,10 @@ class DaemonWorker(QObject):
         self._notify_id: int | None = None
         self._notify_id_fp = ""
         self._last_track_fp = ""
+        # `player` alone (no other field changing) still needs to reach the
+        # Status window's browser hint, and fingerprint() deliberately
+        # ignores it — see _tick.
+        self._last_track_player = ""
         self._last_status: PlaybackStatus | None = None
         self._last_notified_fp = ""
         self._last_rpc_connected = False
@@ -559,8 +567,15 @@ class DaemonWorker(QObject):
             self._emit_history()
 
     def _update_history(
-        self, track: TrackInfo, duration_ms: int, position_ms: int | None, restarted: bool
+        self,
+        track: TrackInfo,
+        duration_ms: int,
+        position_ms: int | None,
+        restarted: bool,
+        album: str = "",
     ) -> None:
+        """``album`` is one found after the song started; the cover is
+        still looked up under the album the song is known by."""
         try:
             cover_url = song_url = ""
             if track.has_track and self._config.behavior.cover_art:
@@ -569,7 +584,7 @@ class DaemonWorker(QObject):
                     self._cover_fetcher.get_song_url(track.artist, track.title, track.album) or ""
                 )
             if self._history.update(
-                track,
+                dataclasses.replace(track, album=album) if album else track,
                 duration_ms,
                 cover_url=cover_url,
                 song_url=song_url,
@@ -666,6 +681,14 @@ class DaemonWorker(QObject):
         self._clock = dev_metrics.poll_clock()
         try:
             track = self._poll()
+            # Nothing else about an untracked poll ever changes, so the
+            # fingerprint-gated emit below stays silent — but the Status
+            # window's browser hint (in `player`) still needs to reach it.
+            if track.has_track:
+                self._last_track_player = ""
+            elif track.player != self._last_track_player:
+                self._last_track_player = track.player
+                self.trackChanged.emit(track)
             self._dispatch(track)
             self._clock.done()
         except Exception:
@@ -674,7 +697,7 @@ class DaemonWorker(QObject):
             self._clock = dev_metrics.NULL_CLOCK
 
     def _poll(self) -> TrackInfo:
-        track = self._poll_sources()
+        track = self._keep_song_album(self._poll_sources())
         self._clock.lap("source")
         track = self._apply_idle_detection(self._resolve_position(track))
         self._clock.lap("position")
@@ -696,7 +719,63 @@ class DaemonWorker(QObject):
         track, source = select_source_track(mpris_t, bt_t)
         if source != "none":
             self._active_source = source
+        elif mpris_t is not None and mpris_t.player:
+            # No source is actually playing anything Refrain recognises, but
+            # MPRIS saw a browser player with no URL at all — pass its name
+            # through for the Status window's troubleshooting hint.
+            track = dataclasses.replace(track, player=mpris_t.player)
         return track
+
+    def _keep_song_album(self, track: TrackInfo) -> TrackInfo:
+        """The song keeps the album it started with until another song plays.
+
+        A browser can send the album a poll after the title, or drop it for
+        a poll. The notification, Discord and the catalog lookup key a song
+        by its album too, so either would end the play and start it again.
+        A late album goes to the history and Last.fm alone (see `_heard`).
+        Two different albums are two recordings.
+        """
+        if not track.has_track:
+            return track
+        names = (track.source, track.title, track.artist)
+        known_names, album, heard = self._song_album
+        if names == known_names and (not album or not track.album):
+            if not heard and track.album:
+                self._song_album = (names, album, track.album)
+            return track if track.album == album else dataclasses.replace(track, album=album)
+        self._song_album = (names, track.album, track.album)
+        return track
+
+    def _heard(self, track: TrackInfo) -> TrackInfo:
+        """The track as the history and Last.fm keep it.
+
+        They take an album that turns up after the song started, from the
+        player or the catalog, into the same play (see
+        `refrain.scrobble.fills_in_album`). Once it has one, it keeps it.
+        """
+        names, album, heard = self._song_album
+        if not track.has_track or names != (track.source, track.title, track.artist):
+            return track
+        if not heard:
+            heard = track.album
+            if not heard and self._config.behavior.cover_art:
+                heard = self._cover_fetcher.get_album(track.artist, track.title, track.album)
+            self._song_album = (names, album, heard)
+        return (
+            track if not heard or heard == track.album else dataclasses.replace(track, album=heard)
+        )
+
+    def _catalog_album_for(self, track: TrackInfo) -> str:
+        """The catalog's album for a song the player sends none for.
+
+        Asked once per song: one that arrives while it plays would make it
+        a new song downstream, just as a late album from the player would.
+        """
+        names = (track.source, track.title, track.artist)
+        if self._catalog_album[0] != names:
+            found = self._cover_fetcher.get_album(track.artist, track.title, track.album)
+            self._catalog_album = (names, found)
+        return self._catalog_album[1]
 
     def _catalog_duration_ms(self, track: TrackInfo) -> int:
         return (
@@ -705,66 +784,76 @@ class DaemonWorker(QObject):
             else 0
         )
 
-    def _known_duration_ms(self, track: TrackInfo) -> int:
+    def _known_duration_ms(self, track: TrackInfo, catalog_ms: int | None = None) -> int:
         """The song's length from outside the player: the iTunes catalog,
         else what whole plays of it measured (see refrain.song_lengths)."""
-        return self._catalog_duration_ms(track) or self._song_lengths.get_ms(
-            track.artist, track.title, track.album
-        )
+        if catalog_ms is None:
+            catalog_ms = self._catalog_duration_ms(track)
+        return catalog_ms or self._song_lengths.get_ms(track.artist, track.title, track.album)
 
-    def _tick_known_ms(self, track: TrackInfo) -> int:
-        """`_known_duration_ms`, looked up once per tick and song.
+    def _tick_lengths(self, track: TrackInfo) -> tuple[int, int]:
+        """``(catalog_ms, known_ms)``, looked up once per tick and song.
 
         A length measured or dropped mid-tick bumps the learned lengths'
         generation, so the stages after it see the new answer."""
         key = (track.artist, track.title, track.album, self._song_lengths.generation)
         if self._tick_known is not None and self._tick_known[0] == key:
             return self._tick_known[1]
-        known = self._known_duration_ms(track)
-        self._tick_known = (key, known)
-        return known
+        catalog = self._catalog_duration_ms(track)
+        lengths = (catalog, self._known_duration_ms(track, catalog))
+        self._tick_known = (key, lengths)
+        return lengths
+
+    def _tick_known_ms(self, track: TrackInfo) -> int:
+        """`_known_duration_ms`, looked up once per tick and song."""
+        return self._tick_lengths(track)[1]
 
     def _duration_for(
-        self, track: TrackInfo, state: PositionState | None = None, known_ms: int | None = None
+        self,
+        track: TrackInfo,
+        state: PositionState | None = None,
+        lengths: tuple[int, int] | None = None,
     ) -> tuple[int, bool]:
         """The track length every consumer should use, and whether it's disputed.
 
-        Two parties can answer, and either can be wrong. The player's
-        `mpris:length` describes the element actually playing, so it
-        normally wins; the iTunes duration is a catalog search that can
-        match the wrong record. But a stream-relative player's length
-        describes its buffer rather than the song, and then only the
-        catalog knows.
+        The catalog's length wins whenever the lookup matched the song
+        (see `pick_effective_duration_ms`). A browser's `mpris:length` is
+        too often its buffer, or a number short of the song, and the first
+        song after a start gives no track change to catch it out with.
 
-        Which case applies is what `resolve_position` establishes by
-        watching the source across a track change. Until it has, a
-        disagreement is genuinely undecidable — at startup mid-track, a
-        position past the catalog length fits "wrong catalog match" and
-        "this is a stream" equally well — and saying so is more use than
-        picking one. Centralised here so position resolution, idle
-        detection and `_dispatch` can't drift apart on the answer.
+        Without one, the player's length stands against the one measured
+        from whole plays. A stream-relative player's length describes its
+        buffer, and then only the measured length knows. Until
+        `resolve_position` has established which case applies, a
+        disagreement between the two is undecidable, and saying so is more
+        use than picking one. Centralised here so position resolution,
+        idle detection and `_dispatch` can't drift apart on the answer.
 
+        ``lengths`` is `_tick_lengths`' answer, when the caller has it.
         Returns ``(effective_ms, disputed)``.
         """
         state = state or self._position_state
-        itunes_dur_ms = self._known_duration_ms(track) if known_ms is None else known_ms
+        if lengths is None:
+            lengths = (self._catalog_duration_ms(track), self._known_duration_ms(track))
+        catalog_ms, known_ms = lengths
+        if catalog_ms > 0:
+            return catalog_ms, False
         mpris_dur_ms = track.duration_ms
         if state.cumulative:
             # Such a length can grow by 135 s over 144 s of playback on
             # one unchanging track. Better no total at all
             # than a 6:52 one on a 2:24 song.
-            return itunes_dur_ms, False
+            return known_ms, False
         if (
             mpris_dur_ms > 0
-            and itunes_dur_ms > 0
+            and known_ms > 0
             and not state.track_relative
-            # A clip or a buffered segment is no rival length: the catalog
-            # is the song's, as pick_effective_duration_ms decides below.
-            and not mpris_dur_ms < CLIP_MAX_MS <= itunes_dur_ms
-            and abs(mpris_dur_ms - itunes_dur_ms) > max(5_000, itunes_dur_ms * 0.15)
+            # A clip or a buffered segment is no rival length.
+            and not mpris_dur_ms < CLIP_MAX_MS <= known_ms
+            and abs(mpris_dur_ms - known_ms) > max(5_000, known_ms * 0.15)
         ):
             return 0, True
-        return pick_effective_duration_ms(mpris_dur_ms, itunes_dur_ms), False
+        return pick_effective_duration_ms(mpris_dur_ms, 0, known_ms), False
 
     def _measure_previous_song(self, now: float) -> None:
         """Note how long the song that just ended ran, if that is its length.
@@ -845,13 +934,13 @@ class DaemonWorker(QObject):
                 loop_track=track.loop_track,
             )
 
-        known_ms = self._tick_known_ms(track)
-        length = self._duration_for(track, known_ms=known_ms)
+        lengths = self._tick_lengths(track)
+        length = self._duration_for(track, lengths=lengths)
         position_ms, tier, new_state = resolve(length)
         # This poll can itself reveal what the source's length describes
         # (a length that moves latches it as a stream). Judge the position
         # against the length the rest of the tick will use.
-        settled = self._duration_for(track, new_state, known_ms)
+        settled = self._duration_for(track, new_state, lengths)
         if settled != length:
             length = settled
             position_ms, tier, new_state = resolve(length)
@@ -911,8 +1000,9 @@ class DaemonWorker(QObject):
         # When MPRIS reports a wonky value (preview-clip 14 s, playlist
         # total 7:21 on a 2:11 song), the iTunes-catalog duration we
         # already cached for cover-art lookup is closer to truth.
-        known_ms = self._tick_known_ms(track)
-        effective_dur_ms, disputed = self._duration_for(track, known_ms=known_ms)
+        lengths = self._tick_lengths(track)
+        known_ms = lengths[1]
+        effective_dur_ms, disputed = self._duration_for(track, lengths=lengths)
         if disputed:
             # No length to show, but the deadline only needs an upper bound:
             # the longer candidate never clears a real play early.
@@ -980,8 +1070,9 @@ class DaemonWorker(QObject):
         # the same number, and `_duration_for` is the one place that
         # weighs the player's length against the catalog's. The raw
         # catalog value is kept alongside it purely for the RPC log line.
-        itunes_dur_ms = self._tick_known_ms(track)
-        effective_dur_ms, duration_disputed = self._duration_for(track, known_ms=itunes_dur_ms)
+        lengths = self._tick_lengths(track)
+        itunes_dur_ms = lengths[1]
+        effective_dur_ms, duration_disputed = self._duration_for(track, lengths=lengths)
 
         # Tray progress label, emitted on every tick while playing. The
         # tray reads a negative position as "hide the line" and a
@@ -1006,7 +1097,7 @@ class DaemonWorker(QObject):
             cover_now = self._cover_fetcher.get(track.artist, track.title, track.album) or ""
             if not track.album:
                 # Browsers rarely send one, and without it Last.fm finds no cover.
-                found = self._cover_fetcher.get_album(track.artist, track.title, track.album)
+                found = self._catalog_album_for(track)
                 if found:
                     track = dataclasses.replace(track, album=found)
         if cover_now != self._cover_emitted:
@@ -1030,7 +1121,10 @@ class DaemonWorker(QObject):
         # that carries on — from a new play. Only a reported one: a
         # computed position starts again at zero along with Refrain.
         player_pos_ms = track.position_ms if self._position_tier is PositionTier.REPORTED else None
-        self._update_history(track, played_dur_ms, player_pos_ms, self._track_restarted)
+        heard = self._heard(track)
+        self._update_history(
+            track, played_dur_ms, player_pos_ms, self._track_restarted, heard.album
+        )
         self._clock.lap("history")
 
         # Last.fm scrobbling. Gated on privacy "off" (the global
@@ -1039,7 +1133,7 @@ class DaemonWorker(QObject):
         # Wrapped so a scrobble-side failure can never break the tick.
         with contextlib.suppress(Exception):
             self._scrobbler.update(
-                track,
+                heard,
                 played_dur_ms,
                 privacy_off=self._config.privacy.mode == "off",
                 position_ms=player_pos_ms,

@@ -24,35 +24,32 @@ _RESTART_AFTER_MS = 30_000
 _GONE_GRACE_S = 10.0
 
 
-def pick_effective_duration_ms(mpris_dur_ms: int, itunes_dur_ms: int) -> int:
-    """Choose between the source-reported and iTunes-catalog track lengths.
+def pick_effective_duration_ms(mpris_dur_ms: int, catalog_ms: int, learned_ms: int = 0) -> int:
+    """Choose the track length from the source's, the catalog's and a learned one.
 
-    The source's ``mpris:length`` describes the media element actually
-    playing, so it is the better answer whenever it is an answer at all.
-    The iTunes duration is a catalog guess reached by searching for an
-    artist and title, and a search can land on the wrong record (58 s for
-    a 2:45 song) — enough for idle detection to clear a track a minute in.
+    A catalog length wins whenever there is one. The source's
+    ``mpris:length`` describes the media element, and on a browser that
+    is often not the song: a buffer that grows as the stream loads (5:23,
+    7:23, 10:06 on a 2:45 song), or a length far short of it (1:30 on a
+    3:16 song). A catalog search can land on the wrong record too, but
+    that is rarer than a browser misreporting, and the lookup only
+    returns a length for a result whose artist and title match.
 
-    So iTunes fills gaps rather than overruling:
+    Without a catalog length the source's own number stands, with the
+    length measured from whole plays (see refrain.song_lengths) filling in:
 
-    - No ``mpris:length`` at all (Bluetooth AVRCP mostly, and Apple
-      Music on some tracks) — the catalog is all there is.
-    - A length under 30 s where the catalog says otherwise. That's Apple
-      Music's preview-clip representation, which it reports for a few
-      seconds on a full-length song; the catalog is right there.
-
-    Anything else keeps the source's own number. Apple Music reporting a
-    running total instead of a track length is not a length problem: that
-    player reports a position and a length for the *stream*, and both
-    are recognised as such by ``resolve_position``, whose caller then
-    asks for the catalog length directly.
+    - No ``mpris:length`` at all (Bluetooth AVRCP mostly).
+    - A length under 30 s where the measured one is longer: Apple Music's
+      preview-clip representation, or a buffered media segment.
     """
+    if catalog_ms > 0:
+        return catalog_ms
     if mpris_dur_ms <= 0:
-        return itunes_dur_ms
-    if itunes_dur_ms <= 0:
+        return learned_ms
+    if learned_ms <= 0:
         return mpris_dur_ms
-    if mpris_dur_ms < CLIP_MAX_MS <= itunes_dur_ms:
-        return itunes_dur_ms
+    if mpris_dur_ms < CLIP_MAX_MS <= learned_ms:
+        return learned_ms
     return mpris_dur_ms
 
 

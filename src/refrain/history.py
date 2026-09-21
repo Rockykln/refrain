@@ -16,7 +16,13 @@ from pathlib import Path
 
 from refrain.config import HISTORY_LIMIT_MAX, HistoryConfig
 from refrain.paths import state_dir
-from refrain.scrobble import accrue_play_ms, continues_play, is_replay, should_scrobble
+from refrain.scrobble import (
+    accrue_play_ms,
+    continues_play,
+    fills_in_album,
+    is_replay,
+    should_scrobble,
+)
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
 log = logging.getLogger(__name__)
@@ -294,8 +300,16 @@ class PlayHistory:
             self._last_wall = now_wall
             key = _content_key(track) if _is_candidate(track) else None
             cur = self._cur
+            filled = False
             if key is not None:
                 self._gone_at = None
+                if cur is not None and key != cur.key and fills_in_album(cur.key, track):
+                    cur.key = key
+                    cur.entry.album = track.album
+                    filled = True
+                    log.debug("History: %s — album filled in: %s", _label(cur.entry), track.album)
+                if key != self._ignore_key and fills_in_album(self._ignore_key, track):
+                    self._ignore_key = key
             elif cur is not None or self._ignore_key is not None:
                 if self._gone_at is None:
                     self._gone_at = now_mono
@@ -356,8 +370,8 @@ class PlayHistory:
             cur.played_ms, cur.last_mono = accrue_play_ms(
                 cur.played_ms, cur.last_mono, playing, now_mono
             )
-            changed = False
-            dirty = False
+            changed = filled
+            dirty = filled and cur.counted
             # A later catalog-corrected length can replace an early bogus
             # one, exactly as in the scrobbler. Not worth a repaint.
             if duration_ms > 0 and duration_ms != cur.entry.duration_ms:

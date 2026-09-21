@@ -250,23 +250,36 @@ def test_duration_mpris_preview_clip_overridden_by_itunes_full_song():
     assert pick_effective_duration_ms(14_000, 131_000) == 131_000
 
 
-def test_duration_keeps_mpris_when_the_two_disagree():
-    # The element's own length beats a catalog search that landed on a
-    # different record; otherwise idle detection clears the track early.
-    assert pick_effective_duration_ms(164_041, 58_140) == 164_041
+def test_duration_catalog_beats_a_longer_buffer_length():
+    # Vivaldi reports its growing buffer, 5:23 on a 2:45 song.
+    assert pick_effective_duration_ms(323_000, 165_000) == 165_000
 
 
-def test_duration_keeps_mpris_on_ordinary_catalog_drift():
-    # Rounding / encoding-vs-catalog drift should not flip either.
-    assert pick_effective_duration_ms(200_000, 210_000) == 200_000
+def test_duration_catalog_beats_a_shorter_source_length():
+    # Firefox reports 1:30 on a 3:16 song.
+    assert pick_effective_duration_ms(90_000, 196_000) == 196_000
 
 
-def test_duration_keeps_mpris_when_it_is_the_longer_one():
-    assert pick_effective_duration_ms(250_000, 200_000) == 250_000
+def test_duration_catalog_wins_on_ordinary_drift_too():
+    assert pick_effective_duration_ms(200_000, 210_000) == 210_000
 
 
-def test_duration_both_short_keeps_mpris():
-    # A genuinely short item (e.g. 12 s announcement, 13 s in catalog) —
-    # within 15 %, MPRIS wins. Either is fine; the song-is-short check
-    # downstream will drop start/end anyway.
-    assert pick_effective_duration_ms(12_000, 13_000) == 12_000
+def test_duration_catalog_beats_the_learned_length():
+    assert pick_effective_duration_ms(200_000, 210_000, 157_000) == 210_000
+
+
+def test_duration_without_catalog_the_source_beats_the_learned_length():
+    assert pick_effective_duration_ms(250_000, 0, 200_000) == 250_000
+
+
+def test_duration_without_catalog_or_source_the_learned_length_is_used():
+    assert pick_effective_duration_ms(0, 0, 157_000) == 157_000
+
+
+def test_duration_without_catalog_a_clip_gives_way_to_the_learned_length():
+    assert pick_effective_duration_ms(14_000, 0, 131_000) == 131_000
+
+
+def test_duration_without_catalog_a_short_song_keeps_its_own_length():
+    # Both under 30 s: nothing says the source is showing a clip.
+    assert pick_effective_duration_ms(12_000, 0, 13_000) == 12_000

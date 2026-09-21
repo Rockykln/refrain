@@ -119,6 +119,15 @@ _REPLAY_START_MS = 10_000
 _REPLAY_JUMP_MS = 30_000
 
 
+def fills_in_album(key: str | None, track: TrackInfo) -> bool:
+    """Is ``track`` the song ``key`` names, now with the album it lacked?
+
+    A browser can send the album a poll after the title, and the catalog
+    finds one a second or so into the song. Either way it is the same play.
+    """
+    return bool(key and track.album) and key == f"{track.source}|{track.title}|{track.artist}|"
+
+
 def is_replay(counted: bool, prev_position_ms: int | None, position_ms: int | None) -> bool:
     """Has a play that already counted just started over from the beginning?
 
@@ -566,6 +575,13 @@ class Scrobbler:
                 self._settle_resume_locked(
                     key, effective_duration_ms, position_ms, now_wall, now_mono
                 )
+            if key is not None and key != self._key and fills_in_album(self._key, track):
+                # The scrobble goes out later and takes the album along;
+                # "now playing" went out without it and is not sent again.
+                if self._nowplaying_key == self._key:
+                    self._nowplaying_key = key
+                self._key = key
+                self._cur_album = track.album
             # The same song again from the top, after it had counted.
             counted = should_scrobble(self._played_ms, self._duration_ms)
             replay = (

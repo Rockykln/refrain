@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 import pytest
@@ -238,9 +239,14 @@ def test_segment_length_on_a_full_song_hides_the_time_everywhere(rig):
     assert worker._scrobbler.calls[-1]["duration_ms"] == 200_000
 
 
+def learn(worker, seconds, title=TITLE):
+    for _ in range(2):
+        worker._song_lengths.observe(ARTIST, title, "Tidal", seconds * 1000)
+
+
 def test_disputed_length_at_startup_scrobbles_with_the_shorter(rig):
     worker, player, _ = rig()
-    worker._cover_fetcher.durations[(ARTIST, TITLE)] = 131_000
+    learn(worker, 131)
     player.play(position_ms=60_000, duration_ms=441_000)
     player.tick(n=2)
     payload = rpc().last[1]
@@ -251,25 +257,28 @@ def test_disputed_length_at_startup_scrobbles_with_the_shorter(rig):
     assert worker._history.calls[-1]["duration_ms"] == 131_000
 
 
-def test_length_the_source_witnessed_from_the_start_beats_the_catalog(rig):
+def test_length_the_source_witnessed_from_the_start_beats_the_measured_one(rig):
     worker, player, _ = rig()
-    worker._cover_fetcher.durations[(ARTIST, TITLE)] = 131_000
+    learn(worker, 131)
     player.play(duration_ms=441_000)
     player.tick()
     payload = rpc().last[1]
     assert payload["end"] - payload["start"] == 441
 
 
-def test_length_that_turns_out_to_be_a_stream_is_judged_by_the_catalog_in_the_same_poll(rig):
+def test_length_that_turns_out_to_be_a_stream_is_judged_by_the_measured_one_in_the_same_poll(
+    rig,
+):
     worker, player, _ = rig()
     ticks = signals(worker, "progressTick")
-    worker._cover_fetcher.durations[(ARTIST, TITLE)] = 150_000
+    learn(worker, 150)
     player.play(duration_ms=160_000)
-    player.tick(n=320)
-    assert ticks[-1] == (160_000, 160_000)
+    player.tick(n=200)
+    assert ticks[-1] == (100_000, 160_000)
     player.play(position_ms=player.src.track.position_ms, duration_ms=300_000)
     player.tick()
-    assert ticks[-1] == (-1, 0)
+    # Counted by our own clock from the start we saw, against 2:30.
+    assert ticks[-1] == (100_500, 150_000)
     assert worker._scrobbler.calls[-1]["position_ms"] is None
 
 
@@ -373,7 +382,7 @@ def test_dangling_player_is_cleared_after_its_length_plus_grace(rig):
 
 def test_dangling_player_with_a_disputed_length_is_cleared_after_the_longer_one(rig):
     worker, player, _ = rig(advanced={"idle_grace_s": 30})
-    worker._cover_fetcher.durations[(ARTIST, TITLE)] = 131_000
+    learn(worker, 131)
     player.play(position_ms=60_000, duration_ms=441_000)
     player.tick()
     player.frozen = True
@@ -451,6 +460,23 @@ def test_track_signal_fires_once_per_song(rig):
     player.play(title="Silk Road Radio")
     player.tick(n=5)
     assert [c[0].title for c in changes] == [TITLE, "Silk Road Radio"]
+
+
+def test_a_browser_hint_with_no_track_reaches_the_status_window(rig):
+    """MPRIS surfaces a browser playing with no URL as `player` on an empty
+    track; the daemon must pass it through and still emit trackChanged even
+    though fingerprint() (deliberately) ignores that field."""
+    worker, _, _ = rig()
+    changes = signals(worker, "trackChanged")
+
+    worker._mpris.track = dataclasses.replace(TrackInfo.empty(), player="Vivaldi")
+    worker._tick()
+    assert changes[-1][0].player == "Vivaldi"
+    assert changes[-1][0].has_track is False
+
+    worker._mpris.track = TrackInfo.empty()
+    worker._tick()
+    assert changes[-1][0].player == ""
 
 
 def test_scrobbler_and_history_get_the_players_position(rig):
