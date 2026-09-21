@@ -517,6 +517,8 @@ class StatusWindow(QDialog):
         self.recent_off.setFlat(True)
         self.recent_off.clicked.connect(lambda: self.settingsRequested.emit("history"))
         recent.addWidget(self.recent_off, 0, Qt.AlignmentFlag.AlignLeft)
+        # Room the songs don't fill stays below them instead of spreading them out.
+        recent.addStretch(1)
         # The list must never hold the window open: it takes the space that is
         # left and gives it back when the window shrinks.
         self.recent_box.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Ignored)

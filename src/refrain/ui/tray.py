@@ -54,8 +54,10 @@ def _detect_color_scheme() -> str:
 _MENU_CHARS = 52
 
 
-def _menu_width(text: str) -> str:
-    return text if len(text) <= _MENU_CHARS else text[: _MENU_CHARS - 1].rstrip() + "…"
+def _menu_text(text: str) -> str:
+    """Short enough for the menu, with "&" shown as itself instead of marking a shortcut key."""
+    short = text if len(text) <= _MENU_CHARS else text[: _MENU_CHARS - 1].rstrip() + "…"
+    return short.replace("&", "&&")
 
 
 class TrayIcon(QObject):
@@ -422,14 +424,14 @@ class TrayIcon(QObject):
             self._current_progress_line = ""
             self._tray.setToolTip("Refrain")
             return
-        self._title_action.setText(_menu_width(track.title))
+        self._title_action.setText(_menu_text(track.title))
         if track.artist and track.album:
             line = f"{track.artist} • {track.album}"
         elif track.artist:
             line = track.artist
         else:
             line = track.album or "—"
-        self._artist_action.setText(_menu_width(line))
+        self._artist_action.setText(_menu_text(line))
         self._artist_action.setVisible(True)
         new_track_line = f"{track.title}\n{line}"
         # If the track text actually changed, drop the stale progress

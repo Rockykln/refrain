@@ -293,3 +293,10 @@ def test_only_the_hint_that_asked_for_it_reacts_to_a_click(tray):
     tray.show_hint("Refrain keeps running in the tray.")
     tray._tray.messageClicked.emit()
     assert clicked == [1]
+
+
+def test_an_ampersand_in_a_song_shows_as_itself_not_as_a_shortcut(tray):
+    """Menus take "&" as the mark of a shortcut key, so "Wren & Ash" lost its "&" on some desktops."""
+    tray.set_track(_track(title="Salt & Stone", artist="Wren & Ash", album="Open Country"))
+    assert tray._title_action.text() == "Salt && Stone"
+    assert tray._artist_action.text().startswith("Wren && Ash")

@@ -459,3 +459,17 @@ def test_a_window_with_no_room_left_shows_no_songs(window):
     window.set_history(_history(n=5))
     window._chrome_px = window.height() + 500  # nothing left over
     assert window._fits() == 0
+
+
+def test_a_short_recent_list_stays_together_at_the_top(window, app):
+    """Two songs in a tall window sit one under the other, not spread over the height."""
+    window.resize(520, 900)
+    window.show()
+    window.set_history(_history(n=3))
+    for _ in range(3):  # new rows start at Qt's default size until the layout runs
+        app.processEvents()
+    rows = window.recent_rows
+    assert rows.count() == 2
+    for i in range(rows.count()):
+        row = rows.itemAt(i).widget()
+        assert row.height() <= row.sizeHint().height() + 2
