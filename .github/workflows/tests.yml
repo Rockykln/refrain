@@ -33,12 +33,15 @@ jobs:
         # have to be present in CI too. PySide6.QtWidgets requires the
         # EGL / xkbcommon / GL / fontconfig system libs even when run
         # under QT_QPA_PLATFORM=offscreen — without them the import
-        # itself fails before the test can opt out.
+        # itself fails before the test can opt out. dbus-daemon/dbus-bin
+        # give tests/integration a real dbus-run-session to spin up its
+        # own private bus; it skips itself if either is missing.
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libdbus-1-dev libglib2.0-dev pkg-config \
-            libegl1 libxkbcommon0 libfontconfig1 libgl1
+            libegl1 libxkbcommon0 libfontconfig1 libgl1 \
+            dbus-daemon dbus-bin
           pip install --require-hashes -r requirements-dev.lock
           pip install --no-deps -e .
 
@@ -76,7 +79,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             libdbus-1-dev libglib2.0-dev pkg-config \
-            libegl1 libxkbcommon0 libfontconfig1 libgl1
+            libegl1 libxkbcommon0 libfontconfig1 libgl1 \
+            dbus-daemon dbus-bin
           pip install --require-hashes -c requirements-dev.lock pytest
           pip install -r requirements-lowest.txt
           pip install --no-deps -e .
@@ -84,6 +88,34 @@ jobs:
 
       - name: Run tests
         run: PYTHONPATH=src pytest
+
+  mpris_integration:
+    # Real dbus-daemon, real dbus-python, no mocks: drives MPRISSource
+    # against a fake MPRIS player over a private session bus. Split out
+    # from `test` so its result is its own signal; it also runs as part
+    # of `test`/`lowest` above, which collect all of tests/.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Install runtime + test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libdbus-1-dev libglib2.0-dev pkg-config \
+            libegl1 libxkbcommon0 libfontconfig1 libgl1 \
+            dbus-daemon dbus-bin
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
+
+      - name: Run the MPRIS D-Bus integration tests
+        run: QT_QPA_PLATFORM=offscreen PYTHONPATH=src pytest -q tests/integration
 
   lint:
     runs-on: ubuntu-latest
