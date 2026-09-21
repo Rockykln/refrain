@@ -34,7 +34,7 @@ like `phpi`).
 
 Two packages, side-by-side, both maintained by Rockykln:
 
-- [`refrain`](https://aur.archlinux.org/packages/refrain) — built from the latest tagged release (pinned tarball SHA)
+- [`refrain`](https://aur.archlinux.org/packages/refrain) — built from the latest tagged release's signed git tag
 - [`refrain-git`](https://aur.archlinux.org/packages/refrain-git) — built from `main` HEAD; auto-bumps version via `pkgver()`
 
 ```sh
@@ -50,24 +50,31 @@ Both are pushed per release. `refrain-git` builds from `main` whatever
 its recorded `pkgver` says, but the AUR listing shows that recorded
 value, so leaving it stale makes the package look abandoned.
 
-The tag has to exist first — the tarball it points at is what gets
-hashed. Then, in this repo:
+The tag has to exist first — `refrain`'s `PKGBUILD` builds straight from
+it (`git+https://github.com/Rockykln/refrain.git#tag=v$pkgver?signed`),
+not from the GitHub archive tarball: GitHub regenerates
+`archive/*.tar.gz` on its own schedule, which has silently changed the
+sha256 of an otherwise-identical release tarball before, whereas the
+signed tag itself never changes. Then, in this repo:
 
 1. Bump `pkgver` in `packaging/aur/refrain/PKGBUILD`, and in
    `packaging/aur/refrain-git/PKGBUILD` to `<version>.r<count>.g<short>`
    (`git rev-list --count HEAD`, `git rev-parse --short=7 HEAD`).
-2. Recompute `sha256sums` for `refrain`. Let makepkg do it, rather than
-   hashing a file you downloaded yourself:
+2. Verify the new tag against `refrain`'s `validpgpkeys` entry (the tags
+   are signed with Rockykln's personal PGP key, fingerprint
+   `92767CDB8C782F3E8584413FA7B8C833C5AF124E` — unrelated to the Ed25519
+   release-signing key below):
    ```sh
    cd packaging/aur/refrain
-   updpkgsums          # pacman-contrib; downloads, hashes, edits in place
    makepkg --verifysource
    ```
-   If you do fetch it by hand, use `curl -fL` and check the file is not
-   empty. `curl -sLO` writes a zero-byte file on a failed request and
-   `sha256sum` will happily hash it — the result,
-   `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
-   is the hash of nothing at all and looks entirely plausible.
+   `sha256sums=('SKIP')` is intentional — the git signature is the
+   integrity check here, not a hash. `--verifysource` fails with
+   "unknown public key" if that key isn't in your own `~/.gnupg` yet;
+   fetch it once with
+   `gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys 92767CDB8C782F3E8584413FA7B8C833C5AF124E`
+   (plain `makepkg -si`, unlike yay/paru, never imports missing keys on
+   its own).
 3. Regenerate both `.SRCINFO` files and commit them alongside the
    PKGBUILDs.
 
@@ -123,6 +130,20 @@ The release workflow starts the AppImage once with `--version`, checks
 that the notices are inside and no GPL-only Qt module is, and stops the
 release otherwise. It publishes `THIRD-PARTY-NOTICES` and `SHA256SUMS`
 next to the AppImage; `SHA256SUMS.sig` is added by hand, see below.
+
+The workflow also generates a CycloneDX SBOM for what `pip install
+refrain` actually pulls in (`Refrain-X.Y.Z.cdx.json`), plus one for the
+AppImage's pip-installed half
+(`Refrain-X.Y.Z-x86_64.AppImage.cdx.json` — dbus-python and PyGObject come
+from apt and have no package metadata, so they're absent from it). Both
+use `pip-audit --format=cyclonedx-json`, already pinned in
+`requirements-dev.lock` via the `dev` extra, run with `--path` against a
+throwaway install directory rather than the test environment so dev
+tooling doesn't leak into the component list. A found vulnerability logs
+a warning but doesn't fail the release — that gate is the pip-audit job
+in `.github/workflows/security.yml`; only a missing PyPI-package SBOM
+does. Both files are attached to the release, attested, and hashed into
+the same `SHA256SUMS`/`SHA256SUMS.sig` as the AppImage.
 
 ## Signed releases
 

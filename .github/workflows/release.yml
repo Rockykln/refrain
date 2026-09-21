@@ -85,6 +85,33 @@ jobs:
           cp dist/*.whl dist/*.tar.gz pypi-dist/
           ls -la pypi-dist/
 
+      # pip-audit is already installed from requirements-dev.lock (dev extra) by
+      # the test step above, and doubles as a CycloneDX generator when pointed
+      # at a directory instead of the live environment — no new dependency.
+      # The target dir is a plain `pip install`, not the test venv, so the
+      # SBOM lists exactly what `pip install refrain` pulls in, not the dev
+      # tooling installed for the test run.
+      - name: Generate SBOM (CycloneDX) for the PyPI package
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          rm -rf /tmp/refrain-sbom-pypi
+          pip install --target /tmp/refrain-sbom-pypi dist/*.whl
+          sbom="dist/Refrain-${TAG}.cdx.json"
+          # Don't let a found (not induced) vulnerability fail the release build —
+          # that gate already exists as the pip-audit job in security.yml.
+          set +e
+          pip-audit --path /tmp/refrain-sbom-pypi --format=cyclonedx-json -o "$sbom"
+          rc=$?
+          set -e
+          if [ ! -s "$sbom" ]; then
+            echo "::error::SBOM generation produced no output"
+            exit 1
+          fi
+          if [ "$rc" -ne 0 ]; then
+            echo "::warning::pip-audit found known vulnerabilities while building the SBOM"
+          fi
+          rm -rf /tmp/refrain-sbom-pypi
+
       # Single-file AppImage so end users can grab one binary from the
       # Releases page and run it without installing anything else.
       # The recipe installs Refrain with the runner's /usr/bin/python3,
@@ -135,14 +162,34 @@ jobs:
           if [ -n "$gpl_only" ]; then
             echo "::error::GPL-only Qt parts in the AppImage:"; echo "$gpl_only"; exit 1
           fi
+          # Bonus SBOM for the pip-installed half of the AppImage (dbus-python
+          # and PyGObject come from apt and have no dist-info, so they won't
+          # show up here). A failure only warns: the PyPI package's SBOM above
+          # is the one of record.
+          sbom="$GITHUB_WORKSPACE/dist/Refrain-${TAG}-x86_64.AppImage.cdx.json"
+          set +e
+          pip-audit --path "$tmp/squashfs-root/usr/lib/python3/dist-packages" \
+            --format=cyclonedx-json -o "$sbom"
+          rc=$?
+          set -e
+          if [ ! -s "$sbom" ]; then
+            echo "::warning::AppImage SBOM generation produced no output — skipping this bonus asset"
+            rm -f "$sbom"
+          elif [ "$rc" -ne 0 ]; then
+            echo "::warning::pip-audit found known vulnerabilities while building the AppImage SBOM"
+          fi
           rm -rf "$tmp"
 
       # The in-app updater only installs an AppImage listed here, and only once
       # the owner has signed this file (SHA256SUMS.sig, see packaging/README.md).
       - name: Checksums for the in-app updater
+        # *.cdx.json (the SBOMs above) rides along in the same file: the
+        # updater only ever looks up the one line matching the AppImage's
+        # own name (see _expected_sha256 in src/refrain/updater.py), so
+        # extra lines for other assets are inert as far as it's concerned.
         run: |
           cd dist
-          sha256sum *.AppImage > SHA256SUMS
+          sha256sum *.AppImage *.cdx.json > SHA256SUMS
           cat SHA256SUMS
 
       - name: Publish the AppImage's third-party notices next to it
@@ -223,6 +270,7 @@ jobs:
             dist/*.tar.gz
             dist/*.AppImage
             dist/*.AppImage.zsync
+            dist/*.cdx.json
             dist/SHA256SUMS
             dist/THIRD-PARTY-NOTICES
 
@@ -255,6 +303,7 @@ jobs:
             dist/*.tar.gz
             dist/*.AppImage
             dist/*.AppImage.zsync
+            dist/*.cdx.json
             dist/SHA256SUMS
             dist/THIRD-PARTY-NOTICES
 

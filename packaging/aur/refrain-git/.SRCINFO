@@ -15,6 +15,7 @@ pkgbase = refrain-git
 	depends = python-dbus
 	depends = pyside6
 	optdepends = python-gobject: enables MPRIS-server publication so Plasma media controls reach Refrain
+	optdepends = libnotify: desktop notifications for track changes via notify-send
 	provides = refrain
 	conflicts = refrain
 	source = refrain::git+https://github.com/Rockykln/refrain.git
