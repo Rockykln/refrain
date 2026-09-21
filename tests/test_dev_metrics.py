@@ -177,6 +177,21 @@ def test_marks_are_kept_once():
     assert dev_metrics.snapshot()["startup_ms"]["tray_visible"] == first
 
 
+def test_developer_mode_on_from_the_start_is_not_flagged_as_late():
+    """qt_ready() is only reached when developer mode was already on at boot."""
+    dev_metrics.set_enabled(True)
+    dev_metrics.qt_ready()
+    dev_metrics.mark("config_loaded")
+    assert dev_metrics.snapshot()["late_start"] is False
+
+
+def test_developer_mode_switched_on_while_running_is_flagged_as_late():
+    """Without qt_ready() first, set_enabled(True) attaches straight to the
+    already-running QApplication — the signature of a mid-session toggle."""
+    dev_metrics.set_enabled(True)
+    assert dev_metrics.snapshot()["late_start"] is True
+
+
 def test_a_poll_tick_records_stages_but_never_the_song(monkeypatch):
     clock, _ = install(monkeypatch)
     worker = DaemonWorker(make_config())

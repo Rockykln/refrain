@@ -91,7 +91,7 @@ class _Columns(QLabel):
         self.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.set_rows([])
 
-    def set_rows(self, rows: list[list[str]]) -> None:
+    def set_rows(self, rows: list[list[str]], empty_message: str | None = None) -> None:
         self.rows = rows
         widths = [max([len(h)] + [len(r[i]) for r in rows]) for i, h in enumerate(self.headers)]
 
@@ -101,7 +101,7 @@ class _Columns(QLabel):
             ]
             return "  ".join(parts).rstrip()
 
-        body = [line(row) for row in rows] or [self.tr("nothing measured yet")]
+        body = [line(row) for row in rows] or [empty_message or self.tr("nothing measured yet")]
         text = "\n".join([line(self.headers), *body])
         self.setText(text)
         # Columns are only readable whole; ask the layout for the room they need.
@@ -135,12 +135,14 @@ class DeveloperPanel(QWidget):
         self.memory = QLabel()
 
         self.report_btn = QPushButton(self.tr("System report…"))
+        self.report_btn.setObjectName("systemReport")
         self.report_btn.setToolTip(
             self.tr("What Refrain runs on and how it is set up, to paste into a bug report")
         )
         self.report_btn.clicked.connect(self._show_report)
 
         self.export_btn = QPushButton(self.tr("Export…"))
+        self.export_btn.setObjectName("export")
         self.export_btn.setToolTip(
             self.tr(
                 "Measured on this computer only and never sent anywhere. Saved to {path}"
@@ -192,8 +194,8 @@ class DeveloperPanel(QWidget):
         return _Columns(*headers)
 
     @staticmethod
-    def _fill(widget: _Columns, rows: list[list[str]]) -> None:
-        widget.set_rows(rows)
+    def _fill(widget: _Columns, rows: list[list[str]], empty_message: str | None = None) -> None:
+        widget.set_rows(rows, empty_message)
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
@@ -222,10 +224,25 @@ class DeveloperPanel(QWidget):
             ],
         )
         startup = data.get("startup_ms", {})
-        self._fill(
-            self.startup,
-            [[step, _ms(startup[step])] for step in _ordered(startup, dev_metrics.STARTUP_STEPS)],
-        )
+        if data.get("late_start"):
+            # Developer mode came on after the app had already started: the
+            # early steps never landed, and whatever did would misleadingly
+            # look like it took minutes.
+            self._fill(
+                self.startup,
+                [],
+                empty_message=self.tr(
+                    "developer mode turned on while running — startup times not measured"
+                ),
+            )
+        else:
+            self._fill(
+                self.startup,
+                [
+                    [step, _ms(startup[step])]
+                    for step in _ordered(startup, dev_metrics.STARTUP_STEPS)
+                ],
+            )
         network = data.get("network", {})
         self._fill(
             self.network,
@@ -361,14 +378,17 @@ class LogWindow(QDialog):
         bar.addStretch()
 
         copy_btn = QPushButton(self.tr("Copy all"))
+        copy_btn.setObjectName("copyAll")
         copy_btn.clicked.connect(self._copy_all)
         bar.addWidget(copy_btn)
 
         clear_btn = QPushButton(self.tr("Clear"))
+        clear_btn.setObjectName("clear")
         clear_btn.clicked.connect(self._clear)
         bar.addWidget(clear_btn)
 
         close_btn = QPushButton(self.tr("Close"))
+        close_btn.setObjectName("close")
         close_btn.clicked.connect(self.hide)
         bar.addWidget(close_btn)
 

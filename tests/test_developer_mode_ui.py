@@ -171,6 +171,7 @@ def test_the_developer_tab_comes_and_goes():
 
 def test_the_panel_shows_what_was_measured():
     dev_metrics.set_enabled(True)
+    dev_metrics.qt_ready()  # simulates developer mode already on at process start
     dev_metrics.mark("config_loaded")
     clock = dev_metrics.poll_clock()
     clock.lap("source")
@@ -206,6 +207,27 @@ def test_the_panel_copes_with_nothing_measured():
     assert panel.stages.rows == []
     assert "nothing measured yet" in panel.stages.text()
     assert "—" in panel.memory.text()
+
+
+def test_startup_table_shows_the_steps_when_on_from_the_start():
+    dev_metrics.set_enabled(True)
+    dev_metrics.qt_ready()
+    dev_metrics.mark("config_loaded")
+    panel = lw.DeveloperPanel()
+    panel.refresh()
+    assert panel.startup.rows[0][0] == "process_start"
+    assert any(row[0] == "config_loaded" for row in panel.startup.rows)
+    assert "turned on while running" not in panel.startup.text()
+
+
+def test_startup_table_warns_instead_of_misleading_numbers_when_turned_on_later():
+    dev_metrics.set_enabled(True)  # no qt_ready() — the app is already running
+    dev_metrics.mark("first_poll")
+    panel = lw.DeveloperPanel()
+    panel.refresh()
+    assert panel.startup.rows == []
+    assert "turned on while running" in panel.startup.text()
+    assert "startup times not measured" in panel.startup.text()
 
 
 def test_a_step_that_was_never_reached_shows_a_dash_instead_of_a_bogus_time():
@@ -252,6 +274,36 @@ def test_log_lines_still_work_with_tabs():
     window.set_developer_mode(True)
     bridge.log_record.emit("hello", logging.INFO)
     assert "hello" in window.view.toPlainText()
+
+
+def test_log_window_and_developer_panel_buttons_have_stable_names():
+    """A widget's objectName wins over the QPushButton#N fallback in widget_id."""
+    window = lw.LogWindow(_Bridge())
+    window.set_developer_mode(True)
+    for name in ("copyAll", "clear", "close"):
+        btn = window.findChild(QPushButton, name)
+        assert btn is not None, f"no button named {name!r}"
+        assert dev_metrics.widget_id(btn) == name
+    panel = window.developer_panel
+    assert dev_metrics.widget_id(panel.report_btn) == "systemReport"
+    assert dev_metrics.widget_id(panel.export_btn) == "export"
+
+
+def test_clicking_log_window_buttons_gives_a_readable_metric_key():
+    dev_metrics.set_enabled(True)
+    dev_metrics.qt_ready()
+    window = lw.LogWindow(_Bridge())
+    window.show()
+    copy_btn = window.findChild(QPushButton, "copyAll")
+    clear_btn = window.findChild(QPushButton, "clear")
+    assert copy_btn is not None and clear_btn is not None
+    QTest.mouseClick(copy_btn, Qt.MouseButton.LeftButton)
+    QTest.mouseClick(clear_btn, Qt.MouseButton.LeftButton)
+    window.hide()
+    counts = dev_metrics.snapshot()["interactions"]
+    assert "click LogWindow/copyAll" in counts
+    assert "click LogWindow/clear" in counts
+    assert not any("QPushButton#" in key for key in counts)
 
 
 # Tray -----------------------------------------------------------------------

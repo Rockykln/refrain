@@ -152,6 +152,10 @@ class Recorder:
         self.layout: Counter[str] = Counter()
         self.resources: dict[str, int | None] = {}
         self._qt = None
+        # True when developer mode was switched on after the app had already
+        # started (see set_enabled/qt_ready) — the early startup marks then
+        # never landed, and whatever *did* land looks like it took ages.
+        self.late_start = False
 
     def since_start_ms(self) -> float:
         return (time.perf_counter() - self._origin) * 1000
@@ -262,6 +266,7 @@ class Recorder:
                 "file": str(self.path),
                 "uptime_s": round(self.since_start_ms() / 1000, 1),
                 "startup_ms": dict(self.startup),
+                "late_start": self.late_start,
                 "polls": polls,
                 "network": {k: dict(v) for k, v in self.network.items()},
                 "window_build_ms": dict(self.builds),
@@ -288,6 +293,11 @@ def set_enabled(on: bool, path: Path | None = None) -> None:
         return
     if on:
         rec = Recorder(path)
+        # A QApplication already running means developer mode is being
+        # switched on mid-session, not at process start — qt_ready() (called
+        # once, right after the QApplication is built) clears this again
+        # when it turns out we got here before that point after all.
+        rec.late_start = QApplication.instance() is not None
         _recorder = rec
         rec.write({"type": "session", "state": "on", "version": __version__, "pid": os.getpid()})
         _attach_qt(rec, at_startup=False)
@@ -304,6 +314,7 @@ def qt_ready() -> None:
     if rec is None:
         return
     rec.mark("qapplication")
+    rec.late_start = False
     _attach_qt(rec, at_startup=True)
 
 

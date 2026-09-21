@@ -18,6 +18,7 @@ pytest.importorskip("PySide6")
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+from PySide6.QtCore import QTranslator  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox  # noqa: E402
 
 import refrain.ui.welcome_dialog as wd  # noqa: E402
@@ -65,32 +66,32 @@ def listening():
 def test_a_listening_discord_socket_is_found(app, runtime, listening):
     run, _ = runtime
     path = listening(run / "discord-ipc-0")
-    ok, msg = wd._probe_discord_ipc()
+    ok, template, kw = wd._probe_discord_ipc()
     assert ok is True
-    assert str(path) in msg
+    assert str(path) in template.format(**kw)
 
 
 def test_a_stale_socket_file_is_not_discord(app, runtime, listening):
     run, _ = runtime
     listening(run / "discord-ipc-0", listen=False)
-    ok, msg = wd._probe_discord_ipc()
+    ok, template, kw = wd._probe_discord_ipc()
     assert ok is False
-    assert "No Discord IPC socket found" in msg
+    assert "No Discord IPC socket found" in template.format(**kw)
 
 
 def test_a_later_socket_number_is_tried_after_a_stale_one(app, runtime, listening):
     run, _ = runtime
     listening(run / "discord-ipc-0", listen=False)
     path = listening(run / "discord-ipc-3")
-    ok, msg = wd._probe_discord_ipc()
+    ok, template, kw = wd._probe_discord_ipc()
     assert ok is True
-    assert str(path) in msg
+    assert str(path) in template.format(**kw)
 
 
 def test_the_flatpak_socket_counts(app, runtime, listening):
     run, _ = runtime
     path = listening(run / "app" / "com.discordapp.Discord" / "discord-ipc-0")
-    assert wd._probe_discord_ipc() == (True, f"Found Discord IPC at {path}")
+    assert wd._probe_discord_ipc() == (True, "Found Discord IPC at {path}", {"path": path})
 
 
 def test_the_snap_socket_counts_without_a_runtime_dir(app, runtime, listening, monkeypatch):
@@ -99,15 +100,15 @@ def test_the_snap_socket_counts_without_a_runtime_dir(app, runtime, listening, m
     path = listening(
         home / "snap" / "discord" / "current" / ".config" / "discord" / "discord-ipc-1"
     )
-    ok, msg = wd._probe_discord_ipc()
+    ok, template, kw = wd._probe_discord_ipc()
     assert ok is True
-    assert str(path) in msg
+    assert str(path) in template.format(**kw)
 
 
 def test_no_socket_means_no_discord(app, runtime):
-    ok, msg = wd._probe_discord_ipc()
+    ok, template, kw = wd._probe_discord_ipc()
     assert ok is False
-    assert "start the Discord desktop app" in msg
+    assert "start the Discord desktop app" in template.format(**kw)
 
 
 class _Response(io.BytesIO):
@@ -134,39 +135,79 @@ def _stub_urlopen(monkeypatch, result):
 
 def test_an_itunes_answer_means_reachable(app, monkeypatch):
     seen = _stub_urlopen(monkeypatch, json.dumps({"resultCount": 1, "results": []}).encode())
-    assert wd._probe_itunes() == (True, "iTunes Search API reachable.")
+    assert wd._probe_itunes() == (True, "iTunes Search API reachable.", {})
     assert seen == [(wd._ITUNES_TEST_URL, wd.USER_AGENT, 5)]
 
 
 def test_an_odd_itunes_payload_is_reported(app, monkeypatch):
     _stub_urlopen(monkeypatch, b"[]")
-    ok, msg = wd._probe_itunes()
+    ok, template, kw = wd._probe_itunes()
     assert ok is False
-    assert "payload looked off" in msg
+    assert "payload looked off" in template.format(**kw)
 
 
 def test_an_unreachable_itunes_names_the_reason(app, monkeypatch):
     _stub_urlopen(monkeypatch, urllib.error.URLError("Name or service not known"))
-    ok, msg = wd._probe_itunes()
+    ok, template, kw = wd._probe_itunes()
     assert ok is False
-    assert msg == "iTunes Search unreachable: Name or service not known"
+    assert template.format(**kw) == "iTunes Search unreachable: Name or service not known"
 
 
 def test_a_broken_itunes_reply_is_reported(app, monkeypatch):
     _stub_urlopen(monkeypatch, b"<html>maintenance</html>")
-    ok, msg = wd._probe_itunes()
+    ok, template, kw = wd._probe_itunes()
     assert ok is False
-    assert msg.startswith("iTunes probe failed:")
+    assert template.format(**kw).startswith("iTunes probe failed:")
 
 
 def test_the_worker_reports_both_probes(app, monkeypatch):
-    monkeypatch.setattr(wd, "_probe_discord_ipc", lambda: (True, "discord fine"))
-    monkeypatch.setattr(wd, "_probe_itunes", lambda: (False, "itunes down"))
+    monkeypatch.setattr(wd, "_probe_discord_ipc", lambda: (True, "discord fine", {}))
+    monkeypatch.setattr(wd, "_probe_itunes", lambda: (False, "itunes down", {}))
     worker = wd._DiagnosticsWorker()
     got = []
     worker.finished.connect(lambda *args: got.append(args))
     worker.run()
     assert got == [(True, "discord fine", False, "itunes down")]
+
+
+class _FakeTranslator(QTranslator):
+    """Translates every WelcomeDialog string it sees, like a real German .qm would."""
+
+    def translate(self, context, source_text, disambiguation=None, n=-1):
+        return f"[translated] {source_text}" if context == "WelcomeDialog" else ""
+
+
+def test_the_log_gets_the_english_source_text_even_when_the_ui_is_translated(app, monkeypatch):
+    """An installed translator must change the UI text but never the log line."""
+    monkeypatch.setattr(
+        wd, "_probe_discord_ipc", lambda: (True, "Found Discord IPC at {path}", {"path": "/x"})
+    )
+    monkeypatch.setattr(
+        wd,
+        "_probe_itunes",
+        lambda: (False, "iTunes Search unreachable: {reason}", {"reason": "timeout"}),
+    )
+    logged = []
+    monkeypatch.setattr(wd.log, "info", lambda *args: logged.append(args))
+
+    translator = _FakeTranslator()
+    app.installTranslator(translator)
+    try:
+        worker = wd._DiagnosticsWorker()
+        got = []
+        worker.finished.connect(lambda *args: got.append(args))
+        worker.run()
+    finally:
+        app.removeTranslator(translator)
+
+    log_text = " ".join(str(a) for call in logged for a in call)
+    assert "Found Discord IPC at /x" in log_text
+    assert "iTunes Search unreachable: timeout" in log_text
+    assert "[translated]" not in log_text
+
+    d_ok, d_msg, i_ok, i_msg = got[0]
+    assert d_msg == "[translated] Found Discord IPC at /x"
+    assert i_msg == "[translated] iTunes Search unreachable: timeout"
 
 
 def _dialog(app):
@@ -177,8 +218,8 @@ def _dialog(app):
 
 
 def test_diagnostics_run_in_the_background_and_fill_the_rows(app, monkeypatch):
-    monkeypatch.setattr(wd, "_probe_discord_ipc", lambda: (True, "socket found"))
-    monkeypatch.setattr(wd, "_probe_itunes", lambda: (False, "offline"))
+    monkeypatch.setattr(wd, "_probe_discord_ipc", lambda: (True, "socket found", {}))
+    monkeypatch.setattr(wd, "_probe_itunes", lambda: (False, "offline", {}))
     dlg, _ = _dialog(app)
     try:
         dlg.start_diagnostics()

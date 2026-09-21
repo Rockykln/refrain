@@ -8,6 +8,7 @@ time zone is left out: it says where someone lives.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import platform
 from pathlib import Path
@@ -59,6 +60,62 @@ def _yes_no(value: object) -> str:
     return "yes" if value else "no"
 
 
+def _mpris_players() -> list[str]:
+    """One line per player on the session bus: bus name, Identity, and whether
+    it has an ``xesam:url`` pointing at Apple Music — never the URL or a title.
+
+    A private, one-off connection (like ``sources.mpris`` uses) so this never
+    touches the shared bus the MPRIS server and the daemon's own source poll on.
+    """
+    try:
+        import dbus
+        import dbus.mainloop
+
+        from refrain.sources.mpris import _looks_apple_music, _normalize_apple_url
+
+        bus = dbus.SessionBus(private=True, mainloop=dbus.mainloop.NULL_MAIN_LOOP)
+    except Exception as e:
+        return [f"MPRIS: could not read the session bus ({e})"]
+    try:
+        obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+        names = sorted(
+            str(n)
+            for n in dbus.Interface(obj, "org.freedesktop.DBus").ListNames()
+            if str(n).startswith("org.mpris.MediaPlayer2.")
+            and str(n) != "org.mpris.MediaPlayer2.refrain"
+        )
+    except Exception as e:
+        return [f"MPRIS: could not list players ({e})"]
+    if not names:
+        return ["MPRIS players: none found"]
+    lines = []
+    for name in names:
+        identity = "—"
+        has_url = False
+        is_apple_music = False
+        props = None
+        try:
+            player = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
+            props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
+            identity = str(props.Get("org.mpris.MediaPlayer2", "Identity", timeout=0.5)) or "—"
+        except Exception:
+            pass
+        try:
+            metadata = props.Get("org.mpris.MediaPlayer2.Player", "Metadata", timeout=0.5)
+            url = _normalize_apple_url(str(metadata.get("xesam:url", "")) if metadata else "")
+            has_url = bool(url)
+            is_apple_music = _looks_apple_music(url)
+        except Exception:
+            pass
+        lines.append(
+            f"MPRIS: {name} — {identity}"
+            f" · xesam:url: {_yes_no(has_url)} · Apple Music: {_yes_no(is_apple_music)}"
+        )
+    with contextlib.suppress(Exception):
+        bus.close()
+    return lines
+
+
 def report(config: Config) -> str:
     """A block a user can paste into an issue."""
     pyside_version, qt_version = _qt_versions()
@@ -79,6 +136,7 @@ def report(config: Config) -> str:
         f" · Bluetooth {_yes_no(config.sources.bluetooth_enabled)}"
         f" (device chosen: {_yes_no(config.sources.bluetooth_device)})",
         f"Browser hints: {config.sources.browser_hints}",
+        *_mpris_players(),
         f"Discord: Application ID set {_yes_no(config.discord.client_id)}"
         f" · per source {_yes_no(config.discord.client_id_mpris or config.discord.client_id_bluetooth)}"
         f" · all clients {_yes_no(config.discord.all_clients)}"

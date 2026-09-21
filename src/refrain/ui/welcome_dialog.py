@@ -49,14 +49,28 @@ class _DiagnosticsWorker(QObject):
 
     def run(self) -> None:
         log.info("First-run wizard: starting diagnostics")
-        discord_ok, discord_msg = _probe_discord_ipc()
-        log.info("First-run wizard: Discord IPC probe → ok=%s (%s)", discord_ok, discord_msg)
-        itunes_ok, itunes_msg = _probe_itunes()
-        log.info("First-run wizard: iTunes probe → ok=%s (%s)", itunes_ok, itunes_msg)
+        discord_ok, discord_template, discord_kw = _probe_discord_ipc()
+        log.info(
+            "First-run wizard: Discord IPC probe → ok=%s (%s)",
+            discord_ok,
+            discord_template.format(**discord_kw),
+        )
+        itunes_ok, itunes_template, itunes_kw = _probe_itunes()
+        log.info(
+            "First-run wizard: iTunes probe → ok=%s (%s)",
+            itunes_ok,
+            itunes_template.format(**itunes_kw),
+        )
+        discord_msg = QCoreApplication.translate("WelcomeDialog", discord_template).format(
+            **discord_kw
+        )
+        itunes_msg = QCoreApplication.translate("WelcomeDialog", itunes_template).format(
+            **itunes_kw
+        )
         self.finished.emit(discord_ok, discord_msg, itunes_ok, itunes_msg)
 
 
-def _probe_discord_ipc() -> tuple[bool, str]:
+def _probe_discord_ipc() -> tuple[bool, str, dict]:
     """Try to reach a Discord IPC socket without using pypresence (avoids
     a half-open connection that would race with the daemon).
 
@@ -65,6 +79,10 @@ def _probe_discord_ipc() -> tuple[bool, str]:
     Flatpak sandbox locations so users on those builds get a green
     diagnostic line — DiscordRPC._ensure_connected bridges those into
     ``$XDG_RUNTIME_DIR`` at connect time.
+
+    Returns (ok, English message template, format kwargs) — the caller
+    logs the template formatted as-is and translates it for display, so
+    the log stays English regardless of the UI language.
     """
     candidate_roots: list[Path] = []
     xdg_runtime = os.environ.get("XDG_RUNTIME_DIR")
@@ -88,35 +106,28 @@ def _probe_discord_ipc() -> tuple[bool, str]:
                     s.settimeout(0.5)
                     s.connect(str(path))
                     s.close()
-                    return True, QCoreApplication.translate(
-                        "WelcomeDialog", "Found Discord IPC at {path}"
-                    ).format(path=path)
+                    return True, "Found Discord IPC at {path}", {"path": path}
                 except OSError as e:
                     log.debug("Discord IPC probe %s failed: %s", path, e)
-    return False, QCoreApplication.translate(
-        "WelcomeDialog", "No Discord IPC socket found — start the Discord desktop app."
-    )
+    return False, "No Discord IPC socket found — start the Discord desktop app.", {}
 
 
-def _probe_itunes() -> tuple[bool, str]:
+def _probe_itunes() -> tuple[bool, str, dict]:
+    """Returns (ok, English message template, format kwargs) — see
+    ``_probe_discord_ipc`` for why translation happens at the call site.
+    """
     try:
         # Named like every other request Refrain makes, so Apple sees who asked.
         probe = urllib.request.Request(_ITUNES_TEST_URL, headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(probe, timeout=5) as resp:  # nosec B310
             data = json.load(resp)
         if isinstance(data, dict) and "resultCount" in data:
-            return True, QCoreApplication.translate("WelcomeDialog", "iTunes Search API reachable.")
-        return False, QCoreApplication.translate(
-            "WelcomeDialog", "iTunes responded but the payload looked off."
-        )
+            return True, "iTunes Search API reachable.", {}
+        return False, "iTunes responded but the payload looked off.", {}
     except urllib.error.URLError as e:
-        return False, QCoreApplication.translate(
-            "WelcomeDialog", "iTunes Search unreachable: {reason}"
-        ).format(reason=e.reason)
+        return False, "iTunes Search unreachable: {reason}", {"reason": e.reason}
     except Exception as e:
-        return False, QCoreApplication.translate(
-            "WelcomeDialog", "iTunes probe failed: {error}"
-        ).format(error=e)
+        return False, "iTunes probe failed: {error}", {"error": e}
 
 
 class WelcomeDialog(QDialog):
