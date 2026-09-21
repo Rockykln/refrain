@@ -364,6 +364,9 @@ def ui_locale(language_override: str = "system") -> QLocale:
 
 
 _ALREADY_RUNNING_MS = 6000
+# Longest a background check can take: its request times out after 10 s. A
+# running QThread that is destroyed aborts the whole process.
+_CHECK_STOP_WAIT_MS = 12_000
 _SHARING_SWITCH_GAP_S = 1.0
 
 
@@ -550,6 +553,7 @@ class UpdateOrchestrator(QObject):
         self._latest: ReleaseInfo | None = None
         self._thread: QThread | None = None
         self._worker: _UpdateCheckWorker | None = None
+        self._stopped = False
         self._manual = False
         # When True, the in-flight check is purely for populating the
         # in-app release-notes pane — suppress all popups and don't
@@ -578,6 +582,9 @@ class UpdateOrchestrator(QObject):
         self.check_now(manual=False, silent=silent)
 
     def check_now(self, manual: bool = True, silent: bool = False) -> None:
+        # The startup timer can still fire while the event loop winds down.
+        if self._stopped:
+            return
         if self._thread is not None:
             # The running check answers this one; a click still gets feedback.
             if manual:
@@ -598,9 +605,10 @@ class UpdateOrchestrator(QObject):
     def stop(self) -> None:
         """Qt aborts the process if a running QThread is destroyed, and a
         check started at boot can still be waiting on DNS when Refrain quits."""
+        self._stopped = True
         if self._thread is not None and self._thread.isRunning():
             self._thread.quit()
-            self._thread.wait(2000)
+            self._thread.wait(_CHECK_STOP_WAIT_MS)
 
     def _on_check_finished(self, release: ReleaseInfo | None) -> None:
         manual = self._manual
@@ -1022,8 +1030,11 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     # aborts at shutdown with "QThread: Destroyed while thread is still
     # running".
     _startup_check_refs: list = []
+    startup_check_stopped = False
 
     def _run_startup_check() -> None:
+        if startup_check_stopped:
+            return
         from refrain.startup_check import StartupCheckWorker
 
         thread = QThread()
@@ -1037,10 +1048,12 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         thread.start()
 
     def _stop_startup_check() -> None:
+        nonlocal startup_check_stopped
+        startup_check_stopped = True
         for obj in _startup_check_refs:
             if isinstance(obj, QThread) and obj.isRunning():
                 obj.quit()
-                obj.wait(2000)
+                obj.wait(_CHECK_STOP_WAIT_MS)
 
     app.aboutToQuit.connect(_stop_startup_check)
     QTimer.singleShot(5000, _run_startup_check)
@@ -1406,6 +1419,10 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
 
     rc = app.exec()
     daemon.stop()
+    # D-Bus calls made while the loop winds down pump it, so a check timer can
+    # fire after aboutToQuit and start a thread nothing would wait for.
+    _stop_startup_check()
+    updater.stop()
 
     if getattr(app, "_refrain_should_restart", False):
         log.info("Re-execing for restart")

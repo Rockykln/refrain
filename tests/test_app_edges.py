@@ -133,15 +133,39 @@ def test_quitting_before_the_startup_check_finishes_waits_for_it_to_stop(h, monk
             self.finished.emit(CheckResult(OK), CheckResult(OK))
 
     monkeypatch.setattr("refrain.startup_check.StartupCheckWorker", Worker)
+    elapsed = []
+
+    def quit_while_it_runs(h):
+        h.shot(5000)()
+        time.sleep(0.1)  # let the QThread actually get going
+        started = time.monotonic()
+        h.app.aboutToQuit.emit()
+        elapsed.append(time.monotonic() - started)
+
+    h.during_exec = quit_while_it_runs
     h.run("--silent")
-    h.shot(5000)()
-    time.sleep(0.1)  # let the QThread actually get going
-    started = time.monotonic()
-    h.app.aboutToQuit.emit()
-    elapsed = time.monotonic() - started
-    # _stop_startup_check calls QThread.wait(2000): it must have actually
-    # waited for the sleeping worker, not returned instantly nor timed out.
-    assert 0.15 < elapsed < 2.0
+    # It must have actually waited for the sleeping worker, not returned
+    # instantly nor run into the timeout.
+    assert 0.15 < elapsed[0] < 2.0
+
+
+def test_a_startup_check_timer_that_fires_after_quit_began_starts_nothing(h, monkeypatch):  # noqa: F811
+    """The loop can still fire the timer while it winds down; nothing may start then."""
+    started = []
+
+    class Worker:
+        def __init__(self, lastfm_cfg, rpc):
+            started.append(self)
+
+    monkeypatch.setattr("refrain.startup_check.StartupCheckWorker", Worker)
+
+    def quit_then_fire(h):
+        h.app.aboutToQuit.emit()
+        h.shot(5000)()
+
+    h.during_exec = quit_then_fire
+    h.run("--silent")
+    assert started == []
 
 
 def test_developer_menu_entry_opens_the_log_window_on_the_developer_tab(h):  # noqa: F811
@@ -223,3 +247,14 @@ def test_a_state_dir_that_cannot_be_written_only_logs_the_failure(tmp_path, monk
     with caplog.at_level(logging.DEBUG, logger="refrain.app"):
         app._remember_crash_reports(tmp_path / "crash.log")
     assert "Could not remember the crash reports" in caplog.text
+
+
+def test_an_update_check_asked_for_after_stop_starts_no_thread():
+    """The startup timer can fire while quitting; a stopped orchestrator stays idle."""
+    QApplication.instance() or QApplication(sys.argv)
+    config = Config()
+    config.save = lambda: None
+    orch = app.UpdateOrchestrator(config)
+    orch.stop()
+    orch.check_now(manual=True)
+    assert orch._thread is None

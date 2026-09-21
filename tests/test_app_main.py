@@ -814,17 +814,21 @@ def test_startup_check_reports_an_expired_lastfm_session_and_stops_on_quit(h, mo
             self.finished.emit(CheckResult(INVALID, "Invalid session key"), CheckResult(OK))
 
     monkeypatch.setattr("refrain.startup_check.StartupCheckWorker", Worker)
+
+    def check_then_quit(h):
+        h.daemon.worker.lastfmStateChanged.emit("scrobbling", "refrain_demo")
+        h.shot(5000)()
+        deadline = time.monotonic() + 5
+        while not h.status.called("show") and time.monotonic() < deadline:
+            QCoreApplication.processEvents()
+            time.sleep(0.002)
+        h.app.aboutToQuit.emit()
+
+    h.during_exec = check_then_quit
     h.run("--silent")
-    h.daemon.worker.lastfmStateChanged.emit("scrobbling", "refrain_demo")
-    h.shot(5000)()
-    deadline = time.monotonic() + 5
-    while not h.status.called("show"):
-        assert time.monotonic() < deadline
-        QCoreApplication.processEvents()
-        time.sleep(0.002)
+    assert h.status.called("show")
     (last,) = h.tray.called("set_service_status")[-1]
     assert last.lastfm == "expired"
-    h.app.aboutToQuit.emit()
 
 
 def test_app_name_is_refreshed_off_the_ui_thread(h, monkeypatch):
@@ -1178,15 +1182,18 @@ def test_update_found_at_startup_opens_the_dialog_and_the_status_hint(h, monkeyp
     monkeypatch.setattr(app, "check_latest_release", lambda: release)
     h.config.update.auto_check = True
     h.config.update.last_check_ts = 0
+
+    def check_on_startup(h):
+        real_check = type(h.updater).__mro__[1].check_now
+        monkeypatch.setattr(h.updater, "check_now", lambda **kw: real_check(h.updater, **kw))
+        h.shot(2000)()
+        deadline = time.monotonic() + 5
+        while not h.dialogs and time.monotonic() < deadline:
+            QCoreApplication.processEvents()
+            time.sleep(0.002)
+
+    h.during_exec = check_on_startup
     h.run()
-    real_check = type(h.updater).__mro__[1].check_now
-    monkeypatch.setattr(h.updater, "check_now", lambda **kw: real_check(h.updater, **kw))
-    h.shot(2000)()
-    deadline = time.monotonic() + 5
-    while not h.dialogs:
-        assert time.monotonic() < deadline
-        QCoreApplication.processEvents()
-        time.sleep(0.002)
     assert h.dialogs == [release]
     assert h.tray.called("set_update_available") == [(True, "999.0.0")]
     assert h.status.called("set_update_available") == [("999.0.0",)]
