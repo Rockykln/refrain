@@ -882,6 +882,34 @@ class DaemonWorker(QObject):
                 prev.title,
                 mmss(self._song_lengths.get_ms(prev.artist, prev.title, prev.album)),
             )
+        elif (
+            self._config.privacy.mode != "off"
+            and self._scrobbler.looks_up_lengths
+            and self._song_lengths.wants_reference(prev.artist, prev.title, prev.album)
+        ):
+            self._scrobbler.check_length(
+                prev.artist, prev.title, lambda ms: self._on_lastfm_length(prev, ms)
+            )
+
+    def _on_lastfm_length(self, track: TrackInfo, length_ms: int | None) -> None:
+        """Last.fm's length for a song measured once; on the scrobbler's worker."""
+        if length_ms is None:
+            return
+        agreed = self._song_lengths.add_reference(track.artist, track.title, track.album, length_ms)
+        if agreed:
+            log.info(
+                "Length: %s — %s runs %s, measured and confirmed by Last.fm",
+                track.artist or "—",
+                track.title,
+                mmss(self._song_lengths.get_ms(track.artist, track.title, track.album)),
+            )
+        elif agreed is False:
+            log.debug(
+                "Length: Last.fm gives %s — %s as %s, not its measured length",
+                track.artist or "—",
+                track.title,
+                mmss(length_ms),
+            )
 
     def _follow_reported_position(self, track: TrackInfo, state: PositionState) -> None:
         """A measured length the player plays past was measured short."""

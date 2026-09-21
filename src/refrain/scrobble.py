@@ -189,7 +189,7 @@ class LastfmClient:
     # ---------------------------------------------------------- transport
 
     def _call(self, method: str, *, http_post: bool, signed: bool = True, **params: str) -> dict:
-        if not self.api_key or not self.shared_secret:
+        if not self.api_key or (signed and not self.shared_secret):
             raise LastfmError("Last.fm api_key / shared_secret not configured")
         req_params: dict[str, str] = {
             k: str(v) for k, v in params.items() if v is not None and v != ""
@@ -287,6 +287,16 @@ class LastfmClient:
         data = self._call("user.getInfo", http_post=False, sk=self.session_key)
         user = data.get("user") or {}
         return str(user.get("name", "")).strip()
+
+    def track_duration_ms(self, artist: str, track: str) -> int:
+        """Last.fm's length for a track, 0 when it has none. Read-only, unsigned."""
+        data = self._call(
+            "track.getInfo", http_post=False, signed=False, artist=artist, track=track
+        )
+        try:
+            return max(0, int((data.get("track") or {}).get("duration") or 0))
+        except (TypeError, ValueError, AttributeError):
+            return 0
 
     # ---------------------------------------------------------- scrobbling
 
@@ -524,6 +534,24 @@ class Scrobbler:
                 # Else the last run's play was never compared with a song:
                 # its file stays for the next launch to settle.
                 self._save_current_locked(self._last_wall)
+
+    @property
+    def looks_up_lengths(self) -> bool:
+        """Whether `check_length` may ask Last.fm: enabled and with a key."""
+        with self._lock:
+            return bool(self._cfg.enabled and self._cfg.api_key.strip())
+
+    def check_length(
+        self, artist: str, title: str, on_answer: Callable[[int | None], None]
+    ) -> None:
+        """Ask Last.fm for a track's length off the poll thread.
+
+        ``on_answer`` runs on the worker with the length in ms (0: Last.fm
+        has none), or None when Last.fm could not be asked.
+        """
+        with self._lock:
+            api_key = self._cfg.api_key
+        self._submit(self._do_check_length, LastfmClient(api_key, ""), artist, title, on_answer)
 
     def health(self) -> tuple[bool, int]:
         """Whether Last.fm refused the session, and how many scrobbles
@@ -856,6 +884,22 @@ class Scrobbler:
             self._handle_lastfm_error(e, "now-playing")
         except Exception as e:
             log.debug("Last.fm now-playing failed: %s", e)
+
+    def _do_check_length(
+        self,
+        client: LastfmClient,
+        artist: str,
+        title: str,
+        on_answer: Callable[[int | None], None],
+    ) -> None:
+        try:
+            length_ms: int | None = client.track_duration_ms(artist, title)
+        except LastfmError as e:
+            # A code is Last.fm's answer (mostly "track not found"); none
+            # means it was not reached, and the next play may ask again.
+            length_ms = 0 if e.code is not None else None
+            log.debug("Last.fm length lookup failed: %s", e)
+        on_answer(length_ms)
 
     def _do_drain(self) -> None:
         try:

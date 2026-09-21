@@ -1,6 +1,7 @@
 """Song lengths Refrain measured itself, for songs the catalog has none for.
 
-Stored as ``<key> <seconds> <confirmations>`` per line; the key is a hash, so no titles."""
+Stored as ``<key> <seconds> <confirmations>`` per line; the key is a hash, so no titles.
+Last.fm's length for a song sits in a second file as ``<key> <seconds>``, 0 when it has none."""
 
 from __future__ import annotations
 
@@ -51,6 +52,20 @@ def lengths_path() -> Path:
     return state_dir() / "song_lengths.txt"
 
 
+def _write_lines(path: Path, lines: list[str]) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text("".join(lines), encoding="utf-8")
+        with contextlib.suppress(OSError):
+            os.chmod(tmp, 0o600)
+        os.replace(tmp, path)
+    except OSError as e:
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+        log.debug("Could not save %s (%s)", path.name, e)
+
+
 class LearnedLengths:
     """Lengths measured from whole plays. Failure-tolerant throughout: a
     file that can't be read or written costs the fallback, nothing else.
@@ -64,6 +79,11 @@ class LearnedLengths:
         # key -> (seconds, confirmations), oldest first: dicts keep
         # insertion order, which is the recency the cap goes by.
         self._entries: dict[str, tuple[int, int]] = self._load()
+        # key -> Last.fm's length in seconds, 0 for none: a second opinion
+        # that can stand in for the confirming play, asked once per song.
+        self._references_path = self._path.with_name(f"{self._path.stem}_lastfm.txt")
+        self._references: dict[str, int] = self._load_references()
+        self._asked: set[str] = set()
         # A differing reading for a confirmed length, waiting for a second.
         self._challengers: dict[str, int] = {}
         self._keys: dict[tuple[str, str, str], str] = {}
@@ -93,20 +113,20 @@ class LearnedLengths:
                 entries[key] = (s, c)
         return entries
 
-    def _save_locked(self) -> None:
-        tmp = self._path.with_suffix(self._path.suffix + ".tmp")
+    def _load_references(self) -> dict[str, int]:
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp.write_text(
-                "".join(f"{k} {s} {c}\n" for k, (s, c) in self._entries.items()), encoding="utf-8"
-            )
-            with contextlib.suppress(OSError):
-                os.chmod(tmp, 0o600)
-            os.replace(tmp, self._path)
-        except OSError as e:
-            with contextlib.suppress(OSError):
-                tmp.unlink()
-            log.debug("Could not save the measured song lengths (%s)", e)
+            text = self._references_path.read_text(encoding="utf-8")
+        except OSError:
+            return {}
+        references: dict[str, int] = {}
+        for line in text.splitlines():
+            parts = line.split()
+            if len(parts) == 2 and len(parts[0]) == 16 and parts[1].isdigit():
+                references[parts[0]] = int(parts[1])
+        return references
+
+    def _save_locked(self) -> None:
+        _write_lines(self._path, [f"{k} {s} {c}\n" for k, (s, c) in self._entries.items()])
 
     def _key_locked(self, artist: str, title: str, album: str) -> str:
         names = (artist, title, album)
@@ -152,12 +172,57 @@ class LearnedLengths:
                     entry = known
             else:
                 entry = (seconds, 1)
+            if entry[1] < CONFIRMATIONS_NEEDED and self._agrees_locked(key, entry[0]):
+                entry = (entry[0], CONFIRMATIONS_NEEDED)
             self._entries[key] = entry
             while len(self._entries) > MAX_ENTRIES:
                 self._entries.pop(next(iter(self._entries)))
             self.generation += 1
             self._save_locked()
         return entry[1] >= CONFIRMATIONS_NEEDED and entry != known
+
+    def _agrees_locked(self, key: str, seconds: int) -> bool:
+        reference = self._references.get(key, 0)
+        return reference > 0 and abs(reference - seconds) <= AGREES_WITHIN_S
+
+    def wants_reference(self, artist: str, title: str, album: str) -> bool:
+        """True, once, for a song measured just once and never looked up."""
+        with self._lock:
+            key = self._key_locked(artist, title, album)
+            entry = self._entries.get(key)
+            if (
+                entry is None
+                or entry[1] >= CONFIRMATIONS_NEEDED
+                or key in self._references
+                or key in self._asked
+            ):
+                return False
+            self._asked.add(key)
+            return True
+
+    def add_reference(self, artist: str, title: str, album: str, length_ms: int) -> bool | None:
+        """Keep Last.fm's length for a song (0: it has none).
+
+        True when it confirmed the measured length, as a second agreeing
+        play would, False when it disagrees, None when it says nothing.
+        """
+        seconds = round(length_ms / 1000) if length_ms > 0 else 0
+        with self._lock:
+            key = self._key_locked(artist, title, album)
+            self._references.pop(key, None)
+            self._references[key] = seconds
+            while len(self._references) > MAX_ENTRIES:
+                self._references.pop(next(iter(self._references)))
+            _write_lines(self._references_path, [f"{k} {s}\n" for k, s in self._references.items()])
+            entry = self._entries.get(key)
+            if not seconds or entry is None or entry[1] >= CONFIRMATIONS_NEEDED:
+                return None
+            if not self._agrees_locked(key, entry[0]):
+                return False
+            self._entries[key] = (entry[0], CONFIRMATIONS_NEEDED)
+            self.generation += 1
+            self._save_locked()
+        return True
 
     def forget(self, artist: str, title: str, album: str) -> None:
         with self._lock:

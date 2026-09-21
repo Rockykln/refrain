@@ -11,6 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from types import SimpleNamespace  # noqa: E402
 
+from refrain import song_lengths  # noqa: E402
 from refrain.config import Config  # noqa: E402
 from refrain.daemon import DaemonWorker  # noqa: E402
 from refrain.song_lengths import MAX_ENTRIES, LearnedLengths, song_key  # noqa: E402
@@ -135,6 +136,7 @@ def _worker(tmp_path, *, catalog_ms=0, tier=PositionTier.COMPUTED, control_at=0.
         _control_at=control_at,
         _max_reported_ms=0,
         _cover_fetcher=SimpleNamespace(get_duration_ms=lambda *_: catalog_ms),
+        _scrobbler=SimpleNamespace(looks_up_lengths=False),
     )
     worker._catalog_duration_ms = lambda t: DaemonWorker._catalog_duration_ms(worker, t)
     return worker, lengths
@@ -252,3 +254,67 @@ def test_a_length_is_dropped_even_when_refrain_started_mid_song(tmp_path):
     DaemonWorker._follow_reported_position(worker, track, state)
     assert lengths.get_ms(*A) == 0
     assert worker._max_reported_ms == 0, "no zero to measure from"
+
+
+# ------------------------------------------------------- Last.fm's length
+
+
+def test_an_agreeing_lastfm_length_stands_in_for_the_second_play(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 157_000)
+    assert lengths.add_reference(*A, 158_400) is True
+    assert lengths.get_ms(*A) == 157_000
+
+
+def test_a_lastfm_length_beyond_two_seconds_confirms_nothing(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 157_000)
+    assert lengths.add_reference(*A, 160_000) is False
+    assert lengths.get_ms(*A) == 0
+
+
+def test_a_lastfm_length_of_zero_says_nothing(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 157_000)
+    assert lengths.add_reference(*A, 0) is None
+    assert lengths.get_ms(*A) == 0
+
+
+def test_a_kept_lastfm_length_confirms_the_next_matching_play_after_a_restart(tmp_path):
+    lengths = _lengths(tmp_path)
+    lengths.observe(*A, 120_000)
+    lengths.add_reference(*A, 157_000)
+    lengths = _lengths(tmp_path)
+    assert lengths.wants_reference(*A) is False
+    assert lengths.observe(*A, 157_000) is True
+    assert lengths.get_ms(*A) == 157_000
+
+
+def test_only_a_song_measured_once_wants_a_lastfm_length(tmp_path):
+    lengths = _lengths(tmp_path)
+    assert lengths.wants_reference(*A) is False
+    lengths.observe(*A, 157_000)
+    assert lengths.wants_reference(*A) is True
+    assert lengths.wants_reference(*A) is False
+    lengths.observe(*A, 157_000)
+    other = ("Kite Theory", "Afterglow", "Afterimage")
+    lengths.observe(*other, 200_000)
+    lengths.observe(*other, 200_000)
+    assert lengths.wants_reference(*other) is False
+
+
+def test_unusable_lastfm_lines_are_skipped(tmp_path):
+    key = song_key(*A)
+    (tmp_path / "lengths_lastfm.txt").write_text(
+        f"{key} 157\n{key[:8]} 157\n{key} -1\nnonsense\n", encoding="utf-8"
+    )
+    lengths = _lengths(tmp_path)
+    assert lengths._references == {key: 157}
+
+
+def test_the_lastfm_lengths_keep_to_the_cap(tmp_path, monkeypatch):
+    monkeypatch.setattr(song_lengths, "MAX_ENTRIES", 2)
+    lengths = _lengths(tmp_path)
+    for n in range(3):
+        lengths.add_reference("Kite Theory", f"Song {n}", "Afterimage", 157_000)
+    assert len(_lengths(tmp_path)._references) == 2

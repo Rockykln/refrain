@@ -189,6 +189,8 @@ class FakeMprisServer:
 
 
 class FakeScrobbler:
+    looks_up_lengths = False
+
     def __init__(self, cfg, on_queued=None, **kwargs):
         self.cfg = cfg
         self.on_queued = on_queued
