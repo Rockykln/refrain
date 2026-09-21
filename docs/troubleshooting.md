@@ -85,7 +85,8 @@ where it's expected. When that happens, the live log says
 still not found, the Discord package from discord.com or your
 distribution avoids the sandbox.
 
-Discord plus a second client such as Vesktop are two separate programs.
+Two Discord apps running at once — say Discord and Discord PTB — are two
+separate programs.
 By default Refrain only talks to the first one it finds; see
 [Discord shows nothing](#discord-shows-nothing).
 
@@ -234,8 +235,8 @@ fine but nobody sees the status.
 
 **Several Discord clients**
 
-- *Why:* Discord and, for example, Vesktop each open their own
-  connection. A status sent to one doesn't show in the other, and
+- *Why:* every Discord app you run — Discord and Discord PTB, for
+  example — opens its own connection. A status sent to one doesn't show in the other, and
   Refrain uses the first one it finds.
 - *What to do:* tick *Send the status to every running Discord client*
   in *Settings → General*.

@@ -270,7 +270,7 @@ def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
     ``os.scandir``, i.e. the filesystem, so whether a connect succeeds is
     luck, and a ``discord-ipc-N`` left behind by a previous Discord
     session shadows the running one. Several clients at once
-    (Discord plus Vencord/Vesktop) make it likelier still, because there
+    (Discord plus Discord PTB, say) make it likelier still, because there
     are simply more sockets to trip over.
     """
     runtime_dir = _runtime_dir()
@@ -302,8 +302,8 @@ class DiscordRPC:
         # discord-ipc-N slot ("auto" when pypresence picked the socket
         # itself). Normally holds exactly one entry; with `all_clients`
         # the same status is published to every client that is listening,
-        # which is what a Discord + Vencord/Vesktop pair needs — each is
-        # a separate process with its own IPC socket, and a status sent
+        # which is what running two Discord builds side by side needs — each
+        # is a separate process with its own IPC socket, and a status sent
         # to one is invisible in the other.
         self._presences: dict[object, Presence] = {}
         self.all_clients = all_clients

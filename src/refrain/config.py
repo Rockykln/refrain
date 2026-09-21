@@ -165,8 +165,8 @@ class DiscordConfig:
     client_id_mpris: str = ""
     client_id_bluetooth: str = ""
     # Publish the same status to *every* Discord client that is running,
-    # not just the first one found. Discord and Vencord/Vesktop are
-    # separate processes with separate IPC sockets, so a status sent to
+    # not just the first one found. Two Discord builds running side by side
+    # are separate processes with separate IPC sockets, so a status sent to
     # one is invisible in the other. Off by default: one client is the
     # normal case, and each extra connection is another IPC write per
     # track change.

@@ -741,9 +741,8 @@ class SettingsWindow(QDialog):
         )
         self.discord_all_clients_box.setToolTip(
             self.tr(
-                "Discord and Vencord/Vesktop are separate programs with "
-                "separate connections, so a status sent to one does not show "
-                "in the other. With this on, Refrain publishes to all of them."
+                "Refrain normally sends your status to the first Discord app "
+                "it finds. Turn this on if you run more than one at once."
             )
         )
 
