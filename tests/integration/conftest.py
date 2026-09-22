@@ -17,25 +17,9 @@ import pytest
 dbus = pytest.importorskip("dbus", reason="dbus-python not installed")
 pytest.importorskip("PySide6.QtCore", reason="PySide6 not installed")
 
-import refrain.sources.mpris as _mpris_module  # noqa: E402
-
 HERE = Path(__file__).resolve().parent
 FAKE_PLAYER = HERE / "fake_mpris_player.py"
 _PLAYER_IFACE = "org.mpris.MediaPlayer2.Player"
-
-
-@pytest.fixture(autouse=True)
-def _real_dbus_in_mpris_module():
-    """Guard against cross-file pollution: test_mpris_dispatch.py swaps `dbus`
-    for a mock at import time and never rebinds refrain.sources.mpris's own
-    reference to it afterwards, since it keeps using its own reloaded copy —
-    which corrupts the module for the rest of the pytest process. These tests
-    need the real dbus-python behaviour, so put it back for the duration.
-    """
-    original = _mpris_module.dbus
-    _mpris_module.dbus = dbus
-    yield
-    _mpris_module.dbus = original
 
 
 def _matches(current: dict, sent: dict) -> bool:

@@ -3,14 +3,15 @@ Plasma has the metadata but CanGoNext = False; the browser player can skip."""
 
 from __future__ import annotations
 
-import importlib
+import importlib.util
 import sys
 from unittest.mock import MagicMock
 
 import pytest
 
-# Replace `dbus` and reload refrain.sources.mpris; `setdefault` isn't
-# enough when earlier tests already imported the real module.
+# A private copy of refrain.sources.mpris built against a stub `dbus`. The
+# shared module in sys.modules keeps the real one, so later tests (and the
+# MPRIS server, which needs dbus.service) are unaffected.
 _fake_dbus = MagicMock()
 
 
@@ -22,17 +23,17 @@ _fake_dbus.DBusException = _FakeDBusException
 _real_dbus = {name: sys.modules.get(name) for name in ("dbus", "dbus.mainloop")}
 sys.modules["dbus"] = _fake_dbus
 sys.modules["dbus.mainloop"] = _fake_dbus.mainloop
-import refrain.sources.mpris as _mpris_mod  # noqa: E402
-
-_mpris_mod = importlib.reload(_mpris_mod)
+try:
+    _spec = importlib.util.find_spec("refrain.sources.mpris")
+    _mpris_mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mpris_mod)
+finally:
+    for _name, _module in _real_dbus.items():
+        if _module is None:
+            sys.modules.pop(_name, None)
+        else:
+            sys.modules[_name] = _module
 MPRISSource = _mpris_mod.MPRISSource
-# The reloaded module keeps the stub; every later import gets real dbus
-# again (dbus.service, which the MPRIS server needs, can't come from a stub).
-for _name, _module in _real_dbus.items():
-    if _module is None:
-        sys.modules.pop(_name, None)
-    else:
-        sys.modules[_name] = _module
 
 
 @pytest.mark.parametrize(
