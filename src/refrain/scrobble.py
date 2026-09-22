@@ -207,6 +207,9 @@ class LastfmClient:
         # plaintext transport, even if a future edit changes API_ROOT.
         if not API_ROOT.startswith("https://"):
             raise LastfmError("refusing non-HTTPS Last.fm endpoint")
+        # Set on every path below that doesn't raise; None only if a context
+        # manager swallowed the error, which the type check then reports.
+        payload: object = None
         try:
             if http_post:
                 request = urllib.request.Request(
