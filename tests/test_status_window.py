@@ -364,6 +364,17 @@ def test_the_elapsed_time_only_shows_up_with_a_real_position_and_duration(window
     assert window.elapsed.isHidden()
 
 
+def test_an_estimated_time_carries_a_tilde_until_a_real_one_returns(window):
+    window.set_track(_playing())
+    window.set_progress_estimated(True)
+    window.set_progress(68_000, 200_000)
+    assert window.elapsed.text() == "~1:08 / 3:20"
+    assert window.elapsed.toolTip() == "Estimated from where the song was before Refrain restarted"
+    window.set_progress_estimated(False)
+    window.set_progress(69_000, 200_000)
+    assert (window.elapsed.text(), window.elapsed.toolTip()) == ("1:09 / 3:20", "")
+
+
 def test_a_cover_pushed_in_live_shows_up_even_without_a_history_entry(window):
     path = image_path_for_url(COVER)
     path.parent.mkdir(parents=True, exist_ok=True)

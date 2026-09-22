@@ -698,3 +698,83 @@ def test_a_buffered_length_mid_song_is_no_loop():
     _, state = _segments(state, A, 1001.0, 300, 100, duration_ms=length)
     _, _, state = step(state, A, 4_269, 1101.0, duration_ms=length, length_ms=275_709)
     assert state.restarts == 0
+
+
+# ------------------------------------------- tier 3: the estimate after a restart
+
+
+def test_an_estimate_carries_a_source_without_a_position_after_a_restart():
+    # The player reads 0 all song long; the history says 1:08.
+    pos, tier, state = step(PositionState(), A, 0, 1000.0, estimate_ms=68_000)
+    assert (pos, tier) == (68_000, PositionTier.ESTIMATED)
+    pos, tier, state = step(state, A, 0, 1010.0)
+    assert (pos, tier) == (78_000, PositionTier.ESTIMATED)
+
+
+def test_an_estimate_carries_a_segment_source_after_a_restart():
+    seen = []
+    state = PositionState()
+    for i in range(3):
+        pos, tier, state = step(
+            state,
+            A,
+            5_000 + i * 500,
+            1000.0 + i * 0.5,
+            length_ms=10_400,
+            estimate_ms=68_000 if i == 0 else None,
+        )
+        seen.append((pos, tier))
+    assert seen == [
+        (68_000, PositionTier.ESTIMATED),
+        (68_500, PositionTier.ESTIMATED),
+        (69_000, PositionTier.ESTIMATED),
+    ]
+
+
+def test_a_real_position_beats_the_estimate_from_the_first_poll():
+    pos, tier, state = step(PositionState(), A, 65_000, 1000.0, estimate_ms=68_000)
+    assert (pos, tier) == (65_000, PositionTier.REPORTED)
+    pos, tier, state = step(state, A, 65_000, 1010.0)  # then it freezes
+    assert (pos, tier) == (75_000, PositionTier.COMPUTED)
+
+
+def test_a_zero_that_moves_is_the_song_starting_over_not_a_missing_position():
+    _, tier, state = step(PositionState(), A, 0, 1000.0, estimate_ms=68_000)
+    assert tier is PositionTier.ESTIMATED
+    pos, tier, state = step(state, A, 500, 1000.5)
+    assert (pos, tier) == (500, PositionTier.REPORTED)
+    pos, tier, state = step(state, A, 500, 1010.5)
+    assert (pos, tier) == (10_500, PositionTier.COMPUTED)
+
+
+def test_an_estimate_does_not_run_through_a_pause():
+    _, _, state = step(PositionState(), A, 0, 1000.0, estimate_ms=68_000)
+    _, _, state = step(state, A, 0, 1002.0, playing=False)
+    pos, tier, state = step(state, A, 0, 1062.0, playing=False)
+    assert (pos, tier) == (70_000, PositionTier.ESTIMATED)
+    _, _, state = step(state, A, 0, 1063.0)
+    pos, tier, state = step(state, A, 0, 1064.0)
+    assert (pos, tier) == (71_000, PositionTier.ESTIMATED)
+
+
+def test_an_estimate_past_the_end_of_the_song_is_never_shown():
+    pos, tier, _ = step(PositionState(), A, 0, 1000.0, estimate_ms=DUR + 1_000)
+    assert (pos, tier) == (None, PositionTier.UNKNOWN)
+
+
+def test_an_estimate_running_past_the_end_hides_the_time_for_good():
+    _, tier, state = step(PositionState(), A, 0, 1000.0, estimate_ms=DUR - 5_000)
+    assert tier is PositionTier.ESTIMATED
+    pos, tier, state = step(state, A, 0, 1005.0)
+    assert (pos, tier) == (DUR, PositionTier.ESTIMATED)
+    pos, tier, state = step(state, A, 0, 1005.5)
+    assert (pos, tier) == (None, PositionTier.UNKNOWN)
+    # Not even once the catalog finds the song longer.
+    pos, tier, state = step(state, A, 0, 1006.0, duration_ms=DUR + 60_000, length_ms=DUR)
+    assert (pos, tier) == (None, PositionTier.UNKNOWN)
+
+
+def test_an_estimate_is_no_use_for_a_track_change_we_watched():
+    _, _, state = step(PositionState(), B, 0, 1000.0)
+    pos, tier, _ = step(state, A, 0, 1100.0, estimate_ms=68_000)
+    assert (pos, tier) == (0, PositionTier.REPORTED)

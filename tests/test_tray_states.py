@@ -279,6 +279,18 @@ def test_tooltip_carries_track_and_progress(tray):
     assert tray._tray.toolTip() == "Glass Tides\nNeon Harbor • Low Light\n1:05 / 3:20 (–2:15)"
 
 
+def test_an_estimated_time_carries_a_tilde(tray):
+    tray.set_track(_track(artist="Neon Harbor", album="Low Light"))
+    tray.set_progress_estimated(True)
+    tray.set_progress(68_000, 200_000)
+    assert tray._progress_action.text() == "~1:08 / 3:20 (–2:12)"
+    tray.set_progress(68_000, 0)
+    assert tray._progress_action.text() == "~1:08"
+    tray.set_progress_estimated(False)
+    tray.set_progress(69_000, 200_000)
+    assert tray._progress_action.text() == "1:09 / 3:20 (–2:11)"
+
+
 def test_nothing_playing_resets_menu_and_tooltip(tray):
     tray.set_track(_track(artist="Neon Harbor", album="Low Light"))
     tray.set_progress(65_000, 200_000)

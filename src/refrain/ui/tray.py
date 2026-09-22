@@ -103,6 +103,7 @@ class TrayIcon(QObject):
         # because tooltips DO refresh in real time.
         self._current_track_line = ""
         self._current_progress_line = ""
+        self._progress_estimated = False
 
         # Info rows: title / artist / progress / Discord / Last.fm.
         # Left ENABLED on purpose — KDE Plasma's DBusMenu renderer (and
@@ -419,18 +420,23 @@ class TrayIcon(QObject):
             return
         pos = max(0, position_ms) // 1000
         dur = max(0, duration_ms) // 1000
+        mark = "~" if self._progress_estimated else ""
         if dur <= 0:
-            progress = f"{pos // 60}:{pos % 60:02d}"
+            progress = f"{mark}{pos // 60}:{pos % 60:02d}"
         else:
             rem = max(0, dur - pos)
             progress = (
-                f"{pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
+                f"{mark}{pos // 60}:{pos % 60:02d} / {dur // 60}:{dur % 60:02d} "
                 f"(–{rem // 60}:{rem % 60:02d})"  # noqa: RUF001 — en-dash for "minus"
             )
         self._progress_action.setText(progress)
         self._progress_action.setVisible(True)
         self._current_progress_line = progress
         self._refresh_tooltip()
+
+    def set_progress_estimated(self, estimated: bool) -> None:
+        """The next times given to `set_progress` are estimates; they get a ~."""
+        self._progress_estimated = estimated
 
     def set_track(self, track: TrackInfo) -> None:
         if not track.has_track:

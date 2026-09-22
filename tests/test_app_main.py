@@ -131,6 +131,9 @@ class FakeTray(_Recorder):
     def set_progress(self, pos, dur):
         self._rec("set_progress", pos, dur)
 
+    def set_progress_estimated(self, on):
+        self._rec("set_progress_estimated", on)
+
     def set_service_status(self, snapshot):
         self._rec("set_service_status", snapshot)
 
@@ -154,6 +157,7 @@ class FakeWorker(_Recorder):
     trackChanged = Signal(object)
     statusChanged = Signal(object)
     progressTick = Signal(int, int)
+    progressEstimated = Signal(bool)
     discordStateChanged = Signal(str, str)
     lastfmStateChanged = Signal(str, str)
     historyChanged = Signal(object)
@@ -261,6 +265,9 @@ class FakeStatus(_Window):
 
     def set_progress(self, position_ms, duration_ms):
         self._rec("set_progress", position_ms, duration_ms)
+
+    def set_progress_estimated(self, on):
+        self._rec("set_progress_estimated", on)
 
     def set_history(self, s):
         self._rec("set_history", s)
@@ -630,6 +637,13 @@ def test_tray_buttons_reach_daemon_settings_and_app(h):
     assert h.log_window.called("show") == [()]
     h.tray.quitRequested.emit()
     assert h.app.called("quit") == [()]
+
+
+def test_an_estimated_time_is_marked_in_the_tray_and_the_status_window(h):
+    h.run()
+    h.daemon.worker.progressEstimated.emit(True)
+    assert h.tray.called("set_progress_estimated") == [(True,)]
+    assert h.status.called("set_progress_estimated") == [(True,)]
 
 
 def test_daemon_updates_reach_the_tray_and_the_status_window(h):

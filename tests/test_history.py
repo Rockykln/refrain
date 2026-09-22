@@ -582,3 +582,76 @@ def test_a_snapshot_is_a_copy_the_caller_cannot_change_the_history_through(hist,
     assert hist.mark_scrobbled("Artist", "Glass Tides")
     assert not again.scrobbled
     assert hist.snapshot().entries[0].scrobbled
+
+
+# --------------------------------------------------------------------------- #
+# The time to show right after a restart                                      #
+# --------------------------------------------------------------------------- #
+
+
+def _shown(h, title, clock, seconds, *, from_s=0, playing=True):
+    """Poll once a second, with Refrain showing the time as it goes."""
+    status = PlaybackStatus.PLAYING if playing else PlaybackStatus.PAUSED
+    for i in range(seconds + 1):
+        h.update(
+            _t(title, status=status),
+            SONG_MS,
+            now_wall=clock.wall,
+            now_mono=clock.mono,
+            shown_ms=(from_s + (i if playing else 0)) * 1000,
+        )
+        if i < seconds:
+            clock.wall += 1
+            clock.mono += 1
+
+
+def test_after_a_crash_the_estimate_counts_on_from_the_last_save(hist, clock):
+    _shown(hist, "A", clock, 65)  # saved at 1:00; the crash comes 5 s later
+    clock.wall += 3
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("A"), clock.wall) == 68_000
+
+
+def test_after_a_quit_the_estimate_counts_on_from_the_quit(hist, clock):
+    _shown(hist, "A", clock, 65)
+    hist.shutdown()
+    clock.wall += 3
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("A"), clock.wall) == 68_000
+
+
+def test_a_save_older_than_a_minute_gives_no_estimate(hist, clock):
+    _shown(hist, "A", clock, 65)
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("A"), clock.wall + 55) == 120_000
+    assert again.resume_estimate_ms(_t("A"), clock.wall + 56) is None
+
+
+def test_another_song_gets_no_estimate(hist, clock):
+    _shown(hist, "A", clock, 65)
+    hist.shutdown()
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("B"), clock.wall + 3) is None
+
+
+def test_a_song_paused_at_the_quit_is_estimated_where_it_stopped(hist, clock):
+    _shown(hist, "A", clock, 40)
+    _shown(hist, "A", clock, 10, from_s=40, playing=False)
+    hist.shutdown()
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("A"), clock.wall + 3) == 40_000
+
+
+def test_no_estimate_where_refrain_showed_no_time(hist, clock):
+    _feed(hist, _t("A"), 64, clock)
+    hist.shutdown()
+    again = PlayHistory(HistoryConfig())
+    assert again.resume_estimate_ms(_t("A"), clock.wall + 3) is None
+
+
+def test_the_estimate_is_only_for_the_first_song_after_the_restart(hist, clock):
+    _shown(hist, "A", clock, 65)
+    hist.shutdown()
+    again = PlayHistory(HistoryConfig())
+    again.update(_t("A"), SONG_MS, now_wall=clock.wall + 3, now_mono=clock.mono + 3)
+    assert again.resume_estimate_ms(_t("A"), clock.wall + 3) is None

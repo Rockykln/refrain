@@ -301,6 +301,8 @@ class DaemonWorker(QObject):
     trackChanged = Signal(object)  # TrackInfo
     statusChanged = Signal(object)  # PlaybackStatus
     progressTick = Signal(int, int)  # position_ms, duration_ms (only when playing)
+    # The time in progressTick is an estimate from before a restart; only on change.
+    progressEstimated = Signal(bool)
     # A refrain.service_status value and the reason behind it; only on change.
     discordStateChanged = Signal(str, str)
     lastfmStateChanged = Signal(str, str)
@@ -406,6 +408,7 @@ class DaemonWorker(QObject):
         self._position_state = PositionState()
         self._position_tier = PositionTier.UNKNOWN
         self._position_known = False
+        self._progress_estimated = False
         # True for the one tick in which the resolver saw the song begin
         # again on the same track — a replay, for the history and Last.fm.
         self._track_restarted = False
@@ -573,6 +576,7 @@ class DaemonWorker(QObject):
         position_ms: int | None,
         restarted: bool,
         album: str = "",
+        shown_ms: int | None = None,
     ) -> None:
         """``album`` is one found after the song started; the cover is
         still looked up under the album the song is known by."""
@@ -590,6 +594,7 @@ class DaemonWorker(QObject):
                 song_url=song_url,
                 position_ms=position_ms,
                 restarted=restarted,
+                shown_ms=shown_ms,
             ):
                 self._emit_history()
         except Exception:
@@ -945,8 +950,11 @@ class DaemonWorker(QObject):
             f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
         )
         now = time.monotonic()
+        estimate_ms = None
         if track_key != self._position_state.track_key:
             self._measure_previous_song(now)
+            if track_key:
+                estimate_ms = self._history.resume_estimate_ms(track, time.time())
 
         def resolve(length: tuple[int, bool]):
             return resolve_position(
@@ -960,6 +968,7 @@ class DaemonWorker(QObject):
                 duration_disputed=length[1],
                 stall_after_s=float(self._config.advanced.position_stall_s),
                 loop_track=track.loop_track,
+                estimate_ms=estimate_ms,
             )
 
         lengths = self._tick_lengths(track)
@@ -1011,6 +1020,7 @@ class DaemonWorker(QObject):
                 {
                     PositionTier.REPORTED: " (source's own value)",
                     PositionTier.COMPUTED: " (source unusable; counting from the track start)",
+                    PositionTier.ESTIMATED: " (source unusable; estimated from before the restart)",
                     PositionTier.UNKNOWN: " (no honest value — hiding the time)",
                 }[tier],
             )
@@ -1107,6 +1117,10 @@ class DaemonWorker(QObject):
         # zero/absent duration as "elapsed only" — an unknown total is no
         # reason to drop an elapsed count we do trust.
         if track.status == PlaybackStatus.PLAYING:
+            estimated = self._position_tier is PositionTier.ESTIMATED
+            if estimated != self._progress_estimated:
+                self._progress_estimated = estimated
+                self.progressEstimated.emit(estimated)
             if not self._position_known:
                 self.progressTick.emit(-1, 0)
             elif effective_dur_ms > 0:
@@ -1151,7 +1165,12 @@ class DaemonWorker(QObject):
         player_pos_ms = track.position_ms if self._position_tier is PositionTier.REPORTED else None
         heard = self._heard(track)
         self._update_history(
-            track, played_dur_ms, player_pos_ms, self._track_restarted, heard.album
+            track,
+            played_dur_ms,
+            player_pos_ms,
+            self._track_restarted,
+            heard.album,
+            track.position_ms if self._position_known else None,
         )
         self._clock.lap("history")
 
@@ -1481,7 +1500,9 @@ class DaemonWorker(QObject):
         # `start`/`end` are what Discord renders the elapsed timer and
         # progress bar from. With no trustworthy position there is no
         # honest pair to send, so they're dropped and Discord shows the
-        # track without a timer.
+        # track without a timer. An estimate after a restart does go out:
+        # Discord can't mark it, but it comes from a save under a minute
+        # old and is dropped once it passes the song's end.
         send_timing = not is_short_track and self._position_known
 
         payload: dict = {

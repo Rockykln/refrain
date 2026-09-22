@@ -8,6 +8,7 @@ import contextlib
 import dataclasses
 import json
 import logging
+import math
 import os
 import threading
 import time
@@ -36,6 +37,10 @@ _UNKNOWN_LENGTH_COUNTS_AFTER_MS = 240_000
 # Longer than a typical skip, so skipping through a playlist still never
 # touches the disk.
 _PROGRESS_SAVE_EVERY_MS = 30_000
+# A save older than this is too far off to estimate the time from. A quit
+# saves on the way out, so its save is as old as the restart took; a crash
+# can leave one _PROGRESS_SAVE_EVERY_MS old.
+_ESTIMATE_MAX_AGE_S = 60.0
 # Whether a song after a restart is still the same play is decided by
 # scrobble.continues_play — shared, so the history and Last.fm agree.
 # Apple Music's web player reports "paused" for a poll or two between
@@ -116,6 +121,9 @@ class _Current:
     paused_at: float | None = None
     # The player's own position at the last poll; None when unknown.
     position_ms: int | None = None
+    # The time Refrain showed for it at the last poll, whichever tier it
+    # came from; None when it showed none.
+    shown_ms: int | None = None
 
 
 @dataclass
@@ -124,14 +132,17 @@ class _Resume:
 
     ``counted`` means it had already made the list — then ``entry`` is the
     list's newest song itself, and carrying on with it must not add it a
-    second time. ``position_ms`` is where the player had it, if it said.
+    second time. ``position_ms`` is where the player had it, if it said;
+    ``shown_ms`` the time Refrain showed, and ``playing`` whether it played.
     """
 
     entry: HistoryEntry
     played_ms: int
-    saved_at: int
+    saved_at: float
     counted: bool = False
     position_ms: int | None = None
+    shown_ms: int | None = None
+    playing: bool = True
 
 
 def _content_key(track: TrackInfo) -> str:
@@ -195,27 +206,40 @@ def _resume_from_dict(raw) -> _Resume | None:
         return None
     try:
         played_ms = max(0, int(raw.get("played_ms", 0)))
-        saved_at = int(raw.get("saved_at", 0))
+        saved_at = float(raw.get("saved_at", 0))
     except (TypeError, ValueError):
         return None
+    if not math.isfinite(saved_at):
+        return None
     pos = raw.get("position_ms")
+    shown = raw.get("shown_ms")
     return _Resume(
         entry,
         played_ms,
         saved_at,
         counted=raw.get("counted") is True,
         position_ms=pos if type(pos) is int and pos >= 0 else None,
+        shown_ms=shown if type(shown) is int and shown >= 0 else None,
+        playing=raw.get("playing") is not False,
     )
 
 
 def _current_dict(
-    entry: HistoryEntry, counted: bool, played_ms: int, position_ms: int | None, saved_at: int
+    entry: HistoryEntry,
+    counted: bool,
+    played_ms: int,
+    position_ms: int | None,
+    saved_at: float,
+    shown_ms: int | None,
+    playing: bool,
 ) -> dict:
     return {
         "entry": dataclasses.asdict(entry),
         "counted": counted,
         "played_ms": played_ms,
         "position_ms": position_ms,
+        "shown_ms": shown_ms,
+        "playing": playing,
         "saved_at": saved_at,
     }
 
@@ -281,6 +305,7 @@ class PlayHistory:
         now_mono: float | None = None,
         position_ms: int | None = None,
         restarted: bool = False,
+        shown_ms: int | None = None,
     ) -> bool:
         """Feed one daemon poll. Returns True when the snapshot changed.
 
@@ -291,6 +316,8 @@ class PlayHistory:
         carries on, from a new play. ``restarted`` says the player showed
         the song beginning again this poll (see ``resolve_position``) —
         the replay signal of a source without a usable position.
+        ``shown_ms`` is the time Refrain shows for the song, from any tier;
+        saved alongside, it is what `resume_estimate_ms` counts on from.
         """
         now_wall = time.time() if now_wall is None else now_wall
         now_mono = time.monotonic() if now_mono is None else now_mono
@@ -352,6 +379,7 @@ class PlayHistory:
                     track, key, duration_ms, position_ms, now_mono
                 ):
                     self._cur.position_ms = position_ms
+                    self._cur.shown_ms = shown_ms
                     return True
                 # Only a song that actually plays starts an entry — a tab
                 # sitting paused at startup isn't something you heard.
@@ -360,6 +388,7 @@ class PlayHistory:
                         track, key, duration_ms, cover_url, song_url, now_wall, now_mono
                     )
                     self._cur.position_ms = position_ms
+                    self._cur.shown_ms = shown_ms
                     if track.status != PlaybackStatus.PLAYING:
                         self._cur.playing = False
                         self._cur.paused_at = now_mono
@@ -386,6 +415,7 @@ class PlayHistory:
                 dirty = dirty or cur.counted
             cur.playing = playing
             cur.position_ms = position_ms
+            cur.shown_ms = shown_ms
             if playing:
                 cur.paused_at = None
                 if not cur.shown_playing:
@@ -416,6 +446,30 @@ class PlayHistory:
             if dirty:
                 self._save_locked()
             return changed
+
+    def resume_estimate_ms(self, track: TrackInfo, now_wall: float | None = None) -> int | None:
+        """Where the song saved before the restart would be now, if ``track`` is it.
+
+        The time Refrain showed at the save, plus the time since while it
+        was playing. Only before the first poll has been matched against
+        the saved song, and only from a recent save: the answer is an
+        estimate, and the older the save, the further off it can be.
+        """
+        now_wall = time.time() if now_wall is None else now_wall
+        with self._lock:
+            r = self._resume
+            if not self._enabled or r is None or r.shown_ms is None or not _is_candidate(track):
+                return None
+            e = r.entry
+            if (e.source, e.title, e.artist) != (track.source, track.title, track.artist):
+                return None
+            # The album can arrive late on either side of the restart.
+            if e.album and track.album and e.album != track.album:
+                return None
+            away_s = now_wall - r.saved_at
+            if not 0 <= away_s <= _ESTIMATE_MAX_AGE_S:
+                return None
+            return r.shown_ms + (int(away_s * 1000) if r.playing else 0)
 
     def mark_scrobbled(self, artist: str, title: str) -> bool:
         """Flag the newest matching song as sent to Last.fm."""
@@ -717,13 +771,20 @@ class PlayHistory:
         if cur is not None:
             cur.saved_played_ms = cur.played_ms
             data["current"] = _current_dict(
-                cur.entry, cur.counted, cur.played_ms, cur.position_ms, int(self._last_wall)
+                cur.entry,
+                cur.counted,
+                cur.played_ms,
+                cur.position_ms,
+                # To the millisecond: an estimate after a restart counts from it.
+                round(self._last_wall, 3),
+                cur.shown_ms,
+                cur.playing,
             )
         elif self._resume is not None:
             # Not matched against a poll yet — keep it until it is.
             r = self._resume
             data["current"] = _current_dict(
-                r.entry, r.counted, r.played_ms, r.position_ms, r.saved_at
+                r.entry, r.counted, r.played_ms, r.position_ms, r.saved_at, r.shown_ms, r.playing
             )
         payload = json.dumps(data, ensure_ascii=False, indent=1)
         tmp = self._path.with_suffix(self._path.suffix + ".tmp")

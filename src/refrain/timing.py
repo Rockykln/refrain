@@ -100,11 +100,12 @@ def compute_rpc_start_ts(
 
 
 class PositionTier(StrEnum):
-    """Which of the three position sources produced the current value."""
+    """Which of the position sources produced the current value."""
 
     REPORTED = "reported"  # the source's own Position, believed
     COMPUTED = "computed"  # our clock, anchored at a track start we saw
-    UNKNOWN = "unknown"  # neither is trustworthy — render nothing
+    ESTIMATED = "estimated"  # our clock, placed from the progress saved before a restart
+    UNKNOWN = "unknown"  # none is trustworthy — render nothing
 
 
 @dataclass
@@ -153,6 +154,13 @@ class PositionState:
     start_pending: bool = False
     # When polls stopped seeing this track, if they have (see _GONE_GRACE_S).
     gone_at: float = 0.0
+    # Our clock was placed from the progress the history saved before
+    # Refrain restarted, not from anything this session saw: shown, but as
+    # an estimate, and only until a better tier has an answer.
+    estimated: bool = False
+    # The source read zero when the estimate was placed. A player with no
+    # position reads zero too, so that zero is only believed once it moves.
+    held_zero: bool = False
 
 
 def start_is_witnessed(state: PositionState) -> bool:
@@ -195,8 +203,9 @@ def resolve_position(
     tolerance_ms: int = 250,
     overrun_grace_ms: int = 5_000,
     loop_track: bool = False,
+    estimate_ms: int | None = None,
 ) -> tuple[int | None, PositionTier, PositionState]:
-    """Resolve the current position through three tiers, in order.
+    """Resolve the current position through four tiers, in order.
 
     Sources lie about position in several different ways; this is the
     single decision for all of them:
@@ -215,7 +224,12 @@ def resolve_position(
        time spent paused. This is what carries a queue-cumulative or
        frozen source through to the end of the track.
 
-    3. Nothing. No anchor to count from, or even our own clock has
+    3. An estimate, right after Refrain restarted mid-song: our clock
+       placed at ``estimate_ms``, where the history's saved progress
+       says the song is now. Only for the track first seen with it, and
+       only while nothing better holds and it stays inside the track.
+
+    4. Nothing. No anchor to count from, or even our own clock has
        run past the end of the track — the source has been claiming
        "playing" for longer than the song lasts. The caller hides the
        time entirely rather than showing a number known to be wrong.
@@ -292,7 +306,9 @@ def resolve_position(
             state = replace(state, track_key=track_key)
     if track_key != state.track_key:
         state, moved = (
-            _anchor_new_track(state, track_key, reported_ms, now, tolerance_ms, segment),
+            _anchor_new_track(
+                state, track_key, reported_ms, now, tolerance_ms, segment, estimate_ms
+            ),
             True,
         )
         state = replace(state, last_length_ms=reported_length_ms)
@@ -329,11 +345,13 @@ def resolve_position(
                 track_relative=True,
                 restarts=state.restarts + 1,
                 start_pending=False,
+                estimated=False,
             )
         state = _track_length(state, reported_length_ms)
         if (
             state.cumulative
             and not segment
+            and not state.held_zero
             and not start_is_witnessed(state)
             and 0 <= reported_ms <= max(tolerance_ms, 2_000)
         ):
@@ -358,6 +376,7 @@ def resolve_position(
                 paused_ms=0,
                 paused_since=now if not is_playing else 0.0,
                 anchored=True,
+                estimated=False,
             )
         elif state.cumulative and is_playing and not segment and not start_is_witnessed(state):
             # The same question gates this. Following a seek trusts the
@@ -368,6 +387,8 @@ def resolve_position(
             # elapsed time at 0:00.
             state = _follow_seek(state, reported_ms, now, tolerance_ms)
         state, moved = _track_movement(state, reported_ms, now, tolerance_ms)
+        if state.held_zero and moved:
+            state = replace(state, held_zero=False, track_relative=True)
     state = replace(state, last_seen_at=now)
     if not is_playing:
         # The freshness clock only runs while playing. A paused source is
@@ -394,6 +415,7 @@ def resolve_position(
         and not past_end
         and not state.cumulative
         and not undecidable
+        and not state.held_zero
     ):
         if not moved:
             # Believed, but standing still — inside the stall window, or
@@ -412,6 +434,7 @@ def resolve_position(
                 paused_ms=0,
                 paused_since=now if not is_playing else 0.0,
                 anchored=True,
+                estimated=False,
             ),
         )
 
@@ -421,7 +444,16 @@ def resolve_position(
         if elapsed >= 0 and (duration_ms <= 0 or elapsed <= duration_ms + overrun_grace_ms):
             return elapsed, PositionTier.COMPUTED, state
 
-    # -- tier 3: no honest answer -------------------------------------
+    # -- tier 3: the progress saved before a restart ------------------
+    if state.estimated and not state.anchored:
+        estimate = elapsed_ms(state, now)
+        # No overrun grace: an estimate past the end is more likely wrong
+        # than a song running long.
+        if estimate >= 0 and (duration_ms <= 0 or estimate <= duration_ms):
+            return estimate, PositionTier.ESTIMATED, state
+        state = replace(state, estimated=False)
+
+    # -- tier 4: no honest answer -------------------------------------
     return None, PositionTier.UNKNOWN, state
 
 
@@ -473,6 +505,7 @@ def _anchor_new_track(
     now: float,
     tolerance_ms: int,
     segment: bool = False,
+    estimate_ms: int | None = None,
 ) -> PositionState:
     """Start a fresh clock for a track, anchored if we can place its start.
 
@@ -487,6 +520,9 @@ def _anchor_new_track(
     first sight it proves a track start only after a poll that saw
     nothing playing. Right after Refrain starts mid-song it lands in a
     segment's first two seconds far too often to be taken at its word.
+
+    ``estimate_ms`` places an unanchored clock there, marked estimated.
+    It stands against a zero from the source until that zero moves.
     """
     # A negative position is garbage, not a track start — it must not
     # place a zero the clock would then count from.
@@ -494,21 +530,31 @@ def _anchor_new_track(
     witnessed_change = bool(state.track_key)
     if segment and not (witnessed_change or state.after_idle):
         reset_by_source = False
+    estimated = estimate_ms is not None and estimate_ms >= 0 and not witnessed_change
+    held_zero = estimated and reset_by_source
+    if held_zero:
+        reset_by_source = False
     anchored = reset_by_source or witnessed_change
     # A change the source didn't reset for means its position belongs to
     # the stream rather than to the track. Latched here and cleared the
     # moment a change does reset, so a source that starts behaving (or a
     # different player taking over) gets tier 1 back.
     cumulative = not reset_by_source and (witnessed_change or state.cumulative)
+    if estimated:
+        started_at = now - estimate_ms / 1000.0
+    else:
+        started_at = now - (reported_ms / 1000.0 if reset_by_source else 0.0)
     return PositionState(
         track_key=track_key,
-        started_at=now - (reported_ms / 1000.0 if reset_by_source else 0.0),
+        started_at=started_at,
         anchored=anchored,
         cumulative=cumulative,
         track_relative=reset_by_source or (state.track_relative and not cumulative),
         last_reported_ms=reported_ms,
         last_seen_at=now,
         moved_at=now,
+        estimated=estimated,
+        held_zero=held_zero,
     )
 
 

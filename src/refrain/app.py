@@ -981,6 +981,8 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     daemon.worker.statusChanged.connect(status_window.set_playback)
     daemon.worker.progressTick.connect(tray.set_progress)
     daemon.worker.progressTick.connect(status_window.set_progress)
+    daemon.worker.progressEstimated.connect(tray.set_progress_estimated)
+    daemon.worker.progressEstimated.connect(status_window.set_progress_estimated)
     status_window.playPauseRequested.connect(daemon.worker.control_play_pause)
     status_window.nextRequested.connect(daemon.worker.control_next)
     status_window.previousRequested.connect(daemon.worker.control_previous)

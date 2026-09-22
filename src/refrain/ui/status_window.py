@@ -407,6 +407,7 @@ class StatusWindow(QDialog):
         self._welcome = False
         self._crash_report: Path | None = None
         self._sharing_paused = False
+        self._progress_estimated = False
         self._update_version = ""
         self._cover_url = ""
         self._cover_source = ""
@@ -587,9 +588,19 @@ class StatusWindow(QDialog):
         if duration_ms <= 0 or position_ms < 0:
             self.elapsed.setVisible(False)
             return
-        self.elapsed.setText(f"{_clock(position_ms)} / {_clock(duration_ms)}")
+        mark = "~" if self._progress_estimated else ""
+        self.elapsed.setText(f"{mark}{_clock(position_ms)} / {_clock(duration_ms)}")
+        self.elapsed.setToolTip(
+            self.tr("Estimated from where the song was before Refrain restarted")
+            if self._progress_estimated
+            else ""
+        )
         _set_color(self.elapsed, _muted(self.palette()))
         self.elapsed.setVisible(self._track.has_track)
+
+    def set_progress_estimated(self, estimated: bool) -> None:
+        """The next times given to `set_progress` are estimates; they get a ~."""
+        self._progress_estimated = estimated
 
     def set_playback(self, status: PlaybackStatus) -> None:
         if status != self._track.status:

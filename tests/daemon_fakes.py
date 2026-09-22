@@ -231,6 +231,9 @@ class FakeHistory:
         self.calls.append({"track": track, "duration_ms": duration_ms} | kwargs)
         return self.changes
 
+    def resume_estimate_ms(self, track, now_wall=None) -> int | None:
+        return None
+
     def reconfigure(self, cfg) -> bool:
         self.cfg = cfg
         return self.reconfigure_result
