@@ -4,6 +4,10 @@ updates:
   # Python dependencies (pip — reads requirements*.txt + pyproject.toml)
   - package-ecosystem: "pip"
     directory: "/"
+    # The lowest supported versions, tested as such by the "lowest" job:
+    # raising them would stop testing the floor pyproject.toml promises.
+    exclude-paths:
+      - "requirements-lowest.txt"
     schedule:
       interval: "weekly"
       day: "monday"
