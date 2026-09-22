@@ -136,3 +136,22 @@ jobs:
 
       - name: Format check with ruff
         run: ruff format --check .
+
+  typecheck:
+    # The oldest supported Python, the version [tool.mypy] checks against.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+
+      - name: Install mypy and the typed runtime dependencies
+        # PySide6 and pypresence ship their own type information and are
+        # checked against it; dbus-python has none (see [tool.mypy]).
+        run: pip install --require-hashes -c requirements-dev.lock mypy pypresence PySide6
+
+      - name: Type-check with mypy
+        run: mypy

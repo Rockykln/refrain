@@ -387,6 +387,12 @@ def _notify_without_qt(title: str, text: str) -> None:
         log.warning("Could not show the notification either: %s", e)
 
 
+def _pin(app: QApplication, **refs: object) -> None:
+    """Hang refs on the app as ``_refrain_<name>``, alive as long as it is."""
+    for name, value in refs.items():
+        setattr(app, f"_refrain_{name}", value)
+
+
 def _install_translators(app: QApplication, language_override: str = "system") -> list[QTranslator]:
     """Load Refrain's own .qm files plus Qt's built-in translations.
 
@@ -866,11 +872,11 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
 
     # Translators must be installed BEFORE any user-visible widget is
     # created — strings are looked up at construction time.
-    app._refrain_translators = _install_translators(app, config.advanced.language)
+    _pin(app, translators=_install_translators(app, config.advanced.language))
 
     # Covers the message boxes below and everywhere else — including the
     # ones Qt builds for us in QMessageBox.warning(...) and friends.
-    app._refrain_cursor_filter = install_global_interactive_cursors(app)
+    _pin(app, cursor_filter=install_global_interactive_cursors(app))
 
     try:
         bus_lock = acquire_lock(activate=True)
@@ -905,7 +911,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
             ).format(error=str(e)),
         )
         return 1
-    app._refrain_bus_lock = bus_lock  # keep alive for the lifetime of the app
+    _pin(app, bus_lock=bus_lock)  # keep alive for the lifetime of the app
 
     # Only the instance holding the lock may touch the keyring or delete a
     # half-downloaded update: a second start would pull the .new file out
@@ -970,7 +976,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     history_window.set_snapshot(daemon.worker.history_snapshot())
     tray.set_history_enabled(config.history.enabled)
     services = ServiceStatus()
-    app._refrain_services = services
+    _pin(app, services=services)
     with dev_metrics.build("status"):
         status_window = StatusWindow(QLocale.system())
     status_window.set_history(daemon.worker.history_snapshot())
@@ -997,7 +1003,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         status_window.activateWindow()
 
     # A second start asks this one, over the bus name it holds, to come forward.
-    app._refrain_activator = listen_for_activation(bus_lock, _show_status)
+    _pin(app, activator=listen_for_activation(bus_lock, _show_status))
     tray.statusRequested.connect(_show_status)
 
     def _show_settings(page: str = "") -> None:
@@ -1189,7 +1195,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     # before the new process starts.
     def _restart() -> None:
         log.info("Restart requested")
-        app._refrain_should_restart = True
+        _pin(app, should_restart=True)
         app.quit()
 
     tray.restartRequested.connect(_restart)
@@ -1358,7 +1364,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         # `welcome` falls out of scope as soon as the if-branch ends
         # and the still-running diagnostics thread crashes refrain
         # with "QThread: Destroyed while thread is still running".
-        app._refrain_welcome = welcome
+        _pin(app, welcome=welcome)
 
         def _on_welcome_applied(client_id: str) -> None:
             log.info(
@@ -1444,7 +1450,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         # alone doesn't trigger ReleaseName — we rely on os.execvp
         # replacing the process image, which closes the underlying
         # socket via CLOEXEC and lets the bus daemon reclaim the name.
-        app._refrain_bus_lock = None
+        _pin(app, bus_lock=None)
         log.info("Re-executing %s for restart", binary)
         # Flush + close handlers before execv replaces the process image
         # so the rotating file handler's buffer doesn't lose the last

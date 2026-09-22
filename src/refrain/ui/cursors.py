@@ -29,9 +29,9 @@ class _DisabledCursorGuard(QObject):
     """
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if event.type() == QEvent.EnabledChange and isinstance(watched, QWidget):
+        if event.type() == QEvent.Type.EnabledChange and isinstance(watched, QWidget):
             if watched.isEnabled():
-                watched.setCursor(Qt.PointingHandCursor)
+                watched.setCursor(Qt.CursorShape.PointingHandCursor)
             else:
                 # unset rather than force an arrow, so the widget falls
                 # back to whatever its parent uses.
@@ -54,7 +54,7 @@ def apply_interactive_cursors(root: QWidget) -> None:
     for cls in _CLICKABLE:
         for widget in root.findChildren(cls):
             if widget.isEnabled():
-                widget.setCursor(Qt.PointingHandCursor)
+                widget.setCursor(Qt.CursorShape.PointingHandCursor)
             widget.installEventFilter(guard)
 
     tab_guard = root.findChild(_TabBarCursorGuard) or _TabBarCursorGuard(root)
@@ -69,16 +69,16 @@ class _TabBarCursorGuard(QObject):
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if not isinstance(watched, QTabBar):
             return False
-        if event.type() in (QEvent.MouseMove, QEvent.Enter):
+        if event.type() in (QEvent.Type.MouseMove, QEvent.Type.Enter):
             where = event.position().toPoint() if hasattr(event, "position") else None
             index = watched.tabAt(
                 where if where is not None else watched.mapFromGlobal(QCursor.pos())
             )
             if index >= 0 and watched.isTabEnabled(index):
-                watched.setCursor(Qt.PointingHandCursor)
+                watched.setCursor(Qt.CursorShape.PointingHandCursor)
             else:
                 watched.unsetCursor()
-        elif event.type() == QEvent.Leave:
+        elif event.type() == QEvent.Type.Leave:
             watched.unsetCursor()
         return False
 
@@ -95,7 +95,7 @@ class _DialogCursorFilter(QObject):
     """
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        if event.type() == QEvent.Show and isinstance(watched, QDialog):
+        if event.type() == QEvent.Type.Show and isinstance(watched, QDialog):
             apply_interactive_cursors(watched)
         return False
 

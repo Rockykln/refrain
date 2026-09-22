@@ -57,6 +57,7 @@ def _recover_x(y: int, sign: int) -> int | None:
 
 _BY = 4 * pow(5, P - 2, P) % P
 _BX = _recover_x(_BY, 0)
+assert _BX is not None
 BASE: Point = (_BX, _BY, 1, _BX * _BY % P)
 
 

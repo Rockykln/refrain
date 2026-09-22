@@ -277,7 +277,7 @@ def _row_with_buttons(*buttons: QPushButton) -> QHBoxLayout:
     row.setContentsMargins(0, 0, 0, 0)
     row.setSpacing(8)
     for b in buttons:
-        b.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        b.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         row.addWidget(b)
     row.addStretch(1)
     return row
@@ -307,7 +307,7 @@ def _scroll_wrap(page: QWidget) -> QScrollArea:
     # Long tabs are meant to scroll; the layout watcher must not call that a fault.
     sa.setProperty("refrainScrolls", True)
     sa.setWidgetResizable(True)
-    sa.setFrameShape(QFrame.NoFrame)
+    sa.setFrameShape(QFrame.Shape.NoFrame)
     sa.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
     sa.setWidget(page)
     return sa
@@ -342,7 +342,7 @@ def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
     form.setVerticalSpacing(_FORM_VSPACING)
     # Left-aligned labels read better with German text — right-aligned
     # detaches long labels from their inputs and feels off-balance.
-    form.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+    form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
     # FieldsStayAtSizeHint keeps every input at its sizeHint (or
     # explicit setFixedWidth) and refuses to grow it. This is critical
     # on Plasma Breeze: AllNonFixedFieldsGrow ignores fixed-width caps
@@ -350,8 +350,8 @@ def _new_group(title: str) -> tuple[QGroupBox, QFormLayout]:
     # empty space between the value and the chevron chrome. With
     # FieldsStayAtSizeHint + per-widget setFixedWidth(_INPUT_MAX_WIDTH),
     # every input renders at exactly 220 logical px on every Qt style.
-    form.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
-    form.setRowWrapPolicy(QFormLayout.DontWrapRows)
+    form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+    form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.DontWrapRows)
     return box, form
 
 
@@ -361,8 +361,9 @@ def _align_labels(*forms: QFormLayout) -> None:
     for form in forms:
         for row in range(form.rowCount()):
             item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
-            if item is not None and item.widget() is not None:
-                labels.append(item.widget())
+            label = item.widget() if item is not None else None
+            if label is not None:
+                labels.append(label)
     width = max((label.sizeHint().width() for label in labels), default=0)
     for label in labels:
         label.setMinimumWidth(width)
@@ -1111,7 +1112,7 @@ class SettingsWindow(QDialog):
         self.bluetooth_device.setFixedWidth(_INPUT_MAX_WIDTH)
         refresh_btn = QPushButton(self.tr("Refresh"))
         refresh_btn.clicked.connect(self._populate_bluetooth_devices)
-        refresh_btn.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
+        refresh_btn.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         device_row = QHBoxLayout()
         device_row.setContentsMargins(0, 0, 0, 0)
         device_row.setSpacing(8)
@@ -1137,7 +1138,7 @@ class SettingsWindow(QDialog):
             self.bluetooth_device.addItem(self.tr("(auto-detect)"), userData="")
         worker = _BluetoothDevicesWorker()
         worker.listed.connect(self._fill_bluetooth_devices)
-        self._bluetooth_worker = worker
+        self._bluetooth_worker: _BluetoothDevicesWorker | None = worker
         threading.Thread(target=worker.run, name="refrain-bt-devices", daemon=True).start()
 
     def _fill_bluetooth_devices(self, devices: list[dict]) -> None:
@@ -1433,7 +1434,7 @@ class SettingsWindow(QDialog):
 
     def _confirm_developer_mode(self) -> bool:
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Information)
+        msg.setIcon(QMessageBox.Icon.Information)
         msg.setWindowTitle(self.tr("Developer mode"))
         msg.setText(self.tr("Turn on developer mode?"))
         msg.setInformativeText(
@@ -1446,8 +1447,8 @@ class SettingsWindow(QDialog):
                 "under Advanced."
             )
         )
-        on_btn = msg.addButton(self.tr("Turn on"), QMessageBox.AcceptRole)
-        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        on_btn = msg.addButton(self.tr("Turn on"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
         msg.setDefaultButton(on_btn)
         msg.exec()
         return msg.clickedButton() is on_btn
@@ -1533,7 +1534,7 @@ class SettingsWindow(QDialog):
         # Build the dialog manually so the action button reads "Reset" /
         # "Zurücksetzen" instead of the generic "Yes" / "Ja".
         msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Question)
+        msg.setIcon(QMessageBox.Icon.Question)
         msg.setWindowTitle(self.tr("Reset all settings"))
         msg.setText(
             self.tr(
@@ -1549,8 +1550,8 @@ class SettingsWindow(QDialog):
         )
         if restart:
             msg.setInformativeText(restart)
-        reset_btn = msg.addButton(self.tr("Reset"), QMessageBox.AcceptRole)
-        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+        reset_btn = msg.addButton(self.tr("Reset"), QMessageBox.ButtonRole.AcceptRole)
+        msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
         msg.setDefaultButton(reset_btn)
         msg.exec()
         if msg.clickedButton() is not reset_btn:
@@ -1611,7 +1612,7 @@ class SettingsWindow(QDialog):
         msg = QMessageBox(self)
         # Paths have no spaces to wrap at; keep the box wide enough to show them whole.
         msg.setStyleSheet("QLabel#qt_msgbox_label { min-width: 560px; }")
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle(self.tr("Uninstall Refrain"))
         msg.setText(
             self.tr(

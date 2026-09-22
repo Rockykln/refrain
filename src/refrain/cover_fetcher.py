@@ -133,7 +133,7 @@ class CoverFetcher:
                 del self._failed_at[key]
             self._inflight.add(key)
         future = self._executor.submit(self._fetch_all, artist, title, album)
-        future.add_done_callback(lambda f, k=key: self._on_done(k, f))
+        future.add_done_callback(lambda f: self._on_done(key, f))
         return None
 
     def get_duration_ms(self, artist: str, title: str, album: str = "") -> int:
@@ -292,13 +292,13 @@ class CoverFetcher:
             self._image_failed_at.pop(url, None)
             self._image_inflight.add(url)
         future = self._executor.submit(self._download, url)
-        future.add_done_callback(lambda _f, u=url: self._image_done(u))
+        future.add_done_callback(lambda _f: self._image_done(url))
 
     def _image_done(self, url: str) -> None:
         with self._lock:
             self._image_inflight.discard(url)
 
-    def _fetch_all(self, artist: str, title: str, album: str) -> tuple[str, str, int]:
+    def _fetch_all(self, artist: str, title: str, album: str) -> tuple[str, str, int, str]:
         info: TrackLookup = lookup_track_info(artist, title, album)
         if info.cover_url:
             self._download(info.cover_url)

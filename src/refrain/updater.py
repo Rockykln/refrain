@@ -467,7 +467,7 @@ def apply_update(
             "`git pull` and reinstall with `pip install -e .`.",
         )
     if install_type == "flatpak":
-        cmd = _FLATPAK_UPDATE
+        cmd: tuple[str, ...] = _FLATPAK_UPDATE
         if _run_in_terminal(cmd):
             return UpdateResult(
                 success=True,

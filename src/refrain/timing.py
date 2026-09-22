@@ -540,7 +540,7 @@ def _anchor_new_track(
     # moment a change does reset, so a source that starts behaving (or a
     # different player taking over) gets tier 1 back.
     cumulative = not reset_by_source and (witnessed_change or state.cumulative)
-    if estimated:
+    if estimated and estimate_ms is not None:
         started_at = now - estimate_ms / 1000.0
     else:
         started_at = now - (reported_ms / 1000.0 if reset_by_source else 0.0)

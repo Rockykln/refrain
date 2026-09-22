@@ -100,13 +100,14 @@ def _mpris_players() -> list[str]:
             identity = str(props.Get("org.mpris.MediaPlayer2", "Identity", timeout=0.5)) or "—"
         except Exception:
             pass
-        try:
-            metadata = props.Get("org.mpris.MediaPlayer2.Player", "Metadata", timeout=0.5)
-            url = _normalize_apple_url(str(metadata.get("xesam:url", "")) if metadata else "")
-            has_url = bool(url)
-            is_apple_music = _looks_apple_music(url)
-        except Exception:
-            pass
+        if props is not None:
+            try:
+                metadata = props.Get("org.mpris.MediaPlayer2.Player", "Metadata", timeout=0.5)
+                url = _normalize_apple_url(str(metadata.get("xesam:url", "")) if metadata else "")
+                has_url = bool(url)
+                is_apple_music = _looks_apple_music(url)
+            except Exception:
+                pass
         lines.append(
             f"MPRIS: {name} — {identity}"
             f" · xesam:url: {_yes_no(has_url)} · Apple Music: {_yes_no(is_apple_music)}"

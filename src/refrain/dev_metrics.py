@@ -151,7 +151,7 @@ class Recorder:
         self.counters: Counter[str] = Counter()
         self.layout: Counter[str] = Counter()
         self.resources: dict[str, int | None] = {}
-        self._qt = None
+        self._qt: QtCollector | None = None
         # True when developer mode was switched on after the app had already
         # started (see set_enabled/qt_ready) — the early startup marks then
         # never landed, and whatever *did* land looks like it took ages.
@@ -302,10 +302,11 @@ def set_enabled(on: bool, path: Path | None = None) -> None:
         rec.write({"type": "session", "state": "on", "version": __version__, "pid": os.getpid()})
         _attach_qt(rec, at_startup=False)
         return
-    rec, _recorder = _recorder, None
-    if rec._qt is not None:
-        rec._qt.detach()
-    rec.write({"type": "session", "state": "off"})
+    old, _recorder = _recorder, None
+    assert old is not None
+    if old._qt is not None:
+        old._qt.detach()
+    old.write({"type": "session", "state": "off"})
 
 
 def qt_ready() -> None:

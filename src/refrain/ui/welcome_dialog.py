@@ -171,7 +171,7 @@ class WelcomeDialog(QDialog):
         if icon_path.exists():
             badge = QLabel()
             badge.setPixmap(QIcon(str(icon_path)).pixmap(56, 56))
-            header.addWidget(badge, alignment=Qt.AlignTop)
+            header.addWidget(badge, alignment=Qt.AlignmentFlag.AlignTop)
         title_block = QVBoxLayout()
         title_block.setSpacing(4)
         title = QLabel(self.tr("Welcome to Refrain"))
@@ -372,7 +372,7 @@ class WelcomeDialog(QDialog):
             # English wizard could show "Ja" / "Nein". Naming
             # the action beats "Yes" anyway.
             msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Question)
+            msg.setIcon(QMessageBox.Icon.Question)
             msg.setWindowTitle(self.tr("Skip Discord setup?"))
             msg.setText(
                 self.tr(
@@ -381,8 +381,10 @@ class WelcomeDialog(QDialog):
                     "Settings → General).\n\nContinue without Discord status?"
                 )
             )
-            skip_btn = msg.addButton(self.tr("Continue without Discord"), QMessageBox.AcceptRole)
-            back_btn = msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+            skip_btn = msg.addButton(
+                self.tr("Continue without Discord"), QMessageBox.ButtonRole.AcceptRole
+            )
+            back_btn = msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
             msg.setDefaultButton(back_btn)
             msg.exec()
             if msg.clickedButton() is not skip_btn:

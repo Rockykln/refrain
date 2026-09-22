@@ -163,10 +163,13 @@ class LegalDialog(QDialog):
 
             text = QLabel(body)
             text.setWordWrap(True)
-            text.setTextFormat(Qt.RichText)
+            text.setTextFormat(Qt.TextFormat.RichText)
             # Selectable so a user can copy a clause; links go through
             # QDesktopServices rather than Qt's own handler.
-            text.setTextInteractionFlags(Qt.TextSelectableByMouse | Qt.LinksAccessibleByMouse)
+            text.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+                | Qt.TextInteractionFlag.LinksAccessibleByMouse
+            )
             text.setOpenExternalLinks(False)
             text.linkActivated.connect(self._open_link)
             inner_layout.addWidget(text)
@@ -178,14 +181,14 @@ class LegalDialog(QDialog):
         scroll.setProperty("refrainScrolls", True)
         scroll.setWidget(inner)
         scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         # Qt fills a standard button's text from the platform theme, and
         # KDE's plugin takes it from KDE's own catalogs keyed to the
         # process locale — it never consults the translator we install,
         # so no language setting would reach it. Our own text can.
-        buttons.button(QDialogButtonBox.Close).setText(self.tr("Close"))
+        buttons.button(QDialogButtonBox.StandardButton.Close).setText(self.tr("Close"))
         buttons.rejected.connect(self.reject)
         buttons.accepted.connect(self.accept)
 

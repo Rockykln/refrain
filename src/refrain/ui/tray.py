@@ -268,9 +268,9 @@ class TrayIcon(QObject):
             self._tray.setIcon(icon)
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
-        if reason == QSystemTrayIcon.Trigger:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.statusRequested.emit()
-        elif reason == QSystemTrayIcon.MiddleClick:
+        elif reason == QSystemTrayIcon.ActivationReason.MiddleClick:
             # Middle-click toggles playback on the current MPRIS source —
             # same path as the tray-menu Play/Pause item, so a Bluetooth
             # headphone driving Refrain via MPRIS-server gets the same

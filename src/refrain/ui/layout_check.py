@@ -10,7 +10,6 @@ from dataclasses import dataclass
 
 from PySide6.QtCore import QPoint, QRect, QSize, Qt
 from PySide6.QtWidgets import (
-    QAbstractButton,
     QAbstractScrollArea,
     QCheckBox,
     QComboBox,
@@ -135,7 +134,7 @@ class _Checker:
             need = QLabel.minimumSizeHint(w).width()
             self._add(w, CLIPPED, need - self._visible_width(w))
 
-    def _check_button(self, w: QAbstractButton) -> None:
+    def _check_button(self, w: QPushButton | QCheckBox | QRadioButton) -> None:
         if not w.text():
             return
         opt = QStyleOptionButton()

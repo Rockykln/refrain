@@ -469,7 +469,7 @@ def _check_timestamp(value):
     return ts, None
 
 
-def _check_time_zone(value: object) -> tuple[object, str]:
+def _check_time_zone(value: object) -> tuple[object, str | None]:
     """An IANA zone name, or "" for the system's own."""
     if not isinstance(value, str):
         return "", 'must be a time-zone name like "Europe/Berlin"'

@@ -9,6 +9,7 @@ import logging
 import math
 import unicodedata
 from collections.abc import Callable
+from functools import partial
 from urllib.parse import quote
 
 from PySide6.QtCore import (
@@ -42,6 +43,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -699,7 +701,8 @@ class HistoryWindow(QDialog):
         filters.setContentsMargins(0, 0, 0, 0)
         filters.addWidget(self.search, 1)
         filters.addWidget(self.source_filter)
-        QShortcut(QKeySequence.StandardKey.Find, self, activated=self._focus_search)
+        find = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
+        find.activated.connect(self._focus_search)
 
         # ---- list ---------------------------------------------------------
         self._scroll = QScrollArea()
@@ -870,7 +873,8 @@ class HistoryWindow(QDialog):
 
     def _clear_rows(self) -> None:
         while self._rows.count():
-            widget = self._rows.takeAt(0).widget()
+            item = self._rows.takeAt(0)
+            widget = item.widget() if item is not None else None
             if widget is not None:
                 self._drop(widget)
         self._shown_widgets = []
@@ -961,6 +965,7 @@ class HistoryWindow(QDialog):
             reused = spare.get(key)
             if reused:
                 row = reused.pop()
+                assert isinstance(row, _SongRow)
                 row.set_highlights(words)
                 if entry.cover_url and not row.has_cover:
                     cover = self._stored_cover(entry.cover_url, dpr)
@@ -977,7 +982,7 @@ class HistoryWindow(QDialog):
                     cover=cover if cover is not None else self._placeholder(dpr),
                     meta_width=meta_width,
                     when_text=self.when_text,
-                    on_remove=lambda e=entry: self.removeRequested.emit(e),
+                    on_remove=partial(self.removeRequested.emit, entry),
                     highlight=words,
                 )
                 row.has_cover = cover is not None
@@ -1108,13 +1113,14 @@ class HistoryWindow(QDialog):
         # QMessageBox sizes itself to the text and wraps short sentences
         # into a narrow column; a spacer across the grid keeps it wider.
         grid = box.layout()
-        grid.addItem(
-            QSpacerItem(_CONFIRM_MIN_WIDTH, 0, QSizePolicy.Policy.Minimum),
-            grid.rowCount(),
-            0,
-            1,
-            grid.columnCount(),
-        )
+        if isinstance(grid, QGridLayout):
+            grid.addItem(
+                QSpacerItem(_CONFIRM_MIN_WIDTH, 0, QSizePolicy.Policy.Minimum),
+                grid.rowCount(),
+                0,
+                1,
+                grid.columnCount(),
+            )
         box.exec()
         if box.clickedButton() is clear:
             self.clearRequested.emit()

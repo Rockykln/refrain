@@ -247,9 +247,11 @@ def _discard(presence: Presence) -> None:
     with contextlib.suppress(Exception):
         if writer is not None:
             writer.close()
-            loop.run_until_complete(writer.wait_closed())
-    with contextlib.suppress(Exception):
-        loop.close()
+            if loop is not None:
+                loop.run_until_complete(writer.wait_closed())
+    if loop is not None:
+        with contextlib.suppress(Exception):
+            loop.close()
 
 
 def _runtime_dir() -> Path | None:
@@ -402,7 +404,7 @@ class DiscordRPC:
         async def bounded_handshake():
             await asyncio.wait_for(handshake(), _RESPONSE_TIMEOUT_S)
 
-        p.handshake = bounded_handshake
+        p.handshake = bounded_handshake  # type: ignore[method-assign]  # bounds pypresence's own handshake
         try:
             p.connect()
         except Exception:
@@ -583,7 +585,7 @@ class DiscordRPC:
             return
         if pending is _CLEAR:
             self._send_clear(now)
-        else:
+        elif isinstance(pending, dict):
             self._send_update(pending, now)
 
     def _written_off(self, payload: object, now: float) -> bool:

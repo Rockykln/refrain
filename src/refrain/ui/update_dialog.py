@@ -93,7 +93,7 @@ class UpdateDialog(QDialog):
             "Detected install type: <b>{install_type}</b>.</p>"
         ).format(version=release.version, current=__version__, install_type=self._install_type)
         header = QLabel(header_text)
-        header.setTextFormat(Qt.RichText)
+        header.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(header)
 
         layout.addSpacing(6)

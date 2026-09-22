@@ -566,8 +566,8 @@ class StatusWindow(QDialog):
         layout.addLayout(version_row)
 
         # Enter must not fire whichever action happens to be first.
-        for button in self.findChildren(QPushButton):
-            button.setAutoDefault(False)
+        for push in self.findChildren(QPushButton):
+            push.setAutoDefault(False)
         # Nor should the first button open with a focus frame, as if chosen:
         # the window holds the focus until Tab moves it.
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -852,7 +852,8 @@ class StatusWindow(QDialog):
         """How many songs fit in the space the list actually has right now."""
         if not self._row_px:
             return _RECENT_GUESS
-        spacing = self.recent_box.layout().spacing()
+        box_layout = self.recent_box.layout()
+        spacing = box_layout.spacing() if box_layout is not None else 0
         head = self._recent_line.sizeHint().height() + self._recent_head.sizeHint().height()
         room = self.recent_box.height() - head - 2 * spacing
         if room <= 0:
@@ -879,8 +880,9 @@ class StatusWindow(QDialog):
         self.recent_off.setVisible(not snap.enabled)
         while self.recent_rows.count():
             item = self.recent_rows.takeAt(0)
-            if item.widget() is not None:
-                item.widget().deleteLater()
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                widget.deleteLater()
         available = list(snap.entries[1:] if snap.now_playing else snap.entries)
         entries = available[: self._fits()]
         for entry in entries:
@@ -888,8 +890,9 @@ class StatusWindow(QDialog):
                 _RecentRow(entry, clock.when(self._locale, entry.started_at))
             )
         first = self.recent_rows.itemAt(0)
-        if first is not None and first.widget() is not None:
-            self._row_px = max(1, first.widget().sizeHint().height())
+        first_row = first.widget() if first is not None else None
+        if first_row is not None:
+            self._row_px = max(1, first_row.sizeHint().height())
         self.recent_empty.setText(
             self.tr("Songs you play show up here.")
             if snap.enabled
@@ -936,7 +939,7 @@ class StatusWindow(QDialog):
             pass
 
     def _save_geometry(self) -> None:
-        data = {"geometry": bytes(self.saveGeometry().toBase64()).decode("ascii")}
+        data = {"geometry": bytes(self.saveGeometry().toBase64().data()).decode("ascii")}
         try:
             geometry_path().parent.mkdir(parents=True, exist_ok=True)
             geometry_path().write_text(json.dumps(data), encoding="utf-8")

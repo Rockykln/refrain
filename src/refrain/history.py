@@ -355,7 +355,7 @@ class PlayHistory:
                     or (restarted and cur.counted)
                 )
             )
-            if replay:
+            if replay and cur is not None:
                 # Heard past the mark once already: this is a second play,
                 # just as it is a second scrobble on Last.fm.
                 log.info("History: %s started over — a new play", _label(cur.entry))
@@ -375,23 +375,26 @@ class PlayHistory:
                     self._ignore_key = None
                 elif key is not None:
                     return changed
-                if key is not None and self._resume_locked(
-                    track, key, duration_ms, position_ms, now_mono
-                ):
-                    self._cur.position_ms = position_ms
-                    self._cur.shown_ms = shown_ms
+                resumed = (
+                    self._resume_locked(track, key, duration_ms, position_ms, now_mono)
+                    if key is not None
+                    else None
+                )
+                if resumed is not None:
+                    resumed.position_ms = position_ms
+                    resumed.shown_ms = shown_ms
                     return True
                 # Only a song that actually plays starts an entry — a tab
                 # sitting paused at startup isn't something you heard.
                 if key is not None and (track.status == PlaybackStatus.PLAYING or follows_play):
-                    self._start_locked(
+                    started = self._start_locked(
                         track, key, duration_ms, cover_url, song_url, now_wall, now_mono
                     )
-                    self._cur.position_ms = position_ms
-                    self._cur.shown_ms = shown_ms
+                    started.position_ms = position_ms
+                    started.shown_ms = shown_ms
                     if track.status != PlaybackStatus.PLAYING:
-                        self._cur.playing = False
-                        self._cur.paused_at = now_mono
+                        started.playing = False
+                        started.paused_at = now_mono
                     changed = True
                 return changed
 
@@ -613,7 +616,7 @@ class PlayHistory:
         song_url: str,
         now_wall: float,
         now_mono: float,
-    ) -> None:
+    ) -> _Current:
         entry = HistoryEntry(
             title=track.title,
             artist=track.artist,
@@ -627,6 +630,7 @@ class PlayHistory:
         )
         self._cur = _Current(key=key, entry=entry, last_mono=now_mono)
         log.debug("History: now playing %s [%s]", _label(entry), track.source)
+        return self._cur
 
     def _resume_locked(
         self,
@@ -635,7 +639,7 @@ class PlayHistory:
         duration_ms: int,
         position_ms: int | None,
         now_mono: float,
-    ) -> bool:
+    ) -> _Current | None:
         """Carry on with the song that was playing when Refrain stopped.
 
         Only the first song seen after a start is compared. It goes on as
@@ -649,7 +653,7 @@ class PlayHistory:
         """
         resume, self._resume = self._resume, None
         if resume is None:
-            return False
+            return None
         entry = resume.entry
         away_s = max(0.0, self._last_wall - resume.saved_at)
         same_song = _entry_key(entry) == key
@@ -667,17 +671,17 @@ class PlayHistory:
             )
         if not same:
             if resume.counted:
-                return False  # it's in the list either way; nothing to let go
+                return None  # it's in the list either way; nothing to let go
             log.debug(
                 "History: let go of %s from before the restart — played %s, not enough to count",
                 _label(entry),
                 _mmss(resume.played_ms),
             )
             self._save_locked()
-            return False
+            return None
         if duration_ms > 0:
             entry.duration_ms = duration_ms
-        self._cur = _Current(
+        cur = self._cur = _Current(
             key=key,
             entry=entry,
             played_ms=resume.played_ms,
@@ -695,7 +699,7 @@ class PlayHistory:
                 _label(entry),
                 _mmss(resume.played_ms),
             )
-        return True
+        return cur
 
     def _finish_current_locked(self) -> bool:
         cur = self._cur

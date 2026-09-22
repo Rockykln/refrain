@@ -39,6 +39,7 @@ dev = [
     "pip-audit>=2.7",
     "build>=1.2",
     "cryptography>=42",
+    "mypy>=2.0",
 ]
 
 [project.scripts]
@@ -134,3 +135,17 @@ exclude_dirs = ["tests", ".venv", "reference"]
 #                            user-controlled scheme exposure
 # B101 (assert) — used in tests, not in src/
 skips = ["B101", "B404", "B603", "B606", "B607"]
+
+# ----------------------------------------------------------------------------
+# Type checking
+# ----------------------------------------------------------------------------
+[tool.mypy]
+python_version       = "3.11"
+files                = ["src/refrain"]
+warn_unused_ignores  = true
+warn_redundant_casts = true
+
+# dbus-python and PyGObject ship neither py.typed nor stubs.
+[[tool.mypy.overrides]]
+module                 = ["dbus", "dbus.*", "gi", "gi.*"]
+ignore_missing_imports = true

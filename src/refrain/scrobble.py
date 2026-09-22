@@ -313,7 +313,7 @@ class LastfmClient:
             params["album"] = album
         if duration_s > 0:
             params["duration"] = str(int(duration_s))
-        self._call("track.updateNowPlaying", http_post=True, **params)
+        self._call("track.updateNowPlaying", http_post=True, signed=True, **params)
 
     def scrobble(self, items: list[dict]) -> int:
         """Submit a batch of played tracks (≤ 50). Returns the accepted count.
@@ -336,7 +336,7 @@ class LastfmClient:
                 params[f"album[{i}]"] = str(it["album"])
             if it.get("duration"):
                 params[f"duration[{i}]"] = str(int(it["duration"]))
-        data = self._call("track.scrobble", http_post=True, **params)
+        data = self._call("track.scrobble", http_post=True, signed=True, **params)
         # Response shape differs for single vs batch; accepted count is
         # under scrobbles.@attr.accepted. The call not raising already
         # means Last.fm took it.
@@ -603,8 +603,9 @@ class Scrobbler:
             # Not before a song shows up: a first poll that sees nothing
             # yet says nothing about whether the saved play is still going.
             if self._resume is not None and key is not None:
+                resume, self._resume = self._resume, None
                 self._settle_resume_locked(
-                    key, effective_duration_ms, position_ms, now_wall, now_mono
+                    resume, key, effective_duration_ms, position_ms, now_wall, now_mono
                 )
             if key is not None and key != self._key and fills_in_album(self._key, track):
                 # The scrobble goes out later and takes the album along;
@@ -745,7 +746,8 @@ class Scrobbler:
 
     def _settle_resume_locked(
         self,
-        key: str | None,
+        r: dict,
+        key: str,
         duration_ms: int,
         position_ms: int | None,
         now_wall: float,
@@ -759,14 +761,9 @@ class Scrobbler:
         Refrain was away, and if it counted without being queued — a crash
         — it is queued now, under the time it began.
         """
-        r, self._resume = self._resume, None
         away_s = max(0.0, now_wall - r["saved_at"])
-        if (
-            key is not None
-            and key == r["key"]
-            and continues_play(
-                away_s, r["duration_ms"] or duration_ms, r["position_ms"], position_ms
-            )
+        if key == r["key"] and continues_play(
+            away_s, r["duration_ms"] or duration_ms, r["position_ms"], position_ms
         ):
             self._key = key
             self._cur_artist, self._cur_title, self._cur_album = r["artist"], r["title"], r["album"]

@@ -257,9 +257,8 @@ def test_an_invalid_id_is_refused(app, monkeypatch, bad):
 class _Confirm:
     """QMessageBox stand-in that clicks the button at ``pick``."""
 
-    Question = QMessageBox.Question
-    AcceptRole = QMessageBox.AcceptRole
-    RejectRole = QMessageBox.RejectRole
+    Icon = QMessageBox.Icon
+    ButtonRole = QMessageBox.ButtonRole
     pick = 0
     shown: list[str] = []
 
@@ -310,7 +309,7 @@ def test_the_empty_id_question_defaults_to_cancel(app, monkeypatch):
     monkeypatch.setattr(wd, "QMessageBox", _Remember)
     dlg, _ = _dialog(app)
     dlg._on_apply()
-    assert boxes[0].default == ("Cancel", QMessageBox.RejectRole)
+    assert boxes[0].default == ("Cancel", QMessageBox.ButtonRole.RejectRole)
 
 
 def test_skip_finishes_the_wizard_without_an_id(app):

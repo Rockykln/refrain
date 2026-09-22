@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import time
 import urllib.parse
+from typing import TypeGuard
 
 from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Slot
 
@@ -198,7 +199,7 @@ def select_source_track(
     ``(TrackInfo.empty(), "none")`` when nothing qualifies.
     """
 
-    def _is_candidate(t: TrackInfo | None) -> bool:
+    def _is_candidate(t: TrackInfo | None) -> TypeGuard[TrackInfo]:
         return t is not None and (
             t.has_track or t.status in (PlaybackStatus.PLAYING, PlaybackStatus.PAUSED)
         )
@@ -1296,6 +1297,7 @@ class DaemonWorker(QObject):
             cover_present = cover is not None
             if not cover_present and self._notify_retry_count < self._NOTIFY_MAX_RETRIES:
                 self._notify_retry_count += 1
+                assert self._notify_timer is not None
                 self._notify_timer.start(self._NOTIFY_RETRY_INTERVAL_MS)
                 return
 
@@ -1354,6 +1356,7 @@ class DaemonWorker(QObject):
                 return
         self._replace_attempts += 1
         if self._replace_attempts < self._COVER_REPLACE_MAX_ATTEMPTS:
+            assert self._replace_timer is not None
             self._replace_timer.start(self._COVER_REPLACE_INTERVAL_MS)
         else:
             self._replace_track = None
