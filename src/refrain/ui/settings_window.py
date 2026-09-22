@@ -1551,8 +1551,9 @@ class SettingsWindow(QDialog):
         if restart:
             msg.setInformativeText(restart)
         reset_btn = msg.addButton(self.tr("Reset"), QMessageBox.ButtonRole.AcceptRole)
-        msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
-        msg.setDefaultButton(reset_btn)
+        cancel = msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        # Enter must not reset everything by accident.
+        msg.setDefaultButton(cancel)
         msg.exec()
         if msg.clickedButton() is not reset_btn:
             return

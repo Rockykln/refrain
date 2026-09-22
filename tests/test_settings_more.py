@@ -188,6 +188,19 @@ def test_uninstall_question_defaults_to_cancel(win, monkeypatch, tmp_path):
     assert defaults == ["Cancel"]
 
 
+def test_reset_question_defaults_to_cancel(win, monkeypatch):
+    defaults = []
+
+    def record(box):
+        defaults.append(box.defaultButton().text())
+        box.clickedButton = lambda: None
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", record)
+    win._on_reset_clicked()
+    assert defaults == ["Cancel"]
+
+
 # ------------------------------------------------------------- update tab
 
 
