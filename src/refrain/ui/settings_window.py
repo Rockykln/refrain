@@ -1622,9 +1622,9 @@ class SettingsWindow(QDialog):
                 "Refrain will close. This cannot be undone."
             ).format(listing=listing, cmd=cmd)
         )
-        go = msg.addButton(self.tr("Uninstall"), QMessageBox.DestructiveRole)
-        msg.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
-        msg.setDefaultButton(msg.buttons()[-1])  # default = Cancel (safe)
+        go = msg.addButton(self.tr("Uninstall"), QMessageBox.ButtonRole.DestructiveRole)
+        cancel = msg.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(cancel)  # default = Cancel (safe)
         msg.exec()
         if msg.clickedButton() is go:
             self.uninstallRequested.emit()

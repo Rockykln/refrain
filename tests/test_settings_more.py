@@ -172,6 +172,22 @@ def test_uninstall_goes_ahead_only_when_confirmed(win, monkeypatch, tmp_path):
     assert asked == [1]
 
 
+def test_uninstall_question_defaults_to_cancel(win, monkeypatch, tmp_path):
+    import refrain.uninstall as uninstall
+
+    monkeypatch.setattr(uninstall, "collect_paths", lambda: [tmp_path / "refrain"])
+    defaults = []
+
+    def record(box):
+        defaults.append(box.defaultButton().text())
+        box.clickedButton = lambda: None
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", record)
+    win._on_uninstall_clicked()
+    assert defaults == ["Cancel"]
+
+
 # ------------------------------------------------------------- update tab
 
 
