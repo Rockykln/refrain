@@ -11,9 +11,18 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QEvent, QPointF, Qt  # noqa: E402
-from PySide6.QtGui import QColor, QEnterEvent, QFont, QImage, QMouseEvent, QPalette  # noqa: E402
-from PySide6.QtWidgets import QApplication, QPushButton  # noqa: E402
+from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QPointF, Qt  # noqa: E402
+from PySide6.QtGui import (  # noqa: E402
+    QColor,
+    QEnterEvent,
+    QFont,
+    QHelpEvent,
+    QImage,
+    QMouseEvent,
+    QPalette,
+)
+from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolTip, QWidget  # noqa: E402
+from shiboken6 import Shiboken  # noqa: E402
 
 from refrain.cover_art import image_path_for_url  # noqa: E402
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
@@ -557,3 +566,31 @@ def test_a_short_recent_list_stays_together_at_the_top(window, app):
     for i in range(rows.count()):
         row = rows.itemAt(i).widget()
         assert row.height() <= row.sizeHint().height() + 2
+
+
+def _open_tooltip(widget) -> QWidget | None:
+    pos = QPoint(5, 5)
+    QApplication.sendEvent(widget, QHelpEvent(QEvent.Type.ToolTip, pos, widget.mapToGlobal(pos)))
+    tips = [w for w in QApplication.topLevelWidgets() if w.objectName() == "qtooltip_label"]
+    return tips[-1] if tips else None
+
+
+def test_a_rebuilt_list_leaves_an_open_tooltip_alone(window):
+    # Qt parents a tooltip to its widget; a row deleted with its tooltip open
+    # then destroys a visible Wayland window, which Qt 6.11 can crash on.
+    window.show()
+    for pick in ("row", "tick"):
+        window.set_history(_history(now_playing=False, n=5))
+        rows = [window.recent_rows.itemAt(i).widget() for i in range(window.recent_rows.count())]
+        widget = rows[0]
+        if pick == "tick":
+            widget = next(c for c in rows[-1].findChildren(QLabel) if c.text() == "✓")
+        tip = _open_tooltip(widget)
+        assert tip is not None and tip.isVisible()
+        assert tip.parentWidget() is window
+        window.set_history(_history(now_playing=False, n=5))
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert Shiboken.isValid(tip) and tip.isVisible()
+        QToolTip.hideText()
+        tip.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

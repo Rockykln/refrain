@@ -55,6 +55,7 @@ from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
 from refrain.ui.history_window import _ElidedLabel, _muted, _read_scaled, _set_color, song_link
 from refrain.ui.legal_dialog import GITHUB_URL
+from refrain.ui.tooltips import keep_on_window, show_on_window
 
 log = logging.getLogger(__name__)
 
@@ -351,6 +352,7 @@ class _RecentRow(QWidget):
         if entry.scrobbled:
             check = QLabel("✓")
             check.setToolTip(QCoreApplication.translate("StatusWindow", "Scrobbled to Last.fm"))
+            keep_on_window(check)
             _set_color(check, muted)
             row.addWidget(check)
         self.when = QLabel(when)
@@ -362,6 +364,13 @@ class _RecentRow(QWidget):
         self._hover.setSingleShot(True)
         self._hover.setInterval(_hover_ms)
         self._hover.timeout.connect(lambda: self.title.restart_scroll(passes=1))
+
+    def event(self, event) -> bool:
+        # The list is rebuilt under the mouse whenever the history changes.
+        if event.type() == QEvent.Type.ToolTip:
+            show_on_window(self, event)
+            return True
+        return super().event(event)
 
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:

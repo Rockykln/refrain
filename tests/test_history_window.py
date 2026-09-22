@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import os
 import sys
 from pathlib import Path
@@ -12,18 +13,21 @@ pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import (  # noqa: E402
+    QCoreApplication,
     QDate,
     QDateTime,
     QEvent,
     QLocale,
+    QPoint,
     QPointF,
     Qt,
     QTime,
     QTranslator,
 )
-from PySide6.QtGui import QColor, QEnterEvent, QImage  # noqa: E402
+from PySide6.QtGui import QColor, QEnterEvent, QHelpEvent, QImage  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QLabel, QMessageBox  # noqa: E402
+from PySide6.QtWidgets import QApplication, QLabel, QMessageBox, QToolTip  # noqa: E402
+from shiboken6 import Shiboken  # noqa: E402
 
 import refrain  # noqa: E402
 from refrain.cover_art import image_path_for_url  # noqa: E402
@@ -595,3 +599,29 @@ def test_a_row_lights_up_under_the_mouse(win):
     row.leaveEvent(QEvent(QEvent.Type.Leave))
     assert row._hover is False
     assert row.grab().toImage() == quiet
+
+
+def _scrobbled(n: int) -> tuple[HistoryEntry, ...]:
+    return tuple(dataclasses.replace(e, scrobbled=True) for e in _entries(n))
+
+
+def test_a_rebuilt_list_leaves_an_open_tooltip_alone(win):
+    # See test_status_window: a tooltip owned by a deleted row can crash Qt on Wayland.
+    for pick in ("row", "tick"):
+        win.set_snapshot(HistorySnapshot(entries=_scrobbled(3)))
+        row = win.findChildren(_SongRow)[0]
+        widget = (
+            row if pick == "row" else next(c for c in row.findChildren(QLabel) if c.text() == "✓")
+        )
+        pos = QPoint(5, 5)
+        QApplication.sendEvent(
+            widget, QHelpEvent(QEvent.Type.ToolTip, pos, widget.mapToGlobal(pos))
+        )
+        tip = next(w for w in QApplication.topLevelWidgets() if w.objectName() == "qtooltip_label")
+        assert tip.isVisible() and tip.parentWidget() is win
+        win.set_snapshot(HistorySnapshot(entries=_scrobbled(4)))
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        assert Shiboken.isValid(tip) and tip.isVisible()
+        QToolTip.hideText()
+        tip.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)

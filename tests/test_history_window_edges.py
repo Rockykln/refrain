@@ -11,7 +11,13 @@ pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QDate, QEvent, QPoint, Qt  # noqa: E402
-from PySide6.QtGui import QContextMenuEvent, QGuiApplication, QIcon, QPixmap  # noqa: E402
+from PySide6.QtGui import (  # noqa: E402
+    QContextMenuEvent,
+    QGuiApplication,
+    QHelpEvent,
+    QIcon,
+    QPixmap,
+)
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QLabel, QMenu  # noqa: E402
 
@@ -78,7 +84,7 @@ def test_hovering_a_row_refreshes_its_tooltip(win):  # noqa: F811
     win.set_snapshot(HistorySnapshot(entries=(entry,)))
     row = win.findChildren(_SongRow)[0]
     row.setToolTip("stale")
-    row.event(QEvent(QEvent.Type.ToolTip))
+    row.event(QHelpEvent(QEvent.Type.ToolTip, QPoint(5, 5), row.mapToGlobal(QPoint(5, 5))))
     assert "Glass Tides" in row.toolTip()
     assert row.toolTip() != "stale"
 
