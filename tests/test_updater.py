@@ -644,10 +644,14 @@ def test_without_a_release_key_nothing_is_fetched(
     assert serve["fetched"] == []
 
 
-def test_the_shipped_key_is_a_placeholder_until_the_owner_sets_one():
+def test_the_shipped_key_is_the_one_releases_are_signed_with():
+    """Swapping this key silently would let a foreign release pass the check."""
     import refrain.updater as u
 
-    assert u.RELEASE_PUBLIC_KEY == "" or len(bytes.fromhex(u.RELEASE_PUBLIC_KEY)) == 32
+    assert u.RELEASE_PUBLIC_KEY == (
+        "b4ffe3f4c0e79c94d91b3c13ddc5d0b0e26159ab66a1f0a78ae35168ad2a516c"
+    )
+    assert len(bytes.fromhex(u.RELEASE_PUBLIC_KEY)) == 32
 
 
 def test_an_older_signed_release_cannot_pose_as_a_newer_one(updater, serve, running_appimage):

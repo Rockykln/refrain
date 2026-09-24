@@ -38,7 +38,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from refrain import __version__, dev_metrics, ed25519
+from refrain import __version__, dev_metrics, ed25519, https_only
 
 # Match http(s) URLs not already inside <>, [text](…), or `code`.
 _BARE_URL_RE = re.compile(
@@ -91,14 +91,8 @@ def _machine_arch() -> str:
     return _ARCH_ALIASES.get(machine, machine)
 
 
-class _HttpsOnlyRedirects(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if not newurl.lower().startswith("https://"):
-            raise urllib.error.URLError(f"refusing redirect to non-https URL {newurl}")
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
-_download_opener = urllib.request.build_opener(_HttpsOnlyRedirects)
+_HttpsOnlyRedirects = https_only.HttpsOnlyRedirects
+_download_opener = https_only.build_opener()
 
 
 def _open_download(url: str, timeout: float):

@@ -76,6 +76,17 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the metainfo lists this release
+        # Flathub's own CI rejects a build without it, but there is no live
+        # Flathub channel yet, so nothing else would notice this going stale.
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          METAINFO=packaging/flatpak/io.github.Rockykln.Refrain.metainfo.xml
+          if ! grep -qE "<release version=\"${TAG}\" date=" "$METAINFO"; then
+            echo "::error::$METAINFO has no <release> entry for ${TAG}"
+            exit 1
+          fi
+
       - name: Build wheel + sdist
         run: |
           python -m build

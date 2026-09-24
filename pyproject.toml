@@ -51,6 +51,11 @@ Repository = "https://github.com/Rockykln/refrain"
 Issues = "https://github.com/Rockykln/refrain/issues"
 Changelog = "https://github.com/Rockykln/refrain/blob/main/CHANGELOG.md"
 
+[tool.hatch.build.targets.sdist]
+# Everything but the screenshots, which are 3 MB of PNGs nobody needs to
+# build or test from source. Tests stay in: distro packagers run them.
+exclude = ["docs/screenshots", "docs/social-preview.png"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/refrain"]
 # Include compiled translations + bundled assets in the wheel. Only the
