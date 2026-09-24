@@ -88,6 +88,13 @@ lists every version and why.
   you closed it with Esc or the window button. It asks first now.
 - **The GitHub icon in the Status window** kept its old colour after a
   switch between a light and a dark theme.
+- **A song title in Hebrew or Arabic scrolled the wrong way** in the
+  Status window, because the scrolling text is painted by hand and that
+  skips the direction Qt picks for a label.
+- **Notifications no longer need the `notify-send` command.** Without it
+  Refrain now asks the same desktop service directly, which is what a
+  Flatpak has. While pip or pipx runs, the window also says that it takes
+  a while and stays open on purpose.
 - **A "|" in a title, artist or album could make two different songs
   look like one**, so the time kept running from the previous song and a
   scrobble could be counted as the same play.

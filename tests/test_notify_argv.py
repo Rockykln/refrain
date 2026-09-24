@@ -7,7 +7,10 @@ so it swaps into the same bubble instead of stacking a second popup.
 
 from __future__ import annotations
 
-from refrain.daemon import build_notify_argv, parse_notify_id
+import sys
+from types import SimpleNamespace
+
+from refrain.daemon import build_notify_argv, notify_over_dbus, parse_notify_id
 
 
 def test_argv_with_image_passes_it_twice():
@@ -66,3 +69,58 @@ def test_a_title_starting_with_a_dash_is_not_an_option():
     argv = build_notify_argv("notify-send", None, "-u critical", "--app-name=12345")
     assert argv[-3:] == ["--", "-u critical", "--app-name=12345"]
     assert argv.index("--") == len(argv) - 3
+
+
+class _FakeDbus:
+    """Enough of the dbus module for the notification service call."""
+
+    class UInt32(int):
+        pass
+
+    def __init__(self, calls, answer=7):
+        self.calls = calls
+        self.answer = answer
+
+    def SessionBus(self):  # noqa: N802 — mirrors the dbus API
+        return SimpleNamespace(get_object=lambda *a: object())
+
+    def Interface(self, _obj, _name):  # noqa: N802 — mirrors the dbus API
+        def notify(*args):
+            self.calls.append(args)
+            return self.answer
+
+        return SimpleNamespace(Notify=notify)
+
+
+def test_without_notify_send_the_service_is_asked_directly(monkeypatch):
+    """Notifications must not need the notify-send binary to work at all."""
+    calls: list[tuple] = []
+    monkeypatch.setitem(sys.modules, "dbus", _FakeDbus(calls))
+
+    got = notify_over_dbus("/tmp/cover.jpg", "Song", "Artist — Album", replace_id=4)
+
+    assert got == 7
+    (app, replaces, icon, summary, body, actions, hints, timeout) = calls[0]
+    assert app == "Refrain"
+    assert int(replaces) == 4
+    assert icon == "/tmp/cover.jpg"
+    assert summary == "Song" and body == "Artist — Album"
+    assert hints == {"image-path": "file:///tmp/cover.jpg"}
+    assert actions == [] and timeout == -1
+
+
+def test_without_a_cover_the_themed_name_is_used(monkeypatch):
+    calls: list[tuple] = []
+    monkeypatch.setitem(sys.modules, "dbus", _FakeDbus(calls))
+    notify_over_dbus(None, "Song", "")
+    assert calls[0][2] == "refrain"
+    assert calls[0][6] == {}
+
+
+def test_a_service_that_is_not_there_is_not_an_error(monkeypatch):
+    class _Broken(_FakeDbus):
+        def SessionBus(self):  # noqa: N802
+            raise RuntimeError("no session bus")
+
+    monkeypatch.setitem(sys.modules, "dbus", _Broken([]))
+    assert notify_over_dbus(None, "Song", "") is None

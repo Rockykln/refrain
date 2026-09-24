@@ -494,3 +494,20 @@ def test_play_and_pause_reach_the_active_source_as_themselves(rig):
     worker.control_pause()
     worker.control_play()
     assert worker._mpris.controls == ["pause", "pause", "play"]
+
+
+def test_without_notify_send_the_notification_still_goes_out(rig, monkeypatch):
+    """libnotify is only suggested, not required — the service is asked directly."""
+    worker, player, _, _ = rig(notify_bin=None)
+    worker._cover_fetcher.local[(ARTIST, TITLE)] = COVER_FILE
+    sent = []
+    monkeypatch.setattr(
+        daemon,
+        "notify_over_dbus",
+        lambda image, title, body, **kw: sent.append((image, title, body)) or 11,
+    )
+    player.play()
+    player.tick()
+    worker._fire_pending_notify()
+    assert sent and sent[0][1] == TITLE
+    assert sent[0][0] == str(COVER_FILE)

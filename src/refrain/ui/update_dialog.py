@@ -170,10 +170,14 @@ class UpdateDialog(QDialog):
         self.progress.setVisible(True)
         if self._install_type == "appimage":
             busy = self.tr("Downloading…")
-        elif self._install_type == "pipx":
-            busy = self.tr("Running pipx…")
         else:
-            busy = self.tr("Running pip…")
+            # Stopping the upgrade half-way can leave an install that won't
+            # start, so the window stays. Say so, or it looks frozen.
+            tool = "pipx" if self._install_type == "pipx" else "pip"
+            busy = self.tr(
+                "Running {tool}… this can take a few minutes, and the window "
+                "stays open until it is done."
+            ).format(tool=tool)
         self.status_label.setText(busy)
         # Repurpose the "Later" button as Cancel while the runner is alive.
         # Only the AppImage path actually polls the cancel flag — pip is a

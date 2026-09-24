@@ -281,6 +281,40 @@ def build_notify_argv(
     return argv
 
 
+def notify_over_dbus(
+    image_path: str | None,
+    title: str,
+    body: str,
+    *,
+    replace_id: int | None = None,
+) -> int | None:
+    """Show a notification without notify-send, over the same D-Bus service.
+
+    Returns the notification id, which the interface hands back directly —
+    no --print-id round trip. None when the service is not reachable.
+    """
+    try:
+        import dbus
+
+        bus = dbus.SessionBus()
+        server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        hints = {"image-path": f"file://{image_path}"} if image_path else {}
+        new_id = dbus.Interface(server, "org.freedesktop.Notifications").Notify(
+            "Refrain",
+            dbus.UInt32(replace_id or 0),
+            image_path or "refrain",
+            title,
+            body,
+            [],
+            hints,
+            -1,
+        )
+        return int(new_id)
+    except Exception as e:
+        log.debug("Notification over D-Bus failed: %s", e)
+        return None
+
+
 def parse_notify_id(stdout: str) -> int | None:
     """Parse the integer id ``notify-send --print-id`` writes to stdout.
 
@@ -1578,8 +1612,6 @@ class DaemonWorker(QObject):
         global _NOTIFY_BIN
         if _NOTIFY_BIN is None:
             _NOTIFY_BIN = shutil.which("notify-send")
-        if not _NOTIFY_BIN:
-            return None
         body = track.artist
         if track.album:
             body = f"{track.artist} — {track.album}" if track.artist else track.album
@@ -1597,6 +1629,11 @@ class DaemonWorker(QObject):
             fallback = assets_dir() / "icons" / "refrain.png"
             if fallback.exists():
                 image_path = str(fallback)
+
+        if not _NOTIFY_BIN:
+            # No libnotify binary: the notification service itself is still
+            # there on any desktop that shows notifications at all.
+            return notify_over_dbus(image_path, track.title, body or "", replace_id=replace_id)
 
         want_id = capture_id or replace_id is not None
         cmd = build_notify_argv(

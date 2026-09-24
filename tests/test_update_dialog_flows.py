@@ -110,7 +110,9 @@ def test_pipx_upgrade_says_so_and_locks_the_buttons_until_done(qapp, make_dialog
 
     monkeypatch.setattr(update_dialog, "apply_update", fake_apply)
     dlg._on_update_clicked()
-    assert dlg.status_label.text() == "Running pipx…"
+    # Says it takes a while and that the window stays, so it does not look frozen.
+    assert dlg.status_label.text().startswith("Running pipx…")
+    assert "stays open" in dlg.status_label.text()
     assert not dlg.update_btn.isEnabled()
     assert not dlg.close_btn.isEnabled()
 

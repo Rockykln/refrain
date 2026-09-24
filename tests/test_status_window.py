@@ -663,3 +663,43 @@ def test_a_wrapped_state_keeps_its_tooltip_on_both_lines(window, app, tooltip_sp
     assert written.height() > label.fontMetrics().height()
     _hover(label, 5)
     assert tooltip_spy.calls == ["Error Code: 1000"]
+
+
+def test_a_right_to_left_title_scrolls_from_its_own_end(app, monkeypatch):
+    """Painting by hand skips the direction Qt would pick for a label."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QPainter
+
+    from refrain.ui.status_window import _Line, starts_rtl
+
+    assert starts_rtl("שיר ארוך מאוד") is True
+    assert starts_rtl("A long song title") is False
+    assert starts_rtl("1234 שיר") is True  # digits carry no direction of their own
+    assert starts_rtl("") is False
+
+    seen: list[int] = []
+    real = QPainter.drawText
+
+    def spy(self, rect, flags, text):
+        seen.append(flags)
+        return real(self, rect, flags, text)
+
+    monkeypatch.setattr(QPainter, "drawText", spy)
+
+    def flags_for(text: str) -> int:
+        seen.clear()
+        line = _Line(text)
+        line.resize(120, 20)
+        line._timer.start()  # paintEvent only draws by hand while scrolling
+        line.render(line.grab())
+        line._timer.stop()
+        line.deleteLater()
+        assert seen, "the line never painted by hand"
+        return seen[-1]
+
+    ltr = flags_for("A song title far too long to fit into this narrow line here")
+    rtl = flags_for("שיר עברי ארוך מאוד שלא נכנס בשורה הזאת בכלל")
+    assert ltr & int(Qt.AlignmentFlag.AlignLeft)
+    assert not (ltr & int(Qt.AlignmentFlag.AlignRight))
+    assert rtl & int(Qt.AlignmentFlag.AlignRight)
+    assert not (rtl & int(Qt.AlignmentFlag.AlignLeft))

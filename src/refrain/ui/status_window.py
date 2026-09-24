@@ -6,6 +6,7 @@ import contextlib
 import json
 import logging
 import time
+import unicodedata
 from dataclasses import replace
 from pathlib import Path
 
@@ -155,6 +156,21 @@ def _placeholder(palette: QPalette, px: int, dpr: float) -> QPixmap:
     return out
 
 
+def starts_rtl(text: str) -> bool:
+    """Does the first letter with a direction of its own read right to left?
+
+    The same first-strong rule Qt uses to lay a label out. Scrolling paints
+    the text by hand, which skips that, so it has to be asked here.
+    """
+    for ch in text:
+        direction = unicodedata.bidirectional(ch)
+        if direction in ("R", "AL"):
+            return True
+        if direction == "L":
+            return False
+    return False
+
+
 class _Line(_ElidedLabel):
     """A song line that scrolls its full text twice when it does not fit."""
 
@@ -252,7 +268,12 @@ class _Line(_ElidedLabel):
         painter.setPen(self.palette().color(self.foregroundRole()))
         painter.setFont(self.font())
         rect = self.contentsRect().adjusted(-round(self._offset), 0, round(self._offset), 0)
-        painter.drawText(rect, int(self.alignment()), self._full)
+        align = self.alignment()
+        if starts_rtl(self._full):
+            # Right to left reads from the other end, so it has to uncover
+            # the other end first.
+            align = (align & ~Qt.AlignmentFlag.AlignLeft) | Qt.AlignmentFlag.AlignRight
+        painter.drawText(rect, int(align), self._full)
         painter.end()
 
 
