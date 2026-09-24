@@ -55,6 +55,9 @@ interface for media players.
   of staying empty: `<Browser> is playing, but doesn't say which page.
   Install Plasma Browser Integration (package plasma-browser-integration
   plus the browser extension "Plasma Integration") or use Firefox.`
+- After installing the extension, restart the browser. Until then the
+  browser keeps playing without saying which page, and Refrain still
+  shows the hint above.
 - LibreWolf and Floorp are Firefox-based and report the tab themselves,
   like Firefox; other Firefox-based browsers should too, but are
   untested.
