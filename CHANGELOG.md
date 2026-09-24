@@ -64,6 +64,10 @@ lists every version and why.
   code ([QTBUG-150645](https://qt-project.atlassian.net/browse/QTBUG-150645)).
 - **Developer mode** no longer shows startup times that were never
   measured, and its live-log buttons have readable names.
+- **"Discord is open but not logged in" while Discord was still
+  starting.** Discord answers the same way in both cases, so the state
+  now has to hold for 20 seconds before Refrain shows it, and Refrain
+  asks again every 2 seconds meanwhile.
 
 ### Security
 

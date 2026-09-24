@@ -116,6 +116,14 @@ _WRITE_WINDOW_S = 20.0
 # handshake; a frozen client would hold up the daemon tick that long.
 _CONNECT_TIMEOUT_S = 2.0
 _RESPONSE_TIMEOUT_S = 3.0
+# A Discord that is still starting up ends the handshake with code 1000, the
+# same answer a signed-out one gives, so the answer has to keep coming for a
+# while before the user is told to log in. Asking again on a fixed short
+# cadence instead of the growing backoff keeps that wait short and notices a
+# login within seconds.
+_SIGNED_OUT_RETRY_S = 2.0
+_SIGNED_OUT_TRIES = 3
+_SIGNED_OUT_GRACE_S = 20.0
 _REFUSED_MEMORY = 64
 # Discord answers a hiccup with the same "Unknown error" as a bad payload, so a
 # refusal is given one more chance before the song is written off.
@@ -337,11 +345,14 @@ class DiscordRPC:
         # Why we are not connected, for the startup check and the tray.
         # "disabled" (no client_id) / "no_client" (nothing listening) /
         # "rejected" (Discord answered but refused the handshake — a bad
-        # Application ID) / "not_logged_in" (Discord answered but the user
-        # is signed out — recovers on its own, unlike "rejected") /
-        # "connected".
+        # Application ID) / "not_logged_in" (Discord kept answering code 1000
+        # long enough that the user really is signed out — recovers on its
+        # own, unlike "rejected") / "connected".
         self.status: str = "disabled" if not self.client_id else "no_client"
         self.status_detail: str = ""
+        # How long code 1000 has been the answer, in tries and in seconds.
+        self._signed_out_tries = 0
+        self._signed_out_since = 0.0
         # Cap retry backoff at 15 s instead of 60 s — autostart launches
         # refrain before Discord is ready, and a 60 s ceiling means the
         # user can sit there for almost a minute after Discord finishes
@@ -478,12 +489,12 @@ class DiscordRPC:
                 connected_now.append(target)
             except ppx.DiscordError as e:
                 if e.code == 1000:
-                    # Discord is running and the app ID is fine, but the
-                    # user is signed out. Unlike a bad Application ID this
-                    # clears up on its own once they log in, so it gets the
-                    # ordinary backoff instead of `_max_backoff_s` and never
-                    # sets "rejected" — same treatment as "no client yet".
-                    log.info("Discord RPC: %s is not logged in: %s", target, e)
+                    # Discord is running and the app ID is fine, but it is not
+                    # ready for us — signed out, or still starting. Unlike a bad
+                    # Application ID this clears up on its own, so it never sets
+                    # "rejected"; whether it is worth telling the user about is
+                    # decided below, once the answer has had time to repeat.
+                    log.debug("Discord RPC: %s is not ready (code 1000): %s", target, e)
                     not_logged_in = True
                     last_error = e
                     continue
@@ -504,13 +515,25 @@ class DiscordRPC:
                 last_error = e
                 log.debug("Discord RPC connect failed on %s: %s", target, e)
 
+        now = time.monotonic()
+        if not_logged_in and not connected_now:
+            if not self._signed_out_tries:
+                self._signed_out_since = now
+            self._signed_out_tries += 1
+        else:
+            self._signed_out_tries = 0
+        signed_out = (
+            self._signed_out_tries >= _SIGNED_OUT_TRIES
+            and now - self._signed_out_since >= _SIGNED_OUT_GRACE_S
+        )
+
         if rejected:
             # A client that accepted is served, so the status stays
             # "connected"; the one that refused is asked again later.
-            self._next_retry_ts = time.monotonic() + self._max_backoff_s
+            self._next_retry_ts = now + self._max_backoff_s
         elif not_logged_in:
             # Same idea, but the ordinary cadence — it may log in any moment.
-            self._next_retry_ts = time.monotonic() + self._backoff_s
+            self._next_retry_ts = now + self._backoff_s
 
         if connected_now:
             self._backoff_s = 2.0
@@ -540,10 +563,15 @@ class DiscordRPC:
                 self._schedule_retry()
             return True
 
-        self.status = "not_logged_in" if not_logged_in else "no_client"
+        if signed_out and self.status != "not_logged_in":
+            log.info("Discord RPC: Discord is open but not logged in: %s", last_error)
+        self.status = "not_logged_in" if signed_out else "no_client"
         self.status_detail = str(last_error) if last_error else "no client reachable"
         self._fault = "Discord did not answer in time" if isinstance(last_error, _TIMEOUTS) else ""
-        self._schedule_retry()
+        if not_logged_in and not signed_out:
+            self._next_retry_ts = now + _SIGNED_OUT_RETRY_S
+        else:
+            self._schedule_retry()
         return False
 
     def update(self, **payload) -> None:

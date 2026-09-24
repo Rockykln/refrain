@@ -130,11 +130,20 @@ def test_a_rejected_handshake_waits_the_longest(discord, clock):
     assert rpc._next_retry_ts == clock.now + 15.0
 
 
+def _keep_saying_1000(rpc, clock):
+    """Tick a client that keeps answering code 1000 until Refrain believes it."""
+    for _ in range(30):
+        rpc._ensure_connected()
+        if rpc.status == "not_logged_in":
+            return
+        clock.now = rpc._next_retry_ts
+    raise AssertionError(f"still {rpc.status!r} after 30 tries")
+
+
 def test_a_signed_out_discord_is_not_treated_as_rejected(discord, clock):
     discord.failures[0] = drpc.ppx.DiscordError(1000, "User logged out")
     rpc = drpc.DiscordRPC(CLIENT_ID)
-    assert rpc._ensure_connected() is False
-    assert rpc.status == "not_logged_in"
+    _keep_saying_1000(rpc, clock)
     assert rpc.state is drpc.RPCState.NOT_LOGGED_IN
     assert "User logged out" in rpc.status_detail
     # Ordinary backoff, not the 15 s a permanent rejection gets — logging
@@ -142,17 +151,58 @@ def test_a_signed_out_discord_is_not_treated_as_rejected(discord, clock):
     assert rpc._next_retry_ts == clock.now + 2.0
 
 
+def test_a_discord_that_is_only_starting_is_not_called_signed_out(discord, clock):
+    # A Discord that is still booting answers the handshake with the same
+    # code 1000 as a signed-out one, so the early tries must stay quiet.
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "Not ready")
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    seen = set()
+    for _ in range(4):
+        assert rpc._ensure_connected() is False
+        seen.add(rpc.status)
+        clock.now = rpc._next_retry_ts
+    del discord.failures[0]
+    assert rpc._ensure_connected() is True
+    assert seen == {"no_client"}
+    assert rpc.status == "connected"
+
+
+def test_a_client_that_is_not_ready_is_asked_again_at_a_steady_pace(discord, clock):
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "Not ready")
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    waits = []
+    for _ in range(4):
+        rpc._ensure_connected()
+        waits.append(rpc._next_retry_ts - clock.now)
+        clock.now = rpc._next_retry_ts
+    assert waits == [2.0, 2.0, 2.0, 2.0]
+
+
 def test_a_signed_out_discord_recovers_once_the_user_logs_in(discord, clock):
     discord.failures[0] = drpc.ppx.DiscordError(1000, "User logged out")
     rpc = drpc.DiscordRPC(CLIENT_ID)
-    assert rpc._ensure_connected() is False
-    assert rpc.status == "not_logged_in"
+    _keep_saying_1000(rpc, clock)
 
     clock.now = rpc._next_retry_ts
     del discord.failures[0]
     assert rpc._ensure_connected() is True
     assert rpc.status == "connected"
     assert rpc.state is drpc.RPCState.CONNECTED_IDLE
+
+
+def test_a_restarting_discord_gets_a_fresh_grace_window(discord, clock):
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "User logged out")
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    _keep_saying_1000(rpc, clock)
+    del discord.failures[0]
+    clock.now = rpc._next_retry_ts
+    assert rpc._ensure_connected() is True
+
+    rpc.close()
+    discord.failures[0] = drpc.ppx.DiscordError(1000, "Not ready")
+    clock.now += 60.0
+    assert rpc._ensure_connected() is False
+    assert rpc.status == "no_client"
 
 
 def test_a_rejection_stops_trying_the_remaining_clients(discord):
