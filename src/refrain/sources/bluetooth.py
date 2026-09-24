@@ -255,8 +255,8 @@ class BluetoothSource:
             log.debug("BlueZ %s on %s failed: %s", method, _masked(path), _masked(e))
             self._last_player_path = None
             return False
-        except Exception:
-            log.exception("BlueZ %s unexpected error", method)
+        except Exception as e:
+            log.error("BlueZ %s on %s unexpected error: %s", method, _masked(path), _masked(e))
             return False
 
     def _find_player_safe(self) -> str | None:

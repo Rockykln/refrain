@@ -22,6 +22,22 @@ from pypresence import exceptions as ppx
 log = logging.getLogger(__name__)
 
 
+def _socket_answers(path: Path) -> bool:
+    """Does something actually accept a connection on this socket?"""
+    try:
+        if not path.is_socket():
+            return False
+    except OSError:
+        return False
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
+            probe.settimeout(_IPC_PROBE_TIMEOUT_S)
+            probe.connect(str(path))
+    except OSError:
+        return False
+    return True
+
+
 def _bridge_sandboxed_ipc_socket() -> None:
     """Symlink Snap/Flatpak Discord's IPC socket into ``$XDG_RUNTIME_DIR``.
 
@@ -53,10 +69,12 @@ def _bridge_sandboxed_ipc_socket() -> None:
             with contextlib.suppress(OSError):
                 link.unlink()
                 log.debug("Removed stale Discord IPC symlink: %s", link)
-    # If the standard path already has any working discord-ipc-N socket,
-    # leave things alone — pypresence will find it on its own.
+    # If the standard path already has a working discord-ipc-N socket,
+    # leave things alone — pypresence will find it on its own. A socket
+    # left behind by a crashed Discord still exists, so it has to be
+    # asked; otherwise one dead file hides a sandboxed client for good.
     for n in range(10):
-        if (runtime_dir / f"discord-ipc-{n}").exists():
+        if _socket_answers(runtime_dir / f"discord-ipc-{n}"):
             return
     candidates = [
         # Flatpak (newer): per-app instance dir under XDG_RUNTIME_DIR
@@ -296,13 +314,7 @@ def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
                 continue
         except OSError:
             continue
-        try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as probe:
-                probe.settimeout(_IPC_PROBE_TIMEOUT_S)
-                probe.connect(str(path))
-            live.append(n)
-        except OSError:
-            stale.append(n)
+        (live if _socket_answers(path) else stale).append(n)
     return live, stale
 
 

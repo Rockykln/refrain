@@ -141,3 +141,23 @@ def test_a_merge_failure_falls_back_to_a_clean_rewrite(tmp_path, monkeypatch, ca
     assert "# a hand-written note" not in text, "rewritten from scratch, so the comment is gone"
     assert 'client_id = "1234567890123456789"' in text
     assert any("merge failed" in r.getMessage() for r in caplog.records)
+
+
+# --------------------------------------------------------------------------- #
+# Config.load — the very first save failing                                   #
+# --------------------------------------------------------------------------- #
+
+
+def test_a_first_start_without_a_writable_config_dir_still_starts(tmp_path, caplog):
+    """There is no window yet at this point, so a raised error would be a silent exit."""
+    locked = tmp_path / "locked"
+    locked.mkdir()
+    locked.chmod(0o500)
+    try:
+        with caplog.at_level(logging.WARNING, logger="refrain.config"):
+            cfg = Config.load(locked / "config.toml")
+        assert cfg == Config()
+        assert not (locked / "config.toml").exists()
+        assert any("defaults" in r.getMessage() for r in caplog.records)
+    finally:
+        locked.chmod(0o700)

@@ -166,17 +166,47 @@ def test_update_failure_invalidates_cache(fake_pypresence):
 
 def test_bridge_no_op_when_standard_path_already_has_socket(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
-    # Simulate an already-present working socket.
     standard = tmp_path / "discord-ipc-0"
-    standard.touch()
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(str(standard))
+    listener.listen(1)
 
     from refrain.discord_rpc import _bridge_sandboxed_ipc_socket
 
-    _bridge_sandboxed_ipc_socket()
+    try:
+        _bridge_sandboxed_ipc_socket()
+        # Standard socket untouched, no symlink created.
+        assert standard.exists()
+        assert not standard.is_symlink()
+    finally:
+        listener.close()
 
-    # Standard socket untouched, no symlink created.
-    assert standard.exists()
-    assert not standard.is_symlink()
+
+def test_a_dead_socket_does_not_hide_a_sandboxed_discord(tmp_path, monkeypatch):
+    """A crashed Discord leaves its socket file behind; it must not block the bridge."""
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    dead = tmp_path / "discord-ipc-0"
+    corpse = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    corpse.bind(str(dead))
+    corpse.close()  # the file stays, nothing listens on it any more
+    assert dead.is_socket()
+
+    flatpak_dir = tmp_path / "app" / "com.discordapp.Discord"
+    flatpak_dir.mkdir(parents=True)
+    real = flatpak_dir / "discord-ipc-1"
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(str(real))
+    listener.listen(1)
+
+    from refrain.discord_rpc import _bridge_sandboxed_ipc_socket
+
+    try:
+        _bridge_sandboxed_ipc_socket()
+        bridged = tmp_path / "discord-ipc-1"
+        assert bridged.is_symlink()
+        assert bridged.resolve() == real.resolve()
+    finally:
+        listener.close()
 
 
 def test_bridge_symlinks_flatpak_socket(tmp_path, monkeypatch):

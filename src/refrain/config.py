@@ -527,7 +527,15 @@ class Config:
         path = path or config_path()
         if not path.exists():
             cfg = cls()
-            cfg.save(path)
+            try:
+                cfg.save(path)
+            except OSError as e:
+                # A full disk or a read-only home must not stop Refrain from
+                # starting; there is no window yet to say so in.
+                log.warning(
+                    "Cannot write a default config to %s (%s); running on defaults", path, e
+                )
+                return cfg
             log.info("Created default config at %s", path)
             return cfg
         try:

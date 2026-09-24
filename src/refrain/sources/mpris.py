@@ -221,7 +221,7 @@ class MPRISSource:
             if name == "org.mpris.MediaPlayer2.refrain":
                 continue
             names.append(name)
-        for cache in (self._proxies, self._identities):
+        for cache in (self._proxies, self._identities, self._timeout_blacklist):
             for name in set(cache) - set(names):
                 del cache[name]
         self._no_get_all = {key for key in self._no_get_all if key[0] in names}

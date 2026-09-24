@@ -30,6 +30,7 @@ def test_a_player_that_left_the_bus_is_dropped_from_the_identity_cache(fake_dbus
     src._proxies[CHROMIUM] = object()
     src._identities[CHROMIUM] = ("Chromium", "chromium")
     src._no_get_all.add((CHROMIUM, "iface"))
+    src._timeout_blacklist[CHROMIUM] = 1e9
 
     class _ListNamesProxy:
         def __init__(self, _obj, _iface):
@@ -46,6 +47,8 @@ def test_a_player_that_left_the_bus_is_dropped_from_the_identity_cache(fake_dbus
     assert names == [FIREFOX]
     assert CHROMIUM not in src._proxies
     assert CHROMIUM not in src._identities
+    # A tab that timed out once used to stay on the list for the whole run.
+    assert CHROMIUM not in src._timeout_blacklist
 
 
 def test_an_unexpected_getall_error_still_falls_back_to_reading_properties_one_by_one(fake_dbus):
