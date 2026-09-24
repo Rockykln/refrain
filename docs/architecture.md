@@ -393,3 +393,34 @@ instead (`$XDG_RUNTIME_DIR/app/com.discordapp.Discord/discord-ipc-N`,
 socket it finds into `$XDG_RUNTIME_DIR` before each connect attempt,
 and sweeps stale symlinks left behind by previously-uninstalled
 Discord builds.
+
+## MPRIS server
+
+Refrain publishes itself as `org.mpris.MediaPlayer2.refrain` on the session
+bus, so KDE Plasma's panel media-controls applet (and KDE Connect, GNOME
+Shell, Mako, …) drive the same Play/Pause/Next/Previous as the tray and
+render the same track Discord renders. Plasma also offers these controls
+when you right-click Refrain in the task manager, including a *Stop*
+that it adds for every player — Apple Music has no stop, so there it
+pauses, and does nothing when the music is already paused.
+
+## At a glance
+
+```
+        ┌─────────────────────────────────────────────────────────┐
+        │   Refrain                                               │
+        │                                                         │
+        │   ┌──────────┐    ┌──────────┐    ┌────────────────┐    │
+        │   │  MPRIS   │    │  BlueZ   │    │     Tray +     │    │
+        │   │  source  │    │  AVRCP   │    │  Settings UI   │    │
+        │   └────┬─────┘    └────┬─────┘    └───────┬────────┘    │
+        │        │               │                  │             │
+        │        ▼               ▼                  ▼             │
+        │   ┌─────────────────────────────────────────────┐       │
+        │   │             Background daemon               │       │
+        │   └────────────────────┬────────────────────────┘       │
+        │                        │                                │
+        │                        ▼                                │
+        │           Discord Rich Presence (IPC)                   │
+        └─────────────────────────────────────────────────────────┘
+```

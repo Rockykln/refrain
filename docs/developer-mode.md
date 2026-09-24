@@ -119,3 +119,21 @@ Every line also carries `ts`, the Unix time it was written.
 Measuring costs a little: a few microseconds per poll, an event filter on
 Refrain's windows and a timer once a minute. With developer mode off, the
 measuring calls do nothing and no timer or event filter exists.
+
+## Diagnostics — live log
+
+Tray menu → *Troubleshooting* → *Live log…* (or launch with
+`refrain --debug`) opens a
+streaming view of every log line as it happens, color-coded by level and
+filterable. Same content as `~/.local/state/refrain/refrain.log`, but
+without tailing it from a terminal.
+
+When developer mode is on, its measurements appear in a *Developer* tab of
+this same window.
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="screenshots/live-log-light.png"/>
+    <img src="screenshots/live-log.png" alt="Live-log window" width="640"/>
+  </picture>
+</p>
