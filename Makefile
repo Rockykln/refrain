@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format build clean clean-all wheel i18n i18n-update
+.PHONY: help install dev test lint typecheck format build clean clean-all wheel i18n i18n-update
 
 # `lupdate` / `lrelease`. PySide6 ships them in its own package directory
 # on PyPI, but distro packages (Arch's `pyside6`) leave that empty and put
@@ -16,6 +16,7 @@ help:
 	@echo "  make dev          Install with dev extras (pytest, ruff, …)"
 	@echo "  make test         Run the test suite"
 	@echo "  make lint         ruff check + ruff format --check"
+	@echo "  make typecheck    mypy (src/refrain, settings in pyproject.toml)"
 	@echo "  make format       Apply ruff format"
 	@echo "  make wheel        Build the wheel + sdist into dist/"
 	@echo "  make i18n         Regenerate .qm files from .ts (compile only)"
@@ -35,6 +36,11 @@ test:
 lint:
 	ruff check .
 	ruff format --check .
+
+# Needs the PyPI PySide6 for Qt's type information; see CONTRIBUTING.md
+# if your venv uses the distro package.
+typecheck:
+	mypy
 
 format:
 	ruff format .

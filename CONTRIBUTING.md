@@ -77,11 +77,28 @@ played*.
 ```sh
 ruff check .
 ruff format .
+mypy
 ```
 
-CI runs both but does not block PRs on style alone. Format on save is
-recommended; the project follows Ruff's defaults (line length 100,
-double-quoted strings).
+CI runs ruff on every push but does not block PRs on style alone. mypy
+(standard mode, `src/refrain`, settings in `pyproject.toml`) does block:
+it has to stay clean. Prefer a real annotation or a check over
+`# type: ignore`; where an ignore is unavoidable, give it the error code
+and a reason.
+
+mypy needs the PySide6 from PyPI, as CI installs it. Distro packages
+(Arch's `pyside6`, for one) ship the `.pyi` files without a `py.typed`
+marker, so mypy skips Qt and reports every Qt import instead. In a venv
+built with `--system-site-packages`, run it against the lock file
+instead:
+
+```sh
+python -m venv .venv-mypy && .venv-mypy/bin/pip install --require-hashes -r requirements-dev.lock
+.venv-mypy/bin/mypy
+```
+
+Format on save is recommended; the project follows Ruff's defaults
+(line length 100, double-quoted strings).
 
 ## Adding a playback source
 
