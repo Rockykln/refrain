@@ -4,7 +4,7 @@
 <context>
     <name>HistoryWindow</name>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="775"/>
+        <location filename="../ui/history_window.py" line="781"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n minute ago</numerusform>
@@ -12,7 +12,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="778"/>
+        <location filename="../ui/history_window.py" line="784"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n hour ago</numerusform>
@@ -20,7 +20,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="780"/>
+        <location filename="../ui/history_window.py" line="786"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n day ago</numerusform>
@@ -28,7 +28,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="899"/>
+        <location filename="../ui/history_window.py" line="906"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%1 of %n song</numerusform>
@@ -36,7 +36,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="902"/>
+        <location filename="../ui/history_window.py" line="909"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>Last song</numerusform>
@@ -47,7 +47,7 @@
 <context>
     <name>StatusWindow</name>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="762"/>
+        <location filename="../ui/status_window.py" line="813"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble waiting to be sent</numerusform>
@@ -58,7 +58,7 @@
 <context>
     <name>TrayIcon</name>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="369"/>
+        <location filename="../ui/tray.py" line="392"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: %n scrobble waiting</numerusform>
