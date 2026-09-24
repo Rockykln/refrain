@@ -846,7 +846,7 @@
     <message>
         <location filename="../ui/settings_window.py" line="1004"/>
         <source>Shared secret:</source>
-        <translation>共享密钥：</translation>
+        <translation>Shared secret:</translation>
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1006"/>

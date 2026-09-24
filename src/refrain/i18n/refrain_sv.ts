@@ -842,7 +842,7 @@
     <message>
         <location filename="../ui/settings_window.py" line="996"/>
         <source>Last.fm API key</source>
-        <translation>Last.fm API key</translation>
+        <translation>Last.fm API-nyckel</translation>
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="998"/>
