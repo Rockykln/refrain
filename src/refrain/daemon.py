@@ -155,7 +155,7 @@ def compute_idle_state(
     # handle protection.
     if duration_ms < 30_000:
         return track, "", 0.0
-    track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
+    track_key = track.content_key()
     sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
     if track_key != prev_track_key and prev_track_key != sentinel_key:
         return track, track_key, now
@@ -947,9 +947,7 @@ class DaemonWorker(QObject):
         alive across an idle clear, since the source itself carries on
         reporting the track.
         """
-        track_key = (
-            f"{track.source}|{track.title}|{track.artist}|{track.album}" if track.has_track else ""
-        )
+        track_key = track.content_key() if track.has_track else ""
         now = time.monotonic()
         estimate_ms = None
         if track_key != self._position_state.track_key:
@@ -1407,7 +1405,7 @@ class DaemonWorker(QObject):
             )
             return
 
-        track_key = f"{track.source}|{track.title}|{track.artist}|{track.album}"
+        track_key = track.content_key()
         is_new_track = track_key != self._rpc_track_key
 
         # Hold a new song back for up to 3 polls until its cover is cached, so

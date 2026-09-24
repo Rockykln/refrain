@@ -72,6 +72,9 @@ lists every version and why.
   empty space the row keeps to its right.
 - **Every attempt to reach Discord left three files open.** With Discord
   closed that was three more every 15 seconds.
+- **A "|" in a title, artist or album could make two different songs
+  look like one**, so the time kept running from the previous song and a
+  scrobble could be counted as the same play.
 
 ### Security
 

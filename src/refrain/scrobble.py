@@ -466,7 +466,7 @@ class Scrobbler:
 
     @staticmethod
     def _content_key(track: TrackInfo) -> str:
-        return f"{track.source}|{track.title}|{track.artist}|{track.album}"
+        return track.content_key()
 
     @staticmethod
     def _is_candidate(track: TrackInfo, effective_duration_ms: int) -> bool:

@@ -24,7 +24,7 @@ from refrain.scrobble import (
     is_replay,
     should_scrobble,
 )
-from refrain.sources.base import PlaybackStatus, TrackInfo
+from refrain.sources.base import PlaybackStatus, TrackInfo, content_key
 
 log = logging.getLogger(__name__)
 
@@ -146,11 +146,11 @@ class _Resume:
 
 
 def _content_key(track: TrackInfo) -> str:
-    return f"{track.source}|{track.title}|{track.artist}|{track.album}"
+    return track.content_key()
 
 
 def _entry_key(entry: HistoryEntry) -> str:
-    return f"{entry.source}|{entry.title}|{entry.artist}|{entry.album}"
+    return content_key(entry.source, entry.title, entry.artist, entry.album)
 
 
 def _is_candidate(track: TrackInfo) -> bool:

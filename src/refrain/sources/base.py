@@ -39,5 +39,22 @@ class TrackInfo:
     def has_track(self) -> bool:
         return bool(self.title)
 
+    def content_key(self) -> str:
+        return content_key(self.source, self.title, self.artist, self.album)
+
     def fingerprint(self) -> str:
-        return f"{self.source}|{self.title}|{self.artist}|{self.album}|{self.status.value}"
+        return f"{self.content_key()}|{self.status.value}"
+
+
+def content_key(source: str, title: str, artist: str, album: str) -> str:
+    """Identify a song by its metadata, as one string.
+
+    The parts are joined with "|" and the album is cut off again by
+    timing._only_album_differs, so a pipe inside a title or album would move
+    that boundary and let two different songs share a key.
+    """
+    return "|".join(_escape(part) for part in (source, title, artist, album))
+
+
+def _escape(part: str) -> str:
+    return part.replace("%", "%25").replace("|", "%7C")
