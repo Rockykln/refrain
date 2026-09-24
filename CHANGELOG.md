@@ -9,6 +9,70 @@ lists every version and why.
 
 ## [Unreleased]
 
+### Added
+
+- **The time keeps running after a restart mid-song.** When a song is
+  still playing and its player doesn't say where it is, Refrain carries
+  on from where it was and marks that as estimated: `~1:08 / 3:20`.
+- **A white or black tray icon, your choice.** The icon now defaults to
+  white, since most panels are dark whatever the app theme is. Set
+  `tray_icon` in `config.toml` to `"black"`, or to `"auto"` to follow
+  the system theme as before.
+- **Refrain says when Discord is open but not logged in.** That used to
+  read as a rejected Application ID.
+- **A hint when a browser plays but doesn't say which page.** Chromium,
+  Chrome, Brave, Edge, Opera and Vivaldi only publish the page address
+  through KDE's Plasma Browser Integration; without it Apple Music can't
+  be recognised. The Status window now says so instead of staying empty.
+- **The system report lists the media players on the session bus**, with
+  the name each one reports and whether it exposes an Apple Music page.
+  Never the page itself, never a song title.
+- **Last.fm can confirm a length Refrain measured itself**, when Apple
+  doesn't know the song and Last.fm is switched on. One read-only
+  request per song, and the answer is kept.
+
+### Changed
+
+- **Apple's length wins.** Players that report a growing buffer length
+  turned a 2:45 song into 5:23; a player stuck at 1:30 hid the time of a
+  3:16 song. The length a player reports now only counts when Apple
+  doesn't know the song.
+- **Menu icons outside KDE.** Entries such as *Settings* stayed blank on
+  GNOME and Cinnamon. Every icon now falls back to the standard
+  freedesktop names, and to a bundled one where none fits.
+- **Uninstall and Reset ask more carefully.** Enter now cancels instead
+  of uninstalling or resetting. The reset question also says that the
+  *Recently played* list is kept.
+- **Songs start once.** An album that arrived a moment after the song
+  did looked like a new song: the first play was dropped from the
+  history and the catalogue was asked twice.
+- **Packaging:** each release now carries an SBOM, the AUR package
+  builds from the signed git tag, and both AUR recipes suggest
+  `libnotify` for desktop notifications.
+
+### Fixed
+
+- **Refrain could abort while quitting**, when a background check
+  started as the window closed.
+- **The song list was squeezed.** With a song playing, the Status window
+  fitted one row too many into the space left and clipped the text.
+  Songs are also underlined while the mouse is on them, and the first
+  button no longer opens with a focus frame.
+- **"&" in a title, artist or album** disappeared from the tray menu.
+- **A crash while the song list was rebuilt.** A row with its tooltip
+  open took a visible window down with it, which can crash Qt's Wayland
+  code ([QTBUG-150645](https://qt-project.atlassian.net/browse/QTBUG-150645)).
+- **Developer mode** no longer shows startup times that were never
+  measured, and its live-log buttons have readable names.
+
+### Security
+
+- **Signature check:** public keys of small order are refused. Releases
+  are only ever checked against Refrain's built-in key, so this closes a
+  theoretical hole, not an open door.
+- The signature cross-check against the `cryptography` package now runs
+  in CI, and `bandit` checks every network call again.
+
 ## [0.5.3] - 2026-09-20
 
 The first release with an AppImage that works, and a thorough one. Every

@@ -153,17 +153,20 @@ What Refrain makes of that:
   count its position on across loops — 5:13 into a 3:36 song — so there
   the song's own position is what's left after whole loops.
 
-`timing.resolve_position` answers in three tiers, in order:
+`timing.resolve_position` answers in four tiers, in order:
 
-| Tier       | Used when                                                    |
-|------------|--------------------------------------------------------------|
-| `reported` | The source's value holds up: non-negative, not past the end of the track, moving while playing, and not from a source already caught carrying its position across a track change. |
-| `computed` | It doesn't, but we witnessed this track start: wall-clock elapsed since that anchor, minus time paused. A stream-relative source's timeline is still followed through seeks; a source whose own reset gave us the anchor is not — see below. |
-| `unknown`  | Neither. No anchor to count from, or our own clock has run past the end of the track. |
+| Tier        | Used when                                                    |
+|-------------|--------------------------------------------------------------|
+| `reported`  | The source's value holds up: non-negative, not past the end of the track, moving while playing, and not from a source already caught carrying its position across a track change. |
+| `computed`  | It doesn't, but we witnessed this track start: wall-clock elapsed since that anchor, minus time paused. A stream-relative source's timeline is still followed through seeks; a source whose own reset gave us the anchor is not — see below. |
+| `estimated` | Neither, but Refrain just restarted mid-song and the same track is still playing: our own clock, placed at the progress `history.py` saved before the restart, since there's no witnessed start this session to compute from. Only for the track first seen this way, only until a better tier takes over or the estimate runs past the end of the track. |
+| `unknown`   | None of the above. No anchor to count from and no saved progress to estimate from, or our own clock has run past the end of the track. |
 
 `unknown` renders as nothing at all — no tray progress line, no
-`start`/`end` for Discord, no length published to Plasma's applet. A
-clock known to be wrong is worse than an absent one, and the next track
+`start`/`end` for Discord, no length published to Plasma's applet.
+`estimated` renders with the same numbers, marked: the tray and Status
+window show `~1:08 / 3:20` with a tooltip explaining the `~`. A clock
+known to be wrong is worse than an absent one, and the next track
 change recovers it. `advanced.position_stall_s` (default 4 s) is the
 window a playing track's position may stand still before the first tier
 is withdrawn; 0 disables that check.
@@ -196,33 +199,36 @@ Ordinary sources — every other MPRIS player, Bluetooth AVRCP — stay on
 
 ### Duration
 
-Two parties can answer and either can be wrong. `mpris:length` describes
-the element actually playing, so it normally wins; the catalog duration
-comes from an artist-and-title search that can match the wrong record —
-58 s for a 2:45 song, observed live. The catalog fills gaps rather than
-overruling: no length reported, or a length under 30 s where the catalog
-says otherwise (Apple Music's preview-clip representation).
+Three candidates: the catalog, the source's `mpris:length`, and a length
+Refrain measured itself from whole plays (`song_lengths.py`, for songs
+the catalog doesn't know). The catalog wins outright whenever the lookup
+accepts a match (artist and title both check out) — whatever the source
+has been shown to be doing with its position. `mpris:length` describes
+the media element actually playing, not the song: a buffer that grows
+as the stream loads (5:23, 7:23, 10:06 on a 2:45 song), or a number
+stuck short of it (1:30 on a 3:16 song). A catalog search can land on
+the wrong record too — 58 s for a 2:45 song, observed live — but that
+happens far less often than a browser misreporting its own length.
 
-Which one to believe depends on what the source has been shown to be:
+Without a catalog match, what the source has been shown to be decides:
 
-| Source established as | Length used                            |
-|-----------------------|----------------------------------------|
-| track-relative        | the player's, catalog filling gaps      |
-| stream-relative       | the catalog's — the player's describes its buffer |
-| not yet established   | the player's, unless the two disagree — then neither |
+| Source established as                  | Length used                                                    |
+|-----------------------------------------|-----------------------------------------------------------------|
+| stream-relative (`cumulative`)          | the length Refrain measured itself, or nothing yet — the source's own number describes its buffer, not the song |
+| track-relative, or not yet established  | the source's own number, unless it's under 30 s and a measured length is longer (Apple Music's preview-clip representation) |
+| not yet established, and the two disagree by more than 15 % (or 5 s), whichever is larger | neither — undecided |
 
-That last row is the startup-mid-track case, and the disagreement there
-is genuinely undecidable: a position past the catalog length fits "the
-catalog matched the wrong record" and "this position belongs to a
-stream" equally well. Refrain says so instead of picking, and
-`resolve_position` withholds tier 1 from a track whose start it didn't
-see, so the time is hidden until the next track change settles it.
+The last row is the startup-mid-track case, and the disagreement there
+is genuinely undecidable: a position past the source's or the measured
+length fits "the catalog matched the wrong record" and "this position
+belongs to a stream" equally well. Refrain says so instead of picking,
+and `resolve_position` withholds tier 1 from a track whose start it
+didn't see, so the time is hidden until the next track change settles
+it.
 
-The boundary worth knowing: when the catalog has no match at all, there
-is nothing to contradict the source, and its numbers are used as
-reported. On a stream-relative player that means one track may render a
-stream position before the next track change — or the length growing —
-gives it away.
+A length Refrain measures itself only counts once two whole plays agree
+within two seconds, and — when Last.fm is enabled — is itself confirmed
+or challenged by asking Last.fm once per song for its own answer.
 
 ### Idle detection
 

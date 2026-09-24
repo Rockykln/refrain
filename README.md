@@ -23,6 +23,11 @@ streaming from your phone over Bluetooth.
 
 - Reads playback metadata from **MPRIS** (Apple Music in any major Linux
   browser) and **BlueZ AVRCP** (any AVRCP-capable Bluetooth source).
+  Firefox and its relatives report the page they play; Chromium-based
+  browsers (Chrome, Chromium, Brave, Edge, Opera, Vivaldi) only do so
+  through KDE's Plasma Browser Integration — the
+  `plasma-browser-integration` package plus the *Plasma Integration*
+  extension, which also works outside KDE (confirmed on Cinnamon).
 - Forwards track + cover art to Discord via the local IPC socket.
 - Optionally **scrobbles to Last.fm** alongside Discord (opt-in, with a
   crash-safe offline queue).
@@ -89,9 +94,13 @@ compiling its own:
 
 | Distro | Command |
 |--------|---------|
-| Ubuntu 24.04, Linux Mint 22, Debian 13 | `sudo apt install pipx python3-dbus python3-gi libxcb-cursor0` |
+| Ubuntu 24.04, Linux Mint 22, Debian 13 | `sudo apt update && sudo apt install pipx python3-dbus python3-gi libxcb-cursor0` |
 | Fedora 42 | `sudo dnf install pipx python3-dbus python3-gobject` |
 | openSUSE Tumbleweed | `sudo zypper install python313-pipx python313-gobject gcc pkgconf dbus-1-devel glib2-devel python313-devel` |
+
+On Debian and its relatives, `apt update` first: with an old package index
+`apt install` fails with *404 Not Found* once a package has been replaced
+in the archive. `libxcb-cursor0` is only needed under X11.
 
 Then:
 
@@ -159,6 +168,11 @@ registers their own (free, takes 30 seconds):
 3. Copy the **Application ID** from the *General Information* page.
 4. Launch Refrain → *Settings → General → Application ID* → paste,
    *OK*.
+5. In Discord: *Settings → Activity privacy → Share your detected
+   activities with others*. A fresh Discord install has this switch off,
+   and with it off nobody sees your status — Refrain looks connected
+   either way. The Discord desktop app is required; Discord in a browser
+   can't receive a status.
 
 The first time you launch Refrain without a configured ID, the
 welcome wizard pops up with the setup steps + a live diagnostics

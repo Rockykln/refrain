@@ -112,9 +112,14 @@ minute; the whole sweep is ≈ 6 minutes per system.
 
 ### 1. Tray + theme parity
 
-- Refrain icon appears in the system tray on launch.
-- Icon style matches the system theme (light glyph on dark panel,
-  dark glyph on light panel).
+- Refrain icon appears in the system tray on launch, white by default
+  (`tray_icon` in `config.toml`; not in Settings) — check it's visible
+  against the panel. Set `tray_icon = "auto"` to also check that it
+  then follows a live theme switch (light glyph on dark panel, dark
+  glyph on light panel).
+- Tray menu entries whose icon has no freedesktop equivalent — *Settings…*
+  and *Troubleshooting* are the two to check — show a fallback icon, not
+  a blank space, on GNOME and Cinnamon (no Breeze icon theme there).
 - Settings window styling matches the rest of the desktop (Breeze
   on KDE, Adwaita-via-Qt on GNOME, etc.). The pip / pipx / AppImage
   builds should look the same as the AUR / system build because of
@@ -169,6 +174,9 @@ Triggered automatically when a newer version exists; or set
   `io.github.Rockykln.Refrain`, and re-execs itself.
 - Tray icon disappears and reappears within ≈ 2 s.
 - Discord RPC reconnects and the same track shows up again.
+- The Status window shows the time with a `~` (e.g. `~1:08 / 3:20`)
+  and a tooltip explaining it's estimated, until the source itself
+  reports a trustworthy position (usually within a few polls).
 - `refrain.log` has a `Re-execing for restart` line followed by a
   fresh `Refrain ... starting` line — no duplicate D-Bus name
   errors.

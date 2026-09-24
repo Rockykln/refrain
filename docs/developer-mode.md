@@ -43,7 +43,9 @@ is on). It shows, refreshed every second while the tab is visible:
   poll (`total`).
 - **Startup:** milliseconds after the process started until the config was
   loaded, Qt was up, the tray icon was shown, the daemon started, the first
-  poll finished and Discord was connected.
+  poll finished and Discord was connected. Turning developer mode on
+  while Refrain is already running leaves the early steps unmeasured; the
+  table then says so instead of showing misleadingly large numbers.
 - **Network (ms):** calls, failures, last and longest duration per service
   (`itunes`, `cover_image`, `lastfm`, `github`, `discord_api`).
 - **Interactions:** how often windows were opened, tabs switched and buttons
@@ -62,9 +64,14 @@ is on). It shows, refreshed every second while the tab is visible:
 *System report…* shows what Refrain runs on — version and install type,
 distribution, kernel, Python, PySide6 and Qt, desktop session, and which
 settings are on — with a *Copy* button, ready to paste into a bug report.
-It names no songs, no credentials, no Bluetooth address and no Application
-ID, only whether each is set; home directories are written as `~` and the
-time zone is left out.
+It also lists every MPRIS player on the session bus, one line each:
+its bus name, its `Identity`, whether it reports a page address at all
+and whether that address is Apple Music — never the address itself and
+never a song title, so a report about a browser that isn't recognised
+needs no follow-up questions about what was playing. The report names no
+songs, no credentials, no Bluetooth address and no Application ID, only
+whether each is set; home directories are written as `~` and the time
+zone is left out.
 
 ## What is stored
 

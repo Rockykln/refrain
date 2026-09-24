@@ -48,6 +48,19 @@ Install the **AppIndicator and KStatusNotifierItem** GNOME Shell
 extension. Refrain's tray uses `QSystemTrayIcon`, which on GNOME requires
 that extension to be visible.
 
+## The tray icon is hard to see on my panel.
+
+The icon defaults to **white**, since most panels are dark whatever the
+desktop theme is. On a light panel, add to `config.toml`:
+
+```toml
+[behavior]
+tray_icon = "black"    # or "auto" to follow the system colour scheme
+```
+
+There's no setting for it in *Settings* — edit the file and restart
+Refrain (or *Restart Refrain* from the tray menu).
+
 ## Refrain isn't picking up my browser.
 
 Refrain reads track metadata from the browser's MPRIS publication. If
@@ -125,6 +138,14 @@ That's intentional — pausing is implicitly "not listening". If you want
 the status to persist while paused, tell us in
 [a feature request](https://github.com/Rockykln/refrain/issues/new?template=feature_request.yml).
 
+## Refrain says it's connected to Discord, but nobody sees my status.
+
+Discord has its own switch, separate from anything Refrain does: *User
+Settings → Activity Privacy → Share your detected activities*. It's
+**off by default on a fresh Discord install**, so Refrain can be
+working perfectly and still show nothing to anyone. Turn that switch on
+in Discord.
+
 ## The elapsed time freezes mid-song, jumps back to the start, or disappears.
 
 Apple Music's web player doesn't report a per-track position. It reports
@@ -142,24 +163,39 @@ of the problem: its position and length describe the album's looping
 artwork video on the page, not the song, so the position falls back to
 zero every eight to sixteen seconds. That is what made the elapsed time
 restart over and over mid-song. Refrain never shows a position like that;
-it counts from the song's start itself — and after a restart in the
-middle of a song, when that start wasn't seen, it hides the time until
-the next song (or the next loop of this one) begins.
+it counts from the song's start itself.
 
-Refrain resolves the position in three tiers. It uses what the source
-reports while that holds up; when it doesn't, it counts from the start of
-the track itself, discounting pauses and following seeks; and when it has
-no honest answer — a song that was already playing when Refrain started,
-so there is no witnessed start to count from — it hides the time rather
-than show a wrong one. Where it *did* see the track start, that start
-wins over anything the source does with its position afterwards, which
-is what keeps a segment source's resets from dragging the clock back.
-That is why the progress line and Discord's timer can be absent for one
-track and come back at the next track change.
+When Refrain itself restarts in the middle of a song — an update, a
+crash, *Restart Refrain* — there's no witnessed start to count from
+either. If the same song is still playing when it comes back, Refrain
+now carries the clock on from where *Recently played* last saved it,
+marked as an estimate: `~1:08 / 3:20`, with a tooltip explaining why the
+`~` is there. That only holds until something better takes over — the
+source reporting a trustworthy position of its own, or the estimate
+running past the end of the track — and only for the track first seen
+that way. With no saved progress to estimate from, or once nothing
+holds up any more, the time is hidden until the next track change (or
+the next loop of this one) settles it.
 
-The song's total length then comes from the iTunes catalog, since the
-player's own number doesn't describe the song. When the catalog has no
-match, the tray shows the elapsed count on its own.
+Refrain resolves the position in four tiers. It uses what the source
+reports while that holds up; when it doesn't but the track's start was
+witnessed, it counts from there itself, discounting pauses and following
+seeks; right after a restart, with no witnessed start, it counts from
+the estimate above instead; and when none of that holds — a song that
+was already playing when Refrain started, with no history to estimate
+from — it hides the time rather than show a wrong one. Where Refrain
+*did* see the track start, that start wins over anything the source does
+with its position afterwards, which is what keeps a segment source's
+resets from dragging the clock back. That is why the progress line and
+Discord's timer can be absent for one track and come back at the next
+track change.
+
+The song's total length then comes from the iTunes catalog, once the
+lookup accepts a match — the player's own number describes what's
+actually playing (a growing buffer, a looping video), not the song.
+Only when the catalog has no match does the player's own number stand,
+with a length Refrain measured itself filling in where that number is
+missing or clearly too short.
 
 `advanced.position_stall_s` (default 4) is how many seconds a playing
 track's position may stand still before Refrain stops trusting it; 0
@@ -176,12 +212,16 @@ only as good as the length, and a catalog search that matches the wrong
 record can make it far too short: 58 s for a 2:45 song, in one live
 session, which cleared the status a minute in.
 
-Two things now prevent it. The song's length comes from the player
-itself wherever it reports one, with the catalog filling gaps rather
-than overruling. And the deadline only measures silence — a position
-that is still moving is proof the handle isn't dangling, and pushes the
-deadline back. Setting `idle_grace_s = 0` disables idle detection
+One thing now prevents it: the deadline only measures silence — a
+position that is still moving is proof the handle isn't dangling, and
+pushes the deadline back, whatever a wrong catalog match says the
+length should be. Setting `idle_grace_s = 0` disables idle detection
 entirely, at the cost of a closed tab leaving a stale status behind.
+
+(The catalog's length still wins whenever the lookup matches the song —
+see [the elapsed-time question above](#the-elapsed-time-freezes-mid-song-jumps-back-to-the-start-or-disappears)
+— so a wrong match is now rarer than it was, but the fix for *this*
+problem is the movement check, not which length wins.)
 
 ## Where is my listening history, and how do I get rid of it?
 

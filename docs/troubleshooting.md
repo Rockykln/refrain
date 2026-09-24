@@ -37,16 +37,29 @@ There is no Apple Music app for Linux, so Refrain reads Apple Music Web
 (`music.apple.com`) from your browser over MPRIS, the standard Linux
 interface for media players.
 
-- Tested: **Firefox**, **Zen**, **Google Chrome**, **Chromium** and
-  **Brave**, on KDE Plasma.
-- Firefox and Zen report the Apple Music tab themselves.
-- Chrome, Chromium and Brave don't say which page is playing. Refrain
-  gets that from KDE's Plasma Browser Integration: the
-  `plasma-browser-integration` package plus the *Plasma Integration*
-  extension in the browser.
-- Other browsers are recognised by name (Vivaldi, Edge, Opera,
-  LibreWolf, Floorp and more) but haven't been tested.
-- Browsers installed as a **Snap** can't publish MPRIS at all. See the
+- Tested: **Firefox**, **Zen**, **Google Chrome**, **Chromium**,
+  **Brave** and **Vivaldi**, on both KDE Plasma and Linux Mint /
+  Cinnamon.
+- Firefox and Zen report the Apple Music tab themselves, on every
+  desktop.
+- Chrome, Chromium, Brave, Vivaldi, Edge and Opera are all Chromium
+  underneath, and none of them say which page is playing on their own —
+  not even outside KDE. Refrain gets that from **Plasma Browser
+  Integration**: the `plasma-browser-integration` package plus the
+  *Plasma Integration* extension in the browser. That combination works
+  the same way on any desktop, not only Plasma — confirmed with Vivaldi
+  on Linux Mint 22.3 / Cinnamon. Being in this list by name just means
+  Refrain recognises the browser; without the integration installed, it
+  still can't tell which tab is playing.
+- Without Plasma Browser Integration, the Status window says so instead
+  of staying empty: `<Browser> is playing, but doesn't say which page.
+  Install Plasma Browser Integration (package plasma-browser-integration
+  plus the browser extension "Plasma Integration") or use Firefox.`
+- LibreWolf and Floorp are Firefox-based and report the tab themselves,
+  like Firefox; other Firefox-based browsers should too, but are
+  untested.
+- Browsers installed as a **Snap** can't publish MPRIS at all — Snap
+  sandboxes it away, regardless of browser or desktop. See the
   [FAQ](faq.md#refrain-isnt-picking-up-my-browser).
 
 ### Bluetooth needs BlueZ and a cooperative phone
@@ -187,9 +200,10 @@ The tray menu says in plain words what Discord is doing right now:
 *Discord: ready — waiting for music*, *visible on your profile*,
 *showing "Listening to music"*, *hidden while paused*,
 *hidden — sharing is off*, *app isn't running*, *not answering*,
-*not set up — add your Application ID* or
-*Application ID rejected — check it*. A few seconds after start-up the
-live log has a line starting with `[startup-check] Discord:`.
+*not set up — add your Application ID*, *not logged in — log in to
+show your status* or *Application ID rejected — check it*. A few
+seconds after start-up the live log has a line starting with
+`[startup-check] Discord:`.
 
 **No Application ID**
 
@@ -211,14 +225,23 @@ yet` is normal: Refrain connects once something plays.
 **The Application ID is rejected**
 
 - *What you see:* *Discord: Application ID rejected — check it* in the tray.
-- *Why:* Discord answered but refused the ID. Either the ID is wrong,
-  or Discord isn't signed in.
+- *Why:* Discord answered but refused the ID. The ID is wrong.
 - *What to do:* check the ID in *Settings → General*. The
   [FAQ](faq.md#how-do-i-know-my-discord-application-id-is-right) shows
-  how to let Refrain look up the application's name. Make sure you're
-  signed in to Discord.
+  how to let Refrain look up the application's name.
 - *Log:* `Discord RPC handshake rejected on …` and
   `[startup-check] Discord: handshake REJECTED (…)`
+
+**Discord is open but not logged in**
+
+- *What you see:* *Discord: not logged in — log in to show your status*
+  in the tray, and the same sentence in the Status window.
+- *Why:* Discord is running and the Application ID is fine, but nobody
+  is signed in to it. This used to look exactly like a rejected
+  Application ID; it's now told apart.
+- *What to do:* log in to Discord. Refrain picks it up on its own once
+  you do — no restart needed.
+- *Log:* `Discord RPC: auto is not logged in: …`
 
 **Privacy is set to Off**
 
@@ -229,9 +252,11 @@ yet` is normal: Refrain connects once something plays.
 
 **Discord hides your activity**
 
-Discord has its own switch for showing activity to others, under
-*Activity Privacy* in Discord's settings. If it's off, Refrain connects
-fine but nobody sees the status.
+Discord has its own switch for showing activity to others: *User
+Settings → Activity Privacy → Share your detected activities*. It's
+**off by default on a fresh Discord install** — Refrain connects fine,
+the status looks like it's working in the tray and the Status window,
+and nobody sees it anyway. Turn that switch on in Discord.
 
 **Several Discord clients**
 
