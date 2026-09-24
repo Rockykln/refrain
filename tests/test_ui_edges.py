@@ -215,3 +215,37 @@ def test_a_cache_file_that_cannot_be_deleted_does_not_stop_the_rest_from_being_p
     assert cf._prune_lookup_cache(0) == 1
     assert stuck.exists()
     assert not old.exists()
+
+
+def test_closing_the_wizard_asks_before_throwing_away_a_typed_id(qapp, monkeypatch):
+    """Applying an empty field asks; discarding a filled one used to not."""
+    from refrain.ui.welcome_dialog import WelcomeDialog
+
+    dialog = WelcomeDialog()
+    dialog.client_id_edit.setText("1234567890123456789")
+    emitted = []
+    dialog.applied.connect(emitted.append)
+
+    asked = []
+    monkeypatch.setattr(dialog, "_confirm_discarding_id", lambda: asked.append(1) or False)
+    dialog.reject()
+    assert asked == [1] and emitted == []
+
+    monkeypatch.setattr(dialog, "_confirm_discarding_id", lambda: asked.append(1) or True)
+    dialog.reject()
+    assert asked == [1, 1] and emitted == [""]
+    dialog.deleteLater()
+
+
+def test_closing_an_empty_wizard_asks_nothing(qapp, monkeypatch):
+    from refrain.ui.welcome_dialog import WelcomeDialog
+
+    dialog = WelcomeDialog()
+    emitted = []
+    dialog.applied.connect(emitted.append)
+    monkeypatch.setattr(
+        dialog, "_confirm_discarding_id", lambda: pytest.fail("asked about an empty field")
+    )
+    dialog.reject()
+    assert emitted == [""]
+    dialog.deleteLater()

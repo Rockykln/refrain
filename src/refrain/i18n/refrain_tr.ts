@@ -402,43 +402,43 @@
 <context>
     <name>LastfmApprovalDialog</name>
     <message>
-        <location filename="../ui/settings_window.py" line="461"/>
+        <location filename="../ui/settings_window.py" line="464"/>
         <source>Authorize Refrain</source>
         <translation>Refrain&apos;i yetkilendir</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="464"/>
+        <location filename="../ui/settings_window.py" line="467"/>
         <source>A Last.fm page opened in your browser. Click “Yes, allow access” there — Refrain connects by itself as soon as you have.</source>
         <translation>Tarayıcınızda bir Last.fm sayfası açıldı. Orada erişime izin verin — izin verdiğiniz anda Refrain kendiliğinden bağlanır.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="469"/>
-        <location filename="../ui/settings_window.py" line="518"/>
+        <location filename="../ui/settings_window.py" line="472"/>
+        <location filename="../ui/settings_window.py" line="521"/>
         <source>Waiting for you to allow access…</source>
         <translation>Erişime izin vermeniz bekleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="470"/>
+        <location filename="../ui/settings_window.py" line="473"/>
         <source>Open the page again</source>
         <translation>Sayfayı yeniden aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="472"/>
+        <location filename="../ui/settings_window.py" line="475"/>
         <source>Cancel</source>
         <translation>İptal</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="521"/>
+        <location filename="../ui/settings_window.py" line="524"/>
         <source>Can&apos;t reach Last.fm right now — still trying…</source>
         <translation>Last.fm&apos;e şu anda ulaşılamıyor — yeniden deneniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="523"/>
+        <location filename="../ui/settings_window.py" line="526"/>
         <source>The Last.fm page has expired. Click Connect to start again.</source>
         <translation>Last.fm sayfasının süresi doldu. Baştan başlamak için Bağlan düğmesine tıklayın.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="528"/>
+        <location filename="../ui/settings_window.py" line="531"/>
         <source>No approval arrived. Click Connect to start again.</source>
         <translation>Onay gelmedi. Baştan başlamak için Bağlan düğmesine tıklayın.</translation>
     </message>
@@ -522,118 +522,118 @@
         <translation>Discord&apos;a ulaşılamadı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="573"/>
+        <location filename="../ui/settings_window.py" line="576"/>
         <source>Settings</source>
         <translation>Ayarlar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="612"/>
+        <location filename="../ui/settings_window.py" line="615"/>
         <source>General</source>
         <translation>Genel</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="613"/>
+        <location filename="../ui/settings_window.py" line="616"/>
         <source>Sources</source>
         <translation>Kaynaklar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="614"/>
-        <location filename="../ui/settings_window.py" line="935"/>
-        <location filename="../ui/settings_window.py" line="1693"/>
-        <location filename="../ui/settings_window.py" line="1768"/>
+        <location filename="../ui/settings_window.py" line="617"/>
+        <location filename="../ui/settings_window.py" line="938"/>
+        <location filename="../ui/settings_window.py" line="1696"/>
+        <location filename="../ui/settings_window.py" line="1771"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="616"/>
+        <location filename="../ui/settings_window.py" line="619"/>
         <source>Updates</source>
         <translation>Güncellemeler</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="617"/>
+        <location filename="../ui/settings_window.py" line="620"/>
         <source>Advanced</source>
         <translation>Gelişmiş</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="621"/>
-        <location filename="../ui/settings_window.py" line="899"/>
-        <location filename="../ui/settings_window.py" line="910"/>
-        <location filename="../ui/settings_window.py" line="927"/>
-        <location filename="../ui/settings_window.py" line="1451"/>
-        <location filename="../ui/settings_window.py" line="1554"/>
-        <location filename="../ui/settings_window.py" line="1628"/>
-        <location filename="../ui/settings_window.py" line="2007"/>
+        <location filename="../ui/settings_window.py" line="624"/>
+        <location filename="../ui/settings_window.py" line="902"/>
+        <location filename="../ui/settings_window.py" line="913"/>
+        <location filename="../ui/settings_window.py" line="930"/>
+        <location filename="../ui/settings_window.py" line="1454"/>
+        <location filename="../ui/settings_window.py" line="1557"/>
+        <location filename="../ui/settings_window.py" line="1631"/>
+        <location filename="../ui/settings_window.py" line="2010"/>
         <source>Cancel</source>
         <translation>İptal</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="620"/>
+        <location filename="../ui/settings_window.py" line="623"/>
         <source>Apply</source>
         <translation>Uygula</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="641"/>
+        <location filename="../ui/settings_window.py" line="644"/>
         <source>View Refrain on GitHub</source>
         <translation>Refrain&apos;i GitHub&apos;da görüntüle</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="644"/>
+        <location filename="../ui/settings_window.py" line="647"/>
         <source>Legal</source>
         <translation>Yasal</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="677"/>
+        <location filename="../ui/settings_window.py" line="680"/>
         <source>Discord</source>
         <translation>Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="717"/>
+        <location filename="../ui/settings_window.py" line="720"/>
         <source>Look up the application&apos;s name on Discord</source>
         <translation>Uygulamanın adını Discord&apos;dan sorgula</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="720"/>
+        <location filename="../ui/settings_window.py" line="723"/>
         <source>Asks Discord what the Application ID is called, so a mistyped ID is visible instead of silently publishing nothing. This is the one request Refrain sends to Discord&apos;s servers rather than to your local Discord client; it carries the Application ID and nothing else.</source>
         <translation>Discord&apos;a bu Application ID&apos;nin adını sorar; böylece yanlış yazılmış bir ID, sessizce hiçbir şeyin yayımlanmamasına yol açmak yerine hemen fark edilir. Bu, Refrain&apos;in yerel Discord istemcinize değil de Discord sunucularına gönderdiği tek istektir; Application ID dışında hiçbir şey içermez.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="736"/>
+        <location filename="../ui/settings_window.py" line="739"/>
         <source>Use a separate Discord application per source (advanced)</source>
         <translation>Her kaynak için ayrı bir Discord uygulaması kullan (gelişmiş)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="742"/>
+        <location filename="../ui/settings_window.py" line="745"/>
         <source>Send the status to every running Discord client</source>
         <translation>Durumu, çalışan tüm Discord istemcilerine gönder</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="794"/>
+        <location filename="../ui/settings_window.py" line="797"/>
         <source>Full — title, artist, album, cover</source>
         <translation>Tam — şarkı adı, sanatçı, albüm, kapak</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="772"/>
+        <location filename="../ui/settings_window.py" line="775"/>
         <source>Open Discord Developer Portal</source>
         <translation>Discord Developer Portal&apos;ı aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="824"/>
+        <location filename="../ui/settings_window.py" line="827"/>
         <source>Show desktop notification on track change</source>
         <translation>Şarkı değiştiğinde masaüstü bildirimi göster</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="821"/>
+        <location filename="../ui/settings_window.py" line="824"/>
         <source>Behavior</source>
         <translation>Davranış</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="822"/>
+        <location filename="../ui/settings_window.py" line="825"/>
         <source>Start Refrain automatically on login</source>
         <translation>Oturum açıldığında Refrain&apos;i otomatik başlat</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="615"/>
-        <location filename="../ui/settings_window.py" line="842"/>
+        <location filename="../ui/settings_window.py" line="618"/>
+        <location filename="../ui/settings_window.py" line="845"/>
         <source>Recently played</source>
         <translation>Son çalınanlar</translation>
     </message>
@@ -643,561 +643,561 @@
         <translation>17-20 basamak bekleniyor</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="619"/>
+        <location filename="../ui/settings_window.py" line="622"/>
         <source>OK</source>
         <translation>Tamam</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="646"/>
+        <location filename="../ui/settings_window.py" line="649"/>
         <source>License, trademark and affiliation notices</source>
         <translation>Lisans, marka ve bağlantı bildirimleri</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="681"/>
+        <location filename="../ui/settings_window.py" line="684"/>
         <source>17–20 digit number</source>
         <translation>17-20 basamaklı sayı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="701"/>
+        <location filename="../ui/settings_window.py" line="704"/>
         <source>Application ID:</source>
         <translation>Application ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="746"/>
+        <location filename="../ui/settings_window.py" line="749"/>
         <source>Refrain normally sends your status to the first Discord app it finds. Turn this on if you run more than one at once.</source>
         <translation>Refrain durumunuzu normalde bulduğu ilk Discord uygulamasına gönderir. Aynı anda birden fazla kullanıyorsanız bunu açın.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="752"/>
-        <location filename="../ui/settings_window.py" line="757"/>
+        <location filename="../ui/settings_window.py" line="755"/>
+        <location filename="../ui/settings_window.py" line="760"/>
         <source>(uses the main Application ID)</source>
         <translation>(ana Application ID kullanılır)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="754"/>
+        <location filename="../ui/settings_window.py" line="757"/>
         <source>Apple Music:</source>
         <translation>Apple Music:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="759"/>
+        <location filename="../ui/settings_window.py" line="762"/>
         <source>Bluetooth:</source>
         <translation>Bluetooth:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="765"/>
+        <location filename="../ui/settings_window.py" line="768"/>
         <source>Show “Listen on Apple Music” button in Discord</source>
         <translation>Discord&apos;da “Listen on Apple Music” düğmesini göster</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="766"/>
+        <location filename="../ui/settings_window.py" line="769"/>
         <source>Discord shows the button to others, not to you.</source>
         <translation>Discord bu düğmeyi size değil, diğer kullanıcılara gösterir.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="780"/>
+        <location filename="../ui/settings_window.py" line="783"/>
         <source>Create a free application in the Discord Developer Portal and copy its Application ID. The application&apos;s name is what shows up next to “Listening to” in your Discord status.</source>
         <translation>Discord Developer Portal&apos;da ücretsiz bir uygulama oluşturun ve Application ID&apos;sini kopyalayın. Uygulamanın adı, Discord durumunuzda “Listening to” ifadesinin yanında görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="791"/>
+        <location filename="../ui/settings_window.py" line="794"/>
         <source>Privacy</source>
         <translation>Gizlilik</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="795"/>
+        <location filename="../ui/settings_window.py" line="798"/>
         <source>Minimal — only “Listening to music”</source>
         <translation>Minimal — yalnızca “Listening to music”</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="797"/>
+        <location filename="../ui/settings_window.py" line="800"/>
         <source>Off — pause Discord status and Last.fm scrobbling</source>
         <translation>Kapalı — Discord ve Last.fm&apos;i durdurur</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="801"/>
+        <location filename="../ui/settings_window.py" line="804"/>
         <source>What Refrain shares while music plays. Off pauses both the Discord status and Last.fm scrobbling; the recently played list on this computer keeps working.</source>
         <translation>Refrain, müzik çalarken neyi paylaştığını belirler. Kapalı, hem Discord durumunu hem de Last.fm scrobble özelliğini durdurur; bu bilgisayardaki son çalınanlar listesi çalışmaya devam eder.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="806"/>
+        <location filename="../ui/settings_window.py" line="809"/>
         <source>Sharing:</source>
         <translation>Paylaşım:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="807"/>
+        <location filename="../ui/settings_window.py" line="810"/>
         <source>Look up songs in Apple&apos;s catalog</source>
         <translation>Şarkıları Apple&apos;ın kataloğunda ara</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="812"/>
+        <location filename="../ui/settings_window.py" line="815"/>
         <source>Sends artist and title to Apple to get the cover, the song link and the length. Without it, Discord shows no cover and often no progress bar.</source>
         <translation>Kapak görselini, şarkı bağlantısını ve süreyi almak için sanatçı ve şarkı adını Apple&apos;a gönderir. Kapalıyken Discord&apos;da kapak görünmez ve çoğu zaman ilerleme çubuğu da görünmez.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="843"/>
+        <location filename="../ui/settings_window.py" line="846"/>
         <source>Keep a list of recently played songs</source>
         <translation>Son çalınan şarkıların listesini tut</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="853"/>
+        <location filename="../ui/settings_window.py" line="856"/>
         <source>Songs to keep:</source>
         <translation>Tutulacak şarkı sayısı:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="855"/>
+        <location filename="../ui/settings_window.py" line="858"/>
         <source>Show recently played…</source>
         <translation>Son çalınanları göster…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="861"/>
+        <location filename="../ui/settings_window.py" line="864"/>
         <source>Stored only on this computer and never sent anywhere, so privacy mode doesn&apos;t affect it. Turning it off deletes the list; a lower number drops the oldest songs.</source>
         <translation>Yalnızca bu bilgisayarda saklanır ve hiçbir yere gönderilmez; bu yüzden gizlilik modu onu etkilemez. Kapatmak listeyi siler; daha küçük bir sayı en eski şarkıları kaldırır.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="893"/>
+        <location filename="../ui/settings_window.py" line="896"/>
         <source>Turn off history?</source>
         <translation>Geçmiş kapatılsın mı?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="894"/>
+        <location filename="../ui/settings_window.py" line="897"/>
         <source>Turning the history off deletes the list of recently played songs.</source>
         <translation>Geçmişi kapatmak, son çalınan şarkıların listesini siler.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="895"/>
+        <location filename="../ui/settings_window.py" line="898"/>
         <source>This cannot be undone.</source>
         <translation>Bu işlem geri alınamaz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="897"/>
+        <location filename="../ui/settings_window.py" line="900"/>
         <source>Turn off and delete</source>
         <translation>Kapat ve sil</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="907"/>
+        <location filename="../ui/settings_window.py" line="910"/>
         <source>Disconnect from Last.fm?</source>
         <translation>Last.fm bağlantısı kesilsin mi?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="908"/>
+        <location filename="../ui/settings_window.py" line="911"/>
         <source>Nothing is scrobbled until you connect again.</source>
         <translation>Yeniden bağlanana kadar hiçbir şey scrobble edilmez.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="909"/>
-        <location filename="../ui/settings_window.py" line="1651"/>
+        <location filename="../ui/settings_window.py" line="912"/>
+        <location filename="../ui/settings_window.py" line="1654"/>
         <source>Disconnect</source>
         <translation>Bağlantıyı kes</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="918"/>
+        <location filename="../ui/settings_window.py" line="921"/>
         <source>Last.fm isn&apos;t connected</source>
         <translation>Last.fm bağlı değil</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="921"/>
+        <location filename="../ui/settings_window.py" line="924"/>
         <source>Scrobbling is switched on, but Refrain has no connection to Last.fm — nothing will be scrobbled.</source>
         <translation>Scrobble özelliği açık, ancak Refrain&apos;in Last.fm ile bağlantısı yok — hiçbir şey scrobble edilmeyecek.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="925"/>
+        <location filename="../ui/settings_window.py" line="928"/>
         <source>Click Connect… on the Last.fm tab to connect.</source>
         <translation>Bağlanmak için Last.fm sekmesinde Bağlan… düğmesine tıklayın.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="926"/>
+        <location filename="../ui/settings_window.py" line="929"/>
         <source>Apply anyway</source>
         <translation>Yine de uygula</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="936"/>
+        <location filename="../ui/settings_window.py" line="939"/>
         <source>Last.fm is connected, but scrobbling is off.</source>
         <translation>Last.fm bağlı, ancak scrobble özelliği kapalı.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="937"/>
+        <location filename="../ui/settings_window.py" line="940"/>
         <source>Turn on scrobbling</source>
         <translation>Scrobble özelliğini aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="938"/>
+        <location filename="../ui/settings_window.py" line="941"/>
         <source>Keep off</source>
         <translation>Kapalı kalsın</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="987"/>
+        <location filename="../ui/settings_window.py" line="990"/>
         <source>Last.fm scrobbling</source>
         <translation>Last.fm scrobble</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="989"/>
+        <location filename="../ui/settings_window.py" line="992"/>
         <source>Enable Last.fm scrobbling</source>
         <translation>Last.fm scrobble özelliğini etkinleştir</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="993"/>
+        <location filename="../ui/settings_window.py" line="996"/>
         <source>Last.fm API key</source>
         <translation>Last.fm API anahtarı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="995"/>
+        <location filename="../ui/settings_window.py" line="998"/>
         <source>API key:</source>
         <translation>API anahtarı:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="998"/>
+        <location filename="../ui/settings_window.py" line="1001"/>
         <source>Last.fm shared secret</source>
         <translation>Last.fm shared secret</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1001"/>
+        <location filename="../ui/settings_window.py" line="1004"/>
         <source>Shared secret:</source>
         <translation>Shared secret:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1003"/>
-        <location filename="../ui/settings_window.py" line="1661"/>
+        <location filename="../ui/settings_window.py" line="1006"/>
+        <location filename="../ui/settings_window.py" line="1664"/>
         <source>Not connected</source>
         <translation>Bağlı değil</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1004"/>
+        <location filename="../ui/settings_window.py" line="1007"/>
         <source>Account:</source>
         <translation>Hesap:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1006"/>
-        <location filename="../ui/settings_window.py" line="1659"/>
+        <location filename="../ui/settings_window.py" line="1009"/>
         <location filename="../ui/settings_window.py" line="1662"/>
+        <location filename="../ui/settings_window.py" line="1665"/>
         <source>Connect…</source>
         <translation>Bağlan…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1008"/>
+        <location filename="../ui/settings_window.py" line="1011"/>
         <source>Create API account</source>
         <translation>API hesabı oluştur</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1012"/>
+        <location filename="../ui/settings_window.py" line="1015"/>
         <source>Also send a “Now playing” update</source>
         <translation>Ayrıca “Şimdi çalıyor” bildirimi gönder</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1018"/>
+        <location filename="../ui/settings_window.py" line="1021"/>
         <source>Register a free API account, paste the key + secret, then Connect to authorize in your browser. Scrobbling runs alongside Discord and never replaces it; it pauses while Privacy is set to Off. The shared secret and the session token are stored in your system keyring, never in plain text.</source>
         <translation>Ücretsiz bir API hesabı açın, anahtarı + secret&apos;i yapıştırın, ardından tarayıcınızda yetkilendirmek için Bağlan&apos;a tıklayın. Scrobble özelliği Discord ile birlikte çalışır ve onun yerini almaz; Gizlilik Kapalı olduğunda duraklar. Shared secret ve oturum jetonu sistem anahtarlığınızda saklanır, düz metin olarak hiçbir zaman saklanmaz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1029"/>
+        <location filename="../ui/settings_window.py" line="1032"/>
         <source>Scrobbling via Last.fm</source>
         <translation>Last.fm üzerinden scrobble</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1047"/>
+        <location filename="../ui/settings_window.py" line="1050"/>
         <source>Apple Music Web (browser)</source>
         <translation>Apple Music Web (tarayıcı)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1048"/>
+        <location filename="../ui/settings_window.py" line="1051"/>
         <source>Enable browser source</source>
         <translation>Tarayıcı kaynağını etkinleştir</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1053"/>
+        <location filename="../ui/settings_window.py" line="1056"/>
         <source>Detected browsers:</source>
         <translation>Algılanan tarayıcılar:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1093"/>
+        <location filename="../ui/settings_window.py" line="1096"/>
         <source>e.g. waterfox, palemoon</source>
         <translation>ör. waterfox, palemoon</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1094"/>
+        <location filename="../ui/settings_window.py" line="1097"/>
         <source>Other (comma-separated):</source>
         <translation>Diğer (virgülle ayrılmış):</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1098"/>
+        <location filename="../ui/settings_window.py" line="1101"/>
         <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use.</source>
         <translation>Refrain yalnızca işlem adı veya masaüstü girdisi bu ifadelerden birini içeren tarayıcıları algılar. Kullandıklarınızı işaretleyin.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1106"/>
+        <location filename="../ui/settings_window.py" line="1109"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1107"/>
+        <location filename="../ui/settings_window.py" line="1110"/>
         <source>Enable Bluetooth source</source>
         <translation>Bluetooth kaynağını etkinleştir</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1113"/>
+        <location filename="../ui/settings_window.py" line="1116"/>
         <source>Refresh</source>
         <translation>Yenile</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1121"/>
+        <location filename="../ui/settings_window.py" line="1124"/>
         <source>Device:</source>
         <translation>Cihaz:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
+        <location filename="../ui/settings_window.py" line="1128"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Eşleştirilmiş bir cihaz seçin ya da o anda bağlı olan AVRCP destekli kaynağı okumak için “otomatik algıla” seçeneğini seçili bırakın.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1138"/>
-        <location filename="../ui/settings_window.py" line="1150"/>
-        <location filename="../ui/settings_window.py" line="1912"/>
+        <location filename="../ui/settings_window.py" line="1141"/>
+        <location filename="../ui/settings_window.py" line="1153"/>
+        <location filename="../ui/settings_window.py" line="1915"/>
         <source>(auto-detect)</source>
         <translation>(otomatik algıla)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1152"/>
+        <location filename="../ui/settings_window.py" line="1155"/>
         <source>(unknown device)</source>
         <translation>(bilinmeyen cihaz)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1155"/>
+        <location filename="../ui/settings_window.py" line="1158"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (bağlı)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1176"/>
+        <location filename="../ui/settings_window.py" line="1179"/>
         <source>never</source>
         <translation>henüz yapılmadı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1188"/>
+        <location filename="../ui/settings_window.py" line="1191"/>
         <source>Update checking</source>
         <translation>Güncelleme denetimi</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1191"/>
+        <location filename="../ui/settings_window.py" line="1194"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Başlangıçta otomatik denetle (günde en fazla bir kez)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1196"/>
+        <location filename="../ui/settings_window.py" line="1199"/>
         <source>Current version:</source>
         <translation>Geçerli sürüm:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1198"/>
+        <location filename="../ui/settings_window.py" line="1201"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1199"/>
+        <location filename="../ui/settings_window.py" line="1202"/>
         <source>Latest known:</source>
         <translation>Bilinen en son sürüm:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1202"/>
+        <location filename="../ui/settings_window.py" line="1205"/>
         <source>Last checked:</source>
         <translation>Son denetim:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1206"/>
+        <location filename="../ui/settings_window.py" line="1209"/>
         <source>Check for updates now</source>
         <translation>Güncellemeleri şimdi denetle</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1213"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain, GitHub Releases API&apos;sini sorgular. Güncelleme davranışı, Refrain&apos;in nasıl kurulduğuna bağlıdır (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1232"/>
+        <location filename="../ui/settings_window.py" line="1235"/>
         <source>Latest release notes</source>
         <translation>Son sürüm notları</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1238"/>
+        <location filename="../ui/settings_window.py" line="1241"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_GitHub&apos;dan en son değişiklik günlüğünü almak için_ **Güncellemeleri şimdi denetle** _düğmesine tıklayın._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1259"/>
+        <location filename="../ui/settings_window.py" line="1262"/>
         <source>(check failed)</source>
         <translation>(denetim başarısız)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1261"/>
+        <location filename="../ui/settings_window.py" line="1264"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_GitHub&apos;a ulaşılamadı. Ağ bağlantınızı denetleyip yeniden deneyin._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1266"/>
+        <location filename="../ui/settings_window.py" line="1269"/>
         <source>{version} (update available)</source>
         <translation>{version} (güncelleme var)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1270"/>
+        <location filename="../ui/settings_window.py" line="1273"/>
         <source>{version} (up to date)</source>
         <translation>{version} (güncel)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1272"/>
+        <location filename="../ui/settings_window.py" line="1275"/>
         <source>_No release notes provided._</source>
         <translation>_Sürüm notu yok._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1285"/>
+        <location filename="../ui/settings_window.py" line="1288"/>
         <source>Performance</source>
         <translation>Performans</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1291"/>
+        <location filename="../ui/settings_window.py" line="1294"/>
         <source>Poll interval:</source>
         <translation>Yoklama aralığı:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1298"/>
+        <location filename="../ui/settings_window.py" line="1301"/>
         <source>Notification delay:</source>
         <translation>Bildirim gecikmesi:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1302"/>
+        <location filename="../ui/settings_window.py" line="1305"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>Yoklama aralığı, Refrain&apos;in çalardan ne çaldığını ne sıklıkla sorduğunu belirler: düşük değer daha hızlı tepki verir ama biraz daha fazla işlemci kullanır. Bildirim gecikmesi, kapak görselinin yüklenmesi için zaman tanır.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1315"/>
+        <location filename="../ui/settings_window.py" line="1318"/>
         <source>Localization</source>
         <translation>Dil</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1318"/>
+        <location filename="../ui/settings_window.py" line="1321"/>
         <source>System default</source>
         <translation>Sistem varsayılanı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1335"/>
+        <location filename="../ui/settings_window.py" line="1338"/>
         <source>Language:</source>
         <translation>Dil:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1337"/>
+        <location filename="../ui/settings_window.py" line="1340"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Yeni bir dil, yeniden başlatma gerektirir; Refrain yeniden başlatmadan önce sorar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1378"/>
+        <location filename="../ui/settings_window.py" line="1381"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Kaldırma işlemi tüm Refrain verilerini ve Last.fm kimlik bilgilerini siler, ardından programı kaldıran komutu gösterir. Bu işlem geri alınamaz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1702"/>
+        <location filename="../ui/settings_window.py" line="1705"/>
         <source>Requesting authorization token…</source>
         <translation>Yetkilendirme jetonu isteniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1761"/>
+        <location filename="../ui/settings_window.py" line="1764"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Bağlandı: {user}. Scrobble, bir sonraki şarkıyla başlar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1765"/>
+        <location filename="../ui/settings_window.py" line="1768"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Bağlandı. Scrobble, bir sonraki şarkıyla başlar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1767"/>
+        <location filename="../ui/settings_window.py" line="1770"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Gizlilik Kapalı olduğu sürece duraklamış kalır.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1342"/>
+        <location filename="../ui/settings_window.py" line="1345"/>
         <source>Logging</source>
         <translation>Günlük kaydı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1346"/>
+        <location filename="../ui/settings_window.py" line="1349"/>
         <source>Detailed (DEBUG)</source>
         <translation>Ayrıntılı (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1347"/>
+        <location filename="../ui/settings_window.py" line="1350"/>
         <source>Normal (INFO)</source>
         <translation>Normal (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1348"/>
+        <location filename="../ui/settings_window.py" line="1351"/>
         <source>Warnings only</source>
         <translation>Yalnızca uyarılar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1349"/>
+        <location filename="../ui/settings_window.py" line="1352"/>
         <source>Errors only</source>
         <translation>Yalnızca hatalar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1352"/>
+        <location filename="../ui/settings_window.py" line="1355"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Hata bildirirken Ayrıntılı düzeyini seçin.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1353"/>
+        <location filename="../ui/settings_window.py" line="1356"/>
         <source>Log level:</source>
         <translation>Günlük düzeyi:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1355"/>
+        <location filename="../ui/settings_window.py" line="1358"/>
         <source>Open live-log window</source>
         <translation>Canlı günlük penceresini aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1357"/>
+        <location filename="../ui/settings_window.py" line="1360"/>
         <source>Open log folder</source>
         <translation>Günlük klasörünü aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1366"/>
+        <location filename="../ui/settings_window.py" line="1369"/>
         <source>Maintenance</source>
         <translation>Bakım</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1367"/>
-        <location filename="../ui/settings_window.py" line="2004"/>
+        <location filename="../ui/settings_window.py" line="1370"/>
+        <location filename="../ui/settings_window.py" line="2007"/>
         <source>Restart Refrain</source>
         <translation>Refrain&apos;i yeniden başlat</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1369"/>
+        <location filename="../ui/settings_window.py" line="1372"/>
         <source>Reset all settings to defaults</source>
         <translation>Tüm ayarları varsayılana sıfırla</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1372"/>
+        <location filename="../ui/settings_window.py" line="1375"/>
         <source>Uninstall Refrain…</source>
         <translation>Refrain&apos;i kaldır…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1387"/>
+        <location filename="../ui/settings_window.py" line="1390"/>
         <source>Developer</source>
         <translation>Geliştirici</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1388"/>
-        <location filename="../ui/settings_window.py" line="1438"/>
+        <location filename="../ui/settings_window.py" line="1391"/>
+        <location filename="../ui/settings_window.py" line="1441"/>
         <source>Developer mode</source>
         <translation>Geliştirici modu</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1393"/>
+        <location filename="../ui/settings_window.py" line="1396"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Yalnızca bu bilgisayarda süreleri ve Refrain&apos;i nasıl kullandığınızı ölçer. Hiçbir şey gönderilmez. Sonuçlar canlı günlük penceresindedir.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1439"/>
+        <location filename="../ui/settings_window.py" line="1442"/>
         <source>Turn on developer mode?</source>
         <translation>Geliştirici modu açılsın mı?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1442"/>
+        <location filename="../ui/settings_window.py" line="1445"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1206,22 +1206,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Her şey bu bilgisayarda kalır ve hiçbir yere gönderilmez. Ölçüm biraz performans maliyeti getirir. Gelişmiş bölümünden yeniden kapatabilirsiniz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1450"/>
+        <location filename="../ui/settings_window.py" line="1453"/>
         <source>Turn on</source>
         <translation>Aç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1516"/>
+        <location filename="../ui/settings_window.py" line="1519"/>
         <source>Checking…</source>
         <translation>Denetleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1538"/>
+        <location filename="../ui/settings_window.py" line="1541"/>
         <source>Reset all settings</source>
         <translation>Tüm ayarları sıfırla</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1541"/>
+        <location filename="../ui/settings_window.py" line="1544"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1230,47 +1230,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 Sıfırlama hemen kaydedilir ve henüz kaydetmediğiniz değişiklikler kaybolur.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1553"/>
+        <location filename="../ui/settings_window.py" line="1556"/>
         <source>Reset</source>
         <translation>Sıfırla</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1580"/>
+        <location filename="../ui/settings_window.py" line="1583"/>
         <source>Unsaved changes</source>
         <translation>Kaydedilmemiş değişiklikler</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1581"/>
+        <location filename="../ui/settings_window.py" line="1584"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Henüz kaydedilmemiş ayarlar değiştirdiniz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1582"/>
+        <location filename="../ui/settings_window.py" line="1585"/>
         <source>Save</source>
         <translation>Kaydet</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1583"/>
+        <location filename="../ui/settings_window.py" line="1586"/>
         <source>Discard</source>
         <translation>Vazgeç</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1584"/>
+        <location filename="../ui/settings_window.py" line="1587"/>
         <source>Keep editing</source>
         <translation>Düzenlemeye devam et</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1611"/>
+        <location filename="../ui/settings_window.py" line="1614"/>
         <source>(no data files found)</source>
         <translation>(veri dosyası bulunamadı)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1617"/>
+        <location filename="../ui/settings_window.py" line="1620"/>
         <source>Uninstall Refrain</source>
         <translation>Refrain&apos;i kaldır</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1620"/>
+        <location filename="../ui/settings_window.py" line="1623"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1293,38 +1293,38 @@ Programın kendisi KALDIRILMAZ — ardından şunu çalıştırın:
 Refrain kapanacak. Bu işlem geri alınamaz.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1627"/>
+        <location filename="../ui/settings_window.py" line="1630"/>
         <source>Uninstall</source>
         <translation>Kaldır</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1647"/>
+        <location filename="../ui/settings_window.py" line="1650"/>
         <source>Connected as {user}</source>
         <translation>Bağlı hesap: {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1650"/>
+        <location filename="../ui/settings_window.py" line="1653"/>
         <source>Connected</source>
         <translation>Bağlı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1657"/>
+        <location filename="../ui/settings_window.py" line="1660"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Bağlı değil — API anahtarını + secret&apos;i yeniden girip Bağlan düğmesine tıklayın</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1695"/>
+        <location filename="../ui/settings_window.py" line="1698"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Önce Last.fm API anahtarınızı ve shared secret&apos;inizi girin. Ücretsiz bir hesap açmak için “API hesabı oluştur” düğmesini kullanın.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1741"/>
-        <location filename="../ui/settings_window.py" line="1785"/>
+        <location filename="../ui/settings_window.py" line="1744"/>
+        <location filename="../ui/settings_window.py" line="1788"/>
         <source>Last.fm connection failed</source>
         <translation>Last.fm bağlantısı başarısız</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1786"/>
+        <location filename="../ui/settings_window.py" line="1789"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1333,22 +1333,22 @@ Refrain kapanacak. Bu işlem geri alınamaz.</translation>
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1998"/>
+        <location filename="../ui/settings_window.py" line="2001"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>Yeni dili uygulamak için Refrain yeniden başlar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2006"/>
+        <location filename="../ui/settings_window.py" line="2009"/>
         <source>Save and restart</source>
         <translation>Kaydet ve yeniden başlat</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2064"/>
+        <location filename="../ui/settings_window.py" line="2067"/>
         <source>Could not save settings</source>
         <translation>Ayarlar kaydedilemedi</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2066"/>
+        <location filename="../ui/settings_window.py" line="2069"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1361,12 +1361,12 @@ The settings you just changed will apply for this session but won&apos;t persist
 Az önce değiştirdiğiniz ayarlar bu oturum için geçerli olacak, ancak yeniden başlatmadan sonra korunmayacak.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2078"/>
+        <location filename="../ui/settings_window.py" line="2081"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Last.fm kimlik bilgileri saklanamadı</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2080"/>
+        <location filename="../ui/settings_window.py" line="2083"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -1378,272 +1378,272 @@ Scrobble bu oturum için çalışır, ancak yeniden başlattıktan sonra Last.fm
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="354"/>
+        <location filename="../ui/status_window.py" line="355"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm&apos;e scrobble edildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="362"/>
+        <location filename="../ui/status_window.py" line="363"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music&apos;te aç</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="405"/>
+        <location filename="../ui/status_window.py" line="406"/>
         <source>Status</source>
         <translation>Durum</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="474"/>
+        <location filename="../ui/status_window.py" line="476"/>
         <source>Previous song</source>
         <translation>Önceki şarkı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="477"/>
+        <location filename="../ui/status_window.py" line="479"/>
         <source>Play or pause</source>
         <translation>Çal veya duraklat</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="481"/>
+        <location filename="../ui/status_window.py" line="483"/>
         <source>Next song</source>
         <translation>Sonraki şarkı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="509"/>
+        <location filename="../ui/status_window.py" line="511"/>
         <source>Update…</source>
         <translation>Güncelle…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="523"/>
+        <location filename="../ui/status_window.py" line="525"/>
         <source>Recently played</source>
         <translation>Son çalınanlar</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="527"/>
+        <location filename="../ui/status_window.py" line="529"/>
         <source>Show all</source>
         <translation>Tümünü göster</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="535"/>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="537"/>
+        <location filename="../ui/status_window.py" line="908"/>
         <source>Songs you play show up here.</source>
         <translation>Çaldığınız şarkılar burada görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="537"/>
+        <location filename="../ui/status_window.py" line="539"/>
         <source>Turn on Recently played</source>
         <translation>Son çalınanları aç</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="558"/>
+        <location filename="../ui/status_window.py" line="560"/>
         <source>Settings…</source>
         <translation>Ayarlar…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="571"/>
+        <location filename="../ui/status_window.py" line="573"/>
         <source>View Refrain on GitHub</source>
         <translation>Refrain&apos;i GitHub&apos;da görüntüle</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="603"/>
+        <location filename="../ui/status_window.py" line="605"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Refrain yeniden başlamadan önceki şarkı konumundan tahmin edildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="684"/>
+        <location filename="../ui/status_window.py" line="686"/>
         <source>Nothing playing</source>
         <translation>Hiçbir şey çalmıyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="694"/>
+        <location filename="../ui/status_window.py" line="696"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} çalıyor, ancak hangi sayfada olduğunu belirtmiyor. Plasma Browser Integration&apos;ı kurun (plasma-browser-integration paketi ve “Plasma Integration” tarayıcı eklentisi) veya Firefox kullanın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="702"/>
+        <location filename="../ui/status_window.py" line="704"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>Tarayıcınızda Apple Music&apos;te bir şarkı başlatın ya da telefonunuzda Bluetooth üzerinden çalın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="716"/>
+        <location filename="../ui/status_window.py" line="718"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="718"/>
+        <location filename="../ui/status_window.py" line="720"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="722"/>
+        <location filename="../ui/status_window.py" line="724"/>
         <source>Paused · {source}</source>
         <translation>Duraklatıldı · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="772"/>
+        <location filename="../ui/status_window.py" line="774"/>
         <source>Not set up yet</source>
         <translation>Henüz kurulmadı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="773"/>
-        <location filename="../ui/status_window.py" line="804"/>
-        <location filename="../ui/status_window.py" line="810"/>
+        <location filename="../ui/status_window.py" line="775"/>
+        <location filename="../ui/status_window.py" line="806"/>
+        <location filename="../ui/status_window.py" line="812"/>
         <source>Set up…</source>
         <translation>Kur…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="775"/>
+        <location filename="../ui/status_window.py" line="777"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord uygulaması çalışmıyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="777"/>
+        <location filename="../ui/status_window.py" line="779"/>
         <source>Application ID rejected</source>
         <translation>Application ID reddedildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="778"/>
+        <location filename="../ui/status_window.py" line="780"/>
         <source>Fix…</source>
         <translation>Düzelt…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="781"/>
+        <location filename="../ui/status_window.py" line="783"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord açık ama oturum açılmamış. Durumunuzu göstermek için Discord&apos;a giriş yapın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="784"/>
+        <location filename="../ui/status_window.py" line="786"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord şu anda yanıt vermiyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="786"/>
+        <location filename="../ui/status_window.py" line="788"/>
         <source>Ready — waiting for music</source>
         <translation>Hazır — müzik bekleniyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="788"/>
+        <location filename="../ui/status_window.py" line="790"/>
         <source>Visible on your profile</source>
         <translation>Profilinde görünür</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="790"/>
+        <location filename="../ui/status_window.py" line="792"/>
         <source>Showing “Listening to music”</source>
         <translation>“Listening to music” gösteriliyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="792"/>
+        <location filename="../ui/status_window.py" line="794"/>
         <source>Hidden while the music is paused</source>
         <translation>Müzik duraklatıldığında gizli</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="794"/>
+        <location filename="../ui/status_window.py" line="796"/>
         <source>Hidden — sharing is off</source>
         <translation>Gizli — paylaşım kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="796"/>
+        <location filename="../ui/status_window.py" line="798"/>
         <source>Checking…</source>
         <translation>Denetleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="803"/>
+        <location filename="../ui/status_window.py" line="805"/>
         <source>Off</source>
         <translation>Kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="806"/>
+        <location filename="../ui/status_window.py" line="808"/>
         <source>Connected, but scrobbling is off</source>
         <translation>Bağlı, ancak scrobble kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="807"/>
+        <location filename="../ui/status_window.py" line="809"/>
         <source>Open Last.fm settings…</source>
         <translation>Last.fm ayarlarını aç…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="809"/>
+        <location filename="../ui/status_window.py" line="811"/>
         <source>Not connected yet</source>
         <translation>Henüz bağlı değil</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="813"/>
+        <location filename="../ui/status_window.py" line="815"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>Gönderilmeyi bekleyen %n scrobble</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="815"/>
+        <location filename="../ui/status_window.py" line="817"/>
         <source>Sign-in expired</source>
         <translation>Oturum açma süresi doldu</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="816"/>
+        <location filename="../ui/status_window.py" line="818"/>
         <source>Reconnect…</source>
         <translation>Yeniden bağlan…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="818"/>
+        <location filename="../ui/status_window.py" line="820"/>
         <source>Paused — sharing is off</source>
         <translation>Duraklatıldı — paylaşım kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="820"/>
+        <location filename="../ui/status_window.py" line="822"/>
         <source>Scrobbling as {user}</source>
         <translation>Scrobble ediliyor: {user}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="822"/>
+        <location filename="../ui/status_window.py" line="824"/>
         <source>Scrobbling</source>
         <translation>Scrobble ediliyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="830"/>
+        <location filename="../ui/status_window.py" line="832"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>Refrain son seferinde beklenmedik şekilde kapandı.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="831"/>
+        <location filename="../ui/status_window.py" line="833"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>Rapor &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt; içinde.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="847"/>
+        <location filename="../ui/status_window.py" line="849"/>
         <source>You&apos;re all set.</source>
         <translation>Her şey hazır.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="849"/>
+        <location filename="../ui/status_window.py" line="851"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Apple Music&apos;te bir şarkı çalın — birkaç saniye içinde Discord&apos;da görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="908"/>
+        <location filename="../ui/status_window.py" line="910"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>Son çalınanlar kapalı, bu yüzden Refrain şarkılarınızın listesini tutmuyor.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="918"/>
+        <location filename="../ui/status_window.py" line="920"/>
         <source>Resume sharing</source>
         <translation>Paylaşımı sürdür</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="921"/>
+        <location filename="../ui/status_window.py" line="923"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Şarkınızı yeniden Discord&apos;da gösterin ve Last.fm&apos;e scrobble edin.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="924"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Pause sharing</source>
         <translation>Paylaşımı duraklat</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="929"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>Sürdürene kadar Discord durumunuzu gizleyin ve scrobble&apos;ı durdurun.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="935"/>
+        <location filename="../ui/status_window.py" line="937"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} kullanılabilir.</translation>
     </message>
@@ -1914,112 +1914,136 @@ Scrobble bu oturum için çalışır, ancak yeniden başlattıktan sonra Last.fm
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="83"/>
+        <location filename="../ui/welcome_dialog.py" line="85"/>
         <source>Found Discord IPC at {path}</source>
         <translation>Discord IPC bulundu: {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="84"/>
+        <location filename="../ui/welcome_dialog.py" line="88"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Discord IPC soketi bulunamadı — Discord masaüstü uygulamasını başlatın.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="87"/>
+        <location filename="../ui/welcome_dialog.py" line="92"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API erişilebilir.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="88"/>
+        <location filename="../ui/welcome_dialog.py" line="94"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>iTunes yanıt verdi, ancak yanıt içeriği beklenen gibi değil.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="89"/>
+        <location filename="../ui/welcome_dialog.py" line="97"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>iTunes Search&apos;e erişilemiyor: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="90"/>
+        <location filename="../ui/welcome_dialog.py" line="99"/>
         <source>iTunes probe failed: {error}</source>
         <translation>iTunes denetimi başarısız: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="161"/>
+        <location filename="../ui/welcome_dialog.py" line="170"/>
         <source>Welcome</source>
         <translation>Hoş geldiniz</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="197"/>
+        <location filename="../ui/welcome_dialog.py" line="206"/>
         <source>Welcome to Refrain</source>
         <translation>Refrain&apos;e hoş geldiniz</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="199"/>
+        <location filename="../ui/welcome_dialog.py" line="208"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Linux&apos;ta Apple Music için Discord Rich Presence.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="214"/>
+        <location filename="../ui/welcome_dialog.py" line="223"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>Sistem tepsisinde yaşar. Durumunu görmek için &lt;b&gt;tıklayın&lt;/b&gt;; çalar denetimleri için &lt;b&gt;sağ tıklayın&lt;/b&gt;.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="236"/>
+        <location filename="../ui/welcome_dialog.py" line="245"/>
         <source>Live diagnostics</source>
         <translation>Canlı tanılama</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="239"/>
+        <location filename="../ui/welcome_dialog.py" line="248"/>
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord — denetleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="240"/>
+        <location filename="../ui/welcome_dialog.py" line="249"/>
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ Kapak arama — denetleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="248"/>
+        <location filename="../ui/welcome_dialog.py" line="257"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="254"/>
+        <location filename="../ui/welcome_dialog.py" line="263"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>&lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; üzerinden ücretsiz bir uygulama kaydedin — seçtiğiniz ad, durumunuzda “&amp;lt;ad&amp;gt; dinliyor” olarak görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="268"/>
+        <location filename="../ui/welcome_dialog.py" line="277"/>
         <source>e.g. 1234567890123456789</source>
         <translation>ör. 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="279"/>
+        <location filename="../ui/welcome_dialog.py" line="288"/>
         <source>Skip for now</source>
         <translation>Şimdilik atla</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="285"/>
+        <location filename="../ui/welcome_dialog.py" line="294"/>
         <source>Apply</source>
         <translation>Uygula</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="349"/>
+        <location filename="../ui/welcome_dialog.py" line="358"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="352"/>
+        <location filename="../ui/welcome_dialog.py" line="361"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Kapak arama:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="396"/>
+        <location filename="../ui/welcome_dialog.py" line="399"/>
+        <source>Discard the Application ID?</source>
+        <translation>Application ID atılsın mı?</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="402"/>
+        <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
+
+Discard what you entered?</source>
+        <translation>Bir Application ID girdiniz ama uygulamadınız. Kapatırsanız Refrain, Discord durumu olmadan başlar.
+
+Girdiğiniz bilgi atılsın mı?</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="407"/>
+        <source>Discard</source>
+        <translation>Vazgeç</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="408"/>
+        <source>Keep editing</source>
+        <translation>Düzenlemeye devam et</translation>
+    </message>
+    <message>
+        <location filename="../ui/welcome_dialog.py" line="426"/>
         <source>Skip Discord setup?</source>
         <translation>Discord kurulumu atlansın mı?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="399"/>
+        <location filename="../ui/welcome_dialog.py" line="429"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2028,22 +2052,22 @@ Continue without Discord status?</source>
 Discord durumu olmadan devam edilsin mi?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="405"/>
+        <location filename="../ui/welcome_dialog.py" line="435"/>
         <source>Continue without Discord</source>
         <translation>Discord olmadan devam et</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="407"/>
+        <location filename="../ui/welcome_dialog.py" line="437"/>
         <source>Cancel</source>
         <translation>İptal</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="415"/>
+        <location filename="../ui/welcome_dialog.py" line="445"/>
         <source>Invalid Application ID</source>
         <translation>Geçersiz Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="417"/>
+        <location filename="../ui/welcome_dialog.py" line="447"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID, sayısal bir snowflake kimliğidir (17–20 basamak). Developer Portal&apos;dan kopyaladığınız değeri yeniden denetleyin.</translation>
     </message>

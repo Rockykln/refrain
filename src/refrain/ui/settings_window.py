@@ -237,6 +237,9 @@ class _ElidedHint(QLabel):
     def __init__(self) -> None:
         super().__init__()
         self._full = ""
+        # Shows names that come from Discord and Last.fm; one with a "<" in
+        # it must not turn into markup the width measurement can't see.
+        self.setTextFormat(Qt.TextFormat.PlainText)
         self.setProperty("refrainElides", True)
         self.setStyleSheet(_hint_style())
 
@@ -2086,10 +2089,10 @@ class SettingsWindow(QDialog):
         self._config = c
         self.applied.emit(c)
 
-    def closeEvent(self, event) -> None:
-        super().closeEvent(event)
-        if event.isAccepted():
-            # Join any in-flight worker so app teardown doesn't hit
-            # "QThread: Destroyed while thread is still running".
-            self._finish_lastfm_thread()
-            self._app_name_timer.stop()
+    def done(self, result: int) -> None:
+        # Every way out lands here, unlike closeEvent, which OK, Cancel and
+        # Esc skip. A Last.fm request left running opens a browser tab and a
+        # dialog minutes after the window is gone.
+        self._finish_lastfm_thread()
+        self._app_name_timer.stop()
+        super().done(result)

@@ -379,7 +379,11 @@ class WelcomeDialog(QDialog):
     def reject(self) -> None:
         # X / Escape behave the same as "Skip for now" — emit an empty
         # client_id so `first_run_complete=True` gets persisted and the
-        # wizard doesn't re-appear on every launch.
+        # wizard doesn't re-appear on every launch. Throwing away an ID the
+        # user has already typed needs the same confirmation that pressing
+        # Apply on an empty field gets.
+        if self.client_id_edit.text().strip() and not self._confirm_discarding_id():
+            return
         if self._diag_thread is not None:
             self._diag_thread.quit()
             with contextlib.suppress(Exception):
@@ -388,6 +392,23 @@ class WelcomeDialog(QDialog):
             self._diag_worker = None
         self.applied.emit("")
         super().reject()
+
+    def _confirm_discarding_id(self) -> bool:
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(self.tr("Discard the Application ID?"))
+        msg.setText(
+            self.tr(
+                "You entered an Application ID but haven't applied it. "
+                "Closing now starts Refrain without Discord status.\n\n"
+                "Discard what you entered?"
+            )
+        )
+        discard_btn = msg.addButton(self.tr("Discard"), QMessageBox.ButtonRole.AcceptRole)
+        back_btn = msg.addButton(self.tr("Keep editing"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(back_btn)
+        msg.exec()
+        return msg.clickedButton() is discard_btn
 
     def _on_apply(self) -> None:
         client_id = self.client_id_edit.text().strip()

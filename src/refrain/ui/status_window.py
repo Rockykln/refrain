@@ -966,6 +966,8 @@ class StatusWindow(QDialog):
 
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
+        if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
+            self._apply_github_icon()
         if event.type() == event.Type.PaletteChange:
             self._cover_url = ""
             self._refresh()

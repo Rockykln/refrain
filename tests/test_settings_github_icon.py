@@ -60,3 +60,21 @@ def test_a_dark_theme_turns_the_logo_light(win):
     win.setPalette(dark)
     QApplication.processEvents()
     assert _solid_colours(win._github_btn.icon()) == {"#eff0f1"}
+
+
+def test_the_status_window_logo_follows_the_theme_too(win):
+    """The settings footer repainted on a theme change; the Status window did not."""
+    from refrain.ui.status_window import StatusWindow
+
+    status = StatusWindow()
+    dark = QPalette(status.palette())
+    dark.setColor(QPalette.ColorRole.Window, QColor("#1b1e20"))
+    dark.setColor(QPalette.ColorRole.Text, QColor("#eff0f1"))
+    status.setPalette(dark)
+    QApplication.processEvents()
+    try:
+        assert _solid_colours(status.github_btn.icon()) == {"#eff0f1"}
+    finally:
+        status.close()
+        status.deleteLater()
+        QApplication.processEvents()

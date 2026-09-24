@@ -580,3 +580,14 @@ def test_use_config_takes_the_new_settings_as_saved(win):
     c.advanced.poll_interval_ms = 2000
     win.use_config(c)
     assert win.poll_spin.value() == 2000 and not win.is_dirty()
+
+
+def test_ok_and_cancel_also_join_the_lastfm_thread(win, monkeypatch):
+    """Only closeEvent used to clean up, and OK, Cancel and Esc never reach it."""
+    win.show()
+    joined = []
+    monkeypatch.setattr(win, "_finish_lastfm_thread", lambda: joined.append(1))
+    win.accept()
+    win.show()
+    win.reject()
+    assert joined == [1, 1]
