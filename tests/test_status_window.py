@@ -29,6 +29,7 @@ from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from refrain.ui import status_window as sw  # noqa: E402
+from refrain.ui import tooltips  # noqa: E402
 from refrain.ui.status_window import StatusWindow  # noqa: E402
 
 COVER = "https://is1-ssl.mzstatic.example/image/glass-tides.jpg"
@@ -594,3 +595,71 @@ def test_a_rebuilt_list_leaves_an_open_tooltip_alone(window):
         QToolTip.hideText()
         tip.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+class _ToolTipSpy:
+    """What a label asks Qt to show, without waiting for Qt's hide timer."""
+
+    def __init__(self):
+        self.calls: list[str] = []
+
+    def showText(self, _pos, text, _owner, _rect):
+        self.calls.append(text)
+
+    def hideText(self):
+        self.calls.append("")
+
+
+@pytest.fixture
+def tooltip_spy(monkeypatch):
+    spy = _ToolTipSpy()
+    monkeypatch.setattr(tooltips, "QToolTip", spy)
+    return spy
+
+
+def _hover(label, x) -> None:
+    pos = QPoint(x, label.height() // 2)
+    QApplication.sendEvent(label, QHelpEvent(QEvent.Type.ToolTip, pos, label.mapToGlobal(pos)))
+
+
+def test_a_service_state_explains_itself_only_over_its_text(window, app, tooltip_spy):
+    # The row stretches the state label across the window; the empty space
+    # beside the words is not part of the state.
+    window.show()
+    window.set_status(StatusSnapshot(DiscordStatus.SHOWING, "discord-ipc-0"))
+    for _ in range(3):
+        app.processEvents()
+    label = window.discord.text
+    written = tooltips.text_rect(label)
+    assert label.width() > written.width() + 20
+    _hover(label, written.width() // 2)
+    _hover(label, label.width() - 5)
+    assert tooltip_spy.calls == ["discord-ipc-0", ""]
+
+
+def test_the_estimated_time_explains_itself_only_over_the_time(window, app, tooltip_spy):
+    window.show()
+    window.set_track(_playing())
+    window.set_progress_estimated(True)
+    window.set_progress(45_000, 196_000)
+    for _ in range(3):
+        app.processEvents()
+    label = window.elapsed
+    written = tooltips.text_rect(label)
+    assert label.width() > written.width() + 20
+    _hover(label, written.width() // 2)
+    _hover(label, label.width() - 5)
+    assert [bool(call) for call in tooltip_spy.calls] == [True, False]
+    assert tooltip_spy.calls[0].startswith("Estimated")
+
+
+def test_a_wrapped_state_keeps_its_tooltip_on_both_lines(window, app, tooltip_spy):
+    window.show()
+    window.set_status(StatusSnapshot(DiscordStatus.NOT_LOGGED_IN, "Error Code: 1000"))
+    for _ in range(3):
+        app.processEvents()
+    label = window.discord.text
+    written = tooltips.text_rect(label)
+    assert written.height() > label.fontMetrics().height()
+    _hover(label, 5)
+    assert tooltip_spy.calls == ["Error Code: 1000"]

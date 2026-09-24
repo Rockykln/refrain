@@ -68,6 +68,8 @@ lists every version and why.
   starting.** Discord answers the same way in both cases, so the state
   now has to hold for 20 seconds before Refrain shows it, and Refrain
   asks again every 2 seconds meanwhile.
+- **A tooltip appeared beside the text it belongs to**, anywhere in the
+  empty space the row keeps to its right.
 
 ### Security
 

@@ -55,7 +55,7 @@ from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
 from refrain.ui.history_window import _ElidedLabel, _muted, _read_scaled, _set_color, song_link
 from refrain.ui.legal_dialog import GITHUB_URL
-from refrain.ui.tooltips import keep_on_window, show_on_window
+from refrain.ui.tooltips import keep_on_text, keep_on_window, show_on_window
 
 log = logging.getLogger(__name__)
 
@@ -287,6 +287,7 @@ class _ServiceRow:
         self.text = QLabel()
         self.text.setWordWrap(True)
         self.text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        keep_on_text(self.text)
         self.button = QPushButton()
         self.button.setVisible(False)
         self.action = ""
@@ -461,6 +462,7 @@ class StatusWindow(QDialog):
             text.addWidget(label)
         self.elapsed = QLabel()
         self.elapsed.setVisible(False)
+        keep_on_text(self.elapsed)
         text.addWidget(self.elapsed)
         text.addWidget(self.hint)
         text.addStretch(1)
