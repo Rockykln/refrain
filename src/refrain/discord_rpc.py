@@ -416,11 +416,19 @@ class DiscordRPC:
             await asyncio.wait_for(handshake(), _RESPONSE_TIMEOUT_S)
 
         p.handshake = bounded_handshake  # type: ignore[method-assign]  # bounds pypresence's own handshake
+        # pypresence opens an event loop in the constructor and a second one in
+        # connect(); the first is dropped unclosed and holds its epoll and self-pipe
+        # until the cyclic collector happens to reach it.
+        spare_loop = getattr(p, "loop", None)
         try:
             p.connect()
         except Exception:
             _discard(p)
             raise
+        finally:
+            if spare_loop is not None and spare_loop is not getattr(p, "loop", None):
+                with contextlib.suppress(Exception):
+                    spare_loop.close()
         return p
 
     def _ensure_connected(self) -> bool:

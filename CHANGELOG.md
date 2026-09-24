@@ -70,6 +70,8 @@ lists every version and why.
   asks again every 2 seconds meanwhile.
 - **A tooltip appeared beside the text it belongs to**, anywhere in the
   empty space the row keeps to its right.
+- **Every attempt to reach Discord left three files open.** With Discord
+  closed that was three more every 15 seconds.
 
 ### Security
 
