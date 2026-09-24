@@ -12,8 +12,17 @@ import socket
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import cast
 
-from PySide6.QtCore import QCoreApplication, QObject, Qt, QThread, QTimer, Signal
+from PySide6.QtCore import (
+    QT_TRANSLATE_NOOP,
+    QCoreApplication,
+    QObject,
+    Qt,
+    QThread,
+    QTimer,
+    Signal,
+)
 from PySide6.QtGui import QIcon, QPalette
 from PySide6.QtWidgets import (
     QDialog,
@@ -70,6 +79,26 @@ class _DiagnosticsWorker(QObject):
         self.finished.emit(discord_ok, discord_msg, itunes_ok, itunes_msg)
 
 
+# The probes hand their message back as a template and it is translated at
+# the call site, so lupdate needs the literals here to find them. PySide6
+# types QT_TRANSLATE_NOOP as returning object, hence the casts.
+_IPC_FOUND: str = cast(str, QT_TRANSLATE_NOOP("WelcomeDialog", "Found Discord IPC at {path}"))
+_IPC_MISSING: str = cast(
+    str,
+    QT_TRANSLATE_NOOP(
+        "WelcomeDialog", "No Discord IPC socket found — start the Discord desktop app."
+    ),
+)
+_ITUNES_OK: str = cast(str, QT_TRANSLATE_NOOP("WelcomeDialog", "iTunes Search API reachable."))
+_ITUNES_ODD: str = cast(
+    str, QT_TRANSLATE_NOOP("WelcomeDialog", "iTunes responded but the payload looked off.")
+)
+_ITUNES_UNREACHABLE: str = cast(
+    str, QT_TRANSLATE_NOOP("WelcomeDialog", "iTunes Search unreachable: {reason}")
+)
+_ITUNES_FAILED: str = cast(str, QT_TRANSLATE_NOOP("WelcomeDialog", "iTunes probe failed: {error}"))
+
+
 def _probe_discord_ipc() -> tuple[bool, str, dict]:
     """Try to reach a Discord IPC socket without using pypresence (avoids
     a half-open connection that would race with the daemon).
@@ -106,10 +135,10 @@ def _probe_discord_ipc() -> tuple[bool, str, dict]:
                     s.settimeout(0.5)
                     s.connect(str(path))
                     s.close()
-                    return True, "Found Discord IPC at {path}", {"path": path}
+                    return True, _IPC_FOUND, {"path": path}
                 except OSError as e:
                     log.debug("Discord IPC probe %s failed: %s", path, e)
-    return False, "No Discord IPC socket found — start the Discord desktop app.", {}
+    return False, _IPC_MISSING, {}
 
 
 def _probe_itunes() -> tuple[bool, str, dict]:
@@ -122,12 +151,12 @@ def _probe_itunes() -> tuple[bool, str, dict]:
         with urllib.request.urlopen(probe, timeout=5) as resp:  # nosec B310
             data = json.load(resp)
         if isinstance(data, dict) and "resultCount" in data:
-            return True, "iTunes Search API reachable.", {}
-        return False, "iTunes responded but the payload looked off.", {}
+            return True, _ITUNES_OK, {}
+        return False, _ITUNES_ODD, {}
     except urllib.error.URLError as e:
-        return False, "iTunes Search unreachable: {reason}", {"reason": e.reason}
+        return False, _ITUNES_UNREACHABLE, {"reason": e.reason}
     except Exception as e:
-        return False, "iTunes probe failed: {error}", {"error": e}
+        return False, _ITUNES_FAILED, {"error": e}
 
 
 class WelcomeDialog(QDialog):
