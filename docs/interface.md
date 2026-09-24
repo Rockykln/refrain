@@ -21,7 +21,7 @@ no unicode-glyph prefixes.
 | Title             | Currently playing track (click opens the Status window)   |
 | Artist • Album    | Currently playing artist + album (hidden when idle)       |
 | X:XX / Y:YY (–Z:ZZ) | Elapsed / track length / remaining (hidden when idle)   |
-| Discord: …        | What Discord shows right now: *ready — waiting for music*, *visible on your profile*, *showing “Listening to music”*, *hidden while paused*, *hidden — sharing is off*, *app isn't running*, *not answering*, *not set up — add your Application ID*, *Application ID rejected — check it* |
+| Discord: …        | What Discord shows right now: *ready — waiting for music*, *visible on your profile*, *showing “Listening to music”*, *hidden while paused*, *hidden — sharing is off*, *app isn't running*, *not answering*, *not set up — add your Application ID*, *not logged in — log in to show your status*, *Application ID rejected — check it* |
 | Last.fm: …        | *scrobbling as …*, *N scrobbles waiting*, *sign-in expired — reconnect* (hidden while Last.fm was never set up) |
 | Previous          | Skip backward on the active source                        |
 | Play / Pause      | Toggle on the active source (label follows playback state)|

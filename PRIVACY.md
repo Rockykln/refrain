@@ -67,6 +67,7 @@ Refrain never transmits any of the above over a network on its own.
 | **GitHub** (`github.com/Rockykln/refrain/releases/download/…` and GitHub's download servers, HTTPS) | AppImage only, when you click *Update* | Downloads `SHA256SUMS` and the new AppImage; your IP and a `User-Agent` containing the Refrain version | Only on click | Don't click *Update* |
 | **PyPI** (`pypi.org`, `files.pythonhosted.org`, HTTPS — or whichever package index your pip is set up to use) | pip and pipx installs, when you click *Update* (Refrain runs `pip install --upgrade refrain` or `pipx upgrade refrain`) | What pip sends to any package index: your IP and a `User-Agent` with pip, Python, OS and distribution versions | Only on click | Don't click *Update*; update however you prefer |
 | **Last.fm** (`ws.audioscrobbler.com` / `last.fm`, HTTPS) | Only if you enable scrobbling **and** connect an account | Artist / track / album / timestamp, your Last.fm API key + session token + a request signature | **Off** (opt-in) | Don't enable it; or *Disconnect*; or set *Privacy → Off* |
+| **Last.fm** (`ws.audioscrobbler.com`, HTTPS) | Only if you enable scrobbling and set an API key — **no account needed**: for a song the iTunes catalog doesn't know, once per song, to ask whether Last.fm's own length agrees with the one Refrain measured | Artist and title, your API key, your IP. No session, no account, no timestamp | **Off** (opt-in) | Don't enable scrobbling; or set *Privacy → Off* |
 
 Notes:
 

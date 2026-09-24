@@ -1,7 +1,7 @@
 # Test matrix
 
 The set of distros + desktop combinations Refrain is expected to work on,
-and a six-step smoke test to run on each before declaring a release good
+and a seven-step smoke test to run on each before declaring a release good
 to ship. Tick boxes as you verify; leave a date + Refrain version in the
 "Last verified" column.
 
@@ -9,7 +9,7 @@ to ship. Tick boxes as you verify; leave a date + Refrain version in the
 
 For each row in the matrix:
 
-1. Run through the six checks under [Smoke checks](#smoke-checks).
+1. Run through the seven checks under [Smoke checks](#smoke-checks).
 2. If everything passes, tick the row's checkbox and write the date +
    Refrain version into "Last verified".
 3. If something fails, file an issue and leave the row unticked. Note
@@ -21,7 +21,7 @@ graceful-degradation, not a regression.
 
 ## Tier 1 — primary support, must pass every release
 
-These are the eight systems that together cover ≈ 95 % of the realistic
+These are the eleven systems that together cover ≈ 95 % of the realistic
 user base. CachyOS / KDE Plasma 6 / Wayland is the maintainer's daily
 driver and should be tested on every commit; the rest before each tag.
 

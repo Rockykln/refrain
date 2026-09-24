@@ -282,7 +282,7 @@ in `metainfo.xml` per Flathub policy.
 packaging/
 ├── release_key.py                     — release signing key and draft-release signing
 ├── aur/
-│   ├── refrain/PKGBUILD               — release build (stable, pinned tarball)
+│   ├── refrain/PKGBUILD               — release build (stable, signed git tag)
 │   └── refrain-git/PKGBUILD           — git build (auto-bumping pkgver)
 ├── appimage/
 │   └── AppImageBuilder.yml            — AppImage recipe

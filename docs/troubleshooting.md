@@ -244,7 +244,7 @@ yet` is normal: Refrain connects once something plays.
   Application ID; it's now told apart.
 - *What to do:* log in to Discord. Refrain picks it up on its own once
   you do — no restart needed.
-- *Log:* `Discord RPC: auto is not logged in: …`
+- *Log:* `Discord RPC: Discord is open but not logged in: …`
 
 **Privacy is set to Off**
 

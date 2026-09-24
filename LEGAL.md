@@ -103,7 +103,9 @@ else only happens once the user sets it up:
   sent to Discord's web API to look up the application's name (off by
   default).
 - **Last.fm** — only when the user enables scrobbling and supplies their own
-  credentials. Those credentials are stored in the operating system's
+  credentials. With an API key but no connected account, Refrain may also ask
+  Last.fm, anonymously and once per song, how long a song is that the iTunes
+  catalog doesn't know. Those credentials are stored in the operating system's
   keyring where one is available, and otherwise in a `0600`-mode file in
   the user's own configuration directory.
 

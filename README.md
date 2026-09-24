@@ -14,8 +14,8 @@ streaming from your phone over Bluetooth.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/discord-rpc-light.png"/>
-    <img src="docs/screenshots/discord-rpc.png" alt="Refrain on Discord" width="430"/>
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/discord-rpc-light.png"/>
+    <img src="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/discord-rpc.png" alt="Refrain on Discord" width="430"/>
   </picture>
 </p>
 
@@ -87,8 +87,8 @@ See [`docs/test-matrix.md`](docs/test-matrix.md) for the full Tier-1 / Tier-2
 list, the per-row smoke checks, and which distros are explicitly out-of-scope.
 
 - **Tier 1 (must pass every release):** CachyOS, Arch Linux, Fedora 42,
-  Ubuntu 24.04 LTS, Debian 13, openSUSE Tumbleweed, Linux Mint 22,
-  Manjaro Stable.
+  Ubuntu 24.04 LTS, Ubuntu 25.04, Ubuntu 26.04 LTS, Debian 13 (Plasma and
+  GNOME), openSUSE Tumbleweed, Linux Mint 22, Manjaro Stable.
 - **Desktops:** KDE Plasma 6 (Wayland is the primary target, X11 also
   covered), GNOME with the [AppIndicator and KStatusNotifierItem](https://extensions.gnome.org/extension/615/appindicator-support/)
   extension, XFCE / Cinnamon / LXQt / Budgie via their native or
@@ -121,8 +121,8 @@ know up front whether your environment can host the RPC at all.
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/welcome-light.png"/>
-    <img src="docs/screenshots/welcome.png" alt="Welcome wizard" width="560"/>
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/welcome-light.png"/>
+    <img src="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/welcome.png" alt="Welcome wizard" width="560"/>
   </picture>
 </p>
 
@@ -245,7 +245,7 @@ inside the app under **Settings → Legal**.
 | Commits | 213 |
 | Languages | 16 |
 | Runtime dependencies | 3 |
-| Browsers tested | 5 (Chrome, Chromium, Brave, Firefox, Zen) |
+| Browsers tested | 6 (Chrome, Chromium, Brave, Vivaldi, Firefox, Zen) |
 | Ways to install | 3 (PyPI, AUR, AppImage) |
 
 As of v0.5.3.

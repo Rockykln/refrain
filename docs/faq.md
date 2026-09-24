@@ -226,7 +226,7 @@ problem is the movement check, not which length wins.)
 ## Where is my listening history, and how do I get rid of it?
 
 *Tray → Recently played…* shows it; *Settings → Recently played* switches it off
-or sets how many songs it keeps (10 to 100, 30 by default). It lives in
+or sets how many songs it keeps (1 to 100, 30 by default). It lives in
 `~/.local/state/refrain/history.json`, readable only by you, and is never
 sent anywhere — which is why the privacy mode doesn't affect it.
 Right-click a song to remove just that one, *Clear history…* empties the

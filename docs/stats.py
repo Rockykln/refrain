@@ -24,7 +24,7 @@ README = REPO / "README.md"
 START = "<!-- stats:start -->"
 END = "<!-- stats:end -->"
 # What the release was tried on, not what the code merely recognises.
-TESTED_BROWSERS = ("Chrome", "Chromium", "Brave", "Firefox", "Zen")
+TESTED_BROWSERS = ("Chrome", "Chromium", "Brave", "Vivaldi", "Firefox", "Zen")
 INSTALL_WAYS = ("PyPI", "AUR", "AppImage")
 
 SKIP_TOKENS = {

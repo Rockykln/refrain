@@ -76,10 +76,11 @@ profile — the equivalent of the Discord status — as each track starts.
 - Nothing but the track's artist / title / album / timestamp goes to
   Last.fm, over HTTPS, only when scrobbling is enabled and connected.
 - For a song the iTunes catalog doesn't know, once Refrain has measured
-  its length from two whole plays, it asks Last.fm once, anonymously
+  its length from one whole play, it asks Last.fm once, anonymously
   (artist and title only, no session, no account), whether Last.fm's own
-  length agrees. This needs only scrobbling enabled and an API key set —
-  not a connected account — and happens once per song, ever.
+  length agrees. An answer that agrees takes the place of the second play
+  Refrain would otherwise wait for. This needs only scrobbling enabled and an
+  API key set — not a connected account — and happens once per song, ever.
 
 ### Where credentials are stored
 

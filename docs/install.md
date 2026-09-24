@@ -71,7 +71,7 @@ and `~/.local/share/icons/`. To undo: `refrain --uninstall-desktop`.
 
 See [`docs/test-matrix.md`](test-matrix.md) for the full Tier-1 / Tier-2 list, the per-row smoke checks, and which distros are explicitly out-of-scope (Python or glibc floor too low).
 
-- **Tier 1 (must pass every release):** CachyOS, Arch Linux, Fedora 42, Ubuntu 24.04 LTS, Debian 13, openSUSE Tumbleweed, Linux Mint 22, Manjaro Stable.
+- **Tier 1 (must pass every release):** CachyOS, Arch Linux, Fedora 42, Ubuntu 24.04 LTS, Ubuntu 25.04, Ubuntu 26.04 LTS, Debian 13 (Plasma and GNOME), openSUSE Tumbleweed, Linux Mint 22, Manjaro Stable.
 - **Desktops:** KDE Plasma 6 (Wayland is the primary target, X11 also covered), GNOME with the [AppIndicator and KStatusNotifierItem](https://extensions.gnome.org/extension/615/appindicator-support/) extension, XFCE / Cinnamon / LXQt / Budgie via their native or AppIndicator-bridged tray, MATE with `mate-applet-statusnotifier`, tiling WMs (Hyprland / Sway / i3 / river) via a SNI-capable status bar.
 
 ## Uninstalling
@@ -105,6 +105,7 @@ entry + icon.)
 | Scrobble in progress | `$XDG_STATE_HOME/refrain/scrobble_current.json` |
 | Recently played | `$XDG_STATE_HOME/refrain/history.json`    |
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` |
+| Last.fm length references | `$XDG_STATE_HOME/refrain/song_lengths_lastfm.txt` |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
 | Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes; the next start says so and opens it on click) |
 | Developer-mode metrics | `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (only while developer mode is on) |

@@ -43,21 +43,24 @@ lists every version and why.
 - **Uninstall and Reset ask more carefully.** Enter now cancels instead
   of uninstalling or resetting. The reset question also says that the
   *Recently played* list is kept.
-- **Songs start once.** An album that arrived a moment after the song
-  did looked like a new song: the first play was dropped from the
-  history and the catalogue was asked twice.
 - **Packaging:** each release now carries an SBOM, the AUR package
   builds from the signed git tag, and both AUR recipes suggest
   `libnotify` for desktop notifications.
 
 ### Fixed
 
+- **Songs start once.** An album that arrived a moment after the song
+  did looked like a new song: the first play was dropped from the
+  history and the catalogue was asked twice.
 - **Refrain could abort while quitting**, when a background check
   started as the window closed.
 - **The song list was squeezed.** With a song playing, the Status window
   fitted one row too many into the space left and clipped the text.
   Songs are also underlined while the mouse is on them, and the first
   button no longer opens with a focus frame.
+- **A short song list was stretched.** With only a few songs, each row
+  grew to fill the height of the Status window; the room they don't need
+  now stays below them.
 - **"&" in a title, artist or album** disappeared from the tray menu.
 - **A crash while the song list was rebuilt.** A row with its tooltip
   open took a visible window down with it, which can crash Qt's Wayland
@@ -72,6 +75,19 @@ lists every version and why.
   empty space the row keeps to its right.
 - **Every attempt to reach Discord left three files open.** With Discord
   closed that was three more every 15 seconds.
+- **A Discord in a Flatpak or Snap stayed hidden** when a crashed Discord
+  had left its socket file behind. The leftover file counted as a working
+  one, so the sandboxed client was never bridged.
+- **Connecting to Last.fm carried on after the window was gone.** Closing
+  Settings with OK, Cancel or Esc left the request running, and a browser
+  tab and a dialog could open minutes later.
+- **Refrain refused to start at all** when it couldn't write its first
+  config file — a full disk or a read-only home. It now starts on
+  defaults and says so in the log.
+- **The wizard threw away an Application ID** typed but not applied, if
+  you closed it with Esc or the window button. It asks first now.
+- **The GitHub icon in the Status window** kept its old colour after a
+  switch between a light and a dark theme.
 - **A "|" in a title, artist or album could make two different songs
   look like one**, so the time kept running from the previous song and a
   scrobble could be counted as the same play.
