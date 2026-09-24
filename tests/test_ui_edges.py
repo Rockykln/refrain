@@ -237,6 +237,34 @@ def test_closing_the_wizard_asks_before_throwing_away_a_typed_id(qapp, monkeypat
     dialog.deleteLater()
 
 
+def test_the_discard_question_offers_keeping_what_was_typed(qapp, monkeypatch):
+    """The real dialog, not a stand-in: Keep editing must be the safe default."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from refrain.ui.welcome_dialog import WelcomeDialog
+
+    dialog = WelcomeDialog()
+    seen: list[tuple[str, list[str], str]] = []
+
+    def answer(box, pick):
+        labels = [b.text() for b in box.buttons()]
+        seen.append((box.text(), labels, box.defaultButton().text()))
+        box.clickedButton = lambda: next(b for b in box.buttons() if b.text() == pick)
+        return 0
+
+    monkeypatch.setattr(QMessageBox, "exec", lambda box: answer(box, "Keep editing"))
+    assert dialog._confirm_discarding_id() is False
+
+    monkeypatch.setattr(QMessageBox, "exec", lambda box: answer(box, "Discard"))
+    assert dialog._confirm_discarding_id() is True
+
+    text, labels, default = seen[0]
+    assert "Application ID" in text
+    assert labels == ["Discard", "Keep editing"]
+    assert default == "Keep editing"  # Enter must not throw the ID away
+    dialog.deleteLater()
+
+
 def test_closing_an_empty_wizard_asks_nothing(qapp, monkeypatch):
     from refrain.ui.welcome_dialog import WelcomeDialog
 

@@ -627,6 +627,36 @@ def test_a_save_older_than_a_minute_gives_no_estimate(hist, clock):
     assert again.resume_estimate_ms(_t("A"), clock.wall + 56) is None
 
 
+def test_a_different_album_gets_no_estimate(hist, clock):
+    """Both sides naming an album, and not the same one, means a different song."""
+    _shown(hist, "A", clock, 65)
+    hist.shutdown()
+    again = PlayHistory(HistoryConfig())
+    other = _t("A")
+    other.album = "Another Album"
+    assert again.resume_estimate_ms(other, clock.wall) is None
+
+
+def test_a_save_with_a_broken_timestamp_is_refused_when_it_is_read():
+    """NaN slips past the age check on its own, so the parser has to catch it."""
+    from refrain.history import _resume_from_dict
+
+    raw = {
+        "entry": {
+            "title": "A",
+            "artist": "Artist",
+            "album": "Album",
+            "source": "mpris",
+            "started_at": 0,
+        },
+        "played_ms": 1000,
+        "shown_ms": 1000,
+        "saved_at": float("nan"),
+    }
+    assert _resume_from_dict(raw) is None
+    assert _resume_from_dict({**raw, "saved_at": 1.0}) is not None
+
+
 def test_another_song_gets_no_estimate(hist, clock):
     _shown(hist, "A", clock, 65)
     hist.shutdown()

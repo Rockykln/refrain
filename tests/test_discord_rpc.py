@@ -270,3 +270,16 @@ def test_bridge_without_xdg_runtime_dir_links_nothing(tmp_path, monkeypatch):
     finally:
         s.close()
     assert linked == []
+
+
+def test_a_path_that_cannot_be_asked_counts_as_dead(tmp_path, monkeypatch):
+    """A socket on a mount that errors out must not look alive."""
+    from pathlib import Path as _Path
+
+    from refrain.discord_rpc import _socket_answers
+
+    def boom(_self):
+        raise OSError("stale file handle")
+
+    monkeypatch.setattr(_Path, "is_socket", boom)
+    assert _socket_answers(tmp_path / "discord-ipc-0") is False
