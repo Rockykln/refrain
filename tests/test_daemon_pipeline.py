@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from refrain.daemon import DaemonWorker  # noqa: E402
+from refrain.daemon import _REFRAIN_ICON_URL, _REFRAIN_URL, DaemonWorker  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from tests.daemon_fakes import (  # noqa: E402
     CLIENT_ID,
@@ -58,6 +58,9 @@ def test_playing_song_reaches_discord_with_cover_and_timer(rig):
             "details": TITLE,
             "state": ARTIST,
             "large_image": COVER,
+            "small_image": _REFRAIN_ICON_URL,
+            "small_text": "Refrain",
+            "small_url": _REFRAIN_URL,
             "large_text": "Tidal",
             "start": WALL0,
             "end": WALL0 + 200,
@@ -129,7 +132,7 @@ def test_song_without_a_cover_goes_out_with_the_logo_after_three_polls(rig):
     player.tick(n=3)
     assert rpc().updates == []
     player.tick()
-    assert rpc().last[1]["large_image"] == "refrain"
+    assert rpc().last[1]["large_image"] == _REFRAIN_ICON_URL
 
 
 def test_late_cover_replaces_the_logo_on_the_next_poll(rig):
@@ -140,7 +143,7 @@ def test_late_cover_replaces_the_logo_on_the_next_poll(rig):
     worker._cover_fetcher.urls[(ARTIST, TITLE)] = COVER
     player.tick()
     images = [p["large_image"] for p in rpc().updates]
-    assert images == ["refrain", COVER]
+    assert images == [_REFRAIN_ICON_URL, COVER]
     assert rpc().updates[0]["start"] == rpc().updates[1]["start"]
 
 
@@ -148,7 +151,7 @@ def test_cover_art_off_sends_the_logo_without_waiting(rig):
     worker, player, _ = rig(behavior={"cover_art": False})
     player.play()
     player.tick()
-    assert rpc().last[1]["large_image"] == "refrain"
+    assert rpc().last[1]["large_image"] == _REFRAIN_ICON_URL
     assert worker._cover_fetcher.requested == []
 
 
@@ -166,7 +169,12 @@ def test_privacy_minimal_hides_the_song(rig):
     player.tick()
     assert rpc().last == (
         "update",
-        {"details": "Listening to music", "large_image": "refrain", "large_text": "Refrain"},
+        {
+            "details": "Listening to music",
+            "large_text": "Refrain",
+            "large_image": _REFRAIN_ICON_URL,
+            "large_url": _REFRAIN_URL,
+        },
     )
     assert worker._scrobbler.calls[-1]["privacy_off"] is False
 
@@ -632,4 +640,97 @@ def test_a_song_change_never_leaves_the_old_song_on_the_profile(rig):
     player.tick()
     # Out at once with the logo; the cover follows when it lands.
     assert rpc().last[1]["details"] == "Salt Flats"
-    assert rpc().last[1]["large_image"] == "refrain"
+    assert rpc().last[1]["large_image"] == _REFRAIN_ICON_URL
+
+
+# ---------------------------------------------------------------------------
+# A paused source keeps naming its last track for as long as it stays
+# connected. After half an hour that is stale, not paused.
+# ---------------------------------------------------------------------------
+
+
+def test_a_song_paused_for_half_an_hour_leaves_the_tray(rig):
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    assert worker._last_track_fp  # still there right after pausing
+    clock.advance(30 * 60 + 1)
+    player.tick()
+    assert rpc().last == ("clear", {})
+    assert TITLE not in worker._last_track_fp
+
+
+def test_a_song_paused_for_a_while_stays(rig):
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(29 * 60)
+    player.tick()
+    assert TITLE in worker._last_track_fp
+
+
+def test_resuming_restarts_the_half_hour(rig):
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(29 * 60)
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(29 * 60)
+    player.tick()
+    assert TITLE in worker._last_track_fp
+
+
+def test_a_dropped_paused_song_does_not_come_back_on_the_next_poll(rig):
+    """The source keeps reporting it; once dropped it has to stay dropped."""
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(30 * 60 + 1)
+    player.tick(n=5)
+    assert TITLE not in worker._last_track_fp
+
+
+def test_one_empty_poll_does_not_bring_a_dropped_song_back(rig):
+    """MPRIS times out now and then; that is not the source coming back."""
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(30 * 60 + 1)
+    player.tick()
+    player.src.track = TrackInfo.empty()
+    player.tick()
+    player.src.track = song(status=PlaybackStatus.PAUSED)
+    player.tick()
+    assert TITLE not in worker._last_track_fp
+
+
+def test_a_long_pause_hides_the_song_without_ending_the_listen(rig):
+    """The windows stop showing it; Last.fm and the history still see it.
+
+    Ending the listen there would bank a long song twice — once before the
+    pause, once after — for a single sitting.
+    """
+    worker, player, clock = rig()
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick()
+    clock.advance(30 * 60 + 1)
+    player.tick()
+    assert TITLE not in worker._last_track_fp
+    assert rpc().last == ("clear", {})
+    assert worker._scrobbler.calls[-1]["track"].title == TITLE
+    assert worker._history.calls[-1]["track"].title == TITLE

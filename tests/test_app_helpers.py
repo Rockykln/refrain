@@ -197,7 +197,7 @@ def _release(version="99.0.0") -> ReleaseInfo:
 
 @pytest.fixture
 def dialogs(monkeypatch):
-    seen = {"dialogs": [], "boxes": []}
+    seen = {"dialogs": [], "boxes": [], "freed": []}
 
     class FakeDialog:
         def __init__(self, release, parent=None):
@@ -206,6 +206,9 @@ def dialogs(monkeypatch):
 
         def exec(self):
             seen["dialogs"].append((self.release, self.parent))
+
+        def deleteLater(self):
+            seen["freed"].append(self.release)
 
     class FakeBox:
         @staticmethod
@@ -227,6 +230,9 @@ def test_update_dialog_opens_for_the_signalled_release(dialogs):
     signalled = _release("99.0.0")
     app._open_update_dialog_factory(_Updater(_release("98.0.0")), parent)(signalled)
     assert dialogs["dialogs"] == [(signalled, parent)]
+    # Parented to the settings window: without this, every check that finds
+    # an update leaves a dialog behind for the rest of the session.
+    assert dialogs["freed"] == [signalled]
 
 
 def test_tray_click_uses_the_last_known_release(dialogs):

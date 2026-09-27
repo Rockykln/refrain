@@ -45,6 +45,33 @@
     </message>
 </context>
 <context>
+    <name>SettingsWindow</name>
+    <message numerus="yes">
+        <location filename="../ui/settings_window.py" line="1176"/>
+        <source>%n minute(s) ago</source>
+        <translation>
+            <numerusform>%n minute ago</numerusform>
+            <numerusform>%n minutes ago</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../ui/settings_window.py" line="1179"/>
+        <source>%n hour(s) ago</source>
+        <translation>
+            <numerusform>%n hour ago</numerusform>
+            <numerusform>%n hours ago</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../ui/settings_window.py" line="1181"/>
+        <source>%n day(s) ago</source>
+        <translation>
+            <numerusform>%n day ago</numerusform>
+            <numerusform>%n days ago</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>StatusWindow</name>
     <message numerus="yes">
         <location filename="../ui/status_window.py" line="836"/>

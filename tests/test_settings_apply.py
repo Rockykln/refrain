@@ -235,13 +235,44 @@ def test_last_checked_follows_a_new_check(win):
     assert window.last_check_label.text() != before
 
 
+def test_last_checked_says_how_long_ago_it_was(win):
+    """A bare date leaves the reader counting days back from today."""
+    import time
+
+    window, _config, _ = win
+    text = window._format_last_check(int(time.time()) - 3 * 3600)
+    ago = window._relative_time(3 * 3600)
+    assert text.endswith(f" ({ago})")
+    assert text[: -len(f" ({ago})")].strip()  # the date itself is still there
+
+
+def test_a_check_that_never_happened_stays_one_word(win):
+    window, _config, _ = win
+    assert window._format_last_check(0) == "never"
+
+
+@pytest.mark.parametrize(
+    "seconds,expected",
+    [
+        (20, "just now"),
+        (125, "2 minute(s) ago"),
+        (5 * 3600, "5 hour(s) ago"),
+        (3 * 24 * 3600, "3 day(s) ago"),
+    ],
+)
+def test_the_relative_time_picks_the_right_unit(win, seconds, expected):
+    """No translator here, so the raw plural form shows which branch ran."""
+    window, _config, _ = win
+    assert window._relative_time(seconds) == expected
+
+
 def test_privacy_off_in_the_form_already_stops_the_name_lookup(monkeypatch):
     QApplication.instance() or QApplication(sys.argv)
     from refrain.sources.bluetooth import BluetoothSource
 
     monkeypatch.setattr(BluetoothSource, "list_paired_devices", staticmethod(lambda: []))
     asked = []
-    monkeypatch.setattr(sw, "fetch_application_name", lambda cid: asked.append(cid))
+    monkeypatch.setattr(sw, "fetch_application", lambda cid: asked.append(cid))
     config = Config()
     config.discord.resolve_app_name = True
     window = sw.SettingsWindow(config)

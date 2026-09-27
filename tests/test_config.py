@@ -106,6 +106,9 @@ def test_dataclasses_have_expected_fields():
         "app_name_for_id",
         "app_name_checked_ts",
         "resolve_app_name",
+        # The application's own icon, from the same answer as the name.
+        "app_icon",
+        "app_icon_for_id",
     } == set(DiscordConfig.__dataclass_fields__)
     assert {"mpris_enabled", "bluetooth_enabled", "bluetooth_device", "browser_hints"} == set(
         SourcesConfig.__dataclass_fields__
@@ -116,6 +119,7 @@ def test_dataclasses_have_expected_fields():
         "notifications",
         "cover_art",
         "show_buttons",
+        "show_small_image",
         "notify_delay_ms",
         "tray_icon",
         "first_run_complete",
@@ -180,13 +184,14 @@ def test_save_cleans_tmp_on_failure(tmp_path, monkeypatch):
     cfg = Config()
     cfg.discord.client_id = "new"
 
-    # Simulate os.replace failing (e.g., target on read-only fs).
-    import refrain.config as cfg_module
+    # Simulate os.replace failing (e.g., target on read-only fs). The
+    # atomic write lives in refrain.paths now, so that is where it breaks.
+    import refrain.paths as paths_module
 
     def _boom(*_a, **_k):
         raise OSError("read-only")
 
-    monkeypatch.setattr(cfg_module.os, "replace", _boom)
+    monkeypatch.setattr(paths_module.os, "replace", _boom)
     try:
         cfg.save(cfg_path)
     except OSError:
@@ -289,10 +294,10 @@ def test_control_characters_survive_a_save(tmp_path):
 def test_saves_from_two_threads_do_not_trip_over_the_shared_tmp_file(tmp_path, monkeypatch):
     import threading
 
-    import refrain.config as cfg_module
+    import refrain.paths as paths_module
 
     path = tmp_path / "config.toml"
-    real_replace = cfg_module.os.replace
+    real_replace = paths_module.os.replace
     first_in_replace = threading.Event()
     second_done = threading.Event()
     calls = []
@@ -304,7 +309,7 @@ def test_saves_from_two_threads_do_not_trip_over_the_shared_tmp_file(tmp_path, m
             second_done.wait(0.5)
         real_replace(src, dst)
 
-    monkeypatch.setattr(cfg_module.os, "replace", slow_first_replace)
+    monkeypatch.setattr(paths_module.os, "replace", slow_first_replace)
     errors = []
 
     def save(app_name, done=None):

@@ -150,6 +150,7 @@ def report(config: Config) -> str:
         f"Notifications: {_yes_no(config.behavior.notifications)}"
         f" · cover art {_yes_no(config.behavior.cover_art)}"
         f" · buttons {_yes_no(config.behavior.show_buttons)}"
+        f" · small icon {_yes_no(config.behavior.show_small_image)}"
         f" · autostart {_yes_no(config.behavior.autostart)}",
         f"Advanced: poll {config.advanced.poll_interval_ms} ms"
         f" · log level {config.advanced.log_level}"

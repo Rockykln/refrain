@@ -16,7 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from pypresence import ActivityType, Presence
+from pypresence import ActivityType, Presence, StatusDisplayType
 from pypresence import exceptions as ppx
 
 log = logging.getLogger(__name__)
@@ -146,6 +146,10 @@ _REFUSED_MEMORY = 64
 # Discord answers a hiccup with the same "Unknown error" as a bad payload, so a
 # refusal is given one more chance before the song is written off.
 _REFUSED_RETRY_S = 20.0
+# And the write-off expires: a payload Discord will never accept costs one
+# write every five minutes, while a song silently skipped for its whole
+# length over one bad minute is the worse of the two failures.
+_REFUSED_FORGET_S = 300.0
 
 _TEXT_FIELDS = frozenset({"name", "details", "state", "large_text", "small_text"})
 _IMAGE_FIELDS = frozenset({"large_image", "small_image"})
@@ -199,9 +203,7 @@ def _clean_text(value: object, limit: int, minimum: int = _TEXT_MIN) -> str | No
     return text + _PAD * max(0, minimum - _utf16_len(text))
 
 
-def _clean_url(
-    value: object, limit: int, schemes: tuple[str, ...] = ("https", "http")
-) -> str | None:
+def _clean_url(value: object, limit: int, schemes: tuple[str, ...] = ("https",)) -> str | None:
     if not isinstance(value, str):
         return None
     url = value.strip()
@@ -349,6 +351,7 @@ class DiscordRPC:
         self._writes: deque[float] = deque()
         # fingerprint → (first refusal, how often)
         self._refused: dict[str, tuple[float, int]] = {}
+        self._last_dropped: set[str] = set()
         # Set while something is wrong beyond "Discord is not running":
         # a refused payload or a client that stopped answering.
         self._fault = ""
@@ -564,6 +567,8 @@ class DiscordRPC:
             self._last_payload = None
             self._cleared = False
             self._fault = ""
+            # Whatever the old pipe refused says nothing about the new one.
+            self._refused.clear()
             self.status = "connected"
             self.status_detail = ", ".join(
                 "auto" if t == "auto" else f"discord-ipc-{t}"
@@ -600,7 +605,23 @@ class DiscordRPC:
         # Without a type Discord renders "Playing Refrain" instead of
         # "Listening to <song>".
         payload.setdefault("activity_type", ActivityType.LISTENING)
-        self._pending = sanitize_activity(payload)
+        # The member list has room for one line, and shows the application's
+        # name unless told otherwise. The song title says more there. With no
+        # title there is nothing to put in its place, so the name stays.
+        payload.setdefault(
+            "status_display_type",
+            StatusDisplayType.DETAILS if payload.get("details") else StatusDisplayType.NAME,
+        )
+        clean = sanitize_activity(payload)
+        dropped = {k for k, v in payload.items() if v not in (None, "") and k not in clean}
+        if dropped != self._last_dropped:
+            self._last_dropped = dropped
+            if dropped:
+                # Discord's limits differ per field — a song address over
+                # 256 characters still fits a button but not `details_url`.
+                # Without this the link is simply absent, with nothing said.
+                log.debug("Discord dropped over its limits: %s", ", ".join(sorted(dropped)))
+        self._pending = clean
         self.pump()
 
     def clear(self, force: bool = False) -> None:
@@ -626,7 +647,9 @@ class DiscordRPC:
             if self._cleared and recent:
                 self._pending = None
                 return
-        elif (pending == self._last_payload and recent) or self._written_off(pending, now):
+        elif isinstance(pending, dict) and (
+            (pending == self._last_payload and recent) or self._written_off(pending, now)
+        ):
             self._pending = None
             return
         if not force and not self._has_token(now):
@@ -636,11 +659,15 @@ class DiscordRPC:
         elif isinstance(pending, dict):
             self._send_update(pending, now)
 
-    def _written_off(self, payload: object, now: float) -> bool:
-        seen = self._refused.get(_fingerprint(payload)) if isinstance(payload, dict) else None
+    def _written_off(self, payload: dict, now: float) -> bool:
+        key = _fingerprint(payload)
+        seen = self._refused.get(key)
         if seen is None:
             return False
         first, times = seen
+        if now - first > _REFUSED_FORGET_S:
+            del self._refused[key]
+            return False
         return times > 1 or now - first < _REFUSED_RETRY_S
 
     def _has_token(self, now: float) -> bool:

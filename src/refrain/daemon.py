@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import html
 import logging
-import re
 import shutil
 import subprocess
 import time
@@ -19,6 +19,7 @@ from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Sl
 from refrain import dev_metrics
 from refrain.config import AdvancedConfig, Config
 from refrain.cover_fetcher import CoverFetcher
+from refrain.discord_app import application_icon_url
 from refrain.discord_rpc import DiscordRPC, RPCState
 from refrain.history import HistorySnapshot, PlayHistory
 from refrain.paths import assets_dir
@@ -53,6 +54,16 @@ _IDLE_LOG_KEY_SENTINEL = "__refrain_idle_logged__:"
 
 # Discord's limit for a button's link.
 _BUTTON_URL_MAX = 512
+
+# Refrain's own icon, for the Discord cover. Discord fetches it, so it has to
+# be a public address; it is pinned to the commit that last changed the file,
+# because a moving address would empty that corner in every running copy of
+# Refrain the day the file is renamed.
+_REFRAIN_ICON_URL = (
+    "https://raw.githubusercontent.com/Rockykln/refrain/"
+    "6b339ba8939ec7314de6ab07f58d6daab5dfbb1b/src/refrain/assets/icons/refrain.png"
+)
+_REFRAIN_URL = "https://refrain.rockykln.com"
 
 
 def button_url(link: str) -> str:
@@ -176,6 +187,52 @@ def compute_idle_state(
     return track, track_key, prev_seen_at
 
 
+# A paused source keeps naming its last track for as long as it stays
+# connected: a phone on Bluetooth still reports the song it stopped hours
+# ago, and nothing about that reading ever changes again. Past this long
+# without playing, it is stale rather than paused.
+_PAUSED_MAX_S = 30 * 60
+
+
+def compute_paused_state(
+    track: TrackInfo,
+    prev_track_key: str,
+    paused_since: float,
+    now: float,
+    limit_s: float = _PAUSED_MAX_S,
+) -> tuple[TrackInfo, str, float]:
+    """Drop a track that has been paused or stopped for longer than ``limit_s``.
+
+    Returns ``(track_or_empty, new_key, new_paused_since)``, the same
+    shape as ``compute_idle_state``. A track that starts playing again
+    resets the clock, because the status is no longer PAUSED. Logged
+    once per stale track, through the same sentinel key.
+    """
+    if limit_s <= 0:
+        return track, "", 0.0
+    if not track.has_track:
+        # A poll that read nothing is not the source coming back: MPRIS
+        # times out, the browser restarts, a player sits on the timeout
+        # blacklist. Carrying the verdict over keeps a dropped track from
+        # reappearing on the next tick with a fresh half hour ahead of it.
+        return track, prev_track_key, paused_since
+    if track.status not in (PlaybackStatus.PAUSED, PlaybackStatus.STOPPED):
+        return track, "", 0.0
+    track_key = track.content_key()
+    sentinel_key = _IDLE_LOG_KEY_SENTINEL + track_key
+    if prev_track_key == sentinel_key:
+        return TrackInfo.empty(), sentinel_key, paused_since
+    if track_key != prev_track_key:
+        return track, track_key, now
+    if (now - paused_since) > limit_s:
+        log.info(
+            "Paused for %.0f min with no change; clearing playback state",
+            (now - paused_since) / 60,
+        )
+        return TrackInfo.empty(), sentinel_key, paused_since
+    return track, track_key, paused_since
+
+
 def select_source_track(
     mpris: TrackInfo | None,
     bluetooth: TrackInfo | None,
@@ -215,6 +272,21 @@ def select_source_track(
     return best[2], best[1]
 
 
+def _drop_artist_edge(album: str, artist: str) -> str:
+    """``album`` without a leading or trailing "<artist> -" , case-insensitive."""
+    seps = ("-", ":", "\u2013", "\u2014")
+    low_album, low_artist = album.casefold(), artist.casefold()
+    if low_album.startswith(low_artist):
+        rest = album[len(artist) :].lstrip()
+        if rest[:1] in seps:
+            return rest[1:].strip()
+    if low_album.endswith(low_artist):
+        head = album[: len(album) - len(artist)].rstrip()
+        if head[-1:] in seps:
+            return head[:-1].strip()
+    return album
+
+
 def _format_album_for_display(album: str, artist: str, title: str) -> str:
     """Strip artist / title cruft from an album name for Discord's bottom
     line. MPRIS album fields sometimes embed the artist as a prefix
@@ -225,21 +297,23 @@ def _format_album_for_display(album: str, artist: str, title: str) -> str:
         return ""
     cleaned = album.strip()
     if artist:
-        cleaned = re.sub(
-            rf"^{re.escape(artist)}\s*[-:–—]\s*",  # noqa: RUF001 — en-dash and em-dash
-            "",
-            cleaned,
-            flags=re.IGNORECASE,
-        ).strip()
-        cleaned = re.sub(
-            rf"\s*[-:–—]\s*{re.escape(artist)}$",  # noqa: RUF001
-            "",
-            cleaned,
-            flags=re.IGNORECASE,
-        ).strip()
+        # Plain prefix/suffix matching rather than a pattern built from the
+        # artist: `re.escape` over a field a player controls makes the
+        # engine's work grow with its length, on the poll thread.
+        cleaned = _drop_artist_edge(cleaned, artist)
     if title and cleaned and cleaned.lower() == title.lower():
         return ""
     return cleaned
+
+
+def escape_body(text: str) -> str:
+    """A notification body, with its markup read as plain text.
+
+    The body is a markup field in the freedesktop spec, and Plasma renders
+    `<b>` and `<a href>` in it. An artist name is not markup: a title that
+    looks like a link has to read as one, not open one.
+    """
+    return html.escape(text, quote=False)
 
 
 def build_notify_argv(
@@ -277,7 +351,7 @@ def build_notify_argv(
     if print_id:
         argv.append("--print-id")
     # "--" ends option parsing: a song title may start with a dash.
-    argv.extend(["--", title, body or ""])
+    argv.extend(["--", title, escape_body(body or "")])
     return argv
 
 
@@ -304,7 +378,7 @@ def notify_over_dbus(
             dbus.UInt32(replace_id or 0),
             image_path or "refrain",
             title,
-            body,
+            escape_body(body),
             [],
             hints,
             -1,
@@ -432,6 +506,11 @@ class DaemonWorker(QObject):
         # clear playback state in `_poll` once that window expires.
         self._idle_track_key = ""
         self._idle_seen_at: float = 0.0
+        # The same, for a source that is merely paused: it keeps naming
+        # its last track for as long as it stays connected.
+        self._paused_track_key = ""
+        self._paused_since: float = 0.0
+        self._paused_stale = False
         # Position resolution. Sources misreport position in several
         # ways (a queue-cumulative timeline, a Position that stops
         # refreshing mid-track), so `_resolve_position` runs one tiered
@@ -448,6 +527,7 @@ class DaemonWorker(QObject):
         # again on the same track — a replay, for the history and Last.fm.
         self._track_restarted = False
         self._last_rpc_timing: tuple | None = None
+        self._last_rpc_artwork: dict | None = None
         # Refrain-as-MPRIS-player. Lets KDE Plasma's panel media-controls
         # applet drive the same Play/Pause/Next/Previous as our tray.
         # Constructed eagerly but `start()` is deferred until after the
@@ -1100,26 +1180,40 @@ class DaemonWorker(QObject):
         )
         self._idle_track_key = new_key
         self._idle_seen_at = new_seen
+        stale, paused_key, paused_since = compute_paused_state(
+            result, self._paused_track_key, self._paused_since, now
+        )
+        self._paused_track_key = paused_key
+        self._paused_since = paused_since
+        # Hidden, not forgotten — see `_dispatch`. The real reading goes on
+        # to the history and Last.fm, which have their own idea of when a
+        # play ends; only the windows stop showing it.
+        self._paused_stale = result.has_track and not stale.has_track
         return result
 
     def _dispatch(self, track: TrackInfo) -> None:
-        fp = track.fingerprint()
+        # A track paused past its limit disappears from the tray, the Status
+        # window, Discord and the published MPRIS player. The history and the
+        # scrobbler keep the real reading: resuming a long song after a long
+        # pause is one listen, and telling them it ended would bank it twice.
+        shown = TrackInfo.empty() if self._paused_stale else track
+        fp = shown.fingerprint()
         if fp != self._last_track_fp:
             log.info(
                 "Track change [%s]: %s — %s (%s)",
-                track.source,
-                track.title or "—",
-                track.artist or "—",
-                track.status.value,
+                shown.source,
+                shown.title or "—",
+                shown.artist or "—",
+                shown.status.value,
             )
-            self.trackChanged.emit(track)
+            self.trackChanged.emit(shown)
             self._last_track_fp = fp
             self._drop_old_temp_covers(track)
             if (
                 self._config.behavior.notifications
                 and not self._notifications_muted
-                and track.has_track
-                and track.status == PlaybackStatus.PLAYING
+                and shown.has_track
+                and shown.status == PlaybackStatus.PLAYING
                 and fp != self._last_notified_fp
             ):
                 # Kick off the cover download right away, then defer the
@@ -1128,13 +1222,13 @@ class DaemonWorker(QObject):
                 # first notification for any track would always show the
                 # default icon — the BG fetch hasn't completed yet.
                 if self._config.behavior.cover_art:
-                    self._cover_fetcher.get(track.artist, track.title, track.album)
-                self._schedule_notify(track)
+                    self._cover_fetcher.get(shown.artist, shown.title, shown.album)
+                self._schedule_notify(shown)
                 self._last_notified_fp = fp
 
-        if track.status != self._last_status:
-            self.statusChanged.emit(track.status)
-            self._last_status = track.status
+        if shown.status != self._last_status:
+            self.statusChanged.emit(shown.status)
+            self._last_status = shown.status
 
         # Settle the track length once per tick — the tray label, the
         # Discord payload and the MPRIS server we publish must all render
@@ -1168,8 +1262,8 @@ class DaemonWorker(QObject):
         self._clock.lap("tray")
         # The Status window shows the cover whether or not the history keeps it.
         cover_now = ""
-        if track.has_track and self._config.behavior.cover_art:
-            cover_now = self._cover_fetcher.get(track.artist, track.title, track.album) or ""
+        if shown.has_track and self._config.behavior.cover_art:
+            cover_now = self._cover_fetcher.get(shown.artist, shown.title, shown.album) or ""
             if not track.album:
                 # Browsers rarely send one, and without it Last.fm finds no cover.
                 found = self._catalog_album_for(track)
@@ -1178,7 +1272,7 @@ class DaemonWorker(QObject):
         if cover_now != self._cover_emitted:
             self._cover_emitted = cover_now
             self.coverChanged.emit(cover_now)
-        self._update_rpc(track, effective_dur_ms, itunes_dur_ms)
+        self._update_rpc(shown, effective_dur_ms, itunes_dur_ms)
         self._clock.lap("discord")
 
         # Last.fm and the history judge "played" from the same length:
@@ -1238,7 +1332,7 @@ class DaemonWorker(QObject):
             # an unresolvable position drops the length too and the
             # applet renders the track without a bar.
             self._mpris_server.update(
-                track,
+                shown,
                 cover_for_mpris,
                 effective_dur_ms if self._position_known else 0,
             )
@@ -1247,7 +1341,7 @@ class DaemonWorker(QObject):
         # A status held back by the rate limit goes out even on a tick
         # that brings nothing new.
         self._rpc.pump()
-        self._emit_service_states(track)
+        self._emit_service_states(shown)
 
     def _emit_service_states(self, track: TrackInfo) -> None:
         rpc_connected = self._rpc.is_connected()
@@ -1393,6 +1487,78 @@ class DaemonWorker(QObject):
         else:
             self._replace_track = None
 
+    def _rpc_artwork(self, cover_url: str, song_link: str) -> dict:
+        """The two images on the Discord card and where each one leads.
+
+        The cover belongs in the large slot and links to the song; the
+        user's own application icon fills the corner, so the card says at
+        a glance where the music comes from. With no cover the
+        application icon moves up and Refrain's own icon takes the
+        corner, linking to the project — which is also all that is left
+        when Refrain was never told the application icon.
+        """
+        app_icon = self._application_icon()
+        if cover_url:
+            large_image, large_url = cover_url, song_link
+        elif app_icon:
+            large_image, large_url = app_icon, ""
+        else:
+            large_image, large_url = _REFRAIN_ICON_URL, _REFRAIN_URL
+        out: dict = {"large_image": large_image}
+        if large_url:
+            out["large_url"] = large_url
+        # Nothing to put in the corner once Refrain's icon is already the
+        # large one, and the same icon twice would only look like a bug.
+        if not self._config.behavior.show_small_image or large_image == _REFRAIN_ICON_URL:
+            return out
+        if cover_url and app_icon:
+            out["small_image"] = app_icon
+            if name := self._application_name():
+                out["small_text"] = name
+            return out
+        out["small_image"] = _REFRAIN_ICON_URL
+        out["small_text"] = "Refrain"
+        out["small_url"] = _REFRAIN_URL
+        return out
+
+    def _log_artwork(self, artwork: dict) -> None:
+        """Log the card's images once per change — every poll would repeat it."""
+        if artwork == self._last_rpc_artwork:
+            return
+        self._last_rpc_artwork = dict(artwork)
+        app_icon = self._application_icon()
+
+        def slot(image: str) -> str:
+            if not image:
+                return "—"
+            if image == _REFRAIN_ICON_URL:
+                return "refrain"
+            return "app icon" if image == app_icon else "cover"
+
+        log.debug(
+            "RPC artwork: large=%s%s small=%s%s",
+            slot(artwork.get("large_image", "")),
+            f" → {artwork['large_url']}" if artwork.get("large_url") else "",
+            slot(artwork.get("small_image", "")),
+            f" → {artwork['small_url']}" if artwork.get("small_url") else "",
+        )
+
+    def _application_icon(self) -> str:
+        """The address of the active application's icon, or "" if unknown.
+
+        Only the default application ID is ever looked up, so a per-source
+        override runs without an icon rather than with the wrong one.
+        """
+        d = self._config.discord
+        client_id = d.client_id.strip()
+        if self._rpc_active_client_id != client_id or d.app_icon_for_id.strip() != client_id:
+            return ""
+        return application_icon_url(client_id, d.app_icon)
+
+    def _application_name(self) -> str:
+        d = self._config.discord
+        return d.app_name if d.app_name_for_id.strip() == self._rpc_active_client_id else ""
+
     def _update_rpc(
         self,
         track: TrackInfo,
@@ -1432,18 +1598,16 @@ class DaemonWorker(QObject):
             return
 
         if self._config.privacy.mode == "minimal":
-            self._rpc.update(
-                details="Listening to music",
-                large_image="refrain",
-                large_text="Refrain",
-            )
+            artwork = self._rpc_artwork("", "")
+            self._log_artwork(artwork)
+            self._rpc.update(details="Listening to music", large_text="Refrain", **artwork)
             return
 
         track_key = track.content_key()
         is_new_track = track_key != self._rpc_track_key
 
         # Hold a new song back for up to 3 polls until its cover is cached, so
-        # Discord doesn't flash the Refrain logo before the cover lands. Only
+        # Discord doesn't flash the fallback icon before the cover lands. Only
         # while nothing is on the profile yet: leaving the song before showing
         # would be telling Discord's viewers something untrue.
         cover_url: str | None = None
@@ -1516,7 +1680,14 @@ class DaemonWorker(QObject):
         else:
             state = "Apple Music"
 
-        large_image = cover_url or "refrain"
+        # Prefer the iTunes-resolved song URL (links to the *specific* track)
+        # over xesam:url from the browser tab (often the album / playlist page).
+        song_link = button_url(
+            self._cover_fetcher.get_song_url(track.artist, track.title, track.album)
+            or (track.url if track.source == "mpris" else "")
+        )
+        artwork = self._rpc_artwork(cover_url or "", song_link)
+        self._log_artwork(artwork)
 
         names = (track.album, track.artist, track.title)
         if names != self._album_display[0]:
@@ -1540,18 +1711,10 @@ class DaemonWorker(QObject):
         # old and is dropped once it passes the song's end.
         send_timing = not is_short_track and self._position_known
 
-        payload: dict = {
-            "details": details,
-            "state": state,
-            "large_image": large_image,
-        }
-        # Discord's LISTENING activity type intentionally does
-        # NOT render `small_image` — only PLAYING / WATCHING activities
-        # show a small-icon overlay. We keep activity_type=LISTENING
-        # (from DiscordRPC.update) so the status reads "Listening to
-        # Refrain" instead of "Playing Refrain", and accept that the
-        # small-icon corner stays empty. The cover_url already
-        # carries the visual identity in the large slot.
+        payload: dict = {"details": details, "state": state, **artwork}
+        if song_link:
+            payload["details_url"] = song_link
+            payload["state_url"] = song_link
         if send_timing:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it
@@ -1563,13 +1726,8 @@ class DaemonWorker(QObject):
         if send_timing and effective_duration_ms > 0:
             payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
 
-        # Prefer the iTunes-resolved song URL (links to the *specific* track)
-        # over xesam:url from the browser tab (often the album / playlist page).
-        if self._config.behavior.show_buttons:
-            song_url = self._cover_fetcher.get_song_url(track.artist, track.title, track.album)
-            link = button_url(song_url or (track.url if track.source == "mpris" else ""))
-            if link:
-                payload["buttons"] = [{"label": "Listen on Apple Music", "url": link}]
+        if song_link and self._config.behavior.show_buttons:
+            payload["buttons"] = [{"label": "Listen on Apple Music", "url": song_link}]
 
         # The timing pair decides Discord's progress bar, and it is
         # assembled from four different sources. Logged whenever it

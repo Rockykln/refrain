@@ -27,9 +27,9 @@ def slow_lookup(monkeypatch):
 
     def fetch(client_id):
         release.wait(5)
-        return sw.FOUND, f"name for {client_id}"
+        return sw.FOUND, f"name for {client_id}", ""
 
-    monkeypatch.setattr(sw, "fetch_application_name", fetch)
+    monkeypatch.setattr(sw, "fetch_application", fetch)
     from refrain.sources.bluetooth import BluetoothSource
 
     monkeypatch.setattr(BluetoothSource, "list_paired_devices", staticmethod(lambda: []))

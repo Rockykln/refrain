@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import dataclasses
 import logging
-import os
 import re
 import threading
 import time
@@ -17,7 +15,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from refrain.paths import config_path
+from refrain.paths import config_path, write_private
 
 log = logging.getLogger(__name__)
 
@@ -181,10 +179,18 @@ class DiscordConfig:
     app_name: str = ""
     app_name_for_id: str = ""
     app_name_checked_ts: int = 0
+    # Image hash of the application's own icon, from the same answer as
+    # the name, and the address Discord renders as the small icon on the
+    # cover. Keyed by its own ID because the two are not always written
+    # together: Settings looks the name up on its own.
+    app_icon: str = ""
+    app_icon_for_id: str = ""
     # Whether to look the name up at all. Opt-in, and off by default:
     # this is the only request Refrain would make to Discord's *servers*
     # rather than to the local client, and by default Refrain sends
-    # nothing anywhere on its own.
+    # nothing anywhere on its own. It also decides which icon ends up in
+    # the corner of the Discord cover: the application's own one is only
+    # addressable once this lookup has named its image hash.
     resolve_app_name: bool = False
 
     def client_id_for(self, source: str) -> str:
@@ -247,6 +253,9 @@ class BehaviorConfig:
     notifications: bool = False
     cover_art: bool = True
     show_buttons: bool = True
+    # Small icon in the corner of the Discord cover. Refrain's own icon,
+    # or the user's application icon once `resolve_app_name` has named it.
+    show_small_image: bool = True
     # How long to wait after a track change before firing the desktop
     # notification. 0 = fire immediately; the retry loop in
     # `_fire_pending_notify` still polls up to 2 s for the cover image
@@ -647,23 +656,10 @@ class Config:
         # power-cut between truncate-and-write would leave an empty or
         # half-written config — and refrain falls back to defaults on
         # malformed TOML, silently losing every setting the user picked.
-        tmp = path.with_suffix(path.suffix + ".tmp")
-        try:
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, path)
-        except Exception:
-            # Disk full / permission denied / read-only fs — clean up
-            # the partial tmp file before re-raising so we don't leak
-            # a stale .tmp next to the real config.
-            if tmp.exists():
-                with contextlib.suppress(OSError):
-                    tmp.unlink()
-            raise
-        # Defense in depth: config.toml never holds secrets (they're in
-        # the keyring) but it does hold the Discord/Last.fm api_key and
-        # the user's listening-related preferences — keep it owner-only.
-        with contextlib.suppress(OSError):
-            os.chmod(path, 0o600)
+        # Owner-only from the first byte: config.toml never holds secrets
+        # (they're in the keyring) but it does hold the Discord/Last.fm
+        # application IDs and what the user listens with.
+        write_private(path, text)
         log.info("Config saved to %s", path)
 
 

@@ -206,7 +206,7 @@ def test_a_recently_checked_name_is_shown_without_asking_discord_again(win, monk
     )
     called = []
     monkeypatch.setattr(
-        sw, "fetch_application_name", lambda cid: called.append(cid) or (sw.FOUND, "unused")
+        sw, "fetch_application", lambda cid: called.append(cid) or (sw.FOUND, "unused", "")
     )
     win._config.discord.app_name = "Glass Tides Radio"
     win._config.discord.app_name_for_id = CLIENT_ID

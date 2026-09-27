@@ -591,3 +591,17 @@ def test_ok_and_cancel_also_join_the_lastfm_thread(win, monkeypatch):
     win.show()
     win.reject()
     assert joined == [1, 1]
+
+
+def test_reset_keeps_the_ids_but_not_the_discord_preferences():
+    """The dialog says everything but the IDs goes back to the defaults."""
+    c = Config()
+    c.discord.client_id = "1234567890123456789"
+    c.discord.app_name, c.discord.app_name_for_id = "Apple Music", "1234567890123456789"
+    c.discord.all_clients = True
+    c.discord.resolve_app_name = True
+    out = sw.reset_to_defaults(c)
+    assert out.discord.client_id == "1234567890123456789"
+    assert out.discord.app_name == "Apple Music"
+    assert out.discord.all_clients is False
+    assert out.discord.resolve_app_name is False

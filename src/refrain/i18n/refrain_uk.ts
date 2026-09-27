@@ -548,9 +548,9 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="617"/>
-        <location filename="../ui/settings_window.py" line="938"/>
-        <location filename="../ui/settings_window.py" line="1696"/>
-        <location filename="../ui/settings_window.py" line="1771"/>
+        <location filename="../ui/settings_window.py" line="933"/>
+        <location filename="../ui/settings_window.py" line="1713"/>
+        <location filename="../ui/settings_window.py" line="1788"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
@@ -566,13 +566,13 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="624"/>
-        <location filename="../ui/settings_window.py" line="902"/>
-        <location filename="../ui/settings_window.py" line="913"/>
-        <location filename="../ui/settings_window.py" line="930"/>
-        <location filename="../ui/settings_window.py" line="1454"/>
-        <location filename="../ui/settings_window.py" line="1557"/>
-        <location filename="../ui/settings_window.py" line="1631"/>
-        <location filename="../ui/settings_window.py" line="2010"/>
+        <location filename="../ui/settings_window.py" line="897"/>
+        <location filename="../ui/settings_window.py" line="908"/>
+        <location filename="../ui/settings_window.py" line="925"/>
+        <location filename="../ui/settings_window.py" line="1471"/>
+        <location filename="../ui/settings_window.py" line="1574"/>
+        <location filename="../ui/settings_window.py" line="1648"/>
+        <location filename="../ui/settings_window.py" line="2029"/>
         <source>Cancel</source>
         <translation>Скасувати</translation>
     </message>
@@ -602,48 +602,43 @@
         <translation>Дізнаватися назву застосунку в Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="723"/>
-        <source>Asks Discord what the Application ID is called, so a mistyped ID is visible instead of silently publishing nothing. This is the one request Refrain sends to Discord&apos;s servers rather than to your local Discord client; it carries the Application ID and nothing else.</source>
-        <translation>Запитує в Discord, як називається застосунок із цим Application ID. Так помилку в ID видно одразу, а не лише з того, що статус мовчки ніде не з’являється. Це єдиний запит, який Refrain надсилає на сервери Discord, а не до вашого локального клієнта Discord; він містить лише Application ID і нічого більше.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="739"/>
+        <location filename="../ui/settings_window.py" line="735"/>
         <source>Use a separate Discord application per source (advanced)</source>
         <translation>Окремий застосунок Discord для кожного джерела (для досвідчених)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="745"/>
+        <location filename="../ui/settings_window.py" line="741"/>
         <source>Send the status to every running Discord client</source>
         <translation>Надсилати статус до всіх запущених клієнтів Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="797"/>
+        <location filename="../ui/settings_window.py" line="796"/>
         <source>Full — title, artist, album, cover</source>
         <translation>Повністю — назва, виконавець, альбом, обкладинка</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="775"/>
+        <location filename="../ui/settings_window.py" line="774"/>
         <source>Open Discord Developer Portal</source>
         <translation>Відкрити Discord Developer Portal</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="827"/>
+        <location filename="../ui/settings_window.py" line="822"/>
         <source>Show desktop notification on track change</source>
         <translation>Показувати сповіщення на стільниці під час зміни треку</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="824"/>
+        <location filename="../ui/settings_window.py" line="819"/>
         <source>Behavior</source>
         <translation>Поведінка</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="825"/>
+        <location filename="../ui/settings_window.py" line="820"/>
         <source>Start Refrain automatically on login</source>
         <translation>Автоматично запускати Refrain під час входу в систему</translation>
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="618"/>
-        <location filename="../ui/settings_window.py" line="845"/>
+        <location filename="../ui/settings_window.py" line="840"/>
         <source>Recently played</source>
         <translation>Нещодавно прослухане</translation>
     </message>
@@ -673,541 +668,588 @@
         <translation>Application ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="749"/>
-        <source>Refrain normally sends your status to the first Discord app it finds. Turn this on if you run more than one at once.</source>
-        <translation>Зазвичай Refrain надсилає ваш статус до першого знайденого застосунку Discord. Увімкніть це, якщо користуєтеся кількома одночасно.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="755"/>
-        <location filename="../ui/settings_window.py" line="760"/>
+        <location filename="../ui/settings_window.py" line="748"/>
+        <location filename="../ui/settings_window.py" line="753"/>
         <source>(uses the main Application ID)</source>
         <translation>(використовує основний Application ID)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="757"/>
+        <location filename="../ui/settings_window.py" line="750"/>
         <source>Apple Music:</source>
         <translation>Apple Music:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="762"/>
+        <location filename="../ui/settings_window.py" line="755"/>
         <source>Bluetooth:</source>
         <translation>Bluetooth:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="768"/>
+        <location filename="../ui/settings_window.py" line="761"/>
         <source>Show “Listen on Apple Music” button in Discord</source>
         <translation>Показувати кнопку «Listen on Apple Music» в Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="769"/>
+        <location filename="../ui/settings_window.py" line="762"/>
         <source>Discord shows the button to others, not to you.</source>
         <translation>Discord показує цю кнопку іншим, а не вам.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="783"/>
+        <location filename="../ui/settings_window.py" line="765"/>
+        <source>Show a small icon on the cover in Discord</source>
+        <translation>Показувати маленький значок на обкладинці в Discord</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="782"/>
         <source>Create a free application in the Discord Developer Portal and copy its Application ID. The application&apos;s name is what shows up next to “Listening to” in your Discord status.</source>
         <translation>Створіть безкоштовний застосунок у Discord Developer Portal і скопіюйте його Application ID. Назва застосунку з’явиться поряд із «Listening to» у вашому статусі Discord.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="794"/>
+        <location filename="../ui/settings_window.py" line="793"/>
         <source>Privacy</source>
         <translation>Конфіденційність</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="798"/>
+        <location filename="../ui/settings_window.py" line="797"/>
         <source>Minimal — only “Listening to music”</source>
         <translation>Мінімум — лише «Listening to music»</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="800"/>
+        <location filename="../ui/settings_window.py" line="799"/>
         <source>Off — pause Discord status and Last.fm scrobbling</source>
         <translation>Вимкнено — без статусу Discord і Last.fm</translation>
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="804"/>
-        <source>What Refrain shares while music plays. Off pauses both the Discord status and Last.fm scrobbling; the recently played list on this computer keeps working.</source>
-        <translation>Те, чим Refrain ділиться, поки грає музика. Вимкнено призупиняє і статус Discord, і скроблінг Last.fm; список нещодавно прослуханого на цьому комп’ютері й далі працює.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="809"/>
         <source>Sharing:</source>
         <translation>Поширення:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="810"/>
+        <location filename="../ui/settings_window.py" line="805"/>
         <source>Look up songs in Apple&apos;s catalog</source>
         <translation>Шукати пісні в каталозі Apple</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="815"/>
+        <location filename="../ui/settings_window.py" line="810"/>
         <source>Sends artist and title to Apple to get the cover, the song link and the length. Without it, Discord shows no cover and often no progress bar.</source>
         <translation>Надсилає виконавця й назву в Apple, щоб отримати обкладинку, посилання на пісню й тривалість. Без цього Discord не показує обкладинку, а часто й шкалу прогресу.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="846"/>
+        <location filename="../ui/settings_window.py" line="841"/>
         <source>Keep a list of recently played songs</source>
         <translation>Зберігати список нещодавно прослуханих пісень</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="856"/>
+        <location filename="../ui/settings_window.py" line="851"/>
         <source>Songs to keep:</source>
         <translation>Скільки пісень зберігати:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="858"/>
+        <location filename="../ui/settings_window.py" line="853"/>
         <source>Show recently played…</source>
         <translation>Показати нещодавно прослухане…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="864"/>
+        <location filename="../ui/settings_window.py" line="859"/>
         <source>Stored only on this computer and never sent anywhere, so privacy mode doesn&apos;t affect it. Turning it off deletes the list; a lower number drops the oldest songs.</source>
         <translation>Зберігається лише на цьому комп’ютері й нікуди не надсилається, тому режим конфіденційності на нього не впливає. Вимкнення видаляє список; менше число вилучає найстаріші пісні.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="896"/>
+        <location filename="../ui/settings_window.py" line="891"/>
         <source>Turn off history?</source>
         <translation>Вимкнути історію?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="897"/>
+        <location filename="../ui/settings_window.py" line="892"/>
         <source>Turning the history off deletes the list of recently played songs.</source>
         <translation>Якщо вимкнути історію, список нещодавно прослуханих пісень буде видалено.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="898"/>
+        <location filename="../ui/settings_window.py" line="893"/>
         <source>This cannot be undone.</source>
         <translation>Цю дію не можна скасувати.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="900"/>
+        <location filename="../ui/settings_window.py" line="895"/>
         <source>Turn off and delete</source>
         <translation>Вимкнути й видалити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="910"/>
+        <location filename="../ui/settings_window.py" line="905"/>
         <source>Disconnect from Last.fm?</source>
         <translation>Відключитися від Last.fm?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="911"/>
+        <location filename="../ui/settings_window.py" line="906"/>
         <source>Nothing is scrobbled until you connect again.</source>
         <translation>Поки ви не підключитеся знову, скроблінг не працюватиме.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="912"/>
-        <location filename="../ui/settings_window.py" line="1654"/>
+        <location filename="../ui/settings_window.py" line="907"/>
+        <location filename="../ui/settings_window.py" line="1671"/>
         <source>Disconnect</source>
         <translation>Відключити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="921"/>
+        <location filename="../ui/settings_window.py" line="916"/>
         <source>Last.fm isn&apos;t connected</source>
         <translation>Last.fm не підключено</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="924"/>
+        <location filename="../ui/settings_window.py" line="919"/>
         <source>Scrobbling is switched on, but Refrain has no connection to Last.fm — nothing will be scrobbled.</source>
         <translation>Скроблінг увімкнено, але Refrain не має з’єднання з Last.fm — скроблінг не працюватиме.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="928"/>
+        <location filename="../ui/settings_window.py" line="923"/>
         <source>Click Connect… on the Last.fm tab to connect.</source>
         <translation>Щоб підключитися, натисніть «Підключити…» на вкладці Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="929"/>
+        <location filename="../ui/settings_window.py" line="924"/>
         <source>Apply anyway</source>
         <translation>Усе одно застосувати</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="939"/>
+        <location filename="../ui/settings_window.py" line="934"/>
         <source>Last.fm is connected, but scrobbling is off.</source>
         <translation>Last.fm підключено, але скроблінг вимкнено.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="940"/>
+        <location filename="../ui/settings_window.py" line="935"/>
         <source>Turn on scrobbling</source>
         <translation>Увімкнути скроблінг</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="941"/>
+        <location filename="../ui/settings_window.py" line="936"/>
         <source>Keep off</source>
         <translation>Залишити вимкненим</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="990"/>
+        <location filename="../ui/settings_window.py" line="985"/>
         <source>Last.fm scrobbling</source>
         <translation>Скроблінг Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="992"/>
+        <location filename="../ui/settings_window.py" line="987"/>
         <source>Enable Last.fm scrobbling</source>
         <translation>Увімкнути скроблінг Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="996"/>
+        <location filename="../ui/settings_window.py" line="991"/>
         <source>Last.fm API key</source>
         <translation>Ключ API Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="998"/>
+        <location filename="../ui/settings_window.py" line="993"/>
         <source>API key:</source>
         <translation>Ключ API:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1001"/>
+        <location filename="../ui/settings_window.py" line="996"/>
         <source>Last.fm shared secret</source>
         <translation>Shared secret Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1004"/>
+        <location filename="../ui/settings_window.py" line="999"/>
         <source>Shared secret:</source>
         <translation>Shared secret:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1006"/>
-        <location filename="../ui/settings_window.py" line="1664"/>
+        <location filename="../ui/settings_window.py" line="1001"/>
+        <location filename="../ui/settings_window.py" line="1681"/>
         <source>Not connected</source>
         <translation>Не підключено</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1007"/>
+        <location filename="../ui/settings_window.py" line="1002"/>
         <source>Account:</source>
         <translation>Обліковий запис:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1009"/>
-        <location filename="../ui/settings_window.py" line="1662"/>
-        <location filename="../ui/settings_window.py" line="1665"/>
+        <location filename="../ui/settings_window.py" line="1004"/>
+        <location filename="../ui/settings_window.py" line="1679"/>
+        <location filename="../ui/settings_window.py" line="1682"/>
         <source>Connect…</source>
         <translation>Підключити…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1011"/>
+        <location filename="../ui/settings_window.py" line="1006"/>
         <source>Create API account</source>
         <translation>Створити обліковий запис API</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1015"/>
+        <location filename="../ui/settings_window.py" line="1010"/>
         <source>Also send a “Now playing” update</source>
         <translation>Також надсилати оновлення «Зараз грає»</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1021"/>
+        <location filename="../ui/settings_window.py" line="1016"/>
         <source>Register a free API account, paste the key + secret, then Connect to authorize in your browser. Scrobbling runs alongside Discord and never replaces it; it pauses while Privacy is set to Off. The shared secret and the session token are stored in your system keyring, never in plain text.</source>
         <translation>Зареєструйте безкоштовний обліковий запис API, вставте ключ і Shared secret, а тоді натисніть «Підключити…», щоб авторизуватися в браузері. Скроблінг працює поряд із Discord і ніколи його не замінює; він призупиняється, поки в «Конфіденційність» вибрано «Вимкнено». Shared secret і токен сеансу зберігаються в системному сховищі ключів, ніколи у відкритому вигляді.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1032"/>
+        <location filename="../ui/settings_window.py" line="1027"/>
         <source>Scrobbling via Last.fm</source>
         <translation>Скроблінг через Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1050"/>
+        <location filename="../ui/settings_window.py" line="1045"/>
         <source>Apple Music Web (browser)</source>
         <translation>Apple Music Web (браузер)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1051"/>
+        <location filename="../ui/settings_window.py" line="1046"/>
         <source>Enable browser source</source>
         <translation>Увімкнути браузер як джерело</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1056"/>
+        <location filename="../ui/settings_window.py" line="1051"/>
         <source>Detected browsers:</source>
         <translation>Виявлені браузери:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1096"/>
+        <location filename="../ui/settings_window.py" line="1091"/>
         <source>e.g. waterfox, palemoon</source>
         <translation>напр. waterfox, palemoon</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1097"/>
+        <location filename="../ui/settings_window.py" line="1092"/>
         <source>Other (comma-separated):</source>
         <translation>Інші (через кому):</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1101"/>
+        <location filename="../ui/settings_window.py" line="1096"/>
         <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use.</source>
         <translation>Refrain розпізнає лише ті браузери, назва процесу або файл .desktop яких містить один із цих фрагментів. Позначте ті, якими користуєтеся.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1109"/>
+        <location filename="../ui/settings_window.py" line="1104"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1110"/>
+        <location filename="../ui/settings_window.py" line="1105"/>
         <source>Enable Bluetooth source</source>
         <translation>Увімкнути Bluetooth як джерело</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1116"/>
+        <location filename="../ui/settings_window.py" line="1111"/>
         <source>Refresh</source>
         <translation>Оновити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1124"/>
+        <location filename="../ui/settings_window.py" line="1119"/>
         <source>Device:</source>
         <translation>Пристрій:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1128"/>
+        <location filename="../ui/settings_window.py" line="1123"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Виберіть пов’язаний пристрій або залиште «автовизначення», щоб зчитувати дані з того джерела з підтримкою AVRCP, яке зараз підключено.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1141"/>
-        <location filename="../ui/settings_window.py" line="1153"/>
-        <location filename="../ui/settings_window.py" line="1915"/>
+        <location filename="../ui/settings_window.py" line="1136"/>
+        <location filename="../ui/settings_window.py" line="1148"/>
+        <location filename="../ui/settings_window.py" line="1933"/>
         <source>(auto-detect)</source>
         <translation>(автовизначення)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1155"/>
+        <location filename="../ui/settings_window.py" line="1150"/>
         <source>(unknown device)</source>
         <translation>(невідомий пристрій)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1158"/>
+        <location filename="../ui/settings_window.py" line="1153"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (підключено)</translation>
     </message>
     <message>
+        <location filename="../ui/settings_window.py" line="1173"/>
+        <source>just now</source>
+        <translation>щойно</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../ui/settings_window.py" line="1176"/>
+        <source>%n minute(s) ago</source>
+        <translation>
+            <numerusform>%n хвилину тому</numerusform>
+            <numerusform>%n хвилини тому</numerusform>
+            <numerusform>%n хвилин тому</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
         <location filename="../ui/settings_window.py" line="1179"/>
+        <source>%n hour(s) ago</source>
+        <translation>
+            <numerusform>%n годину тому</numerusform>
+            <numerusform>%n години тому</numerusform>
+            <numerusform>%n годин тому</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../ui/settings_window.py" line="1181"/>
+        <source>%n day(s) ago</source>
+        <translation>
+            <numerusform>%n день тому</numerusform>
+            <numerusform>%n дні тому</numerusform>
+            <numerusform>%n днів тому</numerusform>
+        </translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1194"/>
         <source>never</source>
         <translation>ніколи</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1191"/>
+        <location filename="../ui/settings_window.py" line="1208"/>
         <source>Update checking</source>
         <translation>Перевірка оновлень</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1194"/>
+        <location filename="../ui/settings_window.py" line="1211"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Автоматично перевіряти під час запуску (не частіше ніж раз на день)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1199"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>Current version:</source>
         <translation>Поточна версія:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1201"/>
+        <location filename="../ui/settings_window.py" line="1218"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1202"/>
+        <location filename="../ui/settings_window.py" line="1219"/>
         <source>Latest known:</source>
         <translation>Найновіша відома:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1205"/>
+        <location filename="../ui/settings_window.py" line="1222"/>
         <source>Last checked:</source>
         <translation>Остання перевірка:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1209"/>
+        <location filename="../ui/settings_window.py" line="1226"/>
         <source>Check for updates now</source>
         <translation>Перевірити оновлення зараз</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1216"/>
+        <location filename="../ui/settings_window.py" line="1233"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain звертається до GitHub Releases API. Спосіб оновлення залежить від того, як встановлено Refrain (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1235"/>
+        <location filename="../ui/settings_window.py" line="1252"/>
         <source>Latest release notes</source>
         <translation>Нотатки до останнього випуску</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1241"/>
+        <location filename="../ui/settings_window.py" line="1258"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_Натисніть_ **Перевірити оновлення зараз**, _щоб отримати найновіший список змін із GitHub._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1262"/>
+        <location filename="../ui/settings_window.py" line="1279"/>
         <source>(check failed)</source>
         <translation>(перевірка не вдалася)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1264"/>
+        <location filename="../ui/settings_window.py" line="1281"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_Не вдалося зв’язатися з GitHub. Перевірте мережу й спробуйте ще раз._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1269"/>
+        <location filename="../ui/settings_window.py" line="1286"/>
         <source>{version} (update available)</source>
         <translation>{version} (доступне оновлення)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1273"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>{version} (up to date)</source>
         <translation>{version} (актуальна)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1275"/>
+        <location filename="../ui/settings_window.py" line="1292"/>
         <source>_No release notes provided._</source>
         <translation>_Нотаток до випуску немає._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1288"/>
+        <location filename="../ui/settings_window.py" line="1305"/>
         <source>Performance</source>
         <translation>Продуктивність</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1294"/>
+        <location filename="../ui/settings_window.py" line="1311"/>
         <source>Poll interval:</source>
         <translation>Інтервал опитування:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1301"/>
+        <location filename="../ui/settings_window.py" line="1318"/>
         <source>Notification delay:</source>
         <translation>Затримка сповіщення:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1305"/>
+        <location filename="../ui/settings_window.py" line="1322"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>Інтервал опитування визначає, як часто Refrain запитує програвач, що грає: менше значення реагує швидше, але трохи більше навантажує процесор. Затримка сповіщення дає час на завантаження обкладинки.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1318"/>
+        <location filename="../ui/settings_window.py" line="1335"/>
         <source>Localization</source>
         <translation>Мова</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1321"/>
+        <location filename="../ui/settings_window.py" line="1338"/>
         <source>System default</source>
         <translation>Як у системі</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1338"/>
+        <location filename="../ui/settings_window.py" line="1355"/>
         <source>Language:</source>
         <translation>Мова:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1340"/>
+        <location filename="../ui/settings_window.py" line="1357"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Для нової мови потрібен перезапуск; Refrain запитає, перш ніж перезапуститися.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1381"/>
+        <location filename="../ui/settings_window.py" line="1398"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Видалення стирає всі дані Refrain та облікові дані Last.fm, а потім показує команду для видалення самої програми. Цю дію не можна скасувати.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1705"/>
+        <location filename="../ui/settings_window.py" line="1722"/>
         <source>Requesting authorization token…</source>
         <translation>Запит токена авторизації…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1764"/>
+        <location filename="../ui/settings_window.py" line="1781"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Підключено як {user}. Скроблінг почнеться з наступної пісні.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1768"/>
+        <location filename="../ui/settings_window.py" line="1785"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Підключено. Скроблінг почнеться з наступної пісні.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1770"/>
+        <location filename="../ui/settings_window.py" line="1787"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Залишається на паузі, поки в «Конфіденційність» вибрано «Вимкнено».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1345"/>
+        <location filename="../ui/settings_window.py" line="1362"/>
         <source>Logging</source>
         <translation>Журналювання</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1349"/>
+        <location filename="../ui/settings_window.py" line="723"/>
+        <source>Shows what the ID is called, so a typo shows up. Asks Discord, sends only the ID.</source>
+        <translation>Показує назву ID, щоб побачити помилку. Запитує Discord, надсилає лише ID.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="744"/>
+        <source>Normally only the first Discord app found gets your status.</source>
+        <translation>Зазвичай статус отримує лише перший знайдений Discord.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="767"/>
+        <source>Refrain&apos;s icon, or your application&apos;s own icon once its name is looked up.</source>
+        <translation>Значок Refrain або значок вашого застосунку, щойно його назву дізнано.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="802"/>
+        <source>What Refrain shares while music plays. Off also stops Last.fm scrobbling.</source>
+        <translation>Що Refrain показує під час відтворення. «Вимкнено» зупиняє і Last.fm.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1366"/>
         <source>Detailed (DEBUG)</source>
         <translation>Детальний (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1350"/>
+        <location filename="../ui/settings_window.py" line="1367"/>
         <source>Normal (INFO)</source>
         <translation>Звичайний (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1351"/>
+        <location filename="../ui/settings_window.py" line="1368"/>
         <source>Warnings only</source>
         <translation>Лише попередження</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1352"/>
+        <location filename="../ui/settings_window.py" line="1369"/>
         <source>Errors only</source>
         <translation>Лише помилки</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1355"/>
+        <location filename="../ui/settings_window.py" line="1372"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Виберіть «Детальний», коли повідомляєте про помилку.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1356"/>
+        <location filename="../ui/settings_window.py" line="1373"/>
         <source>Log level:</source>
         <translation>Рівень журналювання:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1358"/>
+        <location filename="../ui/settings_window.py" line="1375"/>
         <source>Open live-log window</source>
         <translation>Відкрити вікно журналу</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1360"/>
+        <location filename="../ui/settings_window.py" line="1377"/>
         <source>Open log folder</source>
         <translation>Відкрити теку журналів</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1369"/>
+        <location filename="../ui/settings_window.py" line="1386"/>
         <source>Maintenance</source>
         <translation>Обслуговування</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1370"/>
-        <location filename="../ui/settings_window.py" line="2007"/>
+        <location filename="../ui/settings_window.py" line="1387"/>
+        <location filename="../ui/settings_window.py" line="2026"/>
         <source>Restart Refrain</source>
         <translation>Перезапустити Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1372"/>
+        <location filename="../ui/settings_window.py" line="1389"/>
         <source>Reset all settings to defaults</source>
         <translation>Скинути всі налаштування до типових</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1375"/>
+        <location filename="../ui/settings_window.py" line="1392"/>
         <source>Uninstall Refrain…</source>
         <translation>Видалити Refrain…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1390"/>
+        <location filename="../ui/settings_window.py" line="1407"/>
         <source>Developer</source>
         <translation>Розробник</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1391"/>
-        <location filename="../ui/settings_window.py" line="1441"/>
+        <location filename="../ui/settings_window.py" line="1408"/>
+        <location filename="../ui/settings_window.py" line="1458"/>
         <source>Developer mode</source>
         <translation>Режим розробника</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1396"/>
+        <location filename="../ui/settings_window.py" line="1413"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Вимірює час і те, як ви користуєтеся Refrain, лише на цьому комп’ютері. Нічого ніколи не надсилається. Результати — у вікні журналу в реальному часі.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1442"/>
+        <location filename="../ui/settings_window.py" line="1459"/>
         <source>Turn on developer mode?</source>
         <translation>Увімкнути режим розробника?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1445"/>
+        <location filename="../ui/settings_window.py" line="1462"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1216,22 +1258,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Усе залишається на цьому комп’ютері й ніколи нікуди не надсилається. Вимірювання трохи знижує продуктивність. Вимкнути його знову можна в розділі «Додатково».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1453"/>
+        <location filename="../ui/settings_window.py" line="1470"/>
         <source>Turn on</source>
         <translation>Увімкнути</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1519"/>
+        <location filename="../ui/settings_window.py" line="1536"/>
         <source>Checking…</source>
         <translation>Перевірка…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1541"/>
+        <location filename="../ui/settings_window.py" line="1558"/>
         <source>Reset all settings</source>
         <translation>Скинути всі налаштування</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1544"/>
+        <location filename="../ui/settings_window.py" line="1561"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1240,47 +1282,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 Скидання зберігається одразу, а незбережені зміни буде втрачено.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1556"/>
+        <location filename="../ui/settings_window.py" line="1573"/>
         <source>Reset</source>
         <translation>Скинути</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1583"/>
+        <location filename="../ui/settings_window.py" line="1600"/>
         <source>Unsaved changes</source>
         <translation>Незбережені зміни</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1584"/>
+        <location filename="../ui/settings_window.py" line="1601"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Ви змінили налаштування, які ще не збережено.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1585"/>
+        <location filename="../ui/settings_window.py" line="1602"/>
         <source>Save</source>
         <translation>Зберегти</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1586"/>
+        <location filename="../ui/settings_window.py" line="1603"/>
         <source>Discard</source>
         <translation>Відхилити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1587"/>
+        <location filename="../ui/settings_window.py" line="1604"/>
         <source>Keep editing</source>
         <translation>Продовжити редагування</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1614"/>
+        <location filename="../ui/settings_window.py" line="1631"/>
         <source>(no data files found)</source>
         <translation>(файлів даних не знайдено)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1620"/>
+        <location filename="../ui/settings_window.py" line="1637"/>
         <source>Uninstall Refrain</source>
         <translation>Видалення Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1623"/>
+        <location filename="../ui/settings_window.py" line="1640"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1303,38 +1345,38 @@ Refrain will close. This cannot be undone.</source>
 Refrain закриється. Цю дію не можна скасувати.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1630"/>
+        <location filename="../ui/settings_window.py" line="1647"/>
         <source>Uninstall</source>
         <translation>Видалити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1650"/>
+        <location filename="../ui/settings_window.py" line="1667"/>
         <source>Connected as {user}</source>
         <translation>Підключено як {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1653"/>
+        <location filename="../ui/settings_window.py" line="1670"/>
         <source>Connected</source>
         <translation>Підключено</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1660"/>
+        <location filename="../ui/settings_window.py" line="1677"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Не підключено — повторно введіть ключ API і Shared secret, а тоді натисніть «Підключити…»</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1698"/>
+        <location filename="../ui/settings_window.py" line="1715"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Спершу введіть ключ API Last.fm і Shared secret. Зареєструвати їх (безкоштовно) можна кнопкою «Створити обліковий запис API».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1744"/>
-        <location filename="../ui/settings_window.py" line="1788"/>
+        <location filename="../ui/settings_window.py" line="1761"/>
+        <location filename="../ui/settings_window.py" line="1805"/>
         <source>Last.fm connection failed</source>
         <translation>Помилка підключення до Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1789"/>
+        <location filename="../ui/settings_window.py" line="1806"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1343,22 +1385,22 @@ Refrain закриється. Цю дію не можна скасувати.</t
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2001"/>
+        <location filename="../ui/settings_window.py" line="2020"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>Refrain перезапуститься, щоб застосувати нову мову.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2009"/>
+        <location filename="../ui/settings_window.py" line="2028"/>
         <source>Save and restart</source>
         <translation>Зберегти й перезапустити</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2067"/>
+        <location filename="../ui/settings_window.py" line="2086"/>
         <source>Could not save settings</source>
         <translation>Не вдалося зберегти налаштування</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2069"/>
+        <location filename="../ui/settings_window.py" line="2088"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1371,12 +1413,12 @@ The settings you just changed will apply for this session but won&apos;t persist
 Щойно змінені налаштування діятимуть у цьому сеансі, але не збережуться після перезапуску.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2081"/>
+        <location filename="../ui/settings_window.py" line="2100"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Не вдалося зберегти облікові дані Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2083"/>
+        <location filename="../ui/settings_window.py" line="2102"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -2142,29 +2184,29 @@ On a desktop session this should normally be available automatically. Check that
 • KDE Plasma / Cinnamon / LXQt / Budgie — має працювати одразу; якщо ні, ваша панель могла аварійно завершити роботу — спробуйте вийти з сеансу і увійти знову.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1117"/>
-        <location filename="../app.py" line="1124"/>
-        <location filename="../app.py" line="1505"/>
+        <location filename="../app.py" line="1120"/>
+        <location filename="../app.py" line="1127"/>
+        <location filename="../app.py" line="1508"/>
         <source>Updates</source>
         <translation>Оновлення</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1118"/>
+        <location filename="../app.py" line="1121"/>
         <source>You&apos;re already on the latest version ({version}).</source>
         <translation>Ви вже маєте останню версію ({version}).</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1247"/>
+        <location filename="../app.py" line="1250"/>
         <source>Refrain keeps running in the tray.</source>
         <translation>Refrain продовжує працювати в треї.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1272"/>
+        <location filename="../app.py" line="1275"/>
         <source>Refrain closed unexpectedly last time. Click to open the report.</source>
         <translation>Минулого разу Refrain несподівано закрився. Натисніть, щоб відкрити звіт.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1331"/>
+        <location filename="../app.py" line="1334"/>
         <source>All Refrain data and the Last.fm keyring credentials were removed. Refrain will now close.
 
 To remove the program itself, run:
@@ -2177,17 +2219,17 @@ To remove the program itself, run:
   {cmd}</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1340"/>
+        <location filename="../app.py" line="1343"/>
         <source>Some files could not be removed:</source>
         <translation>Деякі файли не вдалося видалити:</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1344"/>
+        <location filename="../app.py" line="1347"/>
         <source>Uninstall</source>
         <translation>Видалити</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1506"/>
+        <location filename="../app.py" line="1509"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>Інформації про оновлення ще немає. Спробуйте ще раз за мить.</translation>
     </message>

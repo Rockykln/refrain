@@ -872,7 +872,7 @@ def test_app_name_is_refreshed_off_the_ui_thread(h, monkeypatch):
         done.set()
         raise RuntimeError("offline")
 
-    monkeypatch.setattr(app, "refresh_application_name", _refresh)
+    monkeypatch.setattr(app, "refresh_application", _refresh)
     h.run()
     (timer,) = h.timers
     assert timer.interval == int(app.NAME_TTL_S * 1000)

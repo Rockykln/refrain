@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from pypresence import StatusDisplayType
 
 import refrain.discord_rpc as drpc
 from refrain.discord_rpc import RPCState, sanitize_activity
@@ -219,6 +220,31 @@ def test_after_a_refusal_the_next_different_status_goes_out(discord, clock):
     assert presence.update.call_args.kwargs["details"] == "Silk Road Radio"
     assert rpc.state is RPCState.SHOWING
     assert rpc.detail == "discord-ipc-0"
+
+
+def test_a_written_off_status_is_tried_again_after_five_minutes(discord, clock):
+    """A payload Discord will never accept costs one write every five
+    minutes; a song skipped for its whole length is the worse failure."""
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    rpc._ensure_connected()
+    presence = discord.made[0]
+    presence.update.side_effect = refused()
+
+    rpc.update(details="Northbound", state="The Quiet Hours")
+    clock.now += drpc._RESEND_S + 1
+    rpc.update(details="Northbound", state="The Quiet Hours")
+    assert presence.update.call_count == 2  # written off from here on
+
+    clock.now += drpc._RESEND_S + 1
+    rpc.update(details="Northbound", state="The Quiet Hours")
+    assert presence.update.call_count == 2
+
+    clock.now += drpc._REFUSED_FORGET_S
+    presence.update.side_effect = None
+    rpc.update(details="Northbound", state="The Quiet Hours")
+    assert presence.update.call_count == 3
+    assert rpc.state is RPCState.SHOWING
+    assert rpc._refused == {}
 
 
 def test_refused_payloads_are_remembered_only_so_far(discord, clock):
@@ -615,3 +641,59 @@ def test_the_clear_on_the_way_out_ignores_the_rate_limit(discord, clock):
     assert presence.clear.called is False
     rpc.clear(force=True)
     assert presence.clear.called is True
+
+
+# ---------------------------------------------------------------------------
+# What the member list shows — one line, and the title says more than the name.
+# ---------------------------------------------------------------------------
+
+
+def _pending(monkeypatch, **payload):
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    monkeypatch.setattr(rpc, "_ensure_connected", lambda: True)
+    monkeypatch.setattr(rpc, "pump", lambda *a, **k: None)
+    rpc.update(**payload)
+    return rpc._pending
+
+
+def test_the_member_list_shows_the_song_title(monkeypatch):
+    pending = _pending(monkeypatch, details="Paper Satellites", state="Mara Keel")
+    assert pending["status_display_type"] is StatusDisplayType.DETAILS
+
+
+def test_without_a_title_the_member_list_keeps_the_application_name(monkeypatch):
+    pending = _pending(monkeypatch, state="Mara Keel")
+    assert pending["status_display_type"] is StatusDisplayType.NAME
+
+
+def test_a_caller_may_still_choose_the_line_itself(monkeypatch):
+    pending = _pending(
+        monkeypatch, details="Paper Satellites", status_display_type=StatusDisplayType.STATE
+    )
+    assert pending["status_display_type"] is StatusDisplayType.STATE
+
+
+def test_pypresence_knows_every_field_refrain_sends():
+    """A field this pypresence has never heard of raises TypeError inside
+    `presence.update`, which `_send_update` reads as a dead pipe: the
+    connection is dropped and no status ever appears. The installed version
+    is what decides that, so the lower bound in pyproject.toml has to hold.
+    """
+    import inspect
+
+    from pypresence.payloads import Payload
+
+    accepted = set(inspect.signature(Payload.set_activity).parameters)
+    sent = (
+        drpc._TEXT_FIELDS
+        | drpc._IMAGE_FIELDS
+        | drpc._LINK_FIELDS
+        | {
+            "buttons",
+            "start",
+            "end",
+            "activity_type",
+            "status_display_type",
+        }
+    )
+    assert sorted(sent - accepted) == []

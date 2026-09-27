@@ -53,7 +53,7 @@ from refrain.discord_app import (
     FOUND,
     UNKNOWN_ID,
     cached_name_is_fresh,
-    fetch_application_name,
+    fetch_application,
     looks_like_application_id,
     remember_application_name,
 )
@@ -143,7 +143,18 @@ def reset_to_defaults(current: Config) -> Config:
       start.
     """
     fresh = Config()
-    fresh.discord = current.discord
+    # Only the IDs, not the whole Discord section: `all_clients` and the
+    # name lookup are preferences like any other, and the dialog promises
+    # they go back to the shipped defaults. The cached name and icon
+    # belong to the ID, so they come along with it.
+    fresh.discord.client_id = current.discord.client_id
+    fresh.discord.client_id_mpris = current.discord.client_id_mpris
+    fresh.discord.client_id_bluetooth = current.discord.client_id_bluetooth
+    fresh.discord.app_name = current.discord.app_name
+    fresh.discord.app_name_for_id = current.discord.app_name_for_id
+    fresh.discord.app_name_checked_ts = current.discord.app_name_checked_ts
+    fresh.discord.app_icon = current.discord.app_icon
+    fresh.discord.app_icon_for_id = current.discord.app_icon_for_id
     fresh.lastfm = current.lastfm
     fresh.behavior.first_run_complete = current.behavior.first_run_complete
     fresh.update.last_check_ts = current.update.last_check_ts
@@ -382,18 +393,19 @@ class _AppNameWorker(QObject):
     below, and for the same reason.
     """
 
-    resolved = Signal(str, str, str)  # (client_id, status, name)
+    resolved = Signal(str, str, str, str)  # (client_id, status, name, icon)
 
     def __init__(self, client_id: str) -> None:
         super().__init__()
         self._client_id = client_id
 
     def run(self) -> None:
-        status, name = fetch_application_name(self._client_id)
+        status, name, icon = fetch_application(self._client_id)
         # The id goes back with the answer: the user may have typed on
         # while this was in flight, and a stale answer must not overwrite
-        # the label for an id they have since changed.
-        self.resolved.emit(self._client_id, status, name)
+        # the label for an id they have since changed. The icon rides
+        # along so the cache the daemon reads stays in step with the name.
+        self.resolved.emit(self._client_id, status, name, icon)
 
 
 class _BluetoothDevicesWorker(QObject):
@@ -720,11 +732,7 @@ class SettingsWindow(QDialog):
         self.resolve_app_name_box = QCheckBox(self.tr("Look up the application's name on Discord"))
         self.resolve_app_name_box.setToolTip(
             self.tr(
-                "Asks Discord what the Application ID is called, so a "
-                "mistyped ID is visible instead of silently publishing "
-                "nothing. This is the one request Refrain sends to "
-                "Discord's servers rather than to your local Discord "
-                "client; it carries the Application ID and nothing else."
+                "Shows what the ID is called, so a typo shows up. Asks Discord, sends only the ID."
             )
         )
         self.resolve_app_name_box.toggled.connect(self._on_resolve_app_name_toggled)
@@ -745,10 +753,7 @@ class SettingsWindow(QDialog):
             self.tr("Send the status to every running Discord client")
         )
         self.discord_all_clients_box.setToolTip(
-            self.tr(
-                "Refrain normally sends your status to the first Discord app "
-                "it finds. Turn this on if you run more than one at once."
-            )
+            self.tr("Normally only the first Discord app found gets your status.")
         )
 
         self.client_id_mpris_input = QLineEdit()
@@ -768,6 +773,12 @@ class SettingsWindow(QDialog):
         self.buttons_box = QCheckBox(self.tr("Show “Listen on Apple Music” button in Discord"))
         self.buttons_box.setToolTip(self.tr("Discord shows the button to others, not to you."))
         df.addRow(self.buttons_box)
+
+        self.small_image_box = QCheckBox(self.tr("Show a small icon on the cover in Discord"))
+        self.small_image_box.setToolTip(
+            self.tr("Refrain's icon, or your application's own icon once its name is looked up.")
+        )
+        df.addRow(self.small_image_box)
 
         # Portal button right under the checkbox — keeps "open the
         # external page where you'd register an application" close to
@@ -800,11 +811,7 @@ class SettingsWindow(QDialog):
             self.tr("Off — pause Discord status and Last.fm scrobbling"), "off"
         )
         self.privacy_combo.setToolTip(
-            self.tr(
-                "What Refrain shares while music plays. Off pauses both the "
-                "Discord status and Last.fm scrobbling; the recently played "
-                "list on this computer keeps working."
-            )
+            self.tr("What Refrain shares while music plays. Off also stops Last.fm scrobbling.")
         )
         pf.addRow(self.tr("Sharing:"), self.privacy_combo)
         self.cover_art_box = QCheckBox(self.tr("Look up songs in Apple's catalog"))
@@ -1167,18 +1174,40 @@ class SettingsWindow(QDialog):
             self.bluetooth_device.addItem(previous, userData=previous)
             self.bluetooth_device.setCurrentIndex(self.bluetooth_device.count() - 1)
 
+    def _relative_time(self, seconds: int) -> str:
+        """ "just now", "5 minutes ago", "2 hours ago", "3 days ago".
+
+        The same method as in the history window, not a shared function:
+        pylupdate only recognises the plural form of tr() as a method
+        call on self.
+        """
+        if seconds < 60:
+            return self.tr("just now")
+        minutes = seconds // 60
+        if minutes < 60:
+            return self.tr("%n minute(s) ago", "", minutes)
+        hours = minutes // 60
+        if hours < 24:
+            return self.tr("%n hour(s) ago", "", hours)
+        days = hours // 24
+        return self.tr("%n day(s) ago", "", days)
+
     def _format_last_check(self, ts: int) -> str:
         """Render the 'Last checked' timestamp in the active UI locale.
 
         ``QLocale`` formats the date the way
         every other localised string in the window does, so a German /
         Japanese / etc. UI doesn't show a lone ISO timestamp. ``never``
-        is a real translatable string.
+        is a real translatable string. The date alone leaves the reader
+        counting days, so how long ago it was goes in brackets after it;
+        it is written when the tab is filled, not ticked along.
         """
         if not ts:
             return self.tr("never")
         dt = QDateTime.fromSecsSinceEpoch(int(ts))
-        return QLocale().toString(dt, QLocale.FormatType.ShortFormat)
+        stamp = QLocale().toString(dt, QLocale.FormatType.ShortFormat)
+        ago = self._relative_time(max(0, dt.secsTo(QDateTime.currentDateTime())))
+        return f"{stamp} ({ago})"
 
     # ====================================================================
     # Updates tab
@@ -1258,6 +1287,10 @@ class SettingsWindow(QDialog):
         so each check refreshes the inline changelog without making the
         user click through the popup.
         """
+        # The stamp moves on either way: a check that failed still happened,
+        # and a "Last checked: never" under "(check failed)" reads as if the
+        # button had done nothing at all.
+        self.last_check_label.setText(self._last_check_dt_format(self._config.update.last_check_ts))
         if release is None:
             self.latest_version_label.setText(self.tr("(check failed)"))
             self.release_notes_view.setMarkdown(
@@ -1274,7 +1307,6 @@ class SettingsWindow(QDialog):
             )
         body = release.body or self.tr("_No release notes provided._")
         self.release_notes_view.setMarkdown(prepare_release_notes(body))
-        self.last_check_label.setText(self._last_check_dt_format(self._config.update.last_check_ts))
 
     # ====================================================================
     # Advanced tab
@@ -1506,10 +1538,10 @@ class SettingsWindow(QDialog):
         self._app_name_workers.add(worker)
         threading.Thread(target=worker.run, daemon=True).start()
 
-    def _on_application_name(self, client_id: str, status: str, name: str) -> None:
+    def _on_application_name(self, client_id: str, status: str, name: str, icon: str) -> None:
         self._app_name_workers.discard(self.sender())
         if status == FOUND:
-            remember_application_name(self._config, client_id, name)
+            remember_application_name(self._config, client_id, name, icon)
         if client_id != self.client_id_input.text().strip():
             return  # the field moved on while we were asking
         self._show_application_name(client_id, status, name)
@@ -1822,6 +1854,7 @@ class SettingsWindow(QDialog):
         self.notifications_box.setChecked(c.behavior.notifications)
         self.cover_art_box.setChecked(c.behavior.cover_art)
         self.buttons_box.setChecked(c.behavior.show_buttons)
+        self.small_image_box.setChecked(c.behavior.show_small_image)
         self.history_box.setChecked(c.history.enabled)
         self._on_history_toggled(c.history.enabled)
         self._select_history_limit(c.history.max_entries)
@@ -1929,6 +1962,7 @@ class SettingsWindow(QDialog):
             ("behavior", "notifications"): self.notifications_box.isChecked(),
             ("behavior", "cover_art"): self.cover_art_box.isChecked(),
             ("behavior", "show_buttons"): self.buttons_box.isChecked(),
+            ("behavior", "show_small_image"): self.small_image_box.isChecked(),
             ("behavior", "notify_delay_ms"): self.notify_delay_spin.value(),
             ("lastfm", "enabled"): self.lastfm_enabled_box.isChecked(),
             ("lastfm", "api_key"): self.lastfm_api_key_input.text().strip(),

@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 NAME_TTL_S = 4 * 3600
 
 _RPC_API = "https://discord.com/api/v10/applications"
+_CDN = "https://cdn.discordapp.com"
 _USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 5
 
@@ -40,12 +41,21 @@ def looks_like_application_id(client_id: str) -> bool:
     return client_id.isdigit() and 17 <= len(client_id) <= 20
 
 
-def fetch_application_name(client_id: str, timeout_s: float = _TIMEOUT_S) -> tuple[str, str]:
-    """Look up the display name for ``client_id``.
+def application_icon_url(client_id: str, icon: str) -> str:
+    """Build the CDN address of an application's icon, or ``""`` without one."""
+    client_id, icon = client_id.strip(), icon.strip()
+    if not client_id or not icon:
+        return ""
+    return f"{_CDN}/app-icons/{client_id}/{icon}.png"
 
-    Returns ``(status, name)`` where status is one of ``FOUND``,
-    ``UNKNOWN_ID`` or ``UNREACHABLE``, and name is the application's
-    name when found and ``""`` otherwise.
+
+def fetch_application(client_id: str, timeout_s: float = _TIMEOUT_S) -> tuple[str, str, str]:
+    """Look up the display name and icon for ``client_id``.
+
+    Returns ``(status, name, icon)`` where status is one of ``FOUND``,
+    ``UNKNOWN_ID`` or ``UNREACHABLE``, name is the application's name
+    when found and ``""`` otherwise, and icon is the image hash Discord
+    stores for it — empty when the application has no icon.
 
     Never raises: a settings dialog must not blow up because the network
     is down, and the three outcomes are all the caller can act on
@@ -55,12 +65,12 @@ def fetch_application_name(client_id: str, timeout_s: float = _TIMEOUT_S) -> tup
     """
     client_id = client_id.strip()
     if not looks_like_application_id(client_id):
-        return UNKNOWN_ID, ""
+        return UNKNOWN_ID, "", ""
 
     url = f"{_RPC_API}/{client_id}/rpc"
     if not url.startswith("https://"):  # pragma: no cover - constant is https
         log.warning("Discord RPC API is not https — refusing to fetch: %s", url)
-        return UNREACHABLE, ""
+        return UNREACHABLE, "", ""
     try:
         req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
         with dev_metrics.network("discord_api"):
@@ -72,18 +82,18 @@ def fetch_application_name(client_id: str, timeout_s: float = _TIMEOUT_S) -> tup
         # Discord being unavailable, not a verdict on the ID.
         if e.code == 404:
             log.debug("Discord has no application %s", client_id)
-            return UNKNOWN_ID, ""
+            return UNKNOWN_ID, "", ""
         log.info("Discord application lookup failed: HTTP %s", e.code)
-        return UNREACHABLE, ""
+        return UNREACHABLE, "", ""
     except Exception as e:
         log.info("Discord application lookup failed: %s", e)
-        return UNREACHABLE, ""
+        return UNREACHABLE, "", ""
 
     name = str(data.get("name", "")).strip()
     if not name:
         log.debug("Discord returned application %s with no name", client_id)
-        return UNKNOWN_ID, ""
-    return FOUND, name
+        return UNKNOWN_ID, "", ""
+    return FOUND, name, str(data.get("icon") or "").strip()
 
 
 def cached_name_is_fresh(client_id: str, cached_for_id: str, checked_ts: float, now: float) -> bool:
@@ -101,8 +111,13 @@ def cached_name_is_fresh(client_id: str, cached_for_id: str, checked_ts: float, 
     return 0 < checked_ts <= now and (now - checked_ts) < NAME_TTL_S
 
 
-def remember_application_name(config, client_id: str, name: str) -> None:
+def remember_application_name(config, client_id: str, name: str, icon: str | None = None) -> None:
     """Store a freshly confirmed name, and stamp when we confirmed it.
+
+    ``icon`` is the image hash from the same answer. ``None`` means the
+    caller did not ask for one and the cached icon stays as it is; it
+    carries its own ID, so a rename of the field can never leave the
+    icon of a different application behind.
 
     Written straight to `config.toml` rather than waiting for Apply, the
     same way the silent update check stamps `update.last_check_ts`: the
@@ -113,14 +128,17 @@ def remember_application_name(config, client_id: str, name: str) -> None:
     config.discord.app_name = name
     config.discord.app_name_for_id = client_id.strip()
     config.discord.app_name_checked_ts = int(time.time())
+    if icon is not None:
+        config.discord.app_icon = icon
+        config.discord.app_icon_for_id = client_id.strip()
     try:
         config.save()
     except OSError as e:
         log.debug("Could not persist the cached application name: %s", e)
 
 
-def refresh_application_name(config) -> str:
-    """Re-check the cached name if it has aged out. Returns the name.
+def refresh_application(config) -> str:
+    """Re-check the cached name and icon if they have aged out. Returns the name.
 
     The whole job in one call, for the startup/periodic refresh: decides
     whether asking is warranted, asks, and persists. Returns whatever
@@ -136,11 +154,13 @@ def refresh_application_name(config) -> str:
     if not client_id or not config.discord.resolve_app_name or config.privacy.mode == "off":
         return ""
     d = config.discord
-    if d.app_name and cached_name_is_fresh(
-        client_id, d.app_name_for_id, d.app_name_checked_ts, time.time()
+    if (
+        d.app_name
+        and d.app_icon_for_id.strip() == client_id
+        and cached_name_is_fresh(client_id, d.app_name_for_id, d.app_name_checked_ts, time.time())
     ):
         return d.app_name
-    status, name = fetch_application_name(client_id)
+    status, name, icon = fetch_application(client_id)
     if status != FOUND:
         # Leave the cache alone. An unreachable Discord is not evidence
         # that the name changed, and dropping a good name over a flaky
@@ -148,5 +168,5 @@ def refresh_application_name(config) -> str:
         return d.app_name if d.app_name_for_id.strip() == client_id else ""
     if name != d.app_name or d.app_name_for_id.strip() != client_id:
         log.info("Discord application %s is named %r", client_id, name)
-    remember_application_name(config, client_id, name)
+    remember_application_name(config, client_id, name, icon)
     return name

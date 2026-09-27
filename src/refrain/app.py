@@ -42,9 +42,9 @@ from refrain.autostart import refresh as autostart_refresh
 from refrain.autostart import resolve_exec_line
 from refrain.config import Config
 from refrain.daemon import Daemon
-from refrain.discord_app import NAME_TTL_S, refresh_application_name
+from refrain.discord_app import NAME_TTL_S, refresh_application
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
-from refrain.paths import _xdg, assets_dir, desktop_entry, state_dir
+from refrain.paths import _xdg, assets_dir, desktop_entry, make_private_dir, state_dir
 from refrain.service_status import ServiceStatus
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable, listen_for_activation
 from refrain.single_instance import acquire as acquire_lock
@@ -741,7 +741,7 @@ def _crash_log():
     path = state_dir() / "crash.log"
     crashed = _crash_since_last_start(path)
     try:
-        state_dir().mkdir(parents=True, exist_ok=True)
+        make_private_dir(state_dir())
         fd = _open_crash_log(path)
         _remember_crash_reports(path)
     except OSError as e:
@@ -1073,9 +1073,9 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     # thread: it is a network call.
     def _refresh_app_name_blocking() -> None:
         # Nothing here is worth taking the app down for: the name is a
-        # convenience, and refresh_application_name already logs.
+        # convenience, and refresh_application already logs.
         with contextlib.suppress(Exception):
-            refresh_application_name(config)
+            refresh_application(config)
 
     def _refresh_app_name() -> None:
         threading.Thread(
@@ -1101,6 +1101,9 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
         lambda c: status_window_mod.set_hover_delay(c.advanced.hover_scroll_ms)
     )
     settings.applied.connect(lambda c: tray.set_icon(c.behavior.tray_icon))
+    # Ticking the name lookup has to reach the profile before the next
+    # four-hourly refresh; the lookup decides for itself whether to ask.
+    settings.applied.connect(lambda _c: _refresh_app_name())
 
     # Updater wireup — Settings button = manual check (always shows feedback);
     # the auto-check on startup goes through maybe_check_on_startup() which
@@ -1510,6 +1513,9 @@ def _open_update_dialog_factory(updater: UpdateOrchestrator, parent_widget):
             return
         dlg = UpdateDialog(release, parent=parent_widget)
         dlg.exec()
+        # Parented to the settings window, so without this every check that
+        # finds an update leaves one behind for the rest of the session.
+        dlg.deleteLater()
 
     return _open
 

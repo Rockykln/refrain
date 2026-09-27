@@ -133,8 +133,10 @@ jobs:
           sudo apt-get install -y \
             python3-pip libfuse2t64 desktop-file-utils \
             zsync appstream patchelf squashfs-tools file
-          # appimage-builder can't parse Ubuntu package versions with newer packaging.
-          pip install appimage-builder "packaging<22"
+          # appimage-builder can't parse Ubuntu package versions with newer
+          # packaging. Both are pinned: whatever they produce is signed by
+          # hand afterwards, so the build must not float.
+          pip install "appimage-builder==1.1.0" "packaging==21.3"
 
       - name: Build AppImage
         id: appimage

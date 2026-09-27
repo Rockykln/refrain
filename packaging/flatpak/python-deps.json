@@ -55,13 +55,13 @@
             "name": "python3-pypresence",
             "buildsystem": "simple",
             "build-commands": [
-                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pypresence>=4.3\" --no-build-isolation"
+                "pip3 install --verbose --exists-action=i --no-index --find-links=\"file://${PWD}\" --prefix=${FLATPAK_DEST} \"pypresence>=4.6.2\" --no-build-isolation"
             ],
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/bd/0d/1c817c6769ce0b64cc0dcc20bc9d0edb4dc560e83a3b5f0d5cbda04c3d35/pypresence-4.6.1-py3-none-any.whl",
-                    "sha256": "33d4549fcdf4102f81935df4ba587bacb22193e0c50c541d1ab9329b21df33cd"
+                    "url": "https://files.pythonhosted.org/packages/05/61/69bf5ed7393fc314b7129d509ec1bc9622ce98d7300a780d52fa3b95bc88/pypresence-4.6.2-py3-none-any.whl",
+                    "sha256": "6587e525a663699ca5fb8621ea147a9c264c135650c50afbccd7b5d9b4e28dc0"
                 }
             ]
         },
