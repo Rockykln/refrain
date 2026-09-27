@@ -98,6 +98,45 @@ class StatusSnapshot:
             found.add("lastfm:expired")
         return frozenset(found)
 
+    @property
+    def discord_is_fine(self) -> bool:
+        """Refrain is doing what was asked of it: showing the status,
+        ready to, or quiet because the user asked for quiet. Nothing a
+        menu row could add."""
+        return self.discord in (
+            DiscordStatus.STARTING,
+            DiscordStatus.READY,
+            DiscordStatus.SHOWING,
+            DiscordStatus.SHOWING_MINIMAL,
+            DiscordStatus.PAUSED,
+            DiscordStatus.PRIVACY_OFF,
+        )
+
+    @property
+    def lastfm_is_fine(self) -> bool:
+        """As ``discord_is_fine``. Plays waiting in the queue are not
+        fine: they explain why Last.fm shows nothing yet."""
+        return self.lastfm in (
+            LastfmStatus.OFF,
+            LastfmStatus.CONNECTED_OFF,
+            LastfmStatus.SCROBBLING,
+        )
+
+    @property
+    def discord_blocked(self) -> bool:
+        """Nothing is reaching Discord, and no song will change that.
+
+        Wider than ``needs_attention``, which is only what the user can
+        put right: "not answering" belongs here too. Narrower in one
+        place — Discord simply being closed is an ordinary afternoon.
+        """
+        return self.discord in (
+            DiscordStatus.NOT_SET_UP,
+            DiscordStatus.REJECTED,
+            DiscordStatus.NOT_LOGGED_IN,
+            DiscordStatus.ERROR,
+        )
+
 
 class ServiceStatus(QObject):
     """Merges the daemon's live states with the startup check's Last.fm verdict."""

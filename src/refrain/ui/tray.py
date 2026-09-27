@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import time
+from enum import StrEnum
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QGuiApplication, QIcon
@@ -17,6 +18,24 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.ui import icons
 
 log = logging.getLogger(__name__)
+
+
+class TrayState(StrEnum):
+    """What the icon shows. More than playback: two states say that
+    nothing is reaching Discord at all, whatever the music does."""
+
+    PLAYING = "playing"
+    PAUSED = "paused"
+    STOPPED = "stopped"
+    OFFLINE = "offline"
+    PRIVATE = "private"
+
+
+_FROM_PLAYBACK = {
+    PlaybackStatus.PLAYING: TrayState.PLAYING,
+    PlaybackStatus.PAUSED: TrayState.PAUSED,
+    PlaybackStatus.STOPPED: TrayState.STOPPED,
+}
 
 
 def _detect_color_scheme() -> str:
@@ -92,8 +111,10 @@ class TrayIcon(QObject):
         self._pause_timer = QTimer(self)
         self._pause_timer.setSingleShot(True)
         self._pause_timer.timeout.connect(self._apply_pending_status)
+        self._discord_blocked = False
+        self._sharing_paused = False
         self._icons = self._build_icons()
-        self._tray = QSystemTrayIcon(self._icons[PlaybackStatus.STOPPED])
+        self._tray = QSystemTrayIcon(self._icons[TrayState.STOPPED])
         self._tray.setToolTip("Refrain")
         self._hint_click = None
         self._tray.messageClicked.connect(self._on_message_clicked)
@@ -105,7 +126,8 @@ class TrayIcon(QObject):
         self._current_progress_line = ""
         self._progress_estimated = False
 
-        # Info rows: title / artist / progress / Discord / Last.fm.
+        # Info rows: title / artist / progress, and the two service
+        # rows that sit under Troubleshooting.
         # Left ENABLED on purpose — KDE Plasma's DBusMenu renderer (and
         # GNOME's AppIndicator) draw disabled QActions in a muted /
         # greyed-out style, which makes the song info read like
@@ -128,8 +150,7 @@ class TrayIcon(QObject):
         self._discord_action = QAction(self.tr("Discord: checking…"))
         self._discord_action.setIcon(icons.themed_icon("network-disconnect"))
         self._discord_action.triggered.connect(self.statusRequested.emit)
-        # Hidden while Last.fm was never set up — a "Last.fm: off" line
-        # would just be noise for the majority who never scrobble.
+        self._discord_action.setVisible(False)
         self._lastfm_action = QAction("")
         self._lastfm_action.setIcon(icons.themed_icon("network-disconnect"))
         self._lastfm_action.triggered.connect(self.statusRequested.emit)
@@ -161,8 +182,6 @@ class TrayIcon(QObject):
         menu.addAction(self._title_action)
         menu.addAction(self._artist_action)
         menu.addAction(self._progress_action)
-        menu.addAction(self._discord_action)
-        menu.addAction(self._lastfm_action)
         menu.addAction(self._developer_action)
         menu.addSeparator()
         menu.addAction(self._previous_action)
@@ -191,7 +210,6 @@ class TrayIcon(QObject):
         # Pausing sharing lives in the Status window, which a click on the icon
         # already opens; Settings stays here too, because this menu is where
         # people look for it.
-        self._sharing_paused = False
         menu.addAction(self._history_action)
         self._settings_action = QAction(self.tr("Settings…"))
         self._settings_action.setIcon(icons.themed_icon("configure"))
@@ -201,6 +219,12 @@ class TrayIcon(QObject):
         # still two clicks from the top.
         self._more_menu = menu.addMenu(self.tr("Troubleshooting"))
         self._more_menu.setIcon(icons.themed_icon("tools-report-bug"))
+        # The Discord and Last.fm rows live here, and only while they have
+        # something to report. The icon carries the alarm now; a permanent
+        # "Discord: visible on your profile" was a line that never changed.
+        self._more_menu.addAction(self._discord_action)
+        self._more_menu.addAction(self._lastfm_action)
+        self._more_menu.addSeparator()
         self._log_action = self._more_menu.addAction(self.tr("Live log…"))
         self._log_action.setIcon(icons.themed_icon("view-list-text"))
         self._log_action.triggered.connect(self.logRequested.emit)
@@ -235,17 +259,17 @@ class TrayIcon(QObject):
             with contextlib.suppress(Exception):
                 signal.connect(self._on_color_scheme_changed)
 
-    def _build_icons(self) -> dict[PlaybackStatus, QIcon]:
-        # `tray-<state>.svg` is the white glyph, `*-dark.svg` the black one.
+    def _build_icons(self) -> dict[TrayState, QIcon]:
+        # `tray-<state>.svg` is the set for a dark panel, `*-dark.svg` the
+        # one for a light panel: same glyphs, deeper colours.
         if self._icon == "auto":
             black = _detect_color_scheme() == "light"
         else:
             black = self._icon == "black"
         suffix = "-dark" if black else ""
         return {
-            PlaybackStatus.PLAYING: QIcon(str(self._icons_dir / f"tray-playing{suffix}.svg")),
-            PlaybackStatus.PAUSED: QIcon(str(self._icons_dir / f"tray-paused{suffix}.svg")),
-            PlaybackStatus.STOPPED: QIcon(str(self._icons_dir / f"tray-stopped{suffix}.svg")),
+            state: QIcon(str(self._icons_dir / f"tray-{state.value}{suffix}.svg"))
+            for state in TrayState
         }
 
     def set_icon(self, icon: str) -> None:
@@ -263,7 +287,19 @@ class TrayIcon(QObject):
 
     def _redraw_icon(self) -> None:
         self._icons = self._build_icons()
-        icon = self._icons.get(self._current_status)
+        self._show_icon()
+
+    def _tray_state(self) -> TrayState:
+        """Sharing paused outranks a broken Discord: the user switched it
+        off themselves, so "Discord isn't answering" is no longer news."""
+        if self._sharing_paused:
+            return TrayState.PRIVATE
+        if self._discord_blocked:
+            return TrayState.OFFLINE
+        return _FROM_PLAYBACK[self._current_status]
+
+    def _show_icon(self) -> None:
+        icon = self._icons.get(self._tray_state())
         if icon is not None:
             self._tray.setIcon(icon)
 
@@ -315,9 +351,7 @@ class TrayIcon(QObject):
 
     def _apply_status(self, status: PlaybackStatus) -> None:
         self._current_status = status
-        icon = self._icons.get(status)
-        if icon is not None:
-            self._tray.setIcon(icon)
+        self._show_icon()
         if status == PlaybackStatus.PLAYING:
             self._play_pause_action.setText(self.tr("Pause"))
             self._play_pause_action.setIcon(icons.themed_icon("media-playback-pause"))
@@ -349,6 +383,7 @@ class TrayIcon(QObject):
     def set_sharing_paused(self, paused: bool) -> None:
         """Kept for the status lines; pausing itself lives in the Status window."""
         self._sharing_paused = paused
+        self._show_icon()
 
     def set_service_status(self, status: StatusSnapshot) -> None:
         """The Discord and Last.fm rows, from the live state."""
@@ -380,9 +415,12 @@ class TrayIcon(QObject):
             text, icon = self.tr("Discord: checking…"), "network-disconnect"
         self._discord_action.setText(text)
         self._discord_action.setIcon(icons.themed_icon(icon))
+        self._discord_action.setVisible(not status.discord_is_fine)
+        self._discord_blocked = status.discord_blocked
+        self._show_icon()
 
         f = status.lastfm
-        self._lastfm_action.setVisible(f is not LastfmStatus.OFF)
+        self._lastfm_action.setVisible(not status.lastfm_is_fine)
         if f is LastfmStatus.CONNECTED_OFF:
             text, icon = self.tr("Last.fm: scrobbling is off"), "network-disconnect"
         elif f is LastfmStatus.NOT_CONNECTED:

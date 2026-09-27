@@ -18,7 +18,7 @@ from PySide6.QtWidgets import QApplication, QSystemTrayIcon  # noqa: E402
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from refrain.ui import tray as tray_mod  # noqa: E402
-from refrain.ui.tray import TrayIcon  # noqa: E402
+from refrain.ui.tray import TrayIcon, TrayState  # noqa: E402
 
 
 @pytest.fixture(scope="module")
@@ -79,9 +79,11 @@ def test_the_icon_is_white_by_default_whatever_the_theme(app, monkeypatch, schem
     tray = TrayIcon()
     monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
     assert _glyphs(tray) == {
-        PlaybackStatus.PLAYING: "tray-playing.svg",
-        PlaybackStatus.PAUSED: "tray-paused.svg",
-        PlaybackStatus.STOPPED: "tray-stopped.svg",
+        TrayState.PLAYING: "tray-playing.svg",
+        TrayState.PAUSED: "tray-paused.svg",
+        TrayState.STOPPED: "tray-stopped.svg",
+        TrayState.OFFLINE: "tray-offline.svg",
+        TrayState.PRIVATE: "tray-private.svg",
     }
 
 
@@ -91,9 +93,11 @@ def test_a_black_icon_stays_black_whatever_the_theme(app, monkeypatch, scheme):
     tray = TrayIcon(icon="black")
     monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
     assert _glyphs(tray) == {
-        PlaybackStatus.PLAYING: "tray-playing-dark.svg",
-        PlaybackStatus.PAUSED: "tray-paused-dark.svg",
-        PlaybackStatus.STOPPED: "tray-stopped-dark.svg",
+        TrayState.PLAYING: "tray-playing-dark.svg",
+        TrayState.PAUSED: "tray-paused-dark.svg",
+        TrayState.STOPPED: "tray-stopped-dark.svg",
+        TrayState.OFFLINE: "tray-offline-dark.svg",
+        TrayState.PRIVATE: "tray-private-dark.svg",
     }
 
 
@@ -104,7 +108,91 @@ def test_an_auto_icon_follows_the_theme(app, monkeypatch, scheme, glyph):
     monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: scheme)
     tray = TrayIcon(icon="auto")
     monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
-    assert _glyphs(tray)[PlaybackStatus.PLAYING] == glyph
+    assert _glyphs(tray)[TrayState.PLAYING] == glyph
+
+
+def _shown_state(tray, monkeypatch):
+    monkeypatch.setattr(tray_mod, "QIcon", lambda path: path)
+    tray._icons = tray._build_icons()
+    shown = []
+    monkeypatch.setattr(tray._tray, "setIcon", shown.append)
+    return shown
+
+
+def test_pausing_sharing_crosses_the_glyph_out(tray, monkeypatch):
+    tray.set_status(PlaybackStatus.PLAYING)
+    shown = _shown_state(tray, monkeypatch)
+    tray.set_sharing_paused(True)
+    assert [os.path.basename(p) for p in shown] == ["tray-private.svg"]
+    tray.set_sharing_paused(False)
+    assert os.path.basename(shown[-1]) == "tray-playing.svg"
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        DiscordStatus.NOT_SET_UP,
+        DiscordStatus.REJECTED,
+        DiscordStatus.NOT_LOGGED_IN,
+        DiscordStatus.ERROR,
+    ],
+)
+def test_a_discord_the_music_cannot_fix_turns_the_glyph_red(tray, monkeypatch, state):
+    tray.set_status(PlaybackStatus.PLAYING)
+    shown = _shown_state(tray, monkeypatch)
+    tray.set_service_status(StatusSnapshot(state))
+    assert os.path.basename(shown[-1]) == "tray-offline.svg"
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        DiscordStatus.NO_CLIENT,
+        DiscordStatus.STARTING,
+        DiscordStatus.READY,
+        DiscordStatus.SHOWING,
+        DiscordStatus.SHOWING_MINIMAL,
+        DiscordStatus.PAUSED,
+        DiscordStatus.PRIVACY_OFF,
+    ],
+)
+def test_discord_merely_closed_or_quiet_leaves_the_music_showing(tray, monkeypatch, state):
+    """A red icon every time Discord is shut would say nothing."""
+    tray.set_status(PlaybackStatus.PLAYING)
+    shown = _shown_state(tray, monkeypatch)
+    tray.set_service_status(StatusSnapshot(state))
+    assert os.path.basename(shown[-1]) == "tray-playing.svg"
+
+
+def test_paused_sharing_outranks_a_broken_discord(tray, monkeypatch):
+    """Switched off on purpose, so "Discord isn't answering" is no news."""
+    tray.set_status(PlaybackStatus.PLAYING)
+    tray.set_service_status(StatusSnapshot(DiscordStatus.ERROR))
+    shown = _shown_state(tray, monkeypatch)
+    tray.set_sharing_paused(True)
+    assert os.path.basename(shown[-1]) == "tray-private.svg"
+    tray.set_sharing_paused(False)
+    assert os.path.basename(shown[-1]) == "tray-offline.svg"
+
+
+def test_a_song_change_does_not_paint_over_a_warning(tray, monkeypatch):
+    tray.set_service_status(StatusSnapshot(DiscordStatus.NOT_SET_UP))
+    shown = _shown_state(tray, monkeypatch)
+    tray.set_status(PlaybackStatus.PLAYING)
+    assert os.path.basename(shown[-1]) == "tray-offline.svg"
+
+
+def test_every_tray_state_has_a_glyph_for_both_panels():
+    from refrain.paths import assets_dir
+
+    icons_dir = assets_dir() / "icons"
+    missing = [
+        name
+        for state in TrayState
+        for name in (f"tray-{state.value}.svg", f"tray-{state.value}-dark.svg")
+        if not (icons_dir / name).is_file()
+    ]
+    assert missing == []
 
 
 def test_switching_the_icon_redraws_it_for_the_current_state(app, monkeypatch):
@@ -125,7 +213,7 @@ def test_theme_change_redraws_an_auto_icon_for_the_current_state(app, monkeypatc
     monkeypatch.setattr(tray._tray, "setIcon", shown.append)
     monkeypatch.setattr(tray_mod, "_detect_color_scheme", lambda: "dark")
     tray._on_color_scheme_changed()
-    assert shown == [tray._icons[PlaybackStatus.PLAYING]]
+    assert shown == [tray._icons[TrayState.PLAYING]]
 
 
 def test_theme_change_leaves_a_fixed_icon_alone(tray, monkeypatch):
@@ -168,8 +256,69 @@ def test_update_entry_without_a_version_and_hidden_again(tray):
     assert "2.0.0" not in tray._update_action.text()
 
 
-def test_discord_row_waits_for_the_first_state_instead_of_crying_wolf(tray):
-    assert tray._discord_action.text() == "Discord: checking…"
+def test_neither_service_row_shows_before_the_first_state(tray):
+    assert not tray._discord_action.isVisible()
+    assert not tray._lastfm_action.isVisible()
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        DiscordStatus.STARTING,
+        DiscordStatus.READY,
+        DiscordStatus.SHOWING,
+        DiscordStatus.SHOWING_MINIMAL,
+        DiscordStatus.PAUSED,
+        DiscordStatus.PRIVACY_OFF,
+    ],
+)
+def test_a_discord_doing_its_job_says_nothing(tray, state):
+    """Showing, ready to, or quiet because it was asked to be."""
+    tray.set_service_status(StatusSnapshot(state))
+    assert not tray._discord_action.isVisible()
+
+
+@pytest.mark.parametrize(
+    "state",
+    [
+        DiscordStatus.NO_CLIENT,
+        DiscordStatus.NOT_SET_UP,
+        DiscordStatus.REJECTED,
+        DiscordStatus.NOT_LOGGED_IN,
+        DiscordStatus.ERROR,
+    ],
+)
+def test_a_discord_with_something_to_say_appears_under_troubleshooting(tray, state):
+    tray.set_service_status(StatusSnapshot(state))
+    assert tray._discord_action.isVisible()
+    assert tray._discord_action in tray._more_menu.actions()
+    assert tray._discord_action not in tray._menu.actions()
+
+
+@pytest.mark.parametrize(
+    ("state", "shown"),
+    [
+        (LastfmStatus.OFF, False),
+        (LastfmStatus.SCROBBLING, False),
+        (LastfmStatus.CONNECTED_OFF, False),
+        # Explains why Last.fm shows nothing yet.
+        (LastfmStatus.WAITING, True),
+        (LastfmStatus.PAUSED, True),
+        (LastfmStatus.NOT_CONNECTED, True),
+        (LastfmStatus.EXPIRED, True),
+    ],
+)
+def test_the_last_fm_row_only_appears_when_it_has_something_to_report(tray, state, shown):
+    tray.set_service_status(StatusSnapshot(DiscordStatus.READY, "", state, "3"))
+    assert tray._lastfm_action.isVisible() is shown
+    assert tray._lastfm_action in tray._more_menu.actions()
+
+
+def test_a_row_that_had_something_to_say_goes_quiet_again(tray):
+    tray.set_service_status(StatusSnapshot(DiscordStatus.ERROR, "", LastfmStatus.EXPIRED))
+    assert tray._discord_action.isVisible() and tray._lastfm_action.isVisible()
+    tray.set_service_status(StatusSnapshot(DiscordStatus.SHOWING, "", LastfmStatus.SCROBBLING))
+    assert not tray._discord_action.isVisible()
     assert not tray._lastfm_action.isVisible()
 
 
@@ -216,14 +365,7 @@ def test_every_discord_state_has_its_own_line(tray, state, text):
 )
 def test_lastfm_row_follows_the_live_state(tray, state, detail, text):
     tray.set_service_status(StatusSnapshot(DiscordStatus.READY, "", state, detail))
-    assert tray._lastfm_action.isVisible()
     assert tray._lastfm_action.text() == text
-
-
-def test_lastfm_row_hides_again_when_it_was_never_set_up(tray):
-    tray.set_service_status(StatusSnapshot(lastfm=LastfmStatus.SCROBBLING, lastfm_detail="x"))
-    tray.set_service_status(StatusSnapshot(lastfm=LastfmStatus.OFF))
-    assert not tray._lastfm_action.isVisible()
 
 
 def test_info_rows_open_the_status_window(tray):
@@ -263,7 +405,11 @@ def test_rarely_used_entries_live_under_troubleshooting(tray):
     assert "Live log…" not in top
     assert "Restart Refrain" not in top
     assert "Troubleshooting" in top
-    assert [a.text() for a in tray._more_menu.actions()] == ["Live log…", "Restart Refrain"]
+    assert [a.text() for a in tray._more_menu.actions() if a.text()] == [
+        "Discord: checking…",
+        "Live log…",
+        "Restart Refrain",
+    ]
     got = []
     tray.logRequested.connect(lambda: got.append("log"))
     tray.restartRequested.connect(lambda: got.append("restart"))

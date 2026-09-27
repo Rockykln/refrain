@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <mask id="cut">
+    <rect width="24" height="24" fill="#fff"/>
+    <path d="M 5.2 18.8 L 18.8 5.2" stroke="#000" stroke-width="6.4" stroke-linecap="round"/>
+  </mask>
+  <path d="M 7 4.5 L 19.5 12 L 7 19.5 Z" fill="#303030" opacity="0.45" mask="url(#cut)"/>
+  <path d="M 5.2 18.8 L 18.8 5.2" fill="none" stroke="#6b46c1" stroke-width="3" stroke-linecap="round"/>
+</svg>
