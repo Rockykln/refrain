@@ -89,8 +89,12 @@ def test_a_session_reply_without_a_key_keeps_the_old_session(monkeypatch):
 def test_validate_session_returns_the_user_name(monkeypatch):
     seen = _capture(monkeypatch, {"user": {"name": " marlowvance "}})
     assert _client().validate_session() == "marlowvance"
-    assert "method=user.getInfo" in seen[0].full_url
-    assert "sk=12345session" in seen[0].full_url
+    # In the body, not the query string: the session key would otherwise
+    # end up in every proxy and server log along the way.
+    body = seen[0].data.decode()
+    assert "method=user.getInfo" in body
+    assert "sk=12345session" in body
+    assert "sk=" not in seen[0].full_url
 
 
 def test_validate_session_with_an_odd_reply_returns_no_name(monkeypatch):

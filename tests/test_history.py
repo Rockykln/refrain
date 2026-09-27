@@ -552,6 +552,11 @@ def test_the_scrobbler_reports_what_it_queued(tmp_path):
         ("https://music.apple.com/de/playlist/mix/pl.u-1", False),
         ("https://music.apple.com/de/album/x/1", False),
         ("", False),
+        # The stored address is offered as a link later, so the host has to
+        # be Apple Music's own and not merely contain the name.
+        ("https://music.apple.com.evil.example/de/song/x/2", False),
+        ("https://evil.example/music.apple.com/de/song/x/2", False),
+        ("https://[oops/de/song/x/2", False),
     ],
 )
 def test_a_tab_url_is_kept_only_when_it_is_the_song(hist, clock, tab_url, kept):

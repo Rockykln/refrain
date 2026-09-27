@@ -20,7 +20,7 @@ from PySide6.QtCore import QEvent, QObject, Qt, QTimer
 from PySide6.QtWidgets import QAbstractButton, QApplication, QDialog, QMessageBox, QTabBar, QWidget
 
 from refrain import __version__
-from refrain.paths import state_dir
+from refrain.paths import make_private_dir, state_dir
 
 log = logging.getLogger(__name__)
 
@@ -164,7 +164,7 @@ class Recorder:
         line = json.dumps({"ts": round(time.time(), 3), **record}, separators=(",", ":"))
         with self._lock:
             try:
-                self.path.parent.mkdir(parents=True, exist_ok=True)
+                make_private_dir(self.path.parent)
                 with contextlib.suppress(FileNotFoundError):
                     if self.path.stat().st_size >= MAX_FILE_BYTES:
                         os.replace(self.path, self.path.with_name(self.path.name + ".1"))

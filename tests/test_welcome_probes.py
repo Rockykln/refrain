@@ -338,3 +338,50 @@ def test_closing_the_window_counts_as_skip_and_stops_the_probes(app, monkeypatch
     assert stopped == ["quit", 500]
     assert dlg._diag_thread is None and dlg._diag_worker is None
     assert dlg.result() == QDialog.Rejected
+
+
+def test_a_probe_still_running_is_detached_instead_of_deleted(app):
+    """Deleting a QThread that is still running aborts the process."""
+
+    class _Signal:
+        def __init__(self):
+            self.slots = []
+
+        def connect(self, slot):
+            self.slots.append(slot)
+
+    class _Busy:
+        def __init__(self):
+            self.finished = _Signal()
+            self.destroyed = _Signal()
+            self.parent = "the dialog"
+            self.deleted = False
+
+        def quit(self):
+            pass
+
+        def wait(self, _ms):
+            return False  # still on the network
+
+        def setParent(self, parent):
+            self.parent = parent
+
+        def deleteLater(self):
+            self.deleted = True
+
+    thread = _Busy()
+    dlg, _ = _dialog(app)
+    dlg._diag_thread = thread
+    dlg.reject()
+
+    assert thread in wd._detached_threads
+    assert thread.parent is None
+    assert thread.deleted is False
+
+    # It frees itself once the probe returns, and stops being held here.
+    for slot in thread.finished.slots:
+        slot()
+    assert thread.deleted is True
+    for slot in thread.destroyed.slots:
+        slot()
+    assert thread not in wd._detached_threads

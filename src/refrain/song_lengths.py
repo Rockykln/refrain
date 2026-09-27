@@ -5,15 +5,13 @@ Last.fm's length for a song sits in a second file as ``<key> <seconds>``, 0 when
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import logging
-import os
 import threading
 from pathlib import Path
 
 from refrain.cover_art import clean_title, normalize_name
-from refrain.paths import state_dir
+from refrain.paths import state_dir, write_private
 
 log = logging.getLogger(__name__)
 
@@ -53,16 +51,9 @@ def lengths_path() -> Path:
 
 
 def _write_lines(path: Path, lines: list[str]) -> None:
-    tmp = path.with_suffix(path.suffix + ".tmp")
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp.write_text("".join(lines), encoding="utf-8")
-        with contextlib.suppress(OSError):
-            os.chmod(tmp, 0o600)
-        os.replace(tmp, path)
+        write_private(path, "".join(lines))
     except OSError as e:
-        with contextlib.suppress(OSError):
-            tmp.unlink()
         log.debug("Could not save %s (%s)", path.name, e)
 
 
@@ -96,7 +87,7 @@ class LearnedLengths:
             text = self._path.read_text(encoding="utf-8")
         except FileNotFoundError:
             return {}
-        except OSError as e:
+        except (OSError, ValueError) as e:
             log.debug("Measured song lengths unreadable (%s) — starting empty", e)
             return {}
         entries: dict[str, tuple[int, int]] = {}
@@ -116,7 +107,7 @@ class LearnedLengths:
     def _load_references(self) -> dict[str, int]:
         try:
             text = self._references_path.read_text(encoding="utf-8")
-        except OSError:
+        except (OSError, ValueError):
             return {}
         references: dict[str, int] = {}
         for line in text.splitlines():

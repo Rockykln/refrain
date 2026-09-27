@@ -8,6 +8,7 @@ upgrade, or surface the distro upgrade command).
 from __future__ import annotations
 
 import contextlib
+import html
 import logging
 
 from PySide6.QtCore import Qt, QThread, QUrl, Signal
@@ -91,7 +92,13 @@ class UpdateDialog(QDialog):
             "<h2>Refrain {version} is available</h2>"
             "<p>You're running <b>v{current}</b>. "
             "Detected install type: <b>{install_type}</b>.</p>"
-        ).format(version=release.version, current=__version__, install_type=self._install_type)
+        ).format(
+            # The version comes from the release answer, and the label reads
+            # rich text: escaped so a tag in it stays a tag on screen.
+            version=html.escape(release.version),
+            current=__version__,
+            install_type=self._install_type,
+        )
         header = QLabel(header_text)
         header.setTextFormat(Qt.TextFormat.RichText)
         layout.addWidget(header)

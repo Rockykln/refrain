@@ -14,9 +14,10 @@ import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from refrain.config import HISTORY_LIMIT_MAX, HistoryConfig
-from refrain.paths import state_dir
+from refrain.paths import state_dir, write_private
 from refrain.scrobble import (
     accrue_play_ms,
     continues_play,
@@ -25,6 +26,7 @@ from refrain.scrobble import (
     should_scrobble,
 )
 from refrain.sources.base import PlaybackStatus, TrackInfo, content_key
+from refrain.sources.mpris import APPLE_MUSIC_HOSTS
 
 log = logging.getLogger(__name__)
 
@@ -165,7 +167,17 @@ def _is_song_page(url: str) -> bool:
     Music addresses a single song as ``/song/…`` or as an album page with
     ``?i=<track id>``.
     """
-    return url.startswith("https://") and ("/song/" in url or "?i=" in url or "&i=" in url)
+    if not url.startswith("https://"):
+        return False
+    try:
+        host = (urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return False
+    # The same host check the MPRIS source makes: a stored address is
+    # offered as a link later, so it has to belong to Apple Music.
+    if not any(host == h or host.endswith(f".{h}") for h in APPLE_MUSIC_HOSTS):
+        return False
+    return "/song/" in url or "?i=" in url or "&i=" in url
 
 
 def _entry_from_dict(raw: dict) -> HistoryEntry | None:
@@ -733,7 +745,9 @@ class PlayHistory:
             return [], None
         try:
             text = self._path.read_text(encoding="utf-8")
-        except OSError as e:
+        except (OSError, ValueError) as e:
+            # ValueError covers UnicodeDecodeError: a half-written or damaged
+            # file must not stop Refrain from starting at all.
             log.warning("History file %s unreadable (%s) — starting empty", self._path, e)
             return [], None
         try:
@@ -791,17 +805,10 @@ class PlayHistory:
                 r.entry, r.counted, r.played_ms, r.position_ms, r.saved_at, r.shown_ms, r.playing
             )
         payload = json.dumps(data, ensure_ascii=False, indent=1)
-        tmp = self._path.with_suffix(self._path.suffix + ".tmp")
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp.write_text(payload + "\n", encoding="utf-8")
             # Owner-only: it's a record of what someone listened to.
-            with contextlib.suppress(OSError):
-                os.chmod(tmp, 0o600)
-            os.replace(tmp, self._path)
+            write_private(self._path, payload + "\n")
         except OSError as e:
-            with contextlib.suppress(OSError):
-                tmp.unlink()
             log.warning("Could not save history to %s (%s)", self._path, e)
 
     def _delete_file(self) -> bool:

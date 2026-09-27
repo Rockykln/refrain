@@ -4,11 +4,9 @@ Each user brings their own Last.fm API account, like the Discord ``client_id``."
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import logging
-import os
 import threading
 import time
 import urllib.error
@@ -20,7 +18,7 @@ from pathlib import Path
 
 from refrain import __version__, dev_metrics
 from refrain.config import LastfmConfig
-from refrain.paths import state_dir
+from refrain.paths import state_dir, write_private
 from refrain.scrobble_queue import ScrobbleQueue
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
@@ -265,7 +263,10 @@ class LastfmClient:
 
     def get_session(self, token: str) -> tuple[str, str]:
         """Step 3 — exchange an authorized token for a (session_key, username)."""
-        data = self._call("auth.getSession", http_post=False, token=token)
+        # POST, not GET: the token and the session key it returns would
+        # otherwise sit in the query string, where proxies and server
+        # logs keep them long after the request.
+        data = self._call("auth.getSession", http_post=True, token=token)
         session = data.get("session") or {}
         key = str(session.get("key", "")).strip()
         name = str(session.get("name", "")).strip()
@@ -287,7 +288,8 @@ class LastfmClient:
         """
         if not self.session_key:
             raise LastfmError("Last.fm not connected (no session key)")
-        data = self._call("user.getInfo", http_post=False, sk=self.session_key)
+        # POST for the same reason: this one carries the session key.
+        data = self._call("user.getInfo", http_post=True, sk=self.session_key)
         user = data.get("user") or {}
         return str(user.get("name", "")).strip()
 
@@ -833,17 +835,10 @@ class Scrobbler:
             "saved_at": now_wall,
             "banked": self._banked,
         }
-        tmp = self._current_path.with_suffix(self._current_path.suffix + ".tmp")
         try:
-            self._current_path.parent.mkdir(parents=True, exist_ok=True)
-            tmp.write_text(json.dumps(data, ensure_ascii=False) + "\n", encoding="utf-8")
             # Owner-only, like the history: it says what someone is listening to.
-            with contextlib.suppress(OSError):
-                os.chmod(tmp, 0o600)
-            os.replace(tmp, self._current_path)
+            write_private(self._current_path, json.dumps(data, ensure_ascii=False) + "\n")
         except OSError as e:
-            with contextlib.suppress(OSError):
-                tmp.unlink()
             log.debug("Could not save the play in progress (%s)", e)
 
     def _clear_current_file(self) -> None:

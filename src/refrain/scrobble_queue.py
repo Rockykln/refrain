@@ -4,7 +4,6 @@ A corrupt line never poisons the rest; failing I/O never crashes the daemon."""
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import json
 import logging
@@ -13,7 +12,7 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from refrain.paths import state_dir
+from refrain.paths import state_dir, write_private
 
 log = logging.getLogger(__name__)
 
@@ -176,22 +175,11 @@ class ScrobbleQueue:
         read-only."""
         self._file_dirty = True
         try:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            tmp = self._path.with_suffix(self._path.suffix + ".tmp")
             payload = "\n".join(json.dumps(it, ensure_ascii=False) for it in self._items)
             if payload:
                 payload += "\n"
-            try:
-                tmp.write_text(payload, encoding="utf-8")
-                # Owner-only, like the history: it says what someone listened to.
-                with contextlib.suppress(OSError):
-                    os.chmod(tmp, 0o600)
-                os.replace(tmp, self._path)
-            except OSError:
-                if tmp.exists():
-                    with contextlib.suppress(OSError):
-                        tmp.unlink()
-                raise
+            # Owner-only, like the history: it says what someone listened to.
+            write_private(self._path, payload)
         except OSError as e:
             log.warning("Could not persist scrobble queue (%s)", e)
             return

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 
 import pytest
@@ -168,7 +169,7 @@ def test_apply_pipx_missing_pipx_binary(updater, monkeypatch):
 
 
 def test_apply_update_routes_pipx(updater, monkeypatch):
-    info = updater.ReleaseInfo(tag="v0.3.1", version="0.3.1", name="x", body="", html_url="")
+    info = updater.ReleaseInfo(tag="v99.0.0", version="99.0.0", name="x", body="", html_url="")
     called = {}
     monkeypatch.setattr(
         updater,
@@ -215,7 +216,7 @@ def test_check_latest_release_parses_basic_payload(monkeypatch, updater):
             },
         ],
     }
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _fake_response(payload))
 
     info = updater.check_latest_release()
     assert info is not None
@@ -227,11 +228,40 @@ def test_check_latest_release_parses_basic_payload(monkeypatch, updater):
     assert info.is_newer_than_current is True
 
 
+def test_an_api_answer_that_never_ends_is_dropped(monkeypatch, updater, caplog):
+    """Whatever comes back here names the version and the addresses to
+    fetch next, so it is read with a limit and thrown away past it."""
+
+    class _Endless:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self, n=-1):
+            return b"x" * n
+
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _Endless())
+    with caplog.at_level(logging.INFO, logger="refrain.updater"):
+        assert updater.check_latest_release() is None
+    assert "too much data" in caplog.text
+
+
+def test_an_api_answer_that_is_not_a_release_is_dropped(monkeypatch, updater, caplog):
+    monkeypatch.setattr(
+        updater._download_opener, "open", lambda *a, **kw: _fake_response(["v9.9.9"])
+    )
+    with caplog.at_level(logging.INFO, logger="refrain.updater"):
+        assert updater.check_latest_release() is None
+    assert "did not answer with a release" in caplog.text
+
+
 def test_check_latest_release_returns_none_on_network_error(monkeypatch, updater):
     def _boom(*a, **kw):
         raise OSError("offline")
 
-    monkeypatch.setattr(updater.urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(updater._download_opener, "open", _boom)
     assert updater.check_latest_release(timeout_s=0.5) is None
 
 
@@ -243,7 +273,7 @@ def test_check_latest_release_handles_empty_assets(monkeypatch, updater):
         "html_url": "",
         "assets": [],
     }
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _fake_response(payload))
 
     info = updater.check_latest_release()
     assert info is not None
@@ -253,8 +283,8 @@ def test_check_latest_release_handles_empty_assets(monkeypatch, updater):
 
 def test_apply_update_dispatches_per_install_type(updater, monkeypatch):
     info = updater.ReleaseInfo(
-        tag="v0.2.0",
-        version="0.2.0",
+        tag="v99.0.0",
+        version="99.0.0",
         name="x",
         body="",
         html_url="",
@@ -292,7 +322,7 @@ def test_apply_update_aur_launches_terminal_when_available(updater, monkeypatch)
 
     monkeypatch.setattr(updater, "_run_in_terminal", fake_terminal)
 
-    info = updater.ReleaseInfo(tag="v0.2.0", version="0.2.0", name="x", body="", html_url="")
+    info = updater.ReleaseInfo(tag="v99.0.0", version="99.0.0", name="x", body="", html_url="")
     r = updater.apply_update(info, install_type="aur")
     assert r.success is True
     assert r.needs_restart is True
@@ -303,7 +333,7 @@ def test_apply_update_flatpak_launches_terminal_when_available(updater, monkeypa
     spawned: list[tuple[str, ...]] = []
     monkeypatch.setattr(updater, "_run_in_terminal", lambda cmd: spawned.append(cmd) or True)
 
-    info = updater.ReleaseInfo(tag="v0.2.0", version="0.2.0", name="x", body="", html_url="")
+    info = updater.ReleaseInfo(tag="v99.0.0", version="99.0.0", name="x", body="", html_url="")
     r = updater.apply_update(info, install_type="flatpak")
     assert r.success is True
     assert r.needs_restart is True
@@ -458,7 +488,7 @@ def test_the_appimage_for_this_machine_is_picked(monkeypatch, updater):
             {"name": "SHA256SUMS.sig", "browser_download_url": base + "SHA256SUMS.sig"},
         ],
     }
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _fake_response(payload))
     monkeypatch.setattr(updater.platform, "machine", lambda: "arm64")
 
     info = updater.check_latest_release()
@@ -474,7 +504,7 @@ def test_no_appimage_for_an_unbuilt_arch(monkeypatch, updater):
         "tag_name": "v9.9.9",
         "assets": [{"name": "Refrain-9.9.9-x86_64.AppImage", "browser_download_url": "x"}],
     }
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _fake_response(payload))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _fake_response(payload))
     monkeypatch.setattr(updater.platform, "machine", lambda: "riscv64")
     assert updater.check_latest_release().appimage_url is None
 
@@ -512,7 +542,7 @@ def serve(monkeypatch, updater):
         return _Body(files[url])
 
     monkeypatch.setattr(updater, "_open_download", _open, raising=False)
-    monkeypatch.setattr(updater.urllib.request, "urlopen", _open)
+    monkeypatch.setattr(updater._download_opener, "open", _open)
     files["fetched"] = fetched
     return files
 

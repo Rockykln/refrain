@@ -523,6 +523,25 @@ def test_a_non_apple_url_is_just_not_apple_music_no_hint(bus):
     assert track.player == ""
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        # Any site can put the name in its path or in front of its own
+        # domain; the address travels on to Discord as "Listen on Apple
+        # Music", under someone else's name.
+        "https://music.apple.com.evil.example/de/album/12345",
+        "https://evil.example/music.apple.com/de/album/12345",
+        # urlsplit refuses this one outright.
+        "https://[oops/de/album/12345",
+    ],
+)
+def test_a_host_that_only_looks_like_apple_music_is_not_apple_music(bus, url):
+    bus({FIREFOX: _player(identity="Firefox", url=url)})
+    track = mpris.MPRISSource().read()
+    assert track.has_track is False
+    assert track.url == ""
+
+
 def test_a_paused_browser_with_no_url_gets_no_hint(bus):
     """The hint is for "I can see it's playing but not what" — a paused
     tab with no URL isn't distinguishable from one that just has no media."""
@@ -649,3 +668,33 @@ def test_two_equal_tabs_keep_the_one_shown_before(bus):
         assert src.read().title == first
     src._last_player_name = FIREFOX if shown == CHROMIUM else CHROMIUM
     assert src.read().title != first
+
+
+def test_a_slow_player_does_not_keep_the_rest_from_ever_being_read(bus, monkeypatch, caplog):
+    """The next pass starts where this one gave up, so every player gets
+    its turn even when one of them eats the whole budget."""
+    names = [f"org.mpris.MediaPlayer2.p{n}" for n in range(4)]
+    bus({name: _player(identity=f"P{n}") for n, name in enumerate(names)})
+
+    clock = SimpleNamespace(now=0.0)
+    monkeypatch.setattr(mpris, "time", SimpleNamespace(monotonic=lambda: clock.now))
+    real_read = mpris.MPRISSource._read_player
+    read: list[str] = []
+
+    def slow(self, dbus_bus, name):
+        clock.now += 0.6
+        read.append(name)
+        return real_read(self, dbus_bus, name)
+
+    monkeypatch.setattr(mpris.MPRISSource, "_read_player", slow)
+
+    src = mpris.MPRISSource()
+    with caplog.at_level(logging.DEBUG, logger="refrain.sources.mpris"):
+        src.read()
+    assert read == names[:2]
+    assert src._pass_start == 2
+    assert "2 player(s) left for the next pass" in caplog.text
+
+    read.clear()
+    src.read()
+    assert read == names[2:]

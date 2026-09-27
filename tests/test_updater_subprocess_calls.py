@@ -140,7 +140,7 @@ def test_first_matching_appimage_asset_wins_over_a_duplicate(monkeypatch):
             },
         ],
     }
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: _JSONBody(payload))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: _JSONBody(payload))
     monkeypatch.setattr(updater.platform, "machine", lambda: "x86_64")
 
     info = updater.check_latest_release()

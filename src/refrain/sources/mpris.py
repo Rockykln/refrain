@@ -9,11 +9,12 @@ import dataclasses
 import logging
 import re
 import time
+from urllib.parse import urlsplit
 
 import dbus
 import dbus.mainloop
 
-from refrain.sources.base import PlaybackStatus, TrackInfo
+from refrain.sources.base import PlaybackStatus, TrackInfo, clean_field
 
 log = logging.getLogger(__name__)
 
@@ -46,24 +47,60 @@ _HUNG_ERRORS = ("NoReply", "Timeout")
 _GONE_ERRORS = ("ServiceUnknown", "NameHasNoOwner", "Disconnected")
 
 
+# Nothing a player can honestly call a title is longer than this. A player
+# that sends more is either broken or trying something: the text travels
+# into a regular expression, a catalog query, the history file and an argv
+# for notify-send, and each of those has its own idea of "too long".
+_FIELD_MAX = 512
+# No song is a day long. Chromium reports a tab's `mpris:length` as a buffer
+# marker that grows, and sometimes as int64-max; anything past a day is not a
+# length, and a value over 32 bits makes the tray's progress signal raise.
+_TIME_MAX_MS = 24 * 60 * 60 * 1000
+
+
+def _safe_ms(value, divisor: int = 1) -> int:
+    """A millisecond count from a source, or 0 when it cannot be one.
+
+    ``divisor`` converts first: MPRIS counts in microseconds, and the range
+    check only means anything once the number is milliseconds.
+    """
+    try:
+        ms = int(value) // divisor
+    except Exception:
+        return 0
+    return ms if 0 <= ms <= _TIME_MAX_MS else 0
+
+
 def _safe_str(v) -> str:
-    return "" if v is None else str(v)
+    return "" if v is None else clean_field(str(v)[:_FIELD_MAX])
 
 
 def _to_str_list(v) -> list[str]:
+    # Capped per entry and in count: `xesam:artist` is a list, and joining an
+    # uncapped one rebuilds exactly the long string `_safe_str` just refused.
     if isinstance(v, str):
-        return [v]
+        return [clean_field(v[:_FIELD_MAX])]
     try:
-        return [str(x) for x in v]
+        return [clean_field(str(x)[:_FIELD_MAX]) for x in list(v)[:32]]
     except Exception:
         return []
 
 
 def _looks_apple_music(url: str) -> bool:
+    """Is Apple Music itself the host of this address?
+
+    The name has to be the whole host, not a piece of the address
+    somewhere. Any site can put "music.apple.com" in its path, and the
+    address travels on to Discord as a link labelled "Listen on Apple
+    Music" — under someone else's name.
+    """
     if not url:
         return False
-    u = url.lower()
-    return any(h in u for h in APPLE_MUSIC_HOSTS)
+    try:
+        host = (urlsplit(url).hostname or "").lower()
+    except ValueError:
+        return False
+    return any(host == h or host.endswith(f".{h}") for h in APPLE_MUSIC_HOSTS)
 
 
 def _is_apple_music_page_title(title: str) -> bool:
@@ -154,6 +191,8 @@ class MPRISSource:
         # plasma-browser-integration freezes under load; without this
         # the poll cycle backs up to ~50 s.
         self._timeout_blacklist: dict[str, float] = {}
+        # Where the next pass starts, so a budget cut-off rotates.
+        self._pass_start = 0
         self._bus = None  # see _session_bus
         # MPRIS bus names from the last ListNames, and when that was.
         self._player_names: list[str] = []
@@ -169,6 +208,11 @@ class MPRISSource:
         self._no_get_all: set[tuple[str, str]] = set()
 
     _BLACKLIST_S = 5.0
+    # One pass over every player must not outlast the poll interval. A player
+    # that answers just inside the per-call timeout is never blacklisted, so a
+    # handful of them together can keep the daemon from finishing a tick at
+    # all. Whoever is left over waits for the next pass.
+    _PASS_BUDGET_S = 1.0
     # New players (a browser started, a Firefox tab starting media) are noticed
     # this late at most; a vanished one is noticed on its failed read.
     _LIST_REFRESH_S = 3.0
@@ -257,7 +301,19 @@ class MPRISSource:
         fallbacks: list[str] = []
         native: dict[str, str] = {}  # the Apple Music tab's own entries → "playing"/"paused"
         no_url_hint = ""  # a browser playing with no URL at all — see _read_player
-        for name in self._player_names:
+        deadline = time.monotonic() + self._PASS_BUDGET_S
+        # Round-robin: the pass starts one player further along each time, so
+        # a slow one early in the list cannot keep the rest from ever being
+        # read when the budget runs out.
+        names = self._player_names[self._pass_start :] + self._player_names[: self._pass_start]
+        for index, name in enumerate(names):
+            if time.monotonic() > deadline:
+                self._pass_start = (self._pass_start + index) % max(1, len(self._player_names))
+                log.debug(
+                    "MPRIS poll budget spent; %d player(s) left for the next pass",
+                    len(names) - index,
+                )
+                break
             until = self._timeout_blacklist.get(name, 0.0)
             if now < until:
                 continue  # this player just timed out; skip until cooldown ends
@@ -484,14 +540,8 @@ class MPRISSource:
             album = _safe_str(metadata.get("xesam:album", ""))
             url = _normalize_apple_url(_safe_str(metadata.get("xesam:url", "")))
 
-            try:
-                duration_ms = int(metadata.get("mpris:length", 0)) // 1000
-            except Exception:
-                duration_ms = 0
-            try:
-                position_ms = int(values.get("Position", 0)) // 1000
-            except Exception:
-                position_ms = 0
+            duration_ms = _safe_ms(metadata.get("mpris:length", 0) or 0, 1000)
+            position_ms = _safe_ms(values.get("Position", 0) or 0, 1000)
 
             if not _looks_apple_music(url):
                 # Browser is playing *something* — it might be the same Apple

@@ -46,7 +46,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from refrain import __version__, dev_metrics
-from refrain.paths import cover_cache_dir
+from refrain.paths import cover_cache_dir, make_private_dir, write_private
 
 log = logging.getLogger(__name__)
 
@@ -82,9 +82,12 @@ class TrackLookup:
 
 _FEAT_PAREN = re.compile(r"\s*[\(\[]\s*(?:feat\.?|ft\.?|featuring|with)\s[^\)\]]*[\)\]]", re.I)
 _FEAT_TAIL = re.compile(r"\s+(?:feat\.?|ft\.?|featuring)\s.*$", re.I)
+# The bracket contents are bounded: unbounded `[^)\]]*` on both sides of the
+# keyword backtracks over the whole rest of the title once a bracket never
+# closes, which is quadratic and runs on the poll thread.
 _TAG_PAREN = re.compile(
-    r"\s*[\(\[][^\)\]]*\b(?:remaster(?:ed)?|version|edit|live|mono|stereo|deluxe|bonus|"
-    r"explicit|clean|radio)\b[^\)\]]*[\)\]]",
+    r"\s*[\(\[][^\)\]]{0,120}\b(?:remaster(?:ed)?|version|edit|live|mono|stereo|deluxe|bonus|"
+    r"explicit|clean|radio)\b[^\)\]]{0,120}[\)\]]",
     re.I,
 )
 _TAG_DASH = re.compile(
@@ -319,12 +322,6 @@ def _read_cache(key: str) -> TrackLookup | None:
     )
 
 
-def _make_private_dir(d: Path) -> None:
-    # The cached lookups and covers reveal what the user listens to.
-    d.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(d, 0o700)
-
-
 def _write_cache(key: str, info: TrackLookup) -> None:
     """Write the URL-cache .txt file. A failure here
     must not propagate up because the caller is in a worker-thread
@@ -333,11 +330,11 @@ def _write_cache(key: str, info: TrackLookup) -> None:
     acceptable degradation."""
     d = cover_cache_dir()
     try:
-        _make_private_dir(d)
-        (d / f"{key}.txt").write_text(
+        make_private_dir(d)
+        write_private(
+            d / f"{key}.txt",
             f"{info.cover_url}\n{info.song_url}\n{info.duration_ms}\n"
             f"{_CACHE_VERSION}\n{int(time.time())}\n{info.album}\n",
-            encoding="utf-8",
         )
     except OSError as e:
         log.debug("Cover URL-cache write failed for %s: %s", key, e)
@@ -376,7 +373,7 @@ def keep_cover_images(urls: set[str], sources: list[Path]) -> None:
             continue
         tmp = dest.with_suffix(dest.suffix + ".tmp")
         try:
-            _make_private_dir(d)
+            make_private_dir(d)
             shutil.copyfile(src, tmp)
             os.replace(tmp, dest)
         except OSError as e:
@@ -427,14 +424,9 @@ def download_cover_image(url: str, dest: Path) -> Path | None:
     # Write to a sibling temp file and atomically rename. Without this,
     # a daemon kill mid-download would leave a truncated file that
     # `has_image` happily accepts on the next tick.
-    tmp = dest.with_suffix(dest.suffix + ".tmp")
     try:
-        tmp.write_bytes(data)
-        os.replace(tmp, dest)
+        write_private(dest, data)
     except OSError as e:
         log.debug("Cover image write failed for %s: %s", url, e)
-        if tmp.exists():
-            with contextlib.suppress(OSError):
-                tmp.unlink()
         return None
     return dest

@@ -914,6 +914,11 @@ class StatusWindow(QDialog):
             item = self.recent_rows.takeAt(0)
             widget = item.widget() if item is not None else None
             if widget is not None:
+                # Out of the tree now, freed later — the same two steps the
+                # history window takes: deleteLater alone leaves the old rows
+                # as children until the event loop runs, and this runs on
+                # every track change.
+                widget.setParent(None)
                 widget.deleteLater()
         available = list(snap.entries[1:] if snap.now_playing else snap.entries)
         entries = available[: self._fits()]

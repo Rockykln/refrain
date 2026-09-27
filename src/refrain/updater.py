@@ -32,6 +32,7 @@ import shutil
 import site
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Sequence
@@ -79,10 +80,19 @@ RELEASES_PAGE = f"https://github.com/{GITHUB_REPO}/releases"
 RELEASE_PUBLIC_KEY = "b4ffe3f4c0e79c94d91b3c13ddc5d0b0e26159ab66a1f0a78ae35168ad2a516c"
 # Far below any AppImage that can carry Python and Qt.
 _MIN_APPIMAGE_BYTES = 1024 * 1024
+# Refrain's own AppImage is about 80 MB. A release claiming ten times
+# that is not one, and the download writes what the release claims
+# before the size check at the end can object.
+_MAX_APPIMAGE_BYTES = 800 * 1024 * 1024
+# Whole-download limit. 80 MB over a slow line is minutes, not an hour.
+_DOWNLOAD_DEADLINE_S = 1800.0
 _MAX_SUMS_BYTES = 64 * 1024
 _SUMS_ASSET = "SHA256SUMS"
 _SIG_ASSET = "SHA256SUMS.sig"
 _MAX_SIG_BYTES = 1024
+# The releases API answers with one release object; a hundredfold of that
+# is already something other than an answer.
+_MAX_API_BYTES = 512 * 1024
 _ARCH_ALIASES = {"amd64": "x86_64", "arm64": "aarch64"}
 
 
@@ -237,12 +247,21 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
             },
         )
         with dev_metrics.network("github"):
-            with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
-                data = json.load(r)
+            # Same opener as the downloads: an answer that arrives over plain
+            # HTTP names the version and the asset addresses to fetch next.
+            with _download_opener.open(req, timeout=timeout_s) as r:  # nosec B310
+                raw = r.read(_MAX_API_BYTES + 1)
+        if len(raw) > _MAX_API_BYTES:
+            log.info("Update check failed: the releases API answered with too much data")
+            return None
+        data = json.loads(raw)
     except Exception as e:
         log.info("Update check failed: %s", e)
         return None
 
+    if not isinstance(data, dict):
+        log.info("Update check failed: the releases API did not answer with a release")
+        return None
     tag = str(data.get("tag_name", "")).strip()
     if not tag:
         log.debug("Release JSON had no tag_name; payload keys: %s", list(data)[:10])
@@ -448,6 +467,16 @@ def apply_update(
     install_type = install_type or detect_install_type()
     log.info("apply_update: target=%s install_type=%s", release.version, install_type)
 
+    # The windows only offer an update when the release is newer, so this
+    # never fires in practice — but the guard belongs with the install, not
+    # with three places in the interface that happen to check first.
+    if not release.is_newer_than_current:
+        log.warning("Refusing to install %s over the running version", release.version)
+        return UpdateResult(
+            success=False,
+            message=f"Refrain {release.version} is not newer than the version already installed.",
+        )
+
     if install_type == "appimage":
         return _apply_appimage(release, cancelled=cancelled)
     if install_type == "pip":
@@ -523,7 +552,7 @@ def _apply_appimage(
             success=False,
             message="The AppImage download isn't hosted on the Refrain releases page.",
         )
-    if release.appimage_size < _MIN_APPIMAGE_BYTES:
+    if not _MIN_APPIMAGE_BYTES <= release.appimage_size <= _MAX_APPIMAGE_BYTES:
         log.warning("Implausible AppImage size in release: %d bytes", release.appimage_size)
         return UpdateResult(
             success=False,
@@ -549,10 +578,22 @@ def _apply_appimage(
         # small enough to stay responsive on slow links (~50ms ticks
         # at 1 MB/s).
         chunk_size = 64 * 1024
-        with _open_download(release.appimage_url, 60) as r, open(tmp, "wb") as out:
+        # The name sits next to the running AppImage and is easy to guess, so
+        # a symlink left there must make the download fail rather than send
+        # it somewhere else. Removed first, then created exclusively.
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp)
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        # A download that drags on forever leaves a thread and a dialog that
+        # says "Canceling…" without ever getting there; the per-read timeout
+        # alone cannot end it, because every read does return something.
+        deadline = time.monotonic() + _DOWNLOAD_DEADLINE_S
+        with _open_download(release.appimage_url, 60) as r, os.fdopen(fd, "wb") as out:
             while True:
                 if cancelled is not None and cancelled():
                     raise _DownloadCancelled()
+                if time.monotonic() > deadline:
+                    raise OSError(f"the download did not finish within {_DOWNLOAD_DEADLINE_S:.0f}s")
                 chunk = r.read(chunk_size)
                 if not chunk:
                     break

@@ -9,7 +9,7 @@ import logging
 import os
 from pathlib import Path
 
-from refrain.paths import config_dir
+from refrain.paths import config_dir, make_private_dir
 
 log = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ def _file_write_all(data: dict[str, str]) -> bool:
     p = _fallback_path()
     tmp = p.with_suffix(".tmp")
     try:
-        p.parent.mkdir(parents=True, exist_ok=True)
+        make_private_dir(p.parent)
         # Create with 0600 from the start (umask-independent) so the
         # secret is never briefly world-readable between write and chmod.
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)

@@ -10,9 +10,22 @@ import re
 import dbus
 import dbus.mainloop
 
-from refrain.sources.base import PlaybackStatus, TrackInfo
+from refrain.sources.base import PlaybackStatus, TrackInfo, clean_field
 
 log = logging.getLogger(__name__)
+
+_FIELD_MAX = 512
+_TIME_MAX_MS = 24 * 60 * 60 * 1000
+
+
+def _safe_ms(value) -> int:
+    """A millisecond count from a device, or 0 when it cannot be one."""
+    try:
+        ms = int(value)
+    except Exception:
+        return 0
+    return ms if 0 <= ms <= _TIME_MAX_MS else 0
+
 
 _ADDRESS = re.compile(
     r"([0-9A-Fa-f]{2})([_:])(?:[0-9A-Fa-f]{2}\2){3}([0-9A-Fa-f]{2}\2[0-9A-Fa-f]{2})"
@@ -150,18 +163,16 @@ class BluetoothSource:
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
             track = props.Get("org.bluez.MediaPlayer1", "Track")
 
-            title = str(track.get("Title", "") or "")
-            artist = str(track.get("Artist", "") or "")
-            album = str(track.get("Album", "") or "")
+            # Capped like the MPRIS side, and for the same reason.
+            title = clean_field(str(track.get("Title", "") or "")[:_FIELD_MAX])
+            artist = clean_field(str(track.get("Artist", "") or "")[:_FIELD_MAX])
+            album = clean_field(str(track.get("Album", "") or "")[:_FIELD_MAX])
 
+            # track.get() is a plain dict lookup, not a D-Bus call; a device
+            # can put anything in "Duration", so the value is range-checked.
+            duration_ms = _safe_ms(track.get("Duration", 0))
             try:
-                # track.get() is a plain dict lookup, not a D-Bus call — broad on
-                # purpose, since a device can put anything in "Duration".
-                duration_ms = int(track.get("Duration", 0))
-            except Exception:
-                duration_ms = 0
-            try:
-                position_ms = int(props.Get("org.bluez.MediaPlayer1", "Position"))
+                position_ms = _safe_ms(props.Get("org.bluez.MediaPlayer1", "Position"))
             except dbus.exceptions.DBusException:
                 position_ms = 0
             try:

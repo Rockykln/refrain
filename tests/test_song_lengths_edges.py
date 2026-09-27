@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import refrain.paths as paths_module
 from refrain.song_lengths import LearnedLengths
 
 A = ("Kite Theory", "Overexposed", "Afterimage")
@@ -17,14 +18,13 @@ def test_an_unreadable_lengths_file_starts_with_no_learned_lengths(tmp_path):
 
 
 def test_a_save_that_cannot_be_written_does_not_lose_the_in_memory_length(tmp_path, monkeypatch):
-    import refrain.song_lengths as mod
 
     lengths = LearnedLengths(path=tmp_path / "lengths.txt")
 
     def refuse(*_a, **_kw):
         raise OSError("read-only file system")
 
-    monkeypatch.setattr(mod.os, "replace", refuse)
+    monkeypatch.setattr(paths_module.os, "replace", refuse)
     lengths.observe(*A, 157_000)
     lengths.observe(*A, 157_000)  # confirms, and tries to persist
 

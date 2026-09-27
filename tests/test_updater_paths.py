@@ -118,8 +118,8 @@ def test_version_edge_cases(remote, local, newer):
 
 def _serve_json(monkeypatch, payload):
     monkeypatch.setattr(
-        updater.urllib.request,
-        "urlopen",
+        updater._download_opener,
+        "open",
         lambda *a, **kw: _Body(json.dumps(payload).encode()),
     )
     monkeypatch.setattr(updater.platform, "machine", lambda: "x86_64")
@@ -133,7 +133,7 @@ def test_a_release_without_a_tag_is_ignored(monkeypatch):
 def test_a_non_https_api_url_is_never_fetched(monkeypatch):
     fetched = []
     monkeypatch.setattr(updater, "RELEASES_API", "http://api.github.com/repos/x/releases")
-    monkeypatch.setattr(updater.urllib.request, "urlopen", lambda *a, **kw: fetched.append(a))
+    monkeypatch.setattr(updater._download_opener, "open", lambda *a, **kw: fetched.append(a))
     assert updater.check_latest_release() is None
     assert fetched == []
 
@@ -482,3 +482,14 @@ def test_downloads_identify_refrain_and_pass_the_timeout(monkeypatch):
     req, timeout = opened[0]
     assert (req.full_url, timeout) == (_DL + _NAME, 60)
     assert req.get_header("User-agent").startswith("Refrain/")
+
+
+def test_an_older_release_is_never_installed(monkeypatch):
+    """The windows only offer newer ones, but the guard belongs with the install."""
+    old = updater.ReleaseInfo(tag="v0.0.1", version="0.0.1", name="x", body="", html_url="")
+    ran = []
+    monkeypatch.setattr(updater, "_apply_pipx", lambda: ran.append("pipx"))
+    result = updater.apply_update(old, install_type="pipx")
+    assert result.success is False
+    assert "not newer" in result.message
+    assert ran == []

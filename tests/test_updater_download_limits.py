@@ -139,3 +139,48 @@ def test_apply_appimage_download_uses_a_real_timeout(monkeypatch, tmp_path):
 
     assert result.success is True
     assert timeouts == {_SUMS: updater._TIMEOUT_S, _SIG: updater._TIMEOUT_S, _DL + name: 60}
+
+
+def test_a_download_that_never_finishes_is_given_up(monkeypatch, tmp_path):
+    """The per-read timeout cannot end this one: every read does return
+    something, so only a deadline over the whole download does."""
+    monkeypatch.setattr(updater, "RELEASE_PUBLIC_KEY", PUBLIC_KEY_HEX)
+    name = "Refrain-9.9.9-x86_64.AppImage"
+    appimage_bytes = b"\x7fELF" + b"0" * 2_000_000
+    sums = f"{hashlib.sha256(appimage_bytes).hexdigest()}  {name}\n".encode()
+    files = {_DL + name: appimage_bytes, _SUMS: sums, _SIG: signature_for(sums)}
+
+    now = [0.0]
+    monkeypatch.setattr(updater.time, "monotonic", lambda: now[0])
+
+    class _Trickle(_RecordingBody):
+        def read(self, n=None):
+            now[0] += updater._DOWNLOAD_DEADLINE_S / 4
+            return super().read(1024 if n is None else min(n, 1024))
+
+    def fake_open(url, timeout):
+        return _Trickle(files[url]) if url.endswith(".AppImage") else _RecordingBody(files[url])
+
+    monkeypatch.setattr(updater, "_open_download", fake_open)
+    target = tmp_path / name
+    target.write_bytes(b"old build")
+    monkeypatch.setenv("APPIMAGE", str(target))
+    release = updater.ReleaseInfo(
+        tag="v9.9.9",
+        version="9.9.9",
+        name="x",
+        body="",
+        html_url="",
+        appimage_url=_DL + name,
+        appimage_size=len(appimage_bytes),
+        appimage_name=name,
+        sha256sums_url=_SUMS,
+        sha256sums_sig_url=_SIG,
+    )
+
+    result = updater._apply_appimage(release)
+
+    assert result.success is False
+    assert "did not finish within" in result.message
+    assert target.read_bytes() == b"old build"
+    assert not (tmp_path / (name + ".new")).exists()

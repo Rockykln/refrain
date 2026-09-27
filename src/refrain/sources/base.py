@@ -46,6 +46,24 @@ class TrackInfo:
         return f"{self.content_key()}|{self.status.value}"
 
 
+# Control characters and the bidi overrides, which no song title needs. A
+# newline in a title forges a second line in the log; an override reverses
+# what a reader sees without changing the text. Taken out once here, so the
+# log, Discord, the notification and the history all get the same string.
+_STRIP = {
+    *range(0x00, 0x20),
+    0x7F,
+    *range(0x80, 0xA0),
+    *range(0x202A, 0x202F),
+    *range(0x2066, 0x206A),
+}
+
+
+def clean_field(text: str) -> str:
+    """Metadata from a player, with anything unprintable taken out."""
+    return text.translate(dict.fromkeys(_STRIP)) if text else text
+
+
 def content_key(source: str, title: str, artist: str, album: str) -> str:
     """Identify a song by its metadata, as one string.
 

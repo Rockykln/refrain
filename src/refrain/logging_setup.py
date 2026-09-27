@@ -9,7 +9,7 @@ import os
 import sys
 from collections import deque
 
-from refrain.paths import log_path, state_dir
+from refrain.paths import log_path, make_private_dir, state_dir
 
 _BACKLOG_LINES = 500
 _FMT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -52,7 +52,7 @@ def setup_logging(level: str = "INFO") -> None:
     root.addHandler(console_handler)
 
     try:
-        state_dir().mkdir(parents=True, exist_ok=True)
+        make_private_dir(state_dir())
         file_handler = _PrivateRotatingFileHandler(
             log_path(),
             maxBytes=1_048_576,

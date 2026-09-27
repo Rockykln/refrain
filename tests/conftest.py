@@ -27,6 +27,11 @@ def _no_network(monkeypatch):
         raise urllib.error.URLError("network access is disabled in tests")
 
     monkeypatch.setattr(urllib.request, "urlopen", _refuse)
+    # `urlopen` is only the convenience wrapper. Code that builds its own
+    # opener — everything going through `refrain.https_only` — calls
+    # `OpenerDirector.open` directly and would otherwise reach the network
+    # from a test run.
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", _refuse)
 
 
 @pytest.fixture(autouse=True, scope="session")

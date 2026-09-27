@@ -310,6 +310,7 @@ class DeveloperPanel(QWidget):
         layout.addLayout(row)
         apply_interactive_cursors(box)
         box.exec()
+        box.deleteLater()
 
     def _export(self) -> None:
         path, _ = QFileDialog.getSaveFileName(

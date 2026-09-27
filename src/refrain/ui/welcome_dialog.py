@@ -43,6 +43,9 @@ from refrain.ui.cursors import apply_interactive_cursors
 
 log = logging.getLogger(__name__)
 
+# Threads outliving the dialog that started them; see reject().
+_detached_threads: set[QThread] = set()
+
 
 _DISCORD_DEVELOPER_PORTAL = "https://discord.com/developers/applications"
 _ITUNES_TEST_URL = "https://itunes.apple.com/search?term=test&entity=song&limit=1&country=us"
@@ -385,11 +388,22 @@ class WelcomeDialog(QDialog):
         if self.client_id_edit.text().strip() and not self._confirm_discarding_id():
             return
         if self._diag_thread is not None:
-            self._diag_thread.quit()
-            with contextlib.suppress(Exception):
-                self._diag_thread.wait(500)
+            thread = self._diag_thread
             self._diag_thread = None
             self._diag_worker = None
+            # A thread whose C++ side is already gone raises on every call;
+            # the window still has to close.
+            with contextlib.suppress(Exception):
+                thread.quit()
+                if not thread.wait(500):
+                    # The catalog probe waits up to five seconds on the
+                    # network. Deleting a QThread that is still running
+                    # aborts the process, so it is detached and left to
+                    # finish on its own.
+                    thread.setParent(None)
+                    _detached_threads.add(thread)
+                    thread.finished.connect(thread.deleteLater)
+                    thread.destroyed.connect(lambda: _detached_threads.discard(thread))
         self.applied.emit("")
         super().reject()
 
