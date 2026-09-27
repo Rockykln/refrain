@@ -21,8 +21,9 @@ streaming from your phone over Bluetooth.
 
 ## What it does
 
-- Reads playback metadata from **MPRIS** (Apple Music in any major Linux
-  browser) and **BlueZ AVRCP** (any AVRCP-capable Bluetooth source).
+- Reads playback metadata from **MPRIS** — the standard way a Linux program
+  says what it is playing — for Apple Music in any major browser, and over
+  **Bluetooth** from any device that reports its track (AVRCP).
   Firefox and its relatives report the page they play; Chromium-based
   browsers need KDE's Plasma Browser Integration, which works outside KDE
   too — see [troubleshooting](docs/troubleshooting.md).
@@ -83,17 +84,11 @@ and how to remove them again: [`docs/install.md`](docs/install.md).
 
 ### Tested on
 
-See [`docs/test-matrix.md`](docs/test-matrix.md) for the full Tier-1 / Tier-2
-list, the per-row smoke checks, and which distros are explicitly out-of-scope.
-
-- **Tier 1 (must pass every release):** CachyOS, Arch Linux, Fedora 42,
-  Ubuntu 24.04 LTS, Ubuntu 25.04, Ubuntu 26.04 LTS, Debian 13 (Plasma and
-  GNOME), openSUSE Tumbleweed, Linux Mint 22, Manjaro Stable.
-- **Desktops:** KDE Plasma 6 (Wayland is the primary target, X11 also
-  covered), GNOME with the [AppIndicator and KStatusNotifierItem](https://extensions.gnome.org/extension/615/appindicator-support/)
-  extension, XFCE / Cinnamon / LXQt / Budgie via their native or
-  AppIndicator-bridged tray, MATE with `mate-applet-statusnotifier`, tiling
-  WMs (Hyprland / Sway / i3 / river) via a SNI-capable status bar.
+Ten distributions are tested before every release, from Arch to Debian 13,
+on Plasma, GNOME, XFCE, Cinnamon, LXQt, Budgie, MATE and the tiling window
+managers. [`docs/install.md`](docs/install.md#tested-on) names them, and
+[`docs/test-matrix.md`](docs/test-matrix.md) has the per-row checks and the
+distros that are out of scope.
 
 ## First-time setup
 
@@ -103,8 +98,9 @@ registers their own (free, takes 30 seconds):
 1. Open <https://discord.com/developers/applications> and click **New Application**.
 2. Give it a name you're entitled to use — that name is what shows up
    under *"Listening to ..."* in your Discord status. You can also upload a
-   square image as the application icon; Discord uses it as the
-   fallback when there's no album cover.
+   square image as the application icon; with *Look up the application's
+   name on Discord* switched on, Refrain puts it in the corner of the
+   album cover, and uses it in place of a cover it hasn't got.
 3. Copy the **Application ID** from the *General Information* page.
 4. Launch Refrain → *Settings → General → Application ID* → paste,
    *OK*.
@@ -175,10 +171,10 @@ written to GDPR transparency expectations — is in
 - [FAQ](docs/faq.md)
 - [Known limitations and troubleshooting](docs/troubleshooting.md) — what doesn't work, and what to check when something fails
 - [Developer mode](docs/developer-mode.md) — local timing and usage metrics, and the live log. Never sent
-- [Test matrix](docs/test-matrix.md) — supported distros, smoke-check checklist
 
 **About the project**
 
+- [Test matrix](docs/test-matrix.md) — the distributions checked before each release, and the checklist used
 - [Architecture overview](docs/architecture.md) — threads, D-Bus surface, file paths
 - [Privacy & data protection](PRIVACY.md) — every data flow, retention, erasure
 - [Security policy](SECURITY.md)

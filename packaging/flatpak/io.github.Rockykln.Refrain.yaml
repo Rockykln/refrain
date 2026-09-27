@@ -8,7 +8,7 @@
 # Refresh the bundled Python deps when pinning a new release:
 #   cd packaging/flatpak
 #   flatpak-pip-generator --runtime org.kde.Sdk//6.10 \
-#       meson-python hatchling 'pypresence>=4.3' 'dbus-python>=1.3' -o python-deps
+#       meson-python hatchling 'pypresence>=4.6.2' 'dbus-python>=1.3' -o python-deps
 #   git add python-deps.json
 # Not requirements.txt: PySide6 comes from the BaseApp, and meson-python
 # and hatchling are the build backends of dbus-python and Refrain.

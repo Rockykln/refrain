@@ -93,6 +93,17 @@ Refrain is a desktop app that talks to D-Bus and a single local IPC socket
 - "I gave Refrain a malicious config file and it crashed." Don't do that —
   it's your config file.
 
+## Assumed, not enforced
+
+Refrain reads what is playing from the session bus, and the session bus
+has no way to say who sent a message. Any program running as you can
+publish an MPRIS player, so any program running as you can decide what
+Refrain shows on Discord and scrobbles to Last.fm. That is not a hole
+Refrain can close; it is why what arrives that way is treated as
+untrusted — lengths are range-checked, text is capped and stripped of
+control characters, and an address is only published as a song link when
+Apple Music is its host.
+
 ## Defense in depth
 
 Refrain's CI runs CodeQL, Bandit, pip-audit, and TruffleHog. Reports from

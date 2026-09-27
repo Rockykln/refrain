@@ -14,12 +14,23 @@ lists every version and why.
 - **The time keeps running after a restart mid-song.** When a song is
   still playing and its player doesn't say where it is, Refrain carries
   on from where it was and marks that as estimated: `~1:08 / 3:20`.
-- **A white or black tray icon, your choice.** The icon now defaults to
-  white, since most panels are dark whatever the app theme is. Set
-  `tray_icon` in `config.toml` to `"black"`, or to `"auto"` to follow
-  the system theme as before.
+- **The tray icon says what Refrain is doing, in colour.** Green while
+  a song plays, amber while it's paused, a grey wave when nothing is.
+  Two states are new: a red mark when Discord needs you — no
+  Application ID, a rejected one, not logged in, or not answering — and
+  a crossed-out triangle while sharing is paused, which outranks the
+  red mark. Shape and colour say the same thing, so the state still
+  reads without colour. The icons are drawn for a dark panel by
+  default, since most panels are dark whatever the app theme is; set
+  `tray_icon` in `config.toml` to `"black"` for a light panel, or to
+  `"auto"` to follow the system theme as before.
 - **Refrain says when Discord is open but not logged in.** That used to
   read as a rejected Application ID.
+- **The tray menu is quiet while everything works.** The Discord and
+  Last.fm rows said the same thing all day; they moved under
+  *Troubleshooting* and appear only when there is something to report —
+  Discord isn't running or needs you, the Last.fm sign-in expired, or
+  plays are waiting. The Status window still shows both in full.
 - **A hint when a browser plays but doesn't say which page.** Chromium,
   Chrome, Brave, Edge, Opera and Vivaldi only publish the page address
   through KDE's Plasma Browser Integration; without it Apple Music can't
@@ -30,6 +41,14 @@ lists every version and why.
 - **Last.fm can confirm a length Refrain measured itself**, when Apple
   doesn't know the song and Last.fm is switched on. One read-only
   request per song, and the answer is kept.
+- **The Discord status is clickable.** The title, the artist line and
+  the cover all open the song in Apple Music, next to the button that
+  was already there.
+- **A small icon in the corner of the cover.** Refrain's own icon, or
+  your application's icon once *Look up the application's name on
+  Discord* is on. *Settings → General* turns it off.
+- **The member list shows the song**, not the name of your Discord
+  application. Without a title the name stays.
 
 ### Changed
 
@@ -43,6 +62,52 @@ lists every version and why.
 - **Uninstall and Reset ask more carefully.** Enter now cancels instead
   of uninstalling or resetting. The reset question also says that the
   *Recently played* list is kept.
+- **A paused song leaves the windows after half an hour.** A Bluetooth
+  device that stays connected keeps naming the track it stopped playing,
+  so the tray showed a song hours after the music ended. Last.fm and the
+  recently played list still see it, so picking a long song back up is
+  one listen rather than two.
+- **A song no player can be that long.** A browser tab that reports a
+  length of days — Chromium does, mid-buffer — stopped the whole tick:
+  no Discord, no history, no scrobble, and a traceback twice a second
+  until the song changed. Lengths and positions outside a day are now
+  read as unknown.
+- **Discord could refuse a song for good.** A payload Discord turned down
+  twice was never sent again, and that memory survived a Discord
+  restart — one bad minute could keep a song off the profile for its
+  whole length.
+- **"Listen on Apple Music" now checks the address.** A player could
+  report any page as the song's and have it published under Apple's
+  name; only music.apple.com counts now, in the status and in the
+  recently played list.
+- **A title full of brackets no longer stalls the poll.** Titles are also
+  capped at 512 characters, whichever source they come from.
+- **A damaged recently-played file no longer stops Refrain from starting.**
+- **Every file Refrain writes is created owner-only and cannot be
+  redirected.** The temporary file each save goes through carries a
+  predictable name next to the real one; a symlink left in its place is
+  now removed rather than followed, and the mode is set as the file is
+  created instead of a moment later. Their directories are narrowed to
+  the owner as well — never widened, so one you locked down further stays
+  as you set it.
+- **Reset to defaults resets the Discord preferences too.** Sending the
+  status to every client, and looking the application's name up, survived
+  a reset although the dialog said otherwise. The Application IDs still do.
+- **Control characters and text direction overrides are stripped from
+  what a player reports.** A title could otherwise forge a line in the log
+  or reverse what a reader sees.
+- **Notification text is no longer read as markup.** A title shaped like a
+  link showed up as one in the bubble.
+- **Discord link fields only accept https**, and a field dropped for being
+  too long now says so in the log instead of quietly going missing.
+- **The updater refuses to install a version that is not newer**, caps the
+  size it will download, and gives up after half an hour.
+- **Last.fm's session key travels in the request body**, not in the address.
+- **One slow media player can no longer hold up the poll.** A pass over
+  the players now has a time budget and picks up where it left off.
+- **Without a cover, Discord now shows Refrain's icon.** It used to ask
+  Discord for an image that no installation ever had, and Discord
+  quietly answered with the application icon.
 - **Packaging:** each release now carries an SBOM, the AUR package
   builds from the signed git tag, and both AUR recipes suggest
   `libnotify` for desktop notifications.

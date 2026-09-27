@@ -11,7 +11,7 @@ pkgbase = refrain
 	makedepends = python-hatchling
 	makedepends = python-wheel
 	depends = python>=3.11
-	depends = python-pypresence
+	depends = python-pypresence>=4.6.2
 	depends = python-dbus
 	depends = pyside6
 	optdepends = python-gobject: enables MPRIS-server publication so Plasma media controls reach Refrain

@@ -116,8 +116,12 @@ class Source:
 
 `read()` returns a `TrackInfo` (see `src/refrain/sources/base.py`); the
 control methods return `True` on success. Wire your new source up in
-`src/refrain/daemon.py`'s `_poll` and `_control` and add a toggle to the
-*Sources* tab in `src/refrain/ui/settings_window.py`.
+`src/refrain/daemon.py`: read it in `_poll_sources`, give it a rank in
+`select_source_track` (which decides between sources when more than one
+has a track), and handle it in `_control`. Add a switch to
+`SourcesConfig` in `src/refrain/config.py` and a toggle to the *Sources*
+tab in `src/refrain/ui/settings_window.py`. Each source opens its own
+private D-Bus connection — see the existing two for the shape.
 
 ## Reporting bugs
 

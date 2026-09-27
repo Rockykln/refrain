@@ -13,7 +13,7 @@ IPC socket and a few outbound HTTPS clients.
 │  ├─ QApplication                                                │
 │  ├─ StatusWindow (QDialog, opened by a start or a tray click)   │
 │  ├─ TrayIcon (QSystemTrayIcon)         <─── status / track      │
-│  ├─ SettingsWindow (QDialog, hidden after Apply)                │
+│  ├─ SettingsWindow (QDialog; Apply saves and keeps it open)     │
 │  ├─ LogWindow (QDialog, on-demand)                              │
 │  ├─ HistoryWindow (QDialog, on-demand) <─── history snapshots   │
 │  ├─ WelcomeDialog (first-run only)                              │
@@ -327,8 +327,9 @@ Nothing else is shared; `Config` is treated as immutable after `Apply`.
 ## Single-instance lock
 
 Refrain claims the well-known D-Bus name `io.github.Rockykln.Refrain` on
-the session bus at startup. Subsequent invocations fail to acquire the
-name and exit. No lockfile in `/tmp`.
+the session bus at startup. A second invocation cannot take the name, so
+it calls `Activate` on the one that holds it — which raises that
+instance's Status window — and exits. No lockfile in `/tmp`.
 
 ## File system surface
 

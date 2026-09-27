@@ -12,7 +12,18 @@ the Status window, the Recently played list and the desktop notifications.
   </picture>
 </p>
 
-Every item carries a theme-matched icon (freedesktop icon names on
+The icon itself says what Refrain is doing, by shape and by colour, so
+it still reads on a greyscale panel or with colour-blindness:
+
+| Icon | State |
+|------|-------|
+| Green triangle | Playing |
+| Amber bars | Paused |
+| Grey wave | Nothing playing |
+| Red exclamation mark | Discord needs you: no Application ID, a rejected one, not logged in, or not answering. Discord merely being closed does *not* show this. |
+| Crossed-out triangle | Sharing is paused. Outranks the red mark — you switched it off yourself. |
+
+Every menu item carries a theme-matched icon (freedesktop icon names on
 Plasma / GNOME / Breeze; bundled accent SVGs for Update and Quit) —
 no unicode-glyph prefixes.
 
@@ -21,16 +32,27 @@ no unicode-glyph prefixes.
 | Title             | Currently playing track (click opens the Status window)   |
 | Artist • Album    | Currently playing artist + album (hidden when idle)       |
 | X:XX / Y:YY (–Z:ZZ) | Elapsed / track length / remaining (hidden when idle)   |
-| Discord: …        | What Discord shows right now: *ready — waiting for music*, *visible on your profile*, *showing “Listening to music”*, *hidden while paused*, *hidden — sharing is off*, *app isn't running*, *not answering*, *not set up — add your Application ID*, *not logged in — log in to show your status*, *Application ID rejected — check it* |
-| Last.fm: …        | *scrobbling as …*, *N scrobbles waiting*, *sign-in expired — reconnect* (hidden while Last.fm was never set up) |
 | Previous          | Skip backward on the active source                        |
 | Play / Pause      | Toggle on the active source (label follows playback state)|
 | Next              | Skip forward on the active source                         |
 | Update available — vX.Y.Z | Only visible when a newer release exists          |
 | Recently played…  | Open the history window (hidden while the history is off) |
 | Settings…         | Open the settings window                                  |
-| Troubleshooting ▸ | *Live log…* and *Restart Refrain* (releases the D-Bus name and Discord connection, then starts the same binary again) |
+| Troubleshooting ▸ | The Discord and Last.fm rows when either has something to report, then *Live log…* and *Restart Refrain* (releases the D-Bus name and Discord connection, then starts the same binary again) |
 | Quit Refrain      | Stop the daemon and exit                                  |
+
+While Refrain is doing its job, the menu says nothing about Discord or
+Last.fm. A row appears under *Troubleshooting* only when there is
+something to report — Discord isn't running, an Application ID is
+missing or rejected, nobody is logged in, Discord isn't answering, the
+Last.fm sign-in expired, or plays are waiting in the queue:
+
+| Row | When it appears |
+|-----|-----------------|
+| Discord: … | *app isn't running*, *not answering*, *not set up — add your Application ID*, *not logged in — log in to show your status*, *Application ID rejected — check it* |
+| Last.fm: … | *N scrobbles waiting*, *paused — sharing is off*, *not connected*, *sign-in expired — reconnect* |
+
+The Status window always shows both in full, whatever they say.
 
 Left-click the tray icon opens the Status window — which also holds
 *Pause sharing* — **middle-click toggles play/pause**,

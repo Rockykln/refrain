@@ -199,12 +199,14 @@ First check that a song is detected (see above). The status is also
 cleared on purpose while the music is paused
 ([FAQ](faq.md#the-discord-status-disappears-when-i-pause)).
 
-The tray menu says in plain words what Discord is doing right now:
-*Discord: ready — waiting for music*, *visible on your profile*,
+The Status window says in plain words what Discord is doing right now:
+*ready — waiting for music*, *visible on your profile*,
 *showing "Listening to music"*, *hidden while paused*,
 *hidden — sharing is off*, *app isn't running*, *not answering*,
 *not set up — add your Application ID*, *not logged in — log in to
-show your status* or *Application ID rejected — check it*. A few
+show your status* or *Application ID rejected — check it*. The last
+five also appear as a line under tray → *Troubleshooting*, and the
+tray icon turns into a red mark for all but the first of them. A few
 seconds after start-up the live log has a line starting with
 `[startup-check] Discord:`.
 
@@ -227,7 +229,8 @@ yet` is normal: Refrain connects once something plays.
 
 **The Application ID is rejected**
 
-- *What you see:* *Discord: Application ID rejected — check it* in the tray.
+- *What you see:* *Discord: Application ID rejected — check it* under
+  tray → *Troubleshooting*, and a red tray icon.
 - *Why:* Discord answered but refused the ID. The ID is wrong.
 - *What to do:* check the ID in *Settings → General*. The
   [FAQ](faq.md#how-do-i-know-my-discord-application-id-is-right) shows
@@ -278,7 +281,8 @@ covers this in detail. In short:
 - *Look up songs in Apple's catalog* is on in *Settings → General → Privacy*;
 - the song is in the iTunes catalog. If not, the log says
   `Cover lookup: no catalog match for <artist> — <title>`, and Discord
-  shows your application's icon instead, if you uploaded one;
+  shows Refrain's icon instead — or your application's icon, if you
+  uploaded one and switched on *Look up the application's name on Discord*;
 - privacy is *Full*. *Minimal* never sends a cover.
 
 A notification without the cover is a different case:
@@ -286,9 +290,10 @@ A notification without the cover is a different case:
 
 ### Last.fm isn't scrobbling
 
-The tray menu has a Last.fm line once scrobbling is enabled and
-connected. At start-up the live log has a line starting with
-`[startup-check] Last.fm:`. The walkthrough is in
+The Status window has a Last.fm line once scrobbling is enabled; tray →
+*Troubleshooting* gets one whenever something is off — not connected,
+sign-in expired, or plays waiting in the queue. At start-up the live log
+has a line starting with `[startup-check] Last.fm:`. The walkthrough is in
 [Last.fm scrobbling](lastfm.md), with more cases under its
 [Troubleshooting](lastfm.md#troubleshooting).
 
@@ -301,7 +306,8 @@ connected. At start-up the live log has a line starting with
 
 **Session expired**
 
-- *What you see:* *Last.fm: session expired — reconnect* in the tray.
+- *What you see:* *Last.fm: session expired — reconnect* under
+  tray → *Troubleshooting*.
 - *Why:* the access was revoked on last.fm, or the API key changed.
 - *What to do:* connect again as above. Nothing is lost: songs waiting
   in the queue, and the ones you play meanwhile, are sent afterwards.
@@ -357,21 +363,13 @@ each step with commands.
 
 Refrain checks GitHub once a day and shows *Update available* in the
 tray. *Settings → Updates → Check for updates now* checks right away.
-What happens next depends on how Refrain was installed:
+What happens next depends on how Refrain was installed;
+[updates.md](updates.md) has the table.
 
-| Installed with | What Refrain does |
-|----------------|-------------------|
-| AppImage | Downloads the new AppImage, checks it, replaces the old file and asks for a restart. |
-| pipx | Runs `pipx upgrade refrain`. |
-| pip | Runs `pip install --upgrade refrain`. |
-| AUR | Opens a terminal with your AUR helper, for example `yay -Syu refrain`. |
-| Flatpak you built yourself | Opens a terminal with `flatpak update -y io.github.Rockykln.Refrain`. |
-| Distribution package | Nothing. Update with your package manager. |
-| Source checkout | Nothing. Run `git pull` and `pip install -e .`. |
-
-If no terminal can be found, Refrain shows the command to copy instead.
-Restart Refrain after an update. If the check fails, the log says
-`Update check failed: …`, usually because GitHub couldn't be reached.
+If the check fails, the log says `Update check failed: …`, usually
+because GitHub couldn't be reached. Where an install method needs a
+terminal and none can be found, Refrain shows the command to copy
+instead. Restart Refrain after an update.
 
 ### Logs, and sharing them safely
 

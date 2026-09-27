@@ -10,7 +10,7 @@ url="https://github.com/Rockykln/refrain"
 license=('LicenseRef-RefrainUseOnly')
 depends=(
     'python>=3.11'
-    'python-pypresence'
+    'python-pypresence>=4.6.2'
     'python-dbus'
     'pyside6'
 )

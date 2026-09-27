@@ -50,12 +50,14 @@ that extension to be visible.
 
 ## The tray icon is hard to see on my panel.
 
-The icon defaults to **white**, since most panels are dark whatever the
-desktop theme is. On a light panel, add to `config.toml`:
+There are two sets of the icon: the default one is drawn for a **dark**
+panel, since most panels are dark whatever the desktop theme is. The
+other is the same glyphs in deeper colours, for a light panel. Add to
+`config.toml`:
 
 ```toml
 [behavior]
-tray_icon = "black"    # or "auto" to follow the system colour scheme
+tray_icon = "black"    # the set for a light panel; "auto" follows the system colour scheme
 ```
 
 There's no setting for it in *Settings* — edit the file and restart
@@ -147,6 +149,11 @@ working perfectly and still show nothing to anyone. Turn that switch on
 in Discord.
 
 ## The elapsed time freezes mid-song, jumps back to the start, or disappears.
+
+Short answer: that is Apple Music's web player, not Refrain, and it sorts
+itself out at the next track change. Refrain would rather show no time at
+all than a wrong one, so the line sometimes disappears instead. The rest
+of this answer is why, and what the log says about it.
 
 Apple Music's web player doesn't report a per-track position. It reports
 a position in the *stream*, which carries on across track boundaries, and

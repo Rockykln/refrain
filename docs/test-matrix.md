@@ -113,11 +113,15 @@ minute; the whole sweep is ≈ 6 minutes per system.
 
 ### 1. Tray + theme parity
 
-- Refrain icon appears in the system tray on launch, white by default
-  (`tray_icon` in `config.toml`; not in Settings) — check it's visible
-  against the panel. Set `tray_icon = "auto"` to also check that it
-  then follows a live theme switch (light glyph on dark panel, dark
-  glyph on light panel).
+- Refrain icon appears in the system tray on launch, in the set for a
+  dark panel by default (`tray_icon` in `config.toml`; not in Settings)
+  — check it's visible against the panel. Set `tray_icon = "auto"` to
+  also check that it then follows a live theme switch.
+- The icon changes with the state: green triangle playing, amber bars
+  paused, grey wave idle, red mark while Discord needs you (clear the
+  Application ID to provoke it), crossed-out triangle while sharing is
+  paused. Pausing sharing with a broken Discord shows the crossed-out
+  one, not the red mark.
 - Tray menu entries whose icon has no freedesktop equivalent — *Settings…*
   and *Troubleshooting* are the two to check — show a fallback icon, not
   a blank space, on GNOME and Cinnamon (no Breeze icon theme there).

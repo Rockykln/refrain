@@ -21,6 +21,17 @@ Next to it, *Look up songs in Apple's catalog* sends artist and title to
 Apple for the cover, the song link and the length; without it Discord shows
 no cover and often no progress bar.
 
+*Advanced* also holds a *Developer mode* switch, hidden until it is
+unlocked — [developer-mode.md](developer-mode.md) says what it turns on
+and how to get at it.
+
+Two switches shape the Discord card itself. *Show “Listen on Apple Music”
+button* adds the button others see under your status. *Show a small icon
+on the cover in Discord* fills the corner of the cover: Refrain's own
+icon, or your application's icon once *Look up the application's name on
+Discord* is on. The title, the artist line and the cover lead to the song
+in Apple Music whenever Refrain knows its address — that needs no switch.
+
 <table>
   <tr>
     <td align="center">
@@ -29,7 +40,7 @@ no cover and often no progress bar.
         <source media="(prefers-color-scheme: light)" srcset="screenshots/settings-general-light.png"/>
         <img src="screenshots/settings-general.png" alt="Settings — General" width="420"/>
       </picture>
-      <br/><sub>Discord Application ID with the application's name beside it, privacy and the Apple catalog lookup, autostart, notifications</sub>
+      <br/><sub>Discord Application ID with the application's name beside it, the button and the small cover icon, privacy and the Apple catalog lookup, autostart, notifications</sub>
     </td>
     <td align="center">
       <b>Sources</b><br/>
@@ -73,7 +84,7 @@ no cover and often no progress bar.
         <source media="(prefers-color-scheme: light)" srcset="screenshots/settings-advanced-light.png"/>
         <img src="screenshots/settings-advanced.png" alt="Settings — Advanced" width="420"/>
       </picture>
-      <br/><sub>Poll interval, notification delay, language, log level, restart, reset, uninstall</sub>
+      <br/><sub>Poll interval, notification delay, language, log level, restart, reset, uninstall, and the developer switch once it is unlocked</sub>
     </td>
   </tr>
   <tr>

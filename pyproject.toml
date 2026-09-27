@@ -52,8 +52,35 @@ Issues = "https://github.com/Rockykln/refrain/issues"
 Changelog = "https://github.com/Rockykln/refrain/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.sdist]
-# Everything but the screenshots, which are 3 MB of PNGs nobody needs to
-# build or test from source. Tests stay in: distro packagers run them.
+# A list of what goes in, not of what stays out: a source package built
+# from a working tree rather than from a fresh checkout would otherwise
+# carry whatever else happens to be lying there. Tests stay in — distro
+# packagers run them. The screenshots don't: 3 MB of PNGs nobody needs to
+# build or test from source.
+include = [
+    "src",
+    "tests",
+    "docs",
+    "packaging",
+    ".github",
+    ".editorconfig",
+    ".gitattributes",
+    ".gitignore",
+    "Makefile",
+    "pyproject.toml",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "requirements-dev.lock",
+    "requirements-lowest.txt",
+    "README.md",
+    "LICENSE",
+    "LEGAL.md",
+    "CHANGELOG.md",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "PRIVACY.md",
+    "SECURITY.md",
+]
 exclude = ["docs/screenshots", "docs/social-preview.png"]
 
 [tool.hatch.build.targets.wheel]
