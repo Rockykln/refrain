@@ -224,25 +224,24 @@ leaves your machine — in [`LEGAL.md`](LEGAL.md). The same text is reachable
 inside the app under **Settings → Legal**.
 
 <!-- stats:start -->
-
 ## Stats
 
 | Stat | Value |
 |---|---|
-| Lines of code | 13,038 |
-| Lines in the repository | 87,382 |
-| Words in the repository | 306,980 |
-| Words of documentation | 46,967 |
-| Automated tests | 2,133 |
+| Lines of code | 13,975 |
+| Lines in the repository | 96,221 |
+| Words in the repository | 340,459 |
+| Words of documentation | 51,098 |
+| Automated tests | 2,503 |
 | Test coverage | 100 % |
-| Days since the first release | 138 |
-| Versions released | 24 |
-| Downloads | 2,676 |
-| Commits | 213 |
+| Days since the first release | 145 |
+| Versions released | 25 |
+| Downloads | 2,822 |
+| Commits | 264 |
 | Languages | 16 |
 | Runtime dependencies | 3 |
 | Browsers tested | 6 (Chrome, Chromium, Brave, Vivaldi, Firefox, Zen) |
 | Ways to install | 3 (PyPI, AUR, AppImage) |
 
-As of v0.5.3.
+As of v0.5.4.
 <!-- stats:end -->

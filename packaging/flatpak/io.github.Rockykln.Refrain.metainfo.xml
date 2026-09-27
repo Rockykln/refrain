@@ -53,6 +53,21 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.4" date="2026-09-27">
+      <description>
+        <p>
+          Made the Discord status clickable and gave it a small icon in the
+          corner of the cover, put the song title in the member list, gave the
+          tray icon a colour and a shape for each state and moved the service
+          rows under Troubleshooting, carried the elapsed time across a restart
+          mid-song, let Last.fm confirm a length Refrain measured itself,
+          dropped a track paused for half an hour from the windows without
+          ending the listen, hardened every file Refrain writes and everything
+          a player reports, and tightened the update check and the Last.fm
+          requests.
+        </p>
+      </description>
+    </release>
     <release version="0.5.3" date="2026-09-20">
       <description>
         <p>
