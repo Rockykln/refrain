@@ -371,6 +371,14 @@ because GitHub couldn't be reached. Where an install method needs a
 terminal and none can be found, Refrain shows the command to copy
 instead. Restart Refrain after an update.
 
+**AppImage 0.5.3 and 0.5.4 outside Debian and Ubuntu:** the bundled
+OpenSSL looked for the root certificates in a place those
+distributions don't have. In 0.5.3 the download failed, in 0.5.4 the
+check as well, so it doesn't even say a new version exists. Neither
+can reach 0.5.5 by itself — download it once from the
+[releases page](https://github.com/Rockykln/refrain/releases/latest)
+and replace the file. From 0.5.5 on it updates itself again.
+
 ### Logs, and sharing them safely
 
 - **Where:** `~/.local/state/refrain/refrain.log`, plus up to three
