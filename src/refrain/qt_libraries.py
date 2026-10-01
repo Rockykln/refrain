@@ -1,11 +1,17 @@
-"""Name the system library Qt's platform plugin is missing, before Qt aborts on it."""
+"""Name the system library Qt is missing, and say so before Qt aborts on it."""
 
 from __future__ import annotations
 
 import ctypes
+import logging
 import os
 import re
+import shutil
+import subprocess
+import sys
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 _MISSING = re.compile(r"(lib[\w.+-]+\.so[\w.]*): cannot open shared object file")
 
@@ -113,3 +119,33 @@ def message(libraries: list[str], os_release: Path = Path("/etc/os-release")) ->
     )
     hint = install_hint(libraries, os_release)
     return f"{text}\nInstall with:\n  {hint}" if hint else text
+
+
+def missing_from_import_error(error: str) -> list[str]:
+    """The libraries an ImportError names, when importing Qt itself already fails."""
+    return list(dict.fromkeys(_MISSING.findall(error)))
+
+
+def notify_without_qt(title: str, text: str) -> None:
+    # Started from the menu, stderr goes nowhere; this is the only thing the user sees.
+    if notify := shutil.which("notify-send"):
+        subprocess.run([notify, "-a", "Refrain", title, text], check=False)
+        return
+    try:
+        import dbus
+
+        bus = dbus.SessionBus()
+        server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
+        dbus.Interface(server, "org.freedesktop.Notifications").Notify(
+            "Refrain", 0, "", title, text, [], {}, -1
+        )
+    except Exception as e:
+        log.warning("Could not show the notification either: %s", e)
+
+
+def report(libraries: list[str]) -> None:
+    """Name the missing libraries in the log, on stderr and on the desktop."""
+    text = message(libraries)
+    log.error("%s", text.replace("\n", " "))
+    print(text, file=sys.stderr)
+    notify_without_qt("Refrain can't start", text)

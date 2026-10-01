@@ -21,6 +21,13 @@ lists every version and why.
   failing since 0.5.3; in 0.5.4 the update check went the same way, so
   there was no longer even a notice that something new existed.
   Installations from PyPI or the AUR were never affected.
+- **A missing system library is named instead of coming out as a
+  traceback.** Refrain has always explained which library Qt is missing
+  and how to install it, but only once Qt had loaded far enough to be
+  asked. When the library is one Qt itself links against — fontconfig,
+  for instance — the import failed first, and `refrain` printed a
+  Python traceback. The console script now catches that and says the
+  same thing it would have said later.
 
 ## [0.5.4] - 2026-09-27
 

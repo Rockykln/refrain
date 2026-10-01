@@ -93,3 +93,12 @@ def test_an_unknown_distro_or_library_gets_no_guessed_command(tmp_path):
     path.write_text("ID=fedora\n", encoding="utf-8")
     assert qt_libraries.install_hint(["libfoo.so.1"], path) == ""
     assert "libxcb-cursor.so.0" in qt_libraries.message(["libxcb-cursor.so.0"], path)
+
+
+def test_an_import_error_names_the_library_it_could_not_open():
+    error = "libfontconfig.so.1: cannot open shared object file: No such file or directory"
+    assert qt_libraries.missing_from_import_error(error) == ["libfontconfig.so.1"]
+
+
+def test_an_unrelated_import_error_names_nothing():
+    assert qt_libraries.missing_from_import_error("No module named 'nowhere'") == []

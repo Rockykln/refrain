@@ -11,7 +11,6 @@ import os
 import re
 import shutil
 import signal
-import subprocess
 import sys
 import threading
 import time
@@ -368,23 +367,6 @@ _ALREADY_RUNNING_MS = 6000
 # running QThread that is destroyed aborts the whole process.
 _CHECK_STOP_WAIT_MS = 12_000
 _SHARING_SWITCH_GAP_S = 1.0
-
-
-def _notify_without_qt(title: str, text: str) -> None:
-    # Started from the menu, stderr goes nowhere; this is the only thing the user sees.
-    if notify := shutil.which("notify-send"):
-        subprocess.run([notify, "-a", "Refrain", title, text], check=False)
-        return
-    try:
-        import dbus
-
-        bus = dbus.SessionBus()
-        server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-        dbus.Interface(server, "org.freedesktop.Notifications").Notify(
-            "Refrain", 0, "", title, text, [], {}, -1
-        )
-    except Exception as e:
-        log.warning("Could not show the notification either: %s", e)
 
 
 def _pin(app: QApplication, **refs: object) -> None:
@@ -814,10 +796,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     )
     if missing:
         # Qt would abort with "no Qt platform plugin could be initialized".
-        text = qt_libraries.message(missing)
-        log.error("%s", text.replace("\n", " "))
-        print(text, file=sys.stderr)
-        _notify_without_qt("Refrain can't start", text)
+        qt_libraries.report(missing)
         return 1
 
     app = QApplication(sys.argv)

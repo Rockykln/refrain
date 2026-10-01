@@ -43,7 +43,7 @@ dev = [
 ]
 
 [project.scripts]
-refrain = "refrain.app:main"
+refrain = "refrain.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Rockykln/refrain"

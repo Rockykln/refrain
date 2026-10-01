@@ -504,8 +504,8 @@ def test_missing_qt_libraries_stop_before_qt(h, monkeypatch, capsys):
     notified = []
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.shutil, "which", lambda name: "/usr/bin/notify-send")
-    monkeypatch.setattr(app.subprocess, "run", lambda cmd, check: notified.append(cmd))
+    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: "/usr/bin/notify-send")
+    monkeypatch.setattr(app.qt_libraries.subprocess, "run", lambda cmd, check: notified.append(cmd))
     assert h.run() == 1
     assert h.app is None
     assert "need xcb-cursor" in capsys.readouterr().err
@@ -1254,7 +1254,7 @@ def test_missing_qt_libraries_are_reported_over_d_bus_without_notify_send(h, mon
 
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.shutil, "which", lambda name: None)
+    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: None)
     monkeypatch.setattr("dbus.SessionBus", Bus)
     monkeypatch.setattr("dbus.Interface", Notifications)
     assert h.run() == 1
@@ -1267,7 +1267,7 @@ def test_no_way_to_notify_is_only_logged(h, monkeypatch, caplog):
 
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.shutil, "which", lambda name: None)
+    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: None)
     monkeypatch.setattr("dbus.SessionBus", no_bus)
     assert h.run() == 1
     assert "no session bus" in caplog.text
