@@ -123,7 +123,7 @@
         <p>
           Stopped an empty Last.fm field from deleting the stored credentials,
           fixed Discord failing to connect when a stale IPC socket was in the
-          way, added an optional multi-client mode for Discord plus Vencord,
+          way, added an optional multi-client mode for two Discord apps at once,
           added a startup credential check and a legal notice, and translated
           46 strings that had never been extracted.
         </p>
