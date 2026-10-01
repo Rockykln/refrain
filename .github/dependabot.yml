@@ -46,3 +46,9 @@ updates:
       - "github-actions"
     commit-message:
       prefix: "ci"
+    groups:
+      # init and analyze are separate packages in one file and refuse to
+      # run at different versions, so they have to move together.
+      codeql:
+        patterns:
+          - "github/codeql-action*"
