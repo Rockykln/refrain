@@ -53,6 +53,16 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.5" date="2026-10-01">
+      <description>
+        <p>
+          Gave the AppImage back its update check and its self-update outside
+          Debian and Ubuntu, and made a system library the host is missing come
+          out as the name of the library and the command to install it instead
+          of a Python traceback.
+        </p>
+      </description>
+    </release>
     <release version="0.5.4" date="2026-09-27">
       <description>
         <p>

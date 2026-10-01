@@ -11,6 +11,7 @@ keep working.
 
 | Version | Released | Get it from |
 |---------|----------|-------------|
+| 0.5.5 | 2026-10-01 | PyPI, AUR, GitHub (with AppImage) |
 | 0.5.4 | 2026-09-27 | PyPI, AUR, GitHub (with AppImage) |
 | 0.5.3 | 2026-09-20 | PyPI, AUR, GitHub (with AppImage) |
 | 0.5.2 | 2026-09-18 | PyPI, AUR, GitHub |

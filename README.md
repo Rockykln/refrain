@@ -228,20 +228,20 @@ inside the app under **Settings → Legal**.
 
 | Stat | Value |
 |---|---|
-| Lines of code | 13,975 |
-| Lines in the repository | 96,221 |
-| Words in the repository | 340,459 |
-| Words of documentation | 51,098 |
-| Automated tests | 2,503 |
+| Lines of code | 14,000 |
+| Lines in the repository | 96,410 |
+| Words in the repository | 341,498 |
+| Words of documentation | 51,590 |
+| Automated tests | 2,510 |
 | Test coverage | 100 % |
-| Days since the first release | 145 |
-| Versions released | 25 |
-| Downloads | 2,822 |
-| Commits | 264 |
+| Days since the first release | 149 |
+| Versions released | 26 |
+| Downloads | 2,937 |
+| Commits | 275 |
 | Languages | 16 |
 | Runtime dependencies | 3 |
 | Browsers tested | 6 (Chrome, Chromium, Brave, Vivaldi, Firefox, Zen) |
 | Ways to install | 3 (PyPI, AUR, AppImage) |
 
-As of v0.5.4.
+As of v0.5.5.
 <!-- stats:end -->
