@@ -21,7 +21,7 @@ from pypresence import StatusDisplayType
 import refrain.discord_rpc as drpc
 from refrain.discord_rpc import RPCState, sanitize_activity
 
-CLIENT_ID = "123456789012345678"
+CLIENT_ID = "1234567890123456789"
 PAD = "\N{BRAILLE PATTERN BLANK}"
 
 

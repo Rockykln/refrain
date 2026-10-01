@@ -10,7 +10,7 @@ from refrain.discord_rpc import DiscordRPC
 
 
 def test_update_defaults_to_listening_activity_type():
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     fake_presence = MagicMock()
     rpc._presence = fake_presence  # pretend we're already connected
 
@@ -27,7 +27,7 @@ def test_update_defaults_to_listening_activity_type():
 
 
 def test_update_caller_can_override_activity_type():
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     fake_presence = MagicMock()
     rpc._presence = fake_presence
 

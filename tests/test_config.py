@@ -242,7 +242,7 @@ def test_unknown_section_keys_dropped_not_fatal(caplog):
     """An unknown key is dropped on its own instead of resetting the whole file."""
     payload = {
         "discord": {
-            "client_id": "123456789012345678",
+            "client_id": "1234567890123456789",
             "client_id_youtube": "777",  # not a real field — user downgraded
         },
         "advanced": {
@@ -252,7 +252,7 @@ def test_unknown_section_keys_dropped_not_fatal(caplog):
     }
     with caplog.at_level("WARNING", logger="refrain.config"):
         c = Config.from_dict(payload)
-    assert c.discord.client_id == "123456789012345678"
+    assert c.discord.client_id == "1234567890123456789"
     assert c.advanced.poll_interval_ms == 750
     # The two stray keys should produce diagnostic warnings.
     assert any("client_id_youtube" in rec.message for rec in caplog.records)

@@ -12,7 +12,7 @@ import pytest
 
 import refrain.discord_rpc as drpc
 
-CLIENT_ID = "123456789012345678"
+CLIENT_ID = "1234567890123456789"
 
 
 class Clock:

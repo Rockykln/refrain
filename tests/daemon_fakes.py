@@ -14,7 +14,7 @@ from refrain.config import Config  # noqa: E402
 from refrain.history import HistorySnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 
-CLIENT_ID = "123456789012345678"
+CLIENT_ID = "1234567890123456789"
 CLIENT_ID_MPRIS = "123450000000000001"
 CLIENT_ID_BT = "123450000000000002"
 

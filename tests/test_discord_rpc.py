@@ -52,7 +52,7 @@ def _later(clock):
 def test_identical_consecutive_payloads_only_send_once(fake_pypresence):
     from refrain.discord_rpc import DiscordRPC
 
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     # Force "connected" without going through the real connect path.
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
@@ -68,7 +68,7 @@ def test_identical_consecutive_payloads_only_send_once(fake_pypresence):
 def test_different_payload_pushes_again(fake_pypresence, clock):
     from refrain.discord_rpc import DiscordRPC
 
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
 
@@ -84,7 +84,7 @@ def test_clear_resets_dedup_cache(fake_pypresence, clock):
     """After clear() even an identical update pushes again."""
     from refrain.discord_rpc import DiscordRPC
 
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
 
@@ -104,7 +104,7 @@ def test_an_unchanged_status_is_sent_again_after_a_while(fake_pypresence, monkey
 
     now = [1000.0]
     monkeypatch.setattr(discord_rpc.time, "monotonic", lambda: now[0])
-    rpc = discord_rpc.DiscordRPC("123456789012345678")
+    rpc = discord_rpc.DiscordRPC("1234567890123456789")
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
 
@@ -120,7 +120,7 @@ def test_an_unchanged_status_is_sent_again_after_a_while(fake_pypresence, monkey
 def test_a_paused_song_clears_once(fake_pypresence, clock):
     from refrain.discord_rpc import DiscordRPC
 
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
 
@@ -140,7 +140,7 @@ def test_update_failure_invalidates_cache(fake_pypresence):
     """A failed update clears the cache so the next attempt pushes."""
     from refrain.discord_rpc import DiscordRPC
 
-    rpc = DiscordRPC("123456789012345678")
+    rpc = DiscordRPC("1234567890123456789")
     rpc._presence = fake_pypresence.Presence.return_value
     presence_mock = rpc._presence
     presence_mock.update.side_effect = OSError("pipe broke")
