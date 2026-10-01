@@ -208,6 +208,22 @@ Triggered automatically when a newer version exists; or set
   again from 0:00 at every loop instead of disappearing, and each loop
   that counts is a row — and a scrobble — of its own.
 
+## Install and update paths
+
+Every channel a user can arrive on, checked as a whole before a release.
+Containers are distrobox, each with its own home.
+
+| Path | Last verified | Notes |
+|---|---|---|
+| AppImage from the releases page: download, `chmod +x`, start | 2026-10-01 / 0.5.4 | Needs `libfuse2`. |
+| AppImage self-update | 2026-10-01 / 0.5.3 → 0.5.4 | Download, checksum, signature and the atomic swap, end to end; afterwards the file reports 0.5.4. Run on Arch with `SSL_CERT_FILE` set from outside, which is what 0.5.5 fixes; to be repeated on 0.5.4 → 0.5.5 without it. |
+| AppImage song recognition | 2026-10-01 / 0.5.4 | Bundled dbus-python against an MPRIS player on a private bus: title, artist, album, length, position and the Apple Music URL all arrive. |
+| `pipx upgrade refrain`, Ubuntu 24.04 | 2026-10-01 / 0.5.2 → 0.5.4 | |
+| `pipx upgrade refrain`, Debian 13 | 2026-10-01 / 0.5.2 → 0.5.4 | |
+| `pipx upgrade refrain`, Fedora 42 | 2026-10-01 / 0.5.2 → 0.5.4 | |
+| `pipx upgrade refrain`, openSUSE Tumbleweed | 2026-10-01 / 0.5.2 → 0.5.4 | A minimal image has no fontconfig, which Qt links against; since 0.5.5 Refrain names it and the `zypper` command instead of printing a traceback. |
+| `yay -S refrain` (AUR) | 2026-09-27 / 0.5.4 | Built from the signed tag on Python 3.14; desktop entry, icon, licence and README land where they belong. |
+
 ## Failure-mode reference
 
 If a check fails, the most common causes:
