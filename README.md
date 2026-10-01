@@ -49,7 +49,7 @@ streaming from your phone over Bluetooth.
 |---------|---------|
 | **PyPI** *(any distro with Python ≥ 3.11)* | `pipx install --system-site-packages refrain` — see [below](#from-pypi) |
 | **AUR** *(Arch / CachyOS / Manjaro / EndeavourOS)* | `yay -S refrain` *(stable)* or `yay -S refrain-git` *(latest main)* |
-| **AppImage** *(portable single-file, any glibc-based distro)* | [Download from the latest release](https://github.com/Rockykln/refrain/releases/latest), `chmod +x`, run it |
+| **AppImage** *(portable single-file, glibc 2.35 or newer)* | [Download from the latest release](https://github.com/Rockykln/refrain/releases/latest), `chmod +x`, run it |
 | **From source** | See below |
 
 The AppImage needs FUSE 2, which current distros no longer install by

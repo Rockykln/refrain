@@ -216,7 +216,7 @@ Containers are distrobox, each with its own home.
 | Path | Last verified | Notes |
 |---|---|---|
 | AppImage from the releases page: download, `chmod +x`, start | 2026-10-01 / 0.5.4 | Needs `libfuse2`. |
-| AppImage self-update | 2026-10-01 / 0.5.3 → 0.5.4 | Download, checksum, signature and the atomic swap, end to end; afterwards the file reports 0.5.4. Run on Arch with `SSL_CERT_FILE` set from outside, which is what 0.5.5 fixes; to be repeated on 0.5.4 → 0.5.5 without it. |
+| AppImage self-update | 2026-10-01 / 0.5.5 | Download, checksum, signature and the atomic swap, end to end, on Arch with nothing set from outside: the replaced file matches the signed checksum and reports 0.5.5. An AppImage of 0.5.3 or 0.5.4 cannot make this jump by itself — that is the bug 0.5.5 fixes. |
 | AppImage song recognition | 2026-10-01 / 0.5.4 | Bundled dbus-python against an MPRIS player on a private bus: title, artist, album, length, position and the Apple Music URL all arrive. |
 | `pipx upgrade refrain`, Ubuntu 24.04 | 2026-10-01 / 0.5.2 → 0.5.4 | |
 | `pipx upgrade refrain`, Debian 13 | 2026-10-01 / 0.5.2 → 0.5.4 | |

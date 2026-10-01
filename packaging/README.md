@@ -9,7 +9,7 @@ users; a Flathub submission is on the roadmap but not currently active.
 |---------|----------|--------|
 | **PyPI** | Any distro with Python ≥ 3.11 | Live — `pipx install refrain` (see the README) |
 | **AUR**  | Arch / CachyOS / Manjaro / EndeavourOS | Live — `refrain` + `refrain-git` |
-| **AppImage** | Single-file portable use, any glibc Linux | Live — attached to every GitHub release |
+| **AppImage** | Single-file portable use, glibc 2.35 or newer | Live — attached to every GitHub release |
 | **Flatpak** | Every distro that ships Flatpak | 🛠️ self-build only — manifest validated locally, no Flathub submission |
 
 ## PyPI

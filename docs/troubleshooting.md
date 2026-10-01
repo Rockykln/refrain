@@ -20,8 +20,8 @@ where that was missing.
 
 ### A system tray is required
 
-Refrain has no main window. It lives in the system tray and refuses to
-start without one.
+Refrain lives in the system tray: the Status window opens from there,
+and there is no other way in. Without a tray it refuses to start.
 
 - **KDE Plasma, Cinnamon, LXQt, Budgie:** works out of the box.
 - **GNOME:** install the *AppIndicator and KStatusNotifierItem Support*
@@ -306,7 +306,7 @@ has a line starting with `[startup-check] Last.fm:`. The walkthrough is in
 
 **Session expired**
 
-- *What you see:* *Last.fm: session expired — reconnect* under
+- *What you see:* *Last.fm: sign-in expired — reconnect* under
   tray → *Troubleshooting*.
 - *Why:* the access was revoked on last.fm, or the API key changed.
 - *What to do:* connect again as above. Nothing is lost: songs waiting

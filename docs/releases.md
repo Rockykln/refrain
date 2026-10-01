@@ -20,6 +20,12 @@ keep working.
 | 0.4.5 | 2026-08-24 | PyPI, GitHub |
 | 0.4.4 | 2026-08-24 | PyPI, GitHub |
 
+The 0.5.3 and 0.5.4 AppImages run everywhere, but outside Debian and
+Ubuntu they cannot update themselves: their bundled OpenSSL looked for
+the root certificates in a place those distributions don't have. 0.5.5
+fixes that; until then the new file has to be downloaded by hand. They
+stay available because that is their only fault.
+
 ## Removed
 
 | Versions | Reason |
