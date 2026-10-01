@@ -11,7 +11,6 @@ import os
 import re
 import shutil
 import signal
-import ssl
 import subprocess
 import sys
 import threading
@@ -43,6 +42,7 @@ from refrain.autostart import resolve_exec_line
 from refrain.config import Config
 from refrain.daemon import Daemon
 from refrain.discord_app import NAME_TTL_S, refresh_application
+from refrain.https_only import use_system_certificates
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
 from refrain.paths import _xdg, assets_dir, desktop_entry, make_private_dir, state_dir
 from refrain.service_status import ServiceStatus
@@ -755,34 +755,6 @@ def _crash_log():
     finally:
         faulthandler.disable()
         os.close(fd)
-
-
-# Where distributions keep their CA bundle (Debian/Ubuntu/Arch, Fedora, openSUSE, Alpine).
-_CA_BUNDLES = (
-    "/etc/ssl/certs/ca-certificates.crt",
-    "/etc/pki/tls/certs/ca-bundle.crt",
-    "/etc/ssl/ca-bundle.pem",
-    "/etc/ssl/cert.pem",
-)
-
-
-def use_system_certificates(candidates: tuple[str, ...] = _CA_BUNDLES) -> None:
-    """Point OpenSSL at the host's CA bundle when its built-in path is missing.
-
-    The AppImage's OpenSSL looks in Ubuntu's /usr/lib/ssl, which other
-    distributions don't have, so every HTTPS request failed there.
-    """
-    if os.environ.get("SSL_CERT_FILE") or os.environ.get("SSL_CERT_DIR"):
-        return
-    paths = ssl.get_default_verify_paths()
-    if (paths.cafile and os.path.isfile(paths.cafile)) or (
-        paths.capath and os.path.isdir(paths.capath) and os.listdir(paths.capath)
-    ):
-        return
-    for bundle in candidates:
-        if os.path.isfile(bundle):
-            os.environ["SSL_CERT_FILE"] = bundle
-            return
 
 
 def main() -> int:

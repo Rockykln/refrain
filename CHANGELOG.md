@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Versions that no longer work were taken down; [docs/releases.md](docs/releases.md)
 lists every version and why.
 
+## [0.5.5] - 2026-10-01
+
+### Fixed
+
+- **The AppImage can check for updates and update itself again outside
+  Debian and Ubuntu.** Its bundled OpenSSL looks for the root
+  certificates where Ubuntu keeps them, so Refrain points it at the
+  host's own bundle instead — but it did that a moment too late. Python
+  fixes an opener's TLS setup while the opener is built, and the
+  updater's one was built as its module was imported, before the search
+  for the bundle ran. On Arch, Fedora and openSUSE the download had been
+  failing since 0.5.3; in 0.5.4 the update check went the same way, so
+  there was no longer even a notice that something new existed.
+  Installations from PyPI or the AUR were never affected.
+
 ## [0.5.4] - 2026-09-27
 
 ### Added
@@ -2221,7 +2236,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.4...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/Rockykln/refrain/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/Rockykln/refrain/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/Rockykln/refrain/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/Rockykln/refrain/compare/v0.5.1...v0.5.2
