@@ -6,10 +6,10 @@ import ctypes
 import logging
 import os
 import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from refrain import desktop_notice
 
 log = logging.getLogger(__name__)
 
@@ -126,26 +126,9 @@ def missing_from_import_error(error: str) -> list[str]:
     return list(dict.fromkeys(_MISSING.findall(error)))
 
 
-def notify_without_qt(title: str, text: str) -> None:
-    # Started from the menu, stderr goes nowhere; this is the only thing the user sees.
-    if notify := shutil.which("notify-send"):
-        subprocess.run([notify, "-a", "Refrain", title, text], check=False)
-        return
-    try:
-        import dbus
-
-        bus = dbus.SessionBus()
-        server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-        dbus.Interface(server, "org.freedesktop.Notifications").Notify(
-            "Refrain", 0, "", title, text, [], {}, -1
-        )
-    except Exception as e:
-        log.warning("Could not show the notification either: %s", e)
-
-
 def report(libraries: list[str]) -> None:
     """Name the missing libraries in the log, on stderr and on the desktop."""
     text = message(libraries)
     log.error("%s", text.replace("\n", " "))
     print(text, file=sys.stderr)
-    notify_without_qt("Refrain can't start", text)
+    desktop_notice.show("Refrain can't start", text)

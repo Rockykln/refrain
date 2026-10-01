@@ -32,7 +32,7 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QSystemTrayIcon
 
-from refrain import __version__, dev_metrics, qt_libraries
+from refrain import __version__, desktop_notice, dev_metrics, qt_libraries
 from refrain.autostart import disable as autostart_disable
 from refrain.autostart import enable as autostart_enable
 from refrain.autostart import is_enabled as autostart_is_enabled
@@ -877,6 +877,17 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
 
     if not QSystemTrayIcon.isSystemTrayAvailable():
         log.error("No system tray available — refusing to start")
+        # A desktop that has no tray may not raise a parentless dialog either,
+        # and then Refrain just disappears when started from the menu.
+        desktop_notice.show(
+            QCoreApplication.translate("app", "Refrain can't start"),
+            QCoreApplication.translate(
+                "app",
+                "This desktop has no system tray, and Refrain lives in one. "
+                "On GNOME, install the AppIndicator extension; on other "
+                "desktops, use a bar with StatusNotifierItem support.",
+            ),
+        )
         QMessageBox.critical(
             None,
             QCoreApplication.translate("app", "No system tray"),

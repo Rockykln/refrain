@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Versions that no longer work were taken down; [docs/releases.md](docs/releases.md)
 lists every version and why.
 
+## [Unreleased]
+
+### Fixed
+
+- **A missing system tray is also said in a notification.** Refrain
+  showed a dialog with what to install, but a desktop that has no tray
+  may not raise a parentless dialog either, and then Refrain simply
+  disappeared when started from the menu. The same reason now goes out
+  as a desktop notification as well, in all 16 languages.
+
 ## [0.5.5] - 2026-10-01
 
 ### Added

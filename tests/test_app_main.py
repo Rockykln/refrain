@@ -504,8 +504,10 @@ def test_missing_qt_libraries_stop_before_qt(h, monkeypatch, capsys):
     notified = []
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: "/usr/bin/notify-send")
-    monkeypatch.setattr(app.qt_libraries.subprocess, "run", lambda cmd, check: notified.append(cmd))
+    monkeypatch.setattr(app.desktop_notice.shutil, "which", lambda name: "/usr/bin/notify-send")
+    monkeypatch.setattr(
+        app.desktop_notice.subprocess, "run", lambda cmd, check: notified.append(cmd)
+    )
     assert h.run() == 1
     assert h.app is None
     assert "need xcb-cursor" in capsys.readouterr().err
@@ -566,11 +568,16 @@ def test_no_session_bus_is_an_error_with_the_reason(h):
     assert h.daemon is None
 
 
-def test_no_system_tray_refuses_to_start(h):
+def test_no_system_tray_refuses_to_start(h, monkeypatch):
+    # A desktop without a tray may swallow a parentless dialog, so the
+    # reason has to reach the user a second way.
+    notes = []
+    monkeypatch.setattr(app.desktop_notice, "show", lambda title, text: notes.append(text))
     h.tray_available = False
     assert h.run() == 1
     assert h.boxes[0][0] == "critical"
     assert "No system tray available" in h.boxes[0][1]
+    assert "no system tray" in notes[0]
     assert h.daemon is None
 
 
@@ -1254,7 +1261,7 @@ def test_missing_qt_libraries_are_reported_over_d_bus_without_notify_send(h, mon
 
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: None)
+    monkeypatch.setattr(app.desktop_notice.shutil, "which", lambda name: None)
     monkeypatch.setattr("dbus.SessionBus", Bus)
     monkeypatch.setattr("dbus.Interface", Notifications)
     assert h.run() == 1
@@ -1267,7 +1274,7 @@ def test_no_way_to_notify_is_only_logged(h, monkeypatch, caplog):
 
     h.missing = ["libxcb-cursor.so.0"]
     monkeypatch.setattr(app.qt_libraries, "message", lambda missing: "need xcb-cursor")
-    monkeypatch.setattr(app.qt_libraries.shutil, "which", lambda name: None)
+    monkeypatch.setattr(app.desktop_notice.shutil, "which", lambda name: None)
     monkeypatch.setattr("dbus.SessionBus", no_bus)
     assert h.run() == 1
     assert "no session bus" in caplog.text

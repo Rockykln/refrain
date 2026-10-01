@@ -34,7 +34,7 @@ def test_a_working_import_runs_the_app(monkeypatch):
 
 def test_a_qt_library_the_host_lacks_is_named(app_import_fails, monkeypatch, capsys):
     app_import_fails(FONTCONFIG)
-    monkeypatch.setattr("refrain.qt_libraries.notify_without_qt", lambda title, text: None)
+    monkeypatch.setattr("refrain.desktop_notice.show", lambda title, text: None)
     assert cli.main() == 1
     assert "libfontconfig.so.1" in capsys.readouterr().err
 
@@ -43,7 +43,7 @@ def test_the_message_is_not_printed_twice(app_import_fails, monkeypatch, capsys)
     """With no handler anywhere, logging.lastResort would put the same text
     on stderr a second time."""
     app_import_fails(FONTCONFIG)
-    monkeypatch.setattr("refrain.qt_libraries.notify_without_qt", lambda title, text: None)
+    monkeypatch.setattr("refrain.desktop_notice.show", lambda title, text: None)
     for name in ("", "refrain"):
         monkeypatch.setattr(logging.getLogger(name), "handlers", [])
     assert cli.main() == 1
