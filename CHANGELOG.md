@@ -9,6 +9,12 @@ lists every version and why.
 
 ## [0.5.5] - 2026-10-01
 
+### Added
+
+- **Python 3.14 is tested and declared.** Arch and other rolling
+  distributions ship it already, so it now runs in the test matrix
+  alongside 3.11, 3.12 and 3.13.
+
 ### Fixed
 
 - **The AppImage can check for updates and update itself again outside
