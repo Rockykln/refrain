@@ -9,8 +9,8 @@ import urllib.error
 
 import pytest
 
-from refrain import scrobble
-from refrain.scrobble import LastfmClient, LastfmError, Scrobbler
+from refrain import https_only, scrobble
+from refrain.scrobble import GONE_GRACE_S, LastfmClient, LastfmError, Scrobbler
 from refrain.scrobble_queue import ScrobbleQueue
 from tests.test_scrobble import _resp
 from tests.test_scrobbler import T0, FakeClient, _cfg, _next_song, _OfflineClient, _run, _t
@@ -256,7 +256,9 @@ def test_quitting_with_nothing_playing_clears_the_saved_play(tmp_path):
     clock = [float(T0), 1000.0]
     _run(sc, _t("Salt Flats", artist="Wren & Ash"), 70, clock)
     assert current.exists()
-    sc.update(_t(""), 0, privacy_off=False, now_wall=clock[0], now_mono=clock[1])
+    # Long enough that the song really is over, not a source that went
+    # quiet for a poll — that one is bridged and the play carries on.
+    _run(sc, _t(""), int(GONE_GRACE_S) + 6, clock)
     sc.shutdown()
     assert not current.exists()
 

@@ -8,7 +8,7 @@ import logging
 import pytest
 
 from refrain.config import LastfmConfig
-from refrain.scrobble import LastfmError, Scrobbler, accrue_play_ms
+from refrain.scrobble import GONE_GRACE_S, LastfmError, Scrobbler, accrue_play_ms
 from refrain.scrobble_queue import ScrobbleQueue
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
@@ -115,6 +115,41 @@ def test_qualifying_track_queued_on_switch(tmp_path):
     assert pending[0]["track"] == "A"
     assert pending[0]["duration"] == 200
     assert pending[0]["timestamp"] == 1_700_000_000
+
+
+def _gap(sc, seconds, mono, wall):
+    """The source reports no song for `seconds`, as a reloading tab does."""
+    for _ in range(max(1, int(seconds / 2.0))):
+        sc.update(TrackInfo.empty(), 0, privacy_off=False, now_wall=wall, now_mono=mono)
+        mono += 2.0
+        wall += 2.0
+    return mono, wall
+
+
+def test_a_short_gap_does_not_restart_the_count(tmp_path):
+    """95 s, the source drops the song for a poll, 95 s more: 190 s of a
+    200 s song was heard, so it has earned its scrobble."""
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=95, start_mono=1000.0, start_wall=1_700_000_000
+    )
+    mono, wall = _gap(sc, 2, mono, wall)
+    mono, wall = _play(sc, _t("A"), 200_000, seconds=95, start_mono=mono, start_wall=wall)
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    assert len(q.pending()) == 1
+
+
+def test_a_silence_past_the_grace_ends_the_play(tmp_path):
+    """The other way round: once it has been gone this long the song really
+    did end, and what follows counts from zero."""
+    sc, q = _scrobbler(tmp_path, client=_OfflineClient())
+    mono, wall = _play(
+        sc, _t("A"), 200_000, seconds=95, start_mono=1000.0, start_wall=1_700_000_000
+    )
+    mono, wall = _gap(sc, GONE_GRACE_S + 6, mono, wall)
+    mono, wall = _play(sc, _t("A"), 200_000, seconds=95, start_mono=mono, start_wall=wall)
+    sc.update(_t("B"), 200_000, privacy_off=False, now_wall=wall, now_mono=mono)
+    assert q.pending() == []
 
 
 def test_a_song_that_starts_over_is_scrobbled_again(tmp_path):

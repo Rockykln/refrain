@@ -145,6 +145,11 @@ def is_replay(counted: bool, prev_position_ms: int | None, position_ms: int | No
 # of when it was saved.
 RESUME_GRACE_S = 5 * 60
 RESUME_UNKNOWN_LENGTH_S = 15 * 60
+# A source that reports no song for a poll or two (a tab reloading its
+# metadata) hasn't stopped. Finishing the play there would restart the
+# count and lose one the listener heard all of. The history bridges the
+# same gap by the same amount, which is what keeps the two agreeing.
+GONE_GRACE_S = 10.0
 # Where the player has the song after a restart may differ this much from
 # where it should be — a slow restart, a player that reports late.
 RESUME_POSITION_SLACK_MS = 15_000
@@ -440,6 +445,8 @@ class Scrobbler:
         self._nowplaying_key: str | None = None
         self._skipped_key: str | None = None
         self._skipped_since: float | None = None
+        # When the source first went quiet on a play still in progress.
+        self._gone_since: float | None = None
         # Across a restart. The play in progress is written to
         # `_current_path` on quit and every PROGRESS_SAVE_EVERY_MS of play;
         # `_resume` is that play as the last run left it, until the first
@@ -603,6 +610,16 @@ class Scrobbler:
             key = self._content_key(track) if candidate else None
             if not candidate:
                 self._note_too_short_locked(track, effective_duration_ms, now_mono)
+            if key is not None:
+                self._gone_since = None
+            elif self._key is not None:
+                if self._gone_since is None:
+                    self._gone_since = now_mono
+                if now_mono - self._gone_since <= GONE_GRACE_S:
+                    # Carry the play on as it stands. The track is stopped,
+                    # so nothing is credited for the gap and no "now
+                    # playing" goes out; only the count survives.
+                    key = self._key
             # Not before a song shows up: a first poll that sees nothing
             # yet says nothing about whether the saved play is still going.
             if self._resume is not None and key is not None:

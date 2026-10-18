@@ -11,6 +11,12 @@ lists every version and why.
 
 ### Fixed
 
+- **A song is no longer lost from Last.fm when its source goes quiet for a
+  moment.** A tab reloading its metadata reports no song for a poll or two,
+  which ended the play and restarted the count from zero: 190 seconds of a
+  200-second song earned nothing. The scrobbler now bridges such a gap for
+  the ten seconds Recently played already allowed, which is also what keeps
+  the two agreeing about what was heard.
 - **A Bluetooth device between apps no longer hides a paused song.** Such a
   device reports itself as playing with no metadata at all, and a playing
   source outranks a paused one — so an Apple Music tab paused mid-song
