@@ -67,6 +67,19 @@ refrain --install-desktop
 This copies the `.desktop` file and icon to `~/.local/share/applications/`
 and `~/.local/share/icons/`. To undo: `refrain --uninstall-desktop`.
 
+## Command-line options
+
+`refrain --help` lists them all. The ones worth knowing:
+
+| Option | What it does |
+|---|---|
+| `--silent` | Start in the tray and keep quiet: the Status window opens only when something needs you — Discord not set up, an Application ID rejected, the Last.fm sign-in expired. This is what the autostart entry uses. |
+| `--debug` | Log at DEBUG level and open the live-log window at startup. The first thing to try when something behaves oddly. |
+| `--install-desktop` | Write the menu entry and icon (see above), then exit. |
+| `--uninstall-desktop` | Remove what `--install-desktop` wrote, then exit. |
+| `--uninstall` | Remove all of Refrain's data and the Last.fm credentials, print the command for removing the package itself, then exit. `-y` skips the confirmation. |
+| `--version` | Print the version and exit. |
+
 ## Tested on
 
 See [`docs/test-matrix.md`](test-matrix.md) for the full Tier-1 / Tier-2 list, the per-row smoke checks, and which distros are explicitly out-of-scope (Python or glibc floor too low).

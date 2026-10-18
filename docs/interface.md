@@ -124,6 +124,33 @@ and is never sent anywhere, so the privacy mode doesn't affect it.
 *Settings → Recently played* turns it off — which deletes the file — or changes
 how many songs it keeps.
 
+## On Discord
+
+What other people see is a *Listening to* activity: the song title, the
+artist under it, and the album cover. Discord draws an elapsed time and
+a progress bar when Refrain knows where in the song you are and the song
+runs at least 30 seconds. The member list has room for one line and
+would show the name of your Discord application there; Refrain puts the
+song title in its place. Without a title the name stays.
+
+- **The title, the artist line and the cover are links** to the song on
+  Apple Music. Refrain uses the address it resolved from Apple's catalog,
+  or the browser tab's own as a fallback; with neither, the lines simply
+  carry no link.
+- **A small icon sits in the corner of the cover**, so the card says
+  where the music comes from. It is Refrain's own, linking to the
+  project — or your Discord application's, with its name as the tooltip,
+  once *Look up the application's name on Discord* is on. Without a
+  cover there is nothing to sit on: whichever icon exists fills the large
+  spot instead. *Settings → General* can turn the corner off.
+- **The album appears as a third line** only when it says something the
+  artist line doesn't already.
+- **A button "Listen on Apple Music"** goes out with the status when
+  there is a song address. *Settings → General* can turn it off.
+
+How all of this is laid out is Discord's business, not Refrain's — a
+client that renders an activity differently renders it differently.
+
 ## Notifications
 
 Refrain can show a desktop notification on each track change, with the
