@@ -22,6 +22,7 @@ from PySide6.QtCore import QTranslator  # noqa: E402
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox  # noqa: E402
 
 import refrain.ui.welcome_dialog as wd  # noqa: E402
+from refrain import https_only  # noqa: E402
 
 CLIENT_ID = "1234567890123456789"
 
@@ -129,7 +130,7 @@ def _stub_urlopen(monkeypatch, result):
             raise result
         return _Response(result)
 
-    monkeypatch.setattr(wd.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(https_only.opener(), "open", urlopen)
     return seen
 
 
@@ -155,6 +156,14 @@ def test_an_unreachable_itunes_names_the_reason(app, monkeypatch):
 
 def test_a_broken_itunes_reply_is_reported(app, monkeypatch):
     _stub_urlopen(monkeypatch, b"<html>maintenance</html>")
+    ok, template, kw = wd._probe_itunes()
+    assert ok is False
+    assert template.format(**kw).startswith("iTunes probe failed:")
+
+
+def test_an_itunes_answer_past_the_read_limit_is_reported(app, monkeypatch):
+    monkeypatch.setattr(wd, "_MAX_PROBE_BYTES", 8)
+    _stub_urlopen(monkeypatch, json.dumps({"resultCount": 1, "results": []}).encode())
     ok, template, kw = wd._probe_itunes()
     assert ok is False
     assert template.format(**kw).startswith("iTunes probe failed:")

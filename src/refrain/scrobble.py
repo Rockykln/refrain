@@ -16,7 +16,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from refrain import USER_AGENT, dev_metrics
+from refrain import USER_AGENT, dev_metrics, https_only
 from refrain.config import LastfmConfig
 from refrain.paths import state_dir, write_private
 from refrain.scrobble_queue import ScrobbleQueue
@@ -28,6 +28,9 @@ API_ROOT = "https://ws.audioscrobbler.com/2.0/"
 AUTH_URL = "https://www.last.fm/api/auth/"
 API_ACCOUNT_URL = "https://www.last.fm/api/account/create"
 _TIMEOUT_S = 10
+# An answer about one track, or about one batch of scrobbles, is a few
+# kilobytes of JSON; nothing the API sends comes close to this.
+_MAX_RESPONSE_BYTES = 256 * 1024
 
 # Last.fm error codes we treat specially. The full list lives in the
 # API docs; these are the ones that change Refrain's behaviour.
@@ -218,18 +221,17 @@ class LastfmClient:
             else:
                 url = f"{API_ROOT}?{urllib.parse.urlencode(req_params)}"
                 request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with (
-                dev_metrics.network("lastfm"),
-                urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r,  # nosec B310
-            ):
-                payload = json.load(r)
+            with dev_metrics.network("lastfm"):
+                raw = https_only.fetch(request, _MAX_RESPONSE_BYTES, _TIMEOUT_S)
+            payload = json.loads(raw)
         except LastfmError:
             raise
         except urllib.error.HTTPError as e:
             # Last.fm returns its JSON error body even on 4xx — try to
             # surface the real code/message instead of a bare HTTP 403.
             try:
-                payload = json.loads(e.read().decode("utf-8", "replace"))
+                error_body = https_only.read_limited(e, _MAX_RESPONSE_BYTES)
+                payload = json.loads(error_body.decode("utf-8", "replace"))
             except Exception as parse_err:
                 raise LastfmError(f"Last.fm HTTP {e.code}: {e.reason}") from parse_err
         except Exception as e:

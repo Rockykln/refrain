@@ -1,18 +1,34 @@
-"""cover_art.py edge cases: a non-https search endpoint refused outright, and a cover
-cache whose stray-file cleanup fails partway through."""
+"""cover_art.py edge cases: a non-https search endpoint refused outright, a search
+answer that doesn't fit, and a cover cache whose stray-file cleanup fails partway
+through."""
 
 from __future__ import annotations
 
-from tests.test_cover_art import cover_art  # noqa: F401
+import pytest
+
+from refrain import https_only
+from tests.test_cover_art import _fake_response, cover_art  # noqa: F401
 
 
 def test_a_non_https_search_endpoint_is_refused(monkeypatch, cover_art):  # noqa: F811
-    """Defence in depth: _query must never call urlopen against a non-https URL."""
+    """Defence in depth: _query must never send a request to a non-https URL."""
     monkeypatch.setattr(cover_art, "_ITUNES_SEARCH", "http://itunes.apple.com/search")
     calls = []
-    monkeypatch.setattr(cover_art.urllib.request, "urlopen", lambda *a, **kw: calls.append(a))
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: calls.append(a))
     assert cover_art._query("term", "US", 10) == []
     assert calls == []
+
+
+def test_a_search_answer_past_the_read_limit_is_no_miss(monkeypatch, cover_art):  # noqa: F811
+    """An endpoint that answers on and on must fail the lookup, not cache "no cover"."""
+    monkeypatch.setattr(cover_art, "_MAX_JSON_BYTES", 8)
+    monkeypatch.setattr(
+        https_only.opener(), "open", lambda *a, **kw: _fake_response({"results": []})
+    )
+    with pytest.raises(LookupError):
+        cover_art.lookup_track_info("Solstice", "Night Runner", "Album")
+    key = cover_art._key("Solstice", "Night Runner", "Album")
+    assert not (cover_art.cover_cache_dir() / f"{key}.txt").exists()
 
 
 class _CleanupFailsDir:

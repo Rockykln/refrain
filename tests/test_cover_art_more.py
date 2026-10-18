@@ -7,6 +7,7 @@ import os
 
 import pytest
 
+from refrain import https_only
 from tests.test_cover_art import _install, _song, _Store, cover_art  # noqa: F401
 
 
@@ -71,8 +72,8 @@ def test_an_answer_of_the_wrong_shape_is_a_miss(cover_art, monkeypatch, payload)
     import json
 
     monkeypatch.setattr(
-        cover_art.urllib.request,
-        "urlopen",
+        https_only.opener(),
+        "open",
         lambda *a, **kw: _Resp(json.dumps(payload).encode()),
     )
     assert cover_art.lookup_track_info("Kite Theory", "Overexposed") == cover_art.TrackLookup()
@@ -176,7 +177,7 @@ def test_a_failed_download_returns_none_and_writes_nothing(cover_art, tmp_path):
 
 
 def test_a_failed_image_write_leaves_no_temp_file(cover_art, monkeypatch, tmp_path):  # noqa: F811
-    monkeypatch.setattr(cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"\xff\xd8"))
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _Resp(b"\xff\xd8"))
 
     def refuse(_src, _dst):
         raise OSError("read-only")
@@ -196,7 +197,7 @@ def test_an_image_over_the_cap_is_discarded_not_cut_off(
 ):
     monkeypatch.setattr(cover_art, "_MAX_IMAGE_BYTES", 8)
     monkeypatch.setattr(
-        cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"\xff\xd8" + b"x" * 20)
+        https_only.opener(), "open", lambda *a, **kw: _Resp(b"\xff\xd8" + b"x" * 20)
     )
     dest = tmp_path / "covers" / "cover.jpg"
     dest.parent.mkdir()
@@ -208,7 +209,7 @@ def test_an_image_over_the_cap_is_discarded_not_cut_off(
 
 def test_an_image_exactly_at_the_cap_is_kept(cover_art, monkeypatch, tmp_path):  # noqa: F811
     monkeypatch.setattr(cover_art, "_MAX_IMAGE_BYTES", 8)
-    monkeypatch.setattr(cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"12345678"))
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _Resp(b"12345678"))
     dest = tmp_path / "cover.jpg"
     assert cover_art.download_cover_image("https://is1.example/c.jpg", dest) == dest
     assert dest.read_bytes() == b"12345678"

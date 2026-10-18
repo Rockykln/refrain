@@ -27,7 +27,7 @@ def _capture(monkeypatch, payload):
         seen.append(req)
         return _resp(payload)
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", fake)
+    monkeypatch.setattr(https_only.opener(), "open", fake)
     return seen
 
 
@@ -50,7 +50,7 @@ def test_an_http_error_carries_last_fm_s_own_error_code(monkeypatch):
     def refuse(*a, **kw):
         raise _http_error(403, body)
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", refuse)
+    monkeypatch.setattr(https_only.opener(), "open", refuse)
     with pytest.raises(LastfmError) as ei:
         _client().update_now_playing("Neon Harbor", "Glass Tides")
     assert ei.value.invalid_session is True
@@ -60,7 +60,7 @@ def test_an_http_error_without_json_is_a_retryable_failure(monkeypatch):
     def refuse(*a, **kw):
         raise _http_error(503, b"<html>Service Unavailable</html>")
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", refuse)
+    monkeypatch.setattr(https_only.opener(), "open", refuse)
     with pytest.raises(LastfmError, match="HTTP 503") as ei:
         _client().scrobble([{"artist": "Neon Harbor", "track": "Glass Tides", "timestamp": T0}])
     assert ei.value.retryable is True

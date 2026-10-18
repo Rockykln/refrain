@@ -36,6 +36,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from refrain import https_only
 from refrain.cover_art import USER_AGENT
 from refrain.discord_app import looks_like_application_id
 from refrain.paths import assets_dir
@@ -49,6 +50,8 @@ _detached_threads: set[QThread] = set()
 
 _DISCORD_DEVELOPER_PORTAL = "https://discord.com/developers/applications"
 _ITUNES_TEST_URL = "https://itunes.apple.com/search?term=test&entity=song&limit=1&country=us"
+# The probe asks for a single song, and only reads the result count.
+_MAX_PROBE_BYTES = 64 * 1024
 
 
 class _DiagnosticsWorker(QObject):
@@ -151,8 +154,7 @@ def _probe_itunes() -> tuple[bool, str, dict]:
     try:
         # Named like every other request Refrain makes, so Apple sees who asked.
         probe = urllib.request.Request(_ITUNES_TEST_URL, headers={"User-Agent": USER_AGENT})
-        with urllib.request.urlopen(probe, timeout=5) as resp:  # nosec B310
-            data = json.load(resp)
+        data = json.loads(https_only.fetch(probe, _MAX_PROBE_BYTES, 5))
         if isinstance(data, dict) and "resultCount" in data:
             return True, _ITUNES_OK, {}
         return False, _ITUNES_ODD, {}

@@ -101,7 +101,7 @@ def _machine_arch() -> str:
 
 
 _HttpsOnlyRedirects = https_only.HttpsOnlyRedirects
-_download_opener = https_only.build_opener()
+_download_opener = https_only.opener()
 
 
 def _open_download(url: str, timeout: float):

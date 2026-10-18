@@ -10,6 +10,8 @@ import urllib.parse
 
 import pytest
 
+from refrain import https_only
+
 
 @pytest.fixture
 def cover_art(xdg_tmp, monkeypatch):
@@ -73,7 +75,7 @@ class _Store:
 
 
 def _install(monkeypatch, cover_art, store):
-    monkeypatch.setattr(cover_art.urllib.request, "urlopen", store)
+    monkeypatch.setattr(https_only.opener(), "open", store)
     return store
 
 
@@ -208,7 +210,7 @@ def test_unreachable_is_an_error_not_a_miss(monkeypatch, cover_art):
     def _boom(*a, **kw):
         raise OSError("network down")
 
-    monkeypatch.setattr(cover_art.urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(https_only.opener(), "open", _boom)
     with pytest.raises(LookupError):
         cover_art.lookup_track_info("X", "Y", "Z")
     key = cover_art._key("X", "Y", "Z")
@@ -256,9 +258,7 @@ def test_an_image_is_downloaded_to_the_given_file(monkeypatch, cover_art, tmp_pa
         def __exit__(self, *a):
             return False
 
-    monkeypatch.setattr(
-        cover_art.urllib.request, "urlopen", lambda *a, **kw: _Resp(b"\xff\xd8jpeg")
-    )
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _Resp(b"\xff\xd8jpeg"))
     dest = tmp_path / "cover.jpg"
     assert cover_art.download_cover_image("https://example.com/c.jpg", dest) == dest
     assert dest.read_bytes() == b"\xff\xd8jpeg"

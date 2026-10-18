@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from refrain import scrobble
+from refrain import https_only
 from refrain.scrobble import (
     LastfmClient,
     LastfmError,
@@ -86,9 +86,7 @@ def _client():
 
 
 def test_get_token(monkeypatch):
-    monkeypatch.setattr(
-        scrobble.urllib.request, "urlopen", lambda *a, **kw: _resp({"token": "TOK"})
-    )
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _resp({"token": "TOK"}))
     assert _client().get_token() == "TOK"
 
 
@@ -101,8 +99,8 @@ def test_authorize_url_contains_key_and_token():
 
 def test_get_session_returns_key_and_name(monkeypatch):
     monkeypatch.setattr(
-        scrobble.urllib.request,
-        "urlopen",
+        https_only.opener(),
+        "open",
         lambda *a, **kw: _resp({"session": {"key": "NEWSK", "name": "alice"}}),
     )
     c = LastfmClient("K", "S")
@@ -114,8 +112,8 @@ def test_get_session_returns_key_and_name(monkeypatch):
 
 def test_api_error_raises_with_code(monkeypatch):
     monkeypatch.setattr(
-        scrobble.urllib.request,
-        "urlopen",
+        https_only.opener(),
+        "open",
         lambda *a, **kw: _resp({"error": 9, "message": "Invalid session key"}),
     )
     with pytest.raises(LastfmError) as ei:
@@ -129,7 +127,7 @@ def test_network_failure_is_retryable(monkeypatch):
     def _boom(*a, **kw):
         raise OSError("offline")
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", _boom)
+    monkeypatch.setattr(https_only.opener(), "open", _boom)
     with pytest.raises(LastfmError) as ei:
         _client().scrobble([{"artist": "A", "track": "T", "timestamp": 1}])
     assert ei.value.code is None
@@ -138,8 +136,8 @@ def test_network_failure_is_retryable(monkeypatch):
 
 def test_transient_service_error_is_retryable(monkeypatch):
     monkeypatch.setattr(
-        scrobble.urllib.request,
-        "urlopen",
+        https_only.opener(),
+        "open",
         lambda *a, **kw: _resp({"error": 16, "message": "temporarily unavailable"}),
     )
     with pytest.raises(LastfmError) as ei:
@@ -160,7 +158,7 @@ def test_scrobble_accepted_count(monkeypatch):
         captured["data"] = req.data
         return _resp({"scrobbles": {"@attr": {"accepted": 2, "ignored": 0}}})
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", _fake)
+    monkeypatch.setattr(https_only.opener(), "open", _fake)
     n = _client().scrobble(
         [
             {"artist": "A", "track": "T1", "timestamp": 100, "album": "Al"},

@@ -9,7 +9,7 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from refrain import daemon, scrobble  # noqa: E402
+from refrain import daemon, https_only, scrobble  # noqa: E402
 from refrain.config import LastfmConfig  # noqa: E402
 from refrain.daemon import DaemonWorker  # noqa: E402
 from tests.daemon_fakes import FakeRPC, Player, install, make_config  # noqa: E402
@@ -45,7 +45,7 @@ def rig(monkeypatch):
         clock, _ = install(monkeypatch)
         monkeypatch.setattr(daemon, "Scrobbler", scrobble.Scrobbler)
         lastfm = FakeLastfm(durations)
-        monkeypatch.setattr(scrobble.urllib.request, "urlopen", lastfm)
+        monkeypatch.setattr(https_only.opener(), "open", lastfm)
         sections = {"behavior": {"cover_art": False}, "lastfm": LASTFM} | sections
         worker = DaemonWorker(make_config(**sections))
         workers.append(worker)
@@ -175,7 +175,7 @@ def test_an_unreachable_lastfm_is_not_taken_for_an_answer(rig, monkeypatch):
     def offline(*args, **kwargs):
         raise OSError("network is unreachable")
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", offline)
+    monkeypatch.setattr(https_only.opener(), "open", offline)
     play_whole(player, TITLE, 150)
     play_whole(player, OTHER, 60)
     settle(worker)
@@ -190,23 +190,21 @@ def test_track_getinfo_needs_no_secret_and_reads_the_duration(monkeypatch):
         seen.append(request.full_url)
         return _resp({"track": {"duration": "187000"}})
 
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", fake)
+    monkeypatch.setattr(https_only.opener(), "open", fake)
     assert scrobble.LastfmClient("12345apikey", "").track_duration_ms(ARTIST, TITLE) == 187_000
     assert "method=track.getInfo" in seen[0] and "api_sig" not in seen[0]
 
 
 @pytest.mark.parametrize("track", [{}, {"duration": "n/a"}, None, "12345"])
 def test_track_getinfo_without_a_usable_duration_is_zero(monkeypatch, track):
-    monkeypatch.setattr(
-        scrobble.urllib.request, "urlopen", lambda *a, **kw: _resp({"track": track})
-    )
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _resp({"track": track}))
     assert scrobble.LastfmClient("12345apikey", "").track_duration_ms(ARTIST, TITLE) == 0
 
 
 def test_track_not_found_is_remembered_as_no_length(rig, monkeypatch):
     worker, player, _ = rig({})
     not_found = {"error": 6, "message": "Track not found"}
-    monkeypatch.setattr(scrobble.urllib.request, "urlopen", lambda *a, **kw: _resp(not_found))
+    monkeypatch.setattr(https_only.opener(), "open", lambda *a, **kw: _resp(not_found))
     play_whole(player, TITLE, 150)
     play_whole(player, OTHER, 60)
     settle(worker)

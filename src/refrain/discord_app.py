@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 
-from refrain import USER_AGENT, dev_metrics
+from refrain import USER_AGENT, dev_metrics, https_only
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +22,8 @@ NAME_TTL_S = 4 * 3600
 _RPC_API = "https://discord.com/api/v10/applications"
 _CDN = "https://cdn.discordapp.com"
 _TIMEOUT_S = 5
+# One application object, name and icon hash — kilobytes at most.
+_MAX_RESPONSE_BYTES = 64 * 1024
 
 # Outcomes, kept as plain strings so the settings window can branch on
 # them without importing anything from this module's transport layer.
@@ -73,8 +75,7 @@ def fetch_application(client_id: str, timeout_s: float = _TIMEOUT_S) -> tuple[st
     try:
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         with dev_metrics.network("discord_api"):
-            with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
-                data = json.load(r)
+            data = json.loads(https_only.fetch(req, _MAX_RESPONSE_BYTES, timeout_s))
     except urllib.error.HTTPError as e:
         # 404 is the documented answer for "no such application", and it
         # is the whole point of asking. Everything else — 429, 5xx — is

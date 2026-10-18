@@ -45,7 +45,7 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from refrain import USER_AGENT, dev_metrics
+from refrain import USER_AGENT, dev_metrics, https_only
 from refrain.paths import cover_cache_dir, make_private_dir, write_private
 
 log = logging.getLogger(__name__)
@@ -53,6 +53,9 @@ log = logging.getLogger(__name__)
 _ITUNES_SEARCH = "https://itunes.apple.com/search"
 _TIMEOUT_S = 5
 _MAX_IMAGE_BYTES = 2_000_000  # 2 MB — well above any 600x600 album cover
+# A search answers with at most 25 songs; the padding is for long
+# descriptions, not for a second order of magnitude.
+_MAX_JSON_BYTES = 512 * 1024
 
 _CACHE_VERSION = "v3"
 # A miss is asked about again after this long: the catalog grows, and a
@@ -207,12 +210,11 @@ def _query(term: str, country: str, limit: int) -> list:
     url = f"{_ITUNES_SEARCH}?{params}"
     if not url.startswith("https://"):
         # Defensive: _ITUNES_SEARCH is a module constant, but be explicit so
-        # the urlopen call below cannot ever be coerced into file:// or ftp://.
+        # the fetch below cannot ever be coerced into file:// or ftp://.
         return []
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with dev_metrics.network("itunes"):
-        with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r:  # nosec B310
-            data = json.load(r)
+        data = json.loads(https_only.fetch(req, _MAX_JSON_BYTES, _TIMEOUT_S))
     # iTunes can in theory answer with a non-dict (an error string, an
     # unwrapped list…) — anything but the expected shape is "no results".
     results = data.get("results", []) if isinstance(data, dict) else []
@@ -405,17 +407,13 @@ def download_cover_image(url: str, dest: Path) -> Path | None:
     log.debug("Cover download starting: %s → %s", url, dest.name)
     try:
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        with (
-            dev_metrics.network("cover_image"),
-            urllib.request.urlopen(req, timeout=_TIMEOUT_S) as r,  # nosec B310
-        ):
-            # One byte past the cap tells "exactly 2 MB" from "cut off".
-            data = r.read(_MAX_IMAGE_BYTES + 1)
+        with dev_metrics.network("cover_image"):
+            data = https_only.fetch(req, _MAX_IMAGE_BYTES, _TIMEOUT_S)
+    except https_only.ResponseTooLarge:
+        log.warning("Cover image larger than %d bytes, discarded: %s", _MAX_IMAGE_BYTES, url[:120])
+        return None
     except Exception as e:
         log.debug("Cover image download failed for %s: %s", url, e)
-        return None
-    if len(data) > _MAX_IMAGE_BYTES:
-        log.warning("Cover image larger than %d bytes, discarded: %s", _MAX_IMAGE_BYTES, url[:120])
         return None
     log.debug("Cover downloaded: %s (%d bytes)", dest.name, len(data))
     # Write to a sibling temp file and atomically rename. Without this,

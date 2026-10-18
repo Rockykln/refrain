@@ -1,5 +1,5 @@
-"""A urllib opener that refuses to follow a redirect off HTTPS, and the
-CA bundle it needs to recognise one."""
+"""A urllib opener that refuses to follow a redirect off HTTPS, the CA bundle
+it needs to recognise one, and the size-limited read every answer goes through."""
 
 from __future__ import annotations
 
@@ -49,3 +49,36 @@ def build_opener() -> urllib.request.OpenerDirector:
     # may get around to it later.
     use_system_certificates()
     return urllib.request.build_opener(HttpsOnlyRedirects)
+
+
+class ResponseTooLarge(Exception):
+    """The answer is longer than the caller set aside for it."""
+
+
+_opener: urllib.request.OpenerDirector | None = None
+
+
+def opener() -> urllib.request.OpenerDirector:
+    """The opener every request Refrain sends goes through."""
+    global _opener
+    if _opener is None:
+        _opener = build_opener()
+    return _opener
+
+
+def read_limited(response, limit: int) -> bytes:
+    """Read ``response``, refusing an answer past ``limit`` bytes.
+
+    Reading one byte past the cap tells "exactly at the limit" from
+    "cut off", so an endpoint cannot fill memory by answering forever.
+    """
+    data = response.read(limit + 1)
+    if len(data) > limit:
+        raise ResponseTooLarge(f"the answer is larger than {limit} bytes")
+    return data
+
+
+def fetch(request: urllib.request.Request, limit: int, timeout: float) -> bytes:
+    """Send ``request`` through the shared opener, at most ``limit`` bytes back."""
+    with opener().open(request, timeout=timeout) as r:  # nosec B310
+        return read_limited(r, limit)
