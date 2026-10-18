@@ -16,7 +16,7 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from refrain import __version__, dev_metrics
+from refrain import USER_AGENT, dev_metrics
 from refrain.config import LastfmConfig
 from refrain.paths import state_dir, write_private
 from refrain.scrobble_queue import ScrobbleQueue
@@ -27,7 +27,6 @@ log = logging.getLogger(__name__)
 API_ROOT = "https://ws.audioscrobbler.com/2.0/"
 AUTH_URL = "https://www.last.fm/api/auth/"
 API_ACCOUNT_URL = "https://www.last.fm/api/account/create"
-_USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 10
 
 # Last.fm error codes we treat specially. The full list lives in the
@@ -213,12 +212,12 @@ class LastfmClient:
                 request = urllib.request.Request(
                     API_ROOT,
                     data=body,
-                    headers={"User-Agent": _USER_AGENT},
+                    headers={"User-Agent": USER_AGENT},
                     method="POST",
                 )
             else:
                 url = f"{API_ROOT}?{urllib.parse.urlencode(req_params)}"
-                request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+                request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with (
                 dev_metrics.network("lastfm"),
                 urllib.request.urlopen(request, timeout=_TIMEOUT_S) as r,  # nosec B310

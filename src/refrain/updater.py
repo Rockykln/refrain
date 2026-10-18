@@ -39,7 +39,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from refrain import __version__, dev_metrics, ed25519, https_only
+from refrain import USER_AGENT, __version__, dev_metrics, ed25519, https_only
 
 # Match http(s) URLs not already inside <>, [text](…), or `code`.
 _BARE_URL_RE = re.compile(
@@ -70,7 +70,6 @@ log = logging.getLogger(__name__)
 
 GITHUB_REPO = "Rockykln/refrain"
 RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-_USER_AGENT = f"Refrain/{__version__} (+https://github.com/{GITHUB_REPO})"
 _TIMEOUT_S = 10
 _DOWNLOAD_PREFIX = f"https://github.com/{GITHUB_REPO}/releases/download/"
 RELEASES_PAGE = f"https://github.com/{GITHUB_REPO}/releases"
@@ -106,7 +105,7 @@ _download_opener = https_only.build_opener()
 
 
 def _open_download(url: str, timeout: float):
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     return _download_opener.open(req, timeout=timeout)  # nosec B310
 
 
@@ -242,7 +241,7 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
         req = urllib.request.Request(
             RELEASES_API,
             headers={
-                "User-Agent": _USER_AGENT,
+                "User-Agent": USER_AGENT,
                 "Accept": "application/vnd.github+json",
             },
         )

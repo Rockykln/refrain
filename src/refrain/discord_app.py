@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 
-from refrain import __version__, dev_metrics
+from refrain import USER_AGENT, dev_metrics
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +21,6 @@ NAME_TTL_S = 4 * 3600
 
 _RPC_API = "https://discord.com/api/v10/applications"
 _CDN = "https://cdn.discordapp.com"
-_USER_AGENT = f"Refrain/{__version__} (+https://github.com/Rockykln/refrain)"
 _TIMEOUT_S = 5
 
 # Outcomes, kept as plain strings so the settings window can branch on
@@ -72,7 +71,7 @@ def fetch_application(client_id: str, timeout_s: float = _TIMEOUT_S) -> tuple[st
         log.warning("Discord RPC API is not https — refusing to fetch: %s", url)
         return UNREACHABLE, "", ""
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         with dev_metrics.network("discord_api"):
             with urllib.request.urlopen(req, timeout=timeout_s) as r:  # nosec B310
                 data = json.load(r)
