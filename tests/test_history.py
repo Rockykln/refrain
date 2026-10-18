@@ -486,6 +486,18 @@ def test_damaged_file_is_moved_aside_not_overwritten(xdg_tmp, caplog):
     assert "damaged" in caplog.text
 
 
+def test_clearing_takes_the_damaged_file_too(xdg_tmp):
+    """Turning the history off promises nothing is kept, and the file set
+    aside as damaged still holds songs."""
+    history_path().parent.mkdir(parents=True, exist_ok=True)
+    history_path().write_text("not json at all", encoding="utf-8")
+    h = PlayHistory(HistoryConfig())
+    bad = history_path().with_suffix(".json.bad")
+    assert bad.exists()
+    h.clear()
+    assert not bad.exists()
+
+
 def test_unreadable_rows_are_skipped(xdg_tmp):
     history_path().parent.mkdir(parents=True, exist_ok=True)
     history_path().write_text(

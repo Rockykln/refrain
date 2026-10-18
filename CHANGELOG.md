@@ -21,6 +21,9 @@ lists every version and why.
   could not.** With the keyring locked, the deletion failed and the message
   said the Last.fm credentials were gone anyway. It now reports what
   actually happened and says what to do about it.
+- **Turning the history off now also removes a damaged history file.** A
+  file that could not be read was set aside next to the original and kept
+  the songs it still held, although the switch promises nothing is kept.
 - **A Bluetooth device between apps no longer hides a paused song.** Such a
   device reports itself as playing with no metadata at all, and a playing
   source outranks a paused one — so an Apple Music tab paused mid-song

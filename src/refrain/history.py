@@ -812,6 +812,11 @@ class PlayHistory:
             log.warning("Could not save history to %s (%s)", self._path, e)
 
     def _delete_file(self) -> bool:
+        # A damaged file was set aside under .bad and still holds songs, so
+        # turning the history off or clearing it has to take that one too.
+        bad = self._path.with_suffix(self._path.suffix + ".bad")
+        with contextlib.suppress(OSError):
+            bad.unlink(missing_ok=True)
         try:
             self._path.unlink()
             return True
