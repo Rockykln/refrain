@@ -14,8 +14,10 @@ users; a Flathub submission is on the roadmap but not currently active.
 
 ## PyPI
 
-Built + uploaded by `.github/workflows/release.yml` on every `v*.*.*`
-tag push, via PyPA Trusted Publishers (OIDC). No API token to manage.
+Uploaded by `.github/workflows/release.yml` when the owner publishes the
+GitHub release of a `v*.*.*` tag (the wheel and sdist are taken from that
+release, and the upload refuses a release without `SHA256SUMS.sig`), via
+PyPA Trusted Publishers (OIDC). No API token to manage.
 The publisher is configured on pypi.org under:
 
 ```
@@ -185,8 +187,8 @@ Per release, after the tag's workflow has finished:
 
 The tool refuses to sign when the key's public half differs from
 `RELEASE_PUBLIC_KEY`, since the released app would reject the signature.
-PyPI is still published by the workflow right after the draft is created, so
-pip and pipx users can get the version before the GitHub release is public.
+Publishing the release is what starts the PyPI upload, so nothing reaches PyPI
+before the signature is in place.
 
 Every file of a release also has a build provenance attestation:
 

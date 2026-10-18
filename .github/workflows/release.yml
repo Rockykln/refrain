@@ -1,10 +1,13 @@
 name: release
 
-# Triggered when a semver tag is pushed: e.g. `git tag v0.2.0 && git push --tags`
+# A semver tag push builds the draft release: e.g. `git tag v0.2.0 && git push --tags`
+# Publishing that release (after signing it, see packaging/README.md) uploads to PyPI.
 on:
   push:
     tags:
       - "v*.*.*"
+  release:
+    types: [published]
 
 # The AppImage build tools are installed unpinned, so the job that runs them
 # only gets read access; the write and OIDC permissions sit on the small
@@ -13,7 +16,14 @@ permissions:
   contents: read
 
 jobs:
+  # A tag push does not start tests.yml, so run it on the tagged commit.
+  # Everything up to the draft release hangs off this job.
+  tests:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/tests.yml
+
   build:
+    needs: tests
     runs-on: ubuntu-24.04
 
     steps:
@@ -90,11 +100,7 @@ jobs:
       - name: Build wheel + sdist
         run: |
           python -m build
-          # Keep a clean copy of just the Python distributions for PyPI;
-          # the AppImage step writes additional files into dist/ later.
-          mkdir -p pypi-dist
-          cp dist/*.whl dist/*.tar.gz pypi-dist/
-          ls -la pypi-dist/
+          ls -la dist/
 
       # pip-audit is already installed from requirements-dev.lock (dev extra) by
       # the test step above, and doubles as a CycloneDX generator when pointed
@@ -254,13 +260,6 @@ jobs:
             release-notes.md
           if-no-files-found: error
 
-      - name: Hand the PyPI files to the publishing job
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
-        with:
-          name: pypi-dist
-          path: pypi-dist/
-          if-no-files-found: error
-
   attest:
     needs: build
     runs-on: ubuntu-24.04
@@ -321,20 +320,28 @@ jobs:
             dist/THIRD-PARTY-NOTICES
 
   pypi:
-    # After the GitHub release, as before the jobs were split.
-    needs: github-release
+    # Runs when the owner publishes the draft, which happens only after
+    # SHA256SUMS.sig is uploaded. A PyPI upload cannot be taken back.
+    if: github.event_name == 'release'
     runs-on: ubuntu-24.04
     environment:
       name: pypi
       url: https://pypi.org/project/refrain/
     permissions:
+      contents: read
       id-token: write   # required by PyPA Trusted Publishers (OIDC) for PyPI upload
 
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
-        with:
-          name: pypi-dist
-          path: pypi-dist/
+      # The attested wheel and sdist from the release. gh fails when a
+      # pattern matches nothing, so a release without the signature stops here.
+      - name: Download the signature and the Python distributions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'SHA256SUMS.sig' --dir .
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.whl' --pattern '*.tar.gz' --dir pypi-dist
+          ls -la pypi-dist/
 
       # PyPI upload via Trusted Publishers (OIDC). No API token needed; the
       # one-time setup is on pypi.org → Manage → Publishing → Add a new
