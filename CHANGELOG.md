@@ -48,6 +48,19 @@ lists every version and why.
   disappeared when started from the menu. The same reason now goes out
   as a desktop notification as well, in all 16 languages.
 
+### Security
+
+- **Every request now goes through the same opener**, which refuses to
+  follow a redirect from HTTPS to plain HTTP. Only the update check and
+  the AppImage download did so before; the Last.fm calls, the cover
+  lookups, the Discord application lookup and the first-run probe
+  followed such a redirect and would have carried their answer, and what
+  they sent with it, in the clear.
+- **Every answer is read with a size limit** that fits what the endpoint
+  is asked for — a cover may be 2 MB, a JSON answer much less. Only the
+  cover download was bounded before, so a redirected or compromised
+  endpoint could have answered until Refrain ran out of memory.
+
 ## [0.5.5] - 2026-10-01
 
 ### Added
