@@ -17,6 +17,10 @@ lists every version and why.
   200-second song earned nothing. The scrobbler now bridges such a gap for
   the ten seconds Recently played already allowed, which is also what keeps
   the two agreeing about what was heard.
+- **Uninstalling no longer claims to have cleared the keyring when it
+  could not.** With the keyring locked, the deletion failed and the message
+  said the Last.fm credentials were gone anyway. It now reports what
+  actually happened and says what to do about it.
 - **A Bluetooth device between apps no longer hides a paused song.** Such a
   device reports itself as playing with no metadata at all, and a playing
   source outranks a paused one — so an Apple Music tab paused mid-song

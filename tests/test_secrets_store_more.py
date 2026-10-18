@@ -106,10 +106,34 @@ def test_unexpected_keyring_failures_never_raise(xdg_tmp, monkeypatch, secrets_f
     with caplog.at_level(logging.ERROR, logger="refrain.secrets_store"):
         store.set(LASTFM_SHARED_SECRET, "shared-12345")
         assert store.get(LASTFM_SHARED_SECRET) == "shared-12345"
-        store.delete(LASTFM_SHARED_SECRET)
+        assert store.delete(LASTFM_SHARED_SECRET) is False
     assert store.get(LASTFM_SHARED_SECRET) is None
     assert "shared-12345" not in caplog.text
     assert json.loads(secrets_file.read_text()) == {}
+
+
+def test_delete_reports_an_item_the_keyring_refuses_to_drop(service, secrets_file, monkeypatch):
+    store = SecretStore(bus=service)
+    store.set(LASTFM_SESSION_KEY, "sk-12345")
+
+    def refuse():
+        raise RuntimeError("collection is locked")
+
+    monkeypatch.setattr(service, "Delete", refuse)
+    assert store.delete(LASTFM_SESSION_KEY) is False
+    assert len(service.items) == 1
+
+
+def test_delete_reports_a_locked_keyring_that_needs_a_prompt(service, secrets_file):
+    service.locked, service.prompt = True, "/prompt/1"
+    assert SecretStore(bus=service).delete(LASTFM_SESSION_KEY) is False
+
+
+def test_delete_reports_a_fallback_file_it_cannot_rewrite(secrets_file, monkeypatch):
+    store = SecretStore()
+    store.set(LASTFM_SESSION_KEY, "sk-12345")
+    monkeypatch.setattr(secrets_store, "_file_write_all", lambda _data: False)
+    assert store.delete(LASTFM_SESSION_KEY) is False
 
 
 def test_a_silently_unlockable_keyring_still_serves_the_secret(service, secrets_file):

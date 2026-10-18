@@ -72,9 +72,9 @@ class UninstallReport:
 
 
 def _clear_keyring(store=None) -> bool:
-    """Delete the Last.fm credentials from the keyring (or fallback
-    file). Never raises. ``store`` is injectable for
-    tests so the suite never touches the real keyring."""
+    """Delete the Last.fm credentials from the keyring (or fallback file).
+    Never raises; False when something may still be stored. ``store`` is
+    injectable for tests so the suite never touches the real keyring."""
     try:
         from refrain.secrets_store import (
             LASTFM_SESSION_KEY,
@@ -83,9 +83,9 @@ def _clear_keyring(store=None) -> bool:
         from refrain.secrets_store import _default as default_store
 
         s = store or default_store
-        s.delete(LASTFM_SHARED_SECRET)
-        s.delete(LASTFM_SESSION_KEY)
-        return True
+        secret_gone = s.delete(LASTFM_SHARED_SECRET)
+        session_gone = s.delete(LASTFM_SESSION_KEY)
+        return secret_gone and session_gone
     except Exception as e:
         log.warning("Could not purge Last.fm credentials: %s", e)
         return False
@@ -109,4 +109,9 @@ def purge(keyring=None) -> UninstallReport:
             report.failed.append(f"{p}: {e}")
             log.warning("Uninstall could not remove %s: %s", p, e)
     report.keyring_cleared = _clear_keyring(keyring)
+    if not report.keyring_cleared:
+        report.failed.append(
+            "Last.fm credentials may still be in your keyring. Unlock the keyring and run "
+            "--uninstall again, or delete the entries labelled 'Refrain' in your keyring app."
+        )
     return report

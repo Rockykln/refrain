@@ -235,9 +235,14 @@ def test_setting_again_replaces_rather_than_piles_up(keyring):
 def test_delete_removes_it_from_the_keyring(keyring):
     service, store = keyring
     store.set(LASTFM_SESSION_KEY, "sk-123")
-    store.delete(LASTFM_SESSION_KEY)
+    assert store.delete(LASTFM_SESSION_KEY) is True
     assert service.items == {}
     assert store.get(LASTFM_SESSION_KEY) is None
+
+
+def test_deleting_what_is_not_there_counts_as_done(keyring):
+    _service, store = keyring
+    assert store.delete(LASTFM_SESSION_KEY) is True
 
 
 def test_a_keyring_that_would_prompt_falls_back_to_the_file(keyring, xdg_tmp):

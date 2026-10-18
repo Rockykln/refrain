@@ -28,6 +28,7 @@ class FakeStore:
 
     def delete(self, key):
         self.deleted.append(key)
+        return True
 
 
 def _seed(iso):
@@ -164,6 +165,17 @@ def test_purge_secret_failure_is_non_fatal(iso, monkeypatch):
     rep = uninstall.purge(keyring=Raising())
     assert rep.keyring_cleared is False
     assert rep.removed  # file removal still succeeded
+
+
+@pytest.mark.parametrize("refused", ["lastfm_shared_secret", "lastfm_session_key"])
+def test_purge_reports_credentials_the_keyring_would_not_drop(iso, refused):
+    class Refusing(FakeStore):
+        def delete(self, k):
+            return k != refused and super().delete(k)
+
+    rep = uninstall.purge(keyring=Refusing())
+    assert rep.keyring_cleared is False
+    assert any("may still be in your keyring" in f for f in rep.failed)
 
 
 # --------------------------------------------------------------------------- #

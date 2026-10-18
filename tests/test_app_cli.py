@@ -146,6 +146,15 @@ def test_uninstall_cli_reports_secrets_and_failures(uninstall_env, monkeypatch, 
     assert uninstall.removal_command("pip") in out
 
 
+def test_uninstall_cli_does_not_claim_a_failed_keyring_purge(uninstall_env, monkeypatch, capsys):
+    report = UninstallReport(failed=["Last.fm credentials may still be in your keyring."])
+    monkeypatch.setattr(uninstall, "purge", lambda: report)
+    assert app.run_uninstall_cli(assume_yes=True) == 0
+    out = capsys.readouterr().out
+    assert "credentials cleared" not in out
+    assert "may still be in your keyring" in out
+
+
 def _fake_root(tmp_path, monkeypatch):
     """Resolve the hard-coded /usr/lib candidates inside ``tmp_path``."""
     real_path = app.Path

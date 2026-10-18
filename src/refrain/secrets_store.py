@@ -140,16 +140,21 @@ def _keyring_get(bus, name: str) -> str | None:
 
 
 def _keyring_delete(bus, name: str) -> bool:
+    """True when no item of ours is left under ``name``."""
     import dbus
 
     svc_iface, _session, _coll = _open(bus)
     attrs = dbus.Dictionary({"application": _APP_ATTR, "key": name}, signature="ss")
     unlocked, locked = svc_iface.SearchItems(attrs)
+    ok = True
     for path in list(unlocked) + list(locked):
-        with contextlib.suppress(Exception):
+        try:
             item = bus.get_object(_SS_BUS, path)
             dbus.Interface(item, _SS_ITEM_IFACE).Delete()
-    return True
+        except Exception as e:
+            log.warning("Keyring item delete failed: %s", e)
+            ok = False
+    return ok
 
 
 # --------------------------------------------------------------------------- #
@@ -259,19 +264,25 @@ class SecretStore:
                 log.exception("Keyring get unexpectedly failed — checking file")
         return _file_read_all().get(name) or None
 
-    def delete(self, name: str) -> None:
+    def delete(self, name: str) -> bool:
+        """True when nothing is left under ``name``, including when there was nothing."""
+        ok = True
         bus = self._get_bus()
         if bus is not None and _keyring_available(bus):
-            with contextlib.suppress(Exception):
-                _keyring_delete(bus, name)
-        self._file_forget(name)
+            try:
+                ok = _keyring_delete(bus, name)
+            except Exception as e:
+                log.warning("Keyring delete failed: %s", e)
+                ok = False
+        return self._file_forget(name) and ok
 
     @staticmethod
-    def _file_forget(name: str) -> None:
+    def _file_forget(name: str) -> bool:
         data = _file_read_all()
-        if name in data:
-            del data[name]
-            _file_write_all(data)
+        if name not in data:
+            return True
+        del data[name]
+        return _file_write_all(data)
 
 
 # Process-wide default instance (real session bus, lazy).
