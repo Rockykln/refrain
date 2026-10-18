@@ -606,8 +606,13 @@ class _SongRow(QWidget):
         )
 
     def contextMenuEvent(self, event) -> None:
+        # The row is thrown away and rebuilt on every history change — a
+        # pause, the scrobble mark, the next song — so a menu parented to
+        # it would be destroyed under its own exec(). It hangs on the
+        # window instead, and everything the actions need is read up front.
         e = self._entry
-        menu = QMenu(self)
+        link, window, remove_entry = self._link, self.window(), self._on_remove
+        menu = QMenu(window)
         open_ = menu.addAction(
             icons.themed_icon("internet-web-browser", "applications-internet"),
             QCoreApplication.translate("HistoryWindow", "Open in Apple Music"),
@@ -623,12 +628,13 @@ class _SongRow(QWidget):
             QCoreApplication.translate("HistoryWindow", "Remove from history"),
         )
         chosen = menu.exec(event.globalPos())
+        menu.deleteLater()
         if chosen is copy:
             QGuiApplication.clipboard().setText(f"{e.artist} — {e.title}" if e.artist else e.title)
         elif chosen is open_:
-            self._open()
+            confirm_and_open(window, link, e.player if e.source == "mpris" else "")
         elif chosen is remove:
-            self._on_remove()
+            remove_entry()
 
 
 class HistoryWindow(QDialog):

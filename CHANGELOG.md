@@ -17,6 +17,11 @@ lists every version and why.
   disappeared from the tray and the Status window in favour of nothing.
   The rule that a reading without a song is not playing now covers both
   sources.
+- **The right-click menu in Recently played no longer dies under itself.**
+  The list is rebuilt on every change to the history — a pause, the scrobble
+  mark, the next song — and the menu belonged to the row that was thrown
+  away, so *Open in Apple Music* could reach for a window that no longer
+  existed.
 - **An Apple Music tab with nothing loaded no longer counts as playing.**
   Left open on the home page, the tab keeps a media session alive and the
   browser reports it as playing — the state comes from the looping artwork
