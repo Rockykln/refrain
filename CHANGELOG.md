@@ -11,6 +11,13 @@ lists every version and why.
 
 ### Fixed
 
+- **An Apple Music tab with nothing loaded no longer counts as playing.**
+  Left open on the home page, the tab keeps a media session alive and the
+  browser reports it as playing — the state comes from the looping artwork
+  video, so the position even runs backwards. Refrain knew the page title
+  was not a song but kept the "playing" that came with it: a green tray
+  icon, a published MPRIS player telling the desktop a song was on, and
+  advice to install the very browser integration that was reporting.
 - **A missing system tray is also said in a notification.** Refrain
   showed a dialog with what to install, but a desktop that has no tray
   may not raise a parentless dialog either, and then Refrain simply

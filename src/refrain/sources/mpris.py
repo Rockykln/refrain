@@ -118,6 +118,17 @@ def _is_apple_music_page_title(title: str) -> bool:
     return t == "apple music" or t.endswith("- apple music") or t.startswith("apple music -")
 
 
+def _quiet_without_a_song(track: TrackInfo) -> TrackInfo:
+    """Playing and paused both claim there is a song. A player can claim it
+    with nothing loaded — an Apple Music tab sitting on the home page does,
+    and so does plasma's wrapper, which reads the state off a looping artwork
+    video. Naming the player would mislead too: the Status window reads that
+    as a browser whose page it can't recognise."""
+    if track.has_track or track.status == PlaybackStatus.STOPPED:
+        return track
+    return dataclasses.replace(track, status=PlaybackStatus.STOPPED, player="")
+
+
 def _looks_browser(name: str, identity: str, desktop_entry: str, hints: list[str]) -> bool:
     hay = f"{name} {identity} {desktop_entry}".lower()
     return any(h in hay for h in hints)
@@ -380,9 +391,9 @@ class MPRISSource:
                     log.debug("MPRIS: %s per the Apple Music tab itself, not plasma", status.value)
                 self._overruled = status
                 track = dataclasses.replace(track, status=status)
-                return track
+                return _quiet_without_a_song(track)
         self._overruled = None
-        return track
+        return _quiet_without_a_song(track)
 
     def play_pause(self) -> bool:
         # PlayPause is a TOGGLE — calling it twice is back to the

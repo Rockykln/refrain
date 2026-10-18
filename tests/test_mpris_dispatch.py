@@ -307,7 +307,13 @@ def test_the_page_title_is_not_a_song():
         "xesam:url": "https://music.apple.com/de/home",
     }
     _wire_read({PLASMA: page})
-    assert MPRISSource().read().has_track is False
+    reading = MPRISSource().read()
+    assert reading.has_track is False
+    # Without a song there is nothing to play: the tray, the published MPRIS
+    # player and Discord all take their state from here. Naming the player
+    # would send the Status window into its "which page?" advice as well.
+    assert reading.status == _mpris_mod.PlaybackStatus.STOPPED
+    assert reading.player == ""
 
 
 def test_returns_false_when_no_player_can():
