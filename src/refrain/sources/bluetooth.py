@@ -10,7 +10,12 @@ import re
 import dbus
 import dbus.mainloop
 
-from refrain.sources.base import PlaybackStatus, TrackInfo, clean_field
+from refrain.sources.base import (
+    PlaybackStatus,
+    TrackInfo,
+    clean_field,
+    quiet_without_a_song,
+)
 
 log = logging.getLogger(__name__)
 
@@ -205,16 +210,21 @@ class BluetoothSource:
                 return TrackInfo.empty()
             self._ignored_app = ""
 
-            return TrackInfo(
-                source="bluetooth",
-                title=title,
-                artist=artist,
-                album=album,
-                duration_ms=duration_ms,
-                position_ms=position_ms,
-                status=status,
-                player=self._player_name,
-                loop_track=repeat == "singletrack",
+            # A device between apps can report "playing" with empty
+            # metadata, and a state with no song outranks a real one that
+            # is merely paused.
+            return quiet_without_a_song(
+                TrackInfo(
+                    source="bluetooth",
+                    title=title,
+                    artist=artist,
+                    album=album,
+                    duration_ms=duration_ms,
+                    position_ms=position_ms,
+                    status=status,
+                    player=self._player_name,
+                    loop_track=repeat == "singletrack",
+                )
             )
         # Broad on purpose: this block also runs is_apple_music() and builds the
         # TrackInfo, not just D-Bus calls.

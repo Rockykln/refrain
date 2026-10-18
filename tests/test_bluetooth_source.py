@@ -516,3 +516,13 @@ def test_read_stops_using_a_field_once_its_getter_has_a_bug(system_bus, monkeypa
 
     monkeypatch.setattr(_Obj, "Get", broken_get)
     assert bluetooth.BluetoothSource().read().has_track is False
+
+
+def test_a_device_between_apps_is_not_playing(system_bus):
+    """An empty Track with Status "playing" must not outrank a paused song
+    on the other source."""
+    system_bus[0].append(_one_player_bus(Track={}))
+    track = bluetooth.BluetoothSource().read()
+    assert track.has_track is False
+    assert track.status == PlaybackStatus.STOPPED
+    assert track.player == ""

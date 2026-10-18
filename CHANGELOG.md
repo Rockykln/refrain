@@ -11,6 +11,12 @@ lists every version and why.
 
 ### Fixed
 
+- **A Bluetooth device between apps no longer hides a paused song.** Such a
+  device reports itself as playing with no metadata at all, and a playing
+  source outranks a paused one — so an Apple Music tab paused mid-song
+  disappeared from the tray and the Status window in favour of nothing.
+  The rule that a reading without a song is not playing now covers both
+  sources.
 - **An Apple Music tab with nothing loaded no longer counts as playing.**
   Left open on the home page, the tab keeps a media session alive and the
   browser reports it as playing — the state comes from the looping artwork

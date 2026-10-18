@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -44,6 +45,17 @@ class TrackInfo:
 
     def fingerprint(self) -> str:
         return f"{self.content_key()}|{self.status.value}"
+
+
+def quiet_without_a_song(track: TrackInfo) -> TrackInfo:
+    """Playing and paused both claim there is a song. A player can claim it
+    with nothing loaded — an Apple Music tab sitting on the home page does,
+    a Bluetooth device between apps does — and a state with no song outranks
+    a real one that is merely paused. Naming the player would mislead too:
+    the Status window reads that as a browser whose page it can't recognise."""
+    if track.has_track or track.status == PlaybackStatus.STOPPED:
+        return track
+    return dataclasses.replace(track, status=PlaybackStatus.STOPPED, player="")
 
 
 # Control characters and the bidi overrides, which no song title needs. A
