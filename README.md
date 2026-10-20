@@ -127,6 +127,13 @@ know up front whether your environment can host the RPC at all.
 After the wizard, the **Status window** says *You're all set*. Play a
 song and it shows up in Discord within a few seconds.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/status-light.png"/>
+    <img src="https://raw.githubusercontent.com/Rockykln/refrain/main/docs/screenshots/status.png" alt="Status window" width="420"/>
+  </picture>
+</p>
+
 ## Last.fm scrobbling
 
 Refrain can scrobble to [Last.fm](https://www.last.fm) **alongside** the
