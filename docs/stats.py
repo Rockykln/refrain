@@ -1,6 +1,6 @@
 """Write the stats block at the bottom of README.md from the committed tree.
 
-python docs/stats.py 0.5.3 [--downloads N]
+python docs/stats.py 0.5.3
 """
 
 from __future__ import annotations
@@ -182,11 +182,6 @@ def replace_block(text: str, block: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("version")
-    parser.add_argument(
-        "--downloads",
-        type=int,
-        help="PyPI (last 180 days) plus GitHub release downloads, looked up by hand",
-    )
     args = parser.parse_args()
     version = args.version.removeprefix("v")
     files = head_files()
@@ -230,10 +225,6 @@ def main() -> int:
     if coverage is not None:
         names = [name for name, _ in stats]
         stats.insert(names.index("Automated tests") + 1, ("Test coverage", f"{coverage} %"))
-    if args.downloads is not None:
-        stats.insert(
-            stats.index(("Versions released", len(tags))) + 1, ("Downloads", args.downloads)
-        )
     block = render(version, stats)
     text = README.read_text(encoding="utf-8")
     README.write_text(replace_block(text, block), encoding="utf-8")

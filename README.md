@@ -236,7 +236,6 @@ inside the app under **Settings → Legal**.
 | Test coverage | 100 % |
 | Days since the first release | 149 |
 | Versions released | 26 |
-| Downloads | 2,937 |
 | Commits | 275 |
 | Languages | 16 |
 | Runtime dependencies | 3 |
