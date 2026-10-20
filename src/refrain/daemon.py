@@ -504,10 +504,10 @@ class DaemonWorker(QObject):
         self._rpc_cover_wait_count = 0
         self._rpc_cover_wait_key = ""
         # When the source first said "paused", so a track change passing
-        # through that state doesn't label the card. The wall clock of the
-        # same moment is what Discord counts the pause up from.
+        # through that state doesn't label the card, and the `start` the
+        # paused card went out with, which has to stay put.
         self._rpc_paused_since: float | None = None
-        self._rpc_paused_at = 0
+        self._rpc_paused_start: int | None = None
         # Idle detection: when the same track-content key has been
         # reported as "playing" for longer than its own duration + a
         # grace window, the source is dangling (typical: browser tab
@@ -1606,12 +1606,11 @@ class DaemonWorker(QObject):
         if track.status == PlaybackStatus.PAUSED:
             if self._rpc_paused_since is None:
                 self._rpc_paused_since = time.monotonic()
-                self._rpc_paused_at = int(time.time())
             if time.monotonic() - self._rpc_paused_since < dev_metrics.grace(_RPC_PAUSE_GRACE_S):
                 return  # still inside a track change; leave the card alone
             is_paused = True
         else:
-            self._rpc_paused_since = None
+            self._rpc_paused_since = self._rpc_paused_start = None
         if not track.title.strip() or track.status not in (
             PlaybackStatus.PLAYING,
             PlaybackStatus.PAUSED,
@@ -1749,10 +1748,15 @@ class DaemonWorker(QObject):
             payload["details_url"] = song_link
             payload["state_url"] = song_link
         if is_paused:
-            # Discord only ever counts away from a timestamp, so counting
-            # the song would run past its own length. The pause can be
-            # counted honestly for as long as it lasts.
-            payload["start"] = self._rpc_paused_at
+            # Discord counts away from `start` and cannot hold a number
+            # still, so the pause gets its own clock from zero rather than
+            # the song's position, which would only crawl past its length.
+            # Set once, when the paused card goes out: recomputing it every
+            # poll moves `start`, and a payload that never settles is a
+            # write to Discord twice a second.
+            if self._rpc_paused_start is None or is_new_track:
+                self._rpc_paused_start = int(time.time())
+            payload["start"] = self._rpc_paused_start
         elif send_timing:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it

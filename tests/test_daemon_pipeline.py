@@ -9,7 +9,12 @@ import pytest
 
 pytest.importorskip("PySide6")
 
-from refrain.daemon import _REFRAIN_ICON_URL, _REFRAIN_URL, DaemonWorker  # noqa: E402
+from refrain.daemon import (  # noqa: E402
+    _REFRAIN_ICON_URL,
+    _REFRAIN_URL,
+    _RPC_PAUSE_GRACE_S,
+    DaemonWorker,
+)
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from tests.daemon_fakes import (  # noqa: E402
     CLIENT_ID,
@@ -87,12 +92,15 @@ def test_pause_keeps_the_song_on_discord_and_resume_shifts_the_timer(rig):
     assert kind == "update"
     assert payload["details"] == TITLE
     assert payload["state"] == f"Paused · {ARTIST}"
-    # `end` draws the bar, and nothing is filling it while the music
-    # stands still. `start` stays, but counts the pause rather than the
-    # song: Discord can only count away from a timestamp, and counting
-    # the song would run past its own length.
+    # `end` draws the bar, and nothing is filling it while the music stands
+    # still. The pause gets its own clock from zero — `start` is the moment
+    # the paused card went out, two seconds of play plus the grace — and it
+    # must not move afterwards, or every poll is another write to Discord.
     assert "end" not in payload
-    assert clock.wall - payload["start"] == pytest.approx(6, abs=1)
+    assert payload["start"] == pytest.approx(WALL0 + 2 + _RPC_PAUSE_GRACE_S, abs=1)
+    stood_at = payload["start"]
+    player.tick(n=10)
+    assert rpc().last[1]["start"] == stood_at
     clock.advance(30)
     player.resume()
     player.tick()
@@ -100,6 +108,22 @@ def test_pause_keeps_the_song_on_discord_and_resume_shifts_the_timer(rig):
     assert kind == "update"
     assert payload["state"] == ARTIST
     assert payload["end"] == payload["start"] + 200
+
+
+def test_a_song_chosen_while_paused_restarts_the_pause_clock(rig):
+    """The clock belongs to the pause it was started for — picking another
+    song without playing it must not carry the old one's count on."""
+    worker, player, _ = rig()
+    player.play()
+    player.tick(n=4)
+    player.pause()
+    player.tick(n=12)
+    first = rpc().last[1]["start"]
+    worker._cover_fetcher.urls[(ARTIST, "Night Ferry")] = COVER + "?d"
+    player.play(title="Night Ferry", position_ms=90_000)
+    player.pause()
+    player.tick(n=12)
+    assert rpc().last[1]["start"] != first
 
 
 def test_a_track_change_does_not_flash_paused(rig):

@@ -15,11 +15,11 @@ lists every version and why.
   card entirely, so taking one headphone out — which pauses the music and
   resumes it when you put it back — made it come and go each time. The card
   now stays and says *Paused* in front of the artist, and the timer counts
-  how long the pause has lasted — Discord can only count away from a point
-  in time, and counting the song would run past its own length. A song
-  reported as paused on the way from one track to the next is not labelled,
-  and a song the player stops naming, or one left paused for half an hour,
-  still takes the card with it.
+  the pause from zero — Discord has no clock that stands still, so the song's
+  own position would only crawl on past its length. A song reported as paused
+  on the way from one track to the next is not labelled, and a song the player
+  stops naming, or one left paused for half an hour, still takes the card
+  with it.
 - **A song is no longer lost from Last.fm when its source goes quiet for a
   moment.** A tab reloading its metadata reports no song for a poll or two,
   which ended the play and restarted the count from zero: 190 seconds of a
