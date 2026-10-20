@@ -9,6 +9,28 @@ lists every version and why.
 
 ## [Unreleased]
 
+### Added
+
+- **Developer mode can drop the waits before a song counts as paused or
+  gone.** Those waits keep the windows, the recently played list, the
+  scrobbler and the Discord card from flickering, and also make them
+  tedious to work on: every change takes seconds to show. With developer
+  mode on, `grace_waits = false` in `config.toml` skips them. Both
+  switches have to be set, so a setting left behind cannot reach a normal
+  run.
+
+### Changed
+
+- **One User-Agent for every request.** The line Refrain sends with each
+  request to Last.fm, iTunes, GitHub and Discord was spelled out in three
+  modules and assembled in a fourth, so the four could drift apart. It now
+  lives next to the version number and names the project address rather
+  than the repository.
+- **The AUR packages no longer suggest `libnotify`.** Notifications fall
+  back to the desktop's notification service over D-Bus when the
+  `notify-send` command it provides is missing, so the optional dependency
+  promised something Refrain does not need.
+
 ### Fixed
 
 - **The warning sign in the tray no longer comes and goes while Discord is
