@@ -110,8 +110,8 @@ def test_the_daemon_notices_what_apply_changed(monkeypatch):
         def close(self):
             pass
 
-        def _ensure_connected(self):
-            return False
+        def start(self):
+            pass
 
     monkeypatch.setattr(daemon, "DiscordRPC", FakeRPC)
     monkeypatch.setattr(daemon.QTimer, "singleShot", lambda *_a: None)

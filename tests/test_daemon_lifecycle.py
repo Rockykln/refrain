@@ -63,6 +63,8 @@ def test_polling_starts_at_the_configured_interval_and_publishes_the_player(rig)
     assert worker._timer.isActive()
     assert worker._timer.interval() == 800
     assert worker._mpris_server.started
+    # Discord is served from its own thread from the first tick onwards.
+    assert rpc().started
     worker._timer.stop()
 
 
@@ -129,7 +131,9 @@ def test_new_app_id_reconnects_discord_straight_away(rig):
     assert old.closed
     assert rpc() is not old
     assert rpc().client_id == "123459999999999999"
-    assert rpc().ensure_calls == 1
+    # Dialling is the serving thread's job now, so the replacement only
+    # has to be started — it reaches for Discord without being asked.
+    assert rpc().started
     player.play()
     player.tick()
     assert rpc().last[1]["details"] == TITLE

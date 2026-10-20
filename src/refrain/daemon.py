@@ -564,6 +564,9 @@ class DaemonWorker(QObject):
         # Pure-polling design (default 500 ms; user-configurable via
         # advanced.poll_interval_ms, floored at 250 ms). Not signal-driven:
         # PySide6's QDBusConnection connect-signature handling is too brittle.
+        # Discord gets its own thread: a client that takes seconds to
+        # answer must not hold up the poll that follows the music.
+        self._rpc.start()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(max(self._config.advanced.poll_interval_ms, 250))
@@ -593,7 +596,7 @@ class DaemonWorker(QObject):
         with contextlib.suppress(Exception):
             # Past the rate limit: the socket closes right after, and a
             # held-back clear would leave the last song on the profile.
-            self._rpc.clear(force=True)
+            self._rpc.post_clear(force=True)
         with contextlib.suppress(Exception):
             self._rpc.close()
         with contextlib.suppress(Exception):
@@ -631,15 +634,12 @@ class DaemonWorker(QObject):
             with contextlib.suppress(Exception):
                 self._rpc.close()
             self._rpc = DiscordRPC(config.discord.client_id, config.discord.all_clients)
+            self._rpc.start()
             self._rpc_active_client_id = config.discord.client_id
-            # Eagerly establish the IPC pipe instead of waiting for the
-            # next playing-state tick to do it. `_update_rpc` only
-            # touches `_rpc` when a track is actually playing, so a
-            # user who entered their Application ID with Apple Music
-            # paused would otherwise sit there waiting for Discord to
-            # connect until they pressed Play.
-            with contextlib.suppress(Exception):
-                self._rpc._ensure_connected()
+            # No dialling by hand: the serving thread keeps reaching for
+            # a client whether or not a track is playing, so a user who
+            # entered their Application ID while paused is connected
+            # without having to press Play.
             # Trigger an immediate poll so any currently-playing track
             # shows up in Discord without waiting for the next tick.
             QTimer.singleShot(0, self._tick)
@@ -1347,9 +1347,6 @@ class DaemonWorker(QObject):
             )
         self._clock.lap("mpris")
 
-        # A status held back by the rate limit goes out even on a tick
-        # that brings nothing new.
-        self._rpc.pump()
         self._emit_service_states(shown)
 
     def _emit_service_states(self, track: TrackInfo) -> None:
@@ -1591,13 +1588,14 @@ class DaemonWorker(QObject):
             with contextlib.suppress(Exception):
                 self._rpc.close()
             self._rpc = DiscordRPC(target_client_id, self._config.discord.all_clients)
+            self._rpc.start()
             self._rpc_active_client_id = target_client_id
             # Force a fresh start_ts on next compute, since pypresence
             # no longer has any state for the old activity.
             self._rpc_track_key = ""
 
         if self._config.privacy.mode == "off":
-            self._rpc.clear()
+            self._rpc.post_clear()
             return
         # Dropping a paused song made the card come and go every time a
         # headphone left an ear. It goes once the source stops naming the
@@ -1615,16 +1613,15 @@ class DaemonWorker(QObject):
             PlaybackStatus.PLAYING,
             PlaybackStatus.PAUSED,
         ):
-            # Connected while idle too, so "ready" and a refused Application
-            # ID show before the first song, not only once one plays.
-            self._rpc._ensure_connected()
-            self._rpc.clear()
+            # The serving thread is already dialling, so "ready" and a
+            # refused Application ID show before the first song.
+            self._rpc.post_clear()
             return
 
         if self._config.privacy.mode == "minimal":
             artwork = self._rpc_artwork("", "")
             self._log_artwork(artwork)
-            self._rpc.update(
+            self._rpc.post(
                 details="Paused" if is_paused else "Listening to music",
                 large_text="Refrain",
                 **artwork,
@@ -1788,7 +1785,7 @@ class DaemonWorker(QObject):
                 effective_duration_ms,
             )
             self._last_rpc_timing = timing
-        self._rpc.update(**payload)
+        self._rpc.post(**payload)
 
     def _notify(
         self,

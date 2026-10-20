@@ -86,6 +86,40 @@ def test_with_no_visible_socket_pypresence_searches_itself(discord):
     assert rpc.status_detail == "auto"
 
 
+def test_a_timed_out_handshake_still_names_the_reason(discord, clock, caplog):
+    """A bare TimeoutError carries no message, so the log line and the status
+    detail both ended on a colon and said nothing about what went wrong."""
+    discord.failures[0] = TimeoutError()
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    with caplog.at_level(logging.DEBUG, logger="refrain.discord_rpc"):
+        assert rpc._ensure_connected() is False
+    assert "TimeoutError" in rpc.status_detail
+    assert any("TimeoutError" in r.getMessage() for r in caplog.records)
+
+
+def test_a_connection_that_took_several_tries_says_so(discord, clock, caplog):
+    """Discord often needs longer than one handshake window, so the warning
+    stands for a while. The log says how long it stood and how many attempts
+    it cost — without that the recovery is invisible."""
+    discord.failures[0] = TimeoutError()
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    assert rpc._ensure_connected() is False
+    clock.now += 10.0
+    assert rpc._ensure_connected() is False
+    discord.failures.clear()
+    clock.now += 10.0
+    with caplog.at_level(logging.INFO, logger="refrain.discord_rpc"):
+        assert rpc._ensure_connected() is True
+    assert "took 20.0s and 3 attempts" in caplog.text
+
+
+def test_a_connection_on_the_first_try_stays_quiet_about_it(discord, caplog):
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    with caplog.at_level(logging.INFO, logger="refrain.discord_rpc"):
+        assert rpc._ensure_connected() is True
+    assert "attempts" not in caplog.text
+
+
 def test_a_failed_connect_reports_no_client_and_waits(discord, clock):
     discord.failures[0] = ConnectionRefusedError("connection refused")
     rpc = drpc.DiscordRPC(CLIENT_ID)

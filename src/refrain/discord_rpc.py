@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import socket
+import threading
 import time
 from collections import deque
 from enum import StrEnum
@@ -131,9 +132,16 @@ _RESEND_S = 30.0
 _WRITE_TOKENS = 5
 _WRITE_WINDOW_S = 20.0
 # pypresence waits 30 s to connect, 10 s for a reply and forever during the
-# handshake; a frozen client would hold up the daemon tick that long.
+# handshake, so each gets a bound of its own. They are this roomy because the
+# waiting happens on the serving thread: measured against a real client, a
+# handshake answers at once or takes five to ten seconds, and the three
+# seconds this used to allow lost that race more often than it won it.
 _CONNECT_TIMEOUT_S = 2.0
-_RESPONSE_TIMEOUT_S = 3.0
+_RESPONSE_TIMEOUT_S = 10.0
+_HANDSHAKE_TIMEOUT_S = 15.0
+# Quitting does not wait out a handshake. The serving thread is a daemon
+# thread, so one still dialling when the process ends goes with it.
+_STOP_WAIT_S = 3.0
 # A Discord that is still starting up ends the handshake with code 1000, the
 # same answer a signed-out one gives, so the answer has to keep coming for a
 # while before the user is told to log in. Asking again on a fixed short
@@ -166,6 +174,11 @@ _BUTTONS_MAX = 2
 _PAD = "\N{BRAILLE PATTERN BLANK}"
 _ELLIPSIS = "…"
 
+# How often the serving thread looks for work of its own accord. Posting
+# wakes it immediately; this is only the floor for the rate-limited resend
+# and for retrying a connection while Discord is away.
+_SERVE_TICK_S = 0.5
+
 _TIMEOUTS = (TimeoutError, ppx.ConnectionTimeout, ppx.ResponseTimeout)
 _CLEAR = object()
 
@@ -178,6 +191,13 @@ class RPCState(StrEnum):
     CONNECTED_IDLE = "connected_idle"
     SHOWING = "showing"
     ERROR = "error"
+
+
+def _describe(e: BaseException) -> str:
+    """Name the exception type: `str()` on a bare TimeoutError is empty,
+    which left both the log line and the status detail without a reason."""
+    text = str(e)
+    return f"{type(e).__name__}: {text}" if text else type(e).__name__
 
 
 def _utf16_len(text: str) -> int:
@@ -355,6 +375,24 @@ class DiscordRPC:
         # Set while something is wrong beyond "Discord is not running":
         # a refused payload or a client that stopped answering.
         self._fault = ""
+        # How long the user has been looking at the warning: Discord often
+        # needs longer than one handshake window, so a connection usually
+        # arrives a few attempts in. Reported once, when it finally lands.
+        self._connect_tries = 0
+        self._connect_since = 0.0
+        # Discord is served from a thread of its own once start() runs.
+        # pypresence builds its asyncio loop and socket in whichever thread
+        # calls connect() and an asyncio loop is not thread-safe, so that
+        # thread keeps them to itself: the daemon only posts and reads.
+        self._thread: threading.Thread | None = None
+        self._wake = threading.Event()
+        self._stop = threading.Event()
+        # Guards the handover both ways: what to send next, and what the
+        # daemon is told about the connection.
+        self._gate = threading.Lock()
+        self._inbox: object = None
+        self._inbox_force = False
+        self._shown: tuple[bool, RPCState, str] = (False, RPCState.NO_CLIENT, "")
         # Remembered so a changing client line-up is logged once, not per tick.
         self._last_live_pipes: list[int] = []
         # Why we are not connected, for the startup check and the tray.
@@ -398,10 +436,28 @@ class DiscordRPC:
             self._presences = {"primary": value}
 
     def is_connected(self) -> bool:
-        return bool(self._presences)
+        if self._thread is None:
+            return bool(self._presences)
+        with self._gate:
+            return self._shown[0]
 
     @property
     def state(self) -> RPCState:
+        if self._thread is None:
+            return self._live_state
+        with self._gate:
+            return self._shown[1]
+
+    @property
+    def detail(self) -> str:
+        """The reason behind ``state``, or the pipes served while all is well."""
+        if self._thread is None:
+            return self._live_detail
+        with self._gate:
+            return self._shown[2]
+
+    @property
+    def _live_state(self) -> RPCState:
         if not self.client_id:
             return RPCState.DISABLED
         if not self._presences:
@@ -417,8 +473,7 @@ class DiscordRPC:
         return RPCState.CONNECTED_IDLE
 
     @property
-    def detail(self) -> str:
-        """The reason behind ``state``, or the pipes served while all is well."""
+    def _live_detail(self) -> str:
         return self._fault or self.status_detail
 
     def _open(self, target: object) -> Presence:
@@ -428,7 +483,7 @@ class DiscordRPC:
         handshake = p.handshake
 
         async def bounded_handshake():
-            await asyncio.wait_for(handshake(), _RESPONSE_TIMEOUT_S)
+            await asyncio.wait_for(handshake(), _HANDSHAKE_TIMEOUT_S)
 
         p.handshake = bounded_handshake  # type: ignore[method-assign]  # bounds pypresence's own handshake
         # pypresence opens an event loop in the constructor and a second one in
@@ -536,9 +591,18 @@ class DiscordRPC:
                 break
             except Exception as e:
                 last_error = e
-                log.debug("Discord RPC connect failed on %s: %s", target, e)
+                log.debug("Discord RPC connect failed on %s: %s", target, _describe(e))
 
         now = time.monotonic()
+        if connected_now:
+            waited_tries, waited_since = self._connect_tries, self._connect_since
+            self._connect_tries = 0
+        else:
+            waited_tries = 0
+            if not self._presences:
+                if not self._connect_tries:
+                    self._connect_since = now
+                self._connect_tries += 1
         if not_logged_in and not connected_now:
             if not self._signed_out_tries:
                 self._signed_out_since = now
@@ -575,9 +639,14 @@ class DiscordRPC:
                 for t in sorted(self._presences, key=str)
             )
             log.info(
-                "Discord RPC connected (%s)%s",
+                "Discord RPC connected (%s)%s%s",
                 self.status_detail,
                 f" — {len(self._presences)} clients" if len(self._presences) > 1 else "",
+                (
+                    f" — took {now - waited_since:.1f}s and {waited_tries + 1} attempts"
+                    if waited_tries
+                    else ""
+                ),
             )
             return True
 
@@ -591,7 +660,7 @@ class DiscordRPC:
         if signed_out and self.status != "not_logged_in":
             log.info("Discord RPC: Discord is open but not logged in: %s", last_error)
         self.status = "not_logged_in" if signed_out else "no_client"
-        self.status_detail = str(last_error) if last_error else "no client reachable"
+        self.status_detail = _describe(last_error) if last_error else "no client reachable"
         self._fault = "Discord did not answer in time" if isinstance(last_error, _TIMEOUTS) else ""
         if not_logged_in and not signed_out:
             self._next_retry_ts = now + _SIGNED_OUT_RETRY_S
@@ -755,7 +824,86 @@ class DiscordRPC:
         self._cleared = True
         self._last_sent_mono = now
 
+    def start(self) -> None:
+        """Serve Discord from a thread of its own.
+
+        Everything here used to run inside the poll that follows the music,
+        so a client taking five seconds to answer a handshake stopped the
+        daemon for five seconds. The waits are now out of that path, which
+        is what lets them be generous enough for Discord to finish.
+        """
+        if self._thread is not None:
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._serve, name="refrain-discord", daemon=True)
+        self._thread.start()
+
+    def post(self, **payload) -> None:
+        """Hand the serving thread what Discord should show next."""
+        with self._gate:
+            self._inbox = payload
+        self._wake.set()
+
+    def post_clear(self, force: bool = False) -> None:
+        with self._gate:
+            self._inbox = _CLEAR
+            self._inbox_force = self._inbox_force or force
+        self._wake.set()
+
+    def _serve(self) -> None:
+        while not self._stop.is_set():
+            self._wake.wait(_SERVE_TICK_S)
+            self._wake.clear()
+            if self._stop.is_set():
+                break
+            with self._gate:
+                job, force = self._inbox, self._inbox_force
+                self._inbox, self._inbox_force = None, False
+            try:
+                if job is _CLEAR:
+                    self.clear(force=force)
+                elif isinstance(job, dict):
+                    self.update(**job)
+                else:
+                    # Nothing new: keep reaching for a client that is not
+                    # there yet, and let a held-back payload go out.
+                    self._ensure_connected()
+                    self.pump()
+            except Exception:
+                # Dying here would leave Discord unserved for the rest of
+                # the session.
+                log.exception("Discord RPC serving thread hit an error")
+            self._publish()
+        # The connection belongs to this thread, so it is taken down here
+        # too — pypresence closes the asyncio loop it built, and that loop
+        # was built in here. A clear posted on the way out goes first, or
+        # the last song would stay on the profile after quitting.
+        with contextlib.suppress(Exception):
+            if self._inbox is _CLEAR:
+                self.clear(force=True)
+        self._teardown()
+        self._publish()
+
+    def _publish(self) -> None:
+        shown = (bool(self._presences), self._live_state, self._live_detail)
+        with self._gate:
+            self._shown = shown
+
     def close(self) -> None:
+        thread = self._thread
+        if thread is None:
+            self._teardown()
+            return
+        self._stop.set()
+        self._wake.set()
+        thread.join(timeout=_STOP_WAIT_S)
+        self._thread = None
+        if thread.is_alive():
+            # Nothing safe is left to do: the socket and its asyncio loop
+            # belong to a thread that has not come back.
+            log.warning("Discord RPC serving thread did not stop in time")
+
+    def _teardown(self) -> None:
         self._pending = None
         if not self._presences:
             return

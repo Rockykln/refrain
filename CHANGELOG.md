@@ -11,6 +11,15 @@ lists every version and why.
 
 ### Fixed
 
+- **The warning sign in the tray no longer comes and goes while Discord is
+  starting up.** Refrain talked to Discord inside the same poll that follows
+  the music, so it could only ever allow the handshake three seconds before
+  giving up — longer, and the poll would have stalled with it. Discord
+  regularly takes five to ten. Discord is now served from a thread of its
+  own, where waiting costs nothing, and the handshake may take fifteen
+  seconds. When a connection does take several tries, the log says how long
+  it stood and how many; a failure that timed out says so by name instead of
+  ending in a colon.
 - **A paused song no longer disappears from Discord.** Pausing cleared the
   card entirely, so taking one headphone out — which pauses the music and
   resumes it when you put it back — made it come and go each time. The card

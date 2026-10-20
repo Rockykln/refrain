@@ -40,7 +40,8 @@ def test_nothing_playing_is_ready_not_disconnected(rig):
     worker, player, discord, _ = rig()
     player.tick(n=3)
     assert discord == [("ready", "")]
-    assert rpc().ensure_calls == 3
+    # Idle still reaches Discord — the daemon posts, the serving thread dials.
+    assert [kind for kind, _ in rpc().calls] == ["clear"] * 3
 
 
 def test_a_playing_song_is_showing_and_a_pause_says_so(rig):
@@ -107,12 +108,15 @@ def test_the_state_is_signalled_only_on_change(rig):
     assert lastfm == [("off", "")]
 
 
-def test_the_rate_limited_status_is_pumped_every_tick(rig):
+def test_the_poll_hands_discord_over_instead_of_waiting_on_it(rig):
+    """Sending used to happen inside the poll that follows the music, so a
+    slow client stopped it. The poll now only hands the status over."""
     worker, player, _, _ = rig()
     player.tick(n=4)
     player.play()
     player.tick(n=4)
-    assert rpc().pumps == 8
+    assert rpc().pumps == 0
+    assert [kind for kind, _ in rpc().calls] == ["clear"] * 4 + ["update"]
 
 
 @pytest.mark.parametrize(

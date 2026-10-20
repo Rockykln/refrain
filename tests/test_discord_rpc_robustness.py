@@ -585,16 +585,27 @@ pypresence_leaks = pytest.mark.filterwarnings("ignore:unclosed scandir iterator:
 
 
 @pypresence_leaks
-def test_a_client_that_never_finishes_the_handshake_does_not_block(real_ipc):
+def test_a_client_that_never_finishes_the_handshake_does_not_block(real_ipc, monkeypatch):
+    """The handshake window is fifteen seconds now, so the guarantee cannot
+    rest on a short timeout any more. It rests on where the waiting happens:
+    on the serving thread, with nobody else held up behind it."""
+    monkeypatch.setattr(drpc, "_STOP_WAIT_S", 0.5)
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as silent:
         silent.bind(str(real_ipc.path))
         silent.listen(8)
         rpc = drpc.DiscordRPC(CLIENT_ID)
-        began = time.monotonic()
-        rpc.update(details="Glass Tides", state="Neon Harbor")
-        assert time.monotonic() - began < 2.0
-    assert rpc.is_connected() is False
-    assert rpc.state is RPCState.ERROR
+        rpc.start()
+        try:
+            began = time.monotonic()
+            for _ in range(20):
+                rpc.post(details="Glass Tides", state="Neon Harbor")
+                rpc.is_connected()
+                assert rpc.state is not None
+                assert rpc.detail is not None
+            assert time.monotonic() - began < 1.0
+            assert rpc.is_connected() is False
+        finally:
+            rpc.close()
 
 
 @pypresence_leaks

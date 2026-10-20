@@ -50,6 +50,7 @@ class FakeRPC:
         self.pumps = 0
         self.forced_state = None
         self.detail = ""
+        self.started = False
         FakeRPC.instances.append(self)
 
     def update(self, **payload) -> None:
@@ -57,6 +58,17 @@ class FakeRPC:
 
     def clear(self, force: bool = False) -> None:
         self.calls.append(("clear", {"force": force} if force else {}))
+
+    def start(self) -> None:
+        self.started = True
+
+    # The daemon hands work to the serving thread rather than doing it
+    # inline; the fake does it at once so the tests stay synchronous.
+    def post(self, **payload) -> None:
+        self.update(**payload)
+
+    def post_clear(self, force: bool = False) -> None:
+        self.clear(force=force)
 
     def close(self) -> None:
         self.closed = True
