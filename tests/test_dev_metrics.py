@@ -438,3 +438,18 @@ def test_a_window_hidden_before_the_check_is_skipped(collector):
     w.hide()
     QTest.qWait(dev_metrics.LAYOUT_CHECK_DELAY_MS + 200)
     assert dev_metrics.snapshot()["layout"] == {}
+
+
+def test_the_waits_stand_unless_both_switches_are_set():
+    """A config left behind must not change a normal run, so the switch
+    only counts while developer mode is on."""
+    dev_metrics.set_grace_waits(False)
+    try:
+        dev_metrics.set_enabled(False)
+        assert dev_metrics.grace(2.0) == 2.0
+        dev_metrics.set_enabled(True)
+        assert dev_metrics.grace(2.0) == 0.0
+        dev_metrics.set_grace_waits(True)
+        assert dev_metrics.grace(2.0) == 2.0
+    finally:
+        dev_metrics.set_grace_waits(True)

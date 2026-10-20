@@ -283,6 +283,27 @@ def enabled() -> bool:
     return _recorder is not None
 
 
+_skip_grace = False
+
+
+def set_grace_waits(on: bool) -> None:
+    """Whether the waits before a label changes are kept. Developer mode
+    only; `grace()` ignores this while it is off."""
+    global _skip_grace
+    _skip_grace = not on
+
+
+def grace(seconds: float) -> float:
+    """A wait that keeps a label from flickering, or none of it.
+
+    The waits are what make the pause and gone labels steady, and also
+    what makes working on them tedious: every change takes seconds to
+    show. Both switches have to be set, so a config left behind cannot
+    affect a normal run.
+    """
+    return 0.0 if (_recorder is not None and _skip_grace) else seconds
+
+
 def recorder() -> Recorder | None:
     return _recorder
 

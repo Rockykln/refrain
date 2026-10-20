@@ -45,7 +45,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from refrain import __version__
+from refrain import __version__, dev_metrics
 from refrain.cover_art import image_path_for_url
 from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir, state_dir
@@ -770,7 +770,7 @@ class StatusWindow(QDialog):
             self._paused_key, self._paused_since = key, time.monotonic()
         elif self._paused_since is None:
             self._paused_since = time.monotonic()
-        left = PAUSE_SHOWN_AFTER_S - (time.monotonic() - self._paused_since)
+        left = dev_metrics.grace(PAUSE_SHOWN_AFTER_S) - (time.monotonic() - self._paused_since)
         if left > 0:
             self._pause_label.start(int(left * 1000) + 50)
             return False

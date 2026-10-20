@@ -136,6 +136,7 @@ def test_dataclasses_have_expected_fields():
         "hover_scroll_ms",
         "developer_mode",
         "developer_unlocked",
+        "grace_waits",
     } == set(AdvancedConfig.__dataclass_fields__)
     from refrain.config import LastfmConfig
 

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from refrain import dev_metrics
 from refrain.config import HISTORY_LIMIT_MAX, HistoryConfig
 from refrain.paths import state_dir, write_private
 from refrain.scrobble import (
@@ -352,7 +353,7 @@ class PlayHistory:
             elif cur is not None or self._ignore_key is not None:
                 if self._gone_at is None:
                     self._gone_at = now_mono
-                if now_mono - self._gone_at <= _GONE_GRACE_S:
+                if now_mono - self._gone_at <= dev_metrics.grace(_GONE_GRACE_S):
                     if cur is not None:
                         cur.played_ms, cur.last_mono = accrue_play_ms(
                             cur.played_ms, cur.last_mono, False, now_mono
@@ -378,7 +379,8 @@ class PlayHistory:
                 follows_play = cur is not None and (
                     cur.playing
                     or (
-                        cur.paused_at is not None and now_mono - cur.paused_at < PAUSE_SHOWN_AFTER_S
+                        cur.paused_at is not None
+                        and now_mono - cur.paused_at < dev_metrics.grace(PAUSE_SHOWN_AFTER_S)
                     )
                 )
                 changed = self._finish_current_locked()
@@ -438,7 +440,9 @@ class PlayHistory:
             else:
                 if cur.paused_at is None:
                     cur.paused_at = now_mono
-                if cur.shown_playing and now_mono - cur.paused_at >= PAUSE_SHOWN_AFTER_S:
+                if cur.shown_playing and now_mono - cur.paused_at >= dev_metrics.grace(
+                    PAUSE_SHOWN_AFTER_S
+                ):
                     cur.shown_playing = False
                     changed = True
             if not cur.counted and counts_as_played(cur.played_ms, cur.entry.duration_ms):

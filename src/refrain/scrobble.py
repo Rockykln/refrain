@@ -615,7 +615,7 @@ class Scrobbler:
             elif self._key is not None:
                 if self._gone_since is None:
                     self._gone_since = now_mono
-                if now_mono - self._gone_since <= GONE_GRACE_S:
+                if now_mono - self._gone_since <= dev_metrics.grace(GONE_GRACE_S):
                     # Carry the play on as it stands. The track is stopped,
                     # so nothing is credited for the gap and no "now
                     # playing" goes out; only the count survives.

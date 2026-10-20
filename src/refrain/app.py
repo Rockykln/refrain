@@ -784,6 +784,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
 
     config = Config.load()
     dev_metrics.set_enabled(config.advanced.developer_mode)
+    dev_metrics.set_grace_waits(config.advanced.grace_waits)
     dev_metrics.mark("config_loaded")
     if not args.debug:
         _apply_log_level(config)
@@ -1102,6 +1103,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     def _apply_developer_mode(c: Config) -> None:
         on = c.advanced.developer_mode
         dev_metrics.set_enabled(on)
+        dev_metrics.set_grace_waits(c.advanced.grace_waits)
         tray.set_developer_mode(on)
         log_window.set_developer_mode(on)
 

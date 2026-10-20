@@ -1607,7 +1607,7 @@ class DaemonWorker(QObject):
             if self._rpc_paused_since is None:
                 self._rpc_paused_since = time.monotonic()
                 self._rpc_paused_at = int(time.time())
-            if time.monotonic() - self._rpc_paused_since < _RPC_PAUSE_GRACE_S:
+            if time.monotonic() - self._rpc_paused_since < dev_metrics.grace(_RPC_PAUSE_GRACE_S):
                 return  # still inside a track change; leave the card alone
             is_paused = True
         else:

@@ -302,6 +302,10 @@ class AdvancedConfig:
     developer_mode: bool = False
     # Once unlocked, the developer switch stays in Settings even while off.
     developer_unlocked: bool = False
+    # Not in Settings on purpose, and only read while developer mode is on:
+    # the waits that keep a label from flickering also make one tedious to
+    # work on, because every change takes seconds to show. False skips them.
+    grace_waits: bool = True
 
 
 @dataclass
