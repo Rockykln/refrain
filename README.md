@@ -2,11 +2,13 @@
 
 **Discord Rich Presence for Apple Music on Linux.**
 
-[![tests](https://github.com/Rockykln/refrain/actions/workflows/tests.yml/badge.svg)](https://github.com/Rockykln/refrain/actions/workflows/tests.yml)
-[![codeql](https://github.com/Rockykln/refrain/actions/workflows/codeql.yml/badge.svg)](https://github.com/Rockykln/refrain/actions/workflows/codeql.yml)
-[![security](https://github.com/Rockykln/refrain/actions/workflows/security.yml/badge.svg)](https://github.com/Rockykln/refrain/actions/workflows/security.yml)
-[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](#requirements)
-[![license](https://img.shields.io/badge/license-Use--Only-orange.svg)](LICENSE)
+[![release](https://img.shields.io/github/v/release/Rockykln/refrain?logo=github&logoColor=white&label=release&color=1f7a4d)](https://github.com/Rockykln/refrain/releases/latest)
+[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?logo=python&logoColor=white)](#requirements)
+[![license](https://img.shields.io/badge/license-Use--Only-orange?logo=opensourceinitiative&logoColor=white)](LICENSE)
+
+[![tests](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/tests.yml?logo=githubactions&logoColor=white&label=tests)](https://github.com/Rockykln/refrain/actions/workflows/tests.yml)
+[![codeql](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/codeql.yml?logo=github&logoColor=white&label=codeql)](https://github.com/Rockykln/refrain/actions/workflows/codeql.yml)
+[![security](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/security.yml?logo=shieldsdotio&logoColor=white&label=security)](https://github.com/Rockykln/refrain/actions/workflows/security.yml)
 
 Refrain shows what you're listening to on Apple Music as your Discord status
 — whether the audio is playing in a browser tab on `music.apple.com` or
