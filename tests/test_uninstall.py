@@ -170,12 +170,16 @@ def test_purge_secret_failure_is_non_fatal(iso, monkeypatch):
 @pytest.mark.parametrize("refused", ["lastfm_shared_secret", "lastfm_session_key"])
 def test_purge_reports_credentials_the_keyring_would_not_drop(iso, refused):
     class Refusing(FakeStore):
-        def delete(self, k):
-            return k != refused and super().delete(k)
+        def delete(self, key):
+            return key != refused and super().delete(key)
 
-    rep = uninstall.purge(keyring=Refusing())
+    store = Refusing()
+    rep = uninstall.purge(keyring=store)
     assert rep.keyring_cleared is False
-    assert any("may still be in your keyring" in f for f in rep.failed)
+    assert rep.failed == []  # not a path, so it stays out of the file list
+    # The refused entry must not stop the other one from going.
+    both = ["lastfm_shared_secret", "lastfm_session_key"]
+    assert store.deleted == [k for k in both if k != refused]
 
 
 # --------------------------------------------------------------------------- #

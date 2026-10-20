@@ -1429,257 +1429,257 @@ The settings you just changed will apply for this session but won&apos;t persist
         <translation>状态</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="497"/>
+        <location filename="../ui/status_window.py" line="504"/>
         <source>Previous song</source>
         <translation>上一首</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="500"/>
+        <location filename="../ui/status_window.py" line="507"/>
         <source>Play or pause</source>
         <translation>播放或暂停</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="504"/>
+        <location filename="../ui/status_window.py" line="511"/>
         <source>Next song</source>
         <translation>下一首</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="532"/>
+        <location filename="../ui/status_window.py" line="539"/>
         <source>Update…</source>
         <translation>更新…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="546"/>
+        <location filename="../ui/status_window.py" line="553"/>
         <source>Recently played</source>
         <translation>最近播放</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="550"/>
+        <location filename="../ui/status_window.py" line="557"/>
         <source>Show all</source>
         <translation>显示全部</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="558"/>
-        <location filename="../ui/status_window.py" line="934"/>
+        <location filename="../ui/status_window.py" line="565"/>
+        <location filename="../ui/status_window.py" line="962"/>
         <source>Songs you play show up here.</source>
         <translation>你播放的歌曲会显示在这里。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="560"/>
+        <location filename="../ui/status_window.py" line="567"/>
         <source>Turn on Recently played</source>
         <translation>开启最近播放</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="581"/>
+        <location filename="../ui/status_window.py" line="588"/>
         <source>Settings…</source>
         <translation>设置…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="594"/>
+        <location filename="../ui/status_window.py" line="601"/>
         <source>View Refrain on GitHub</source>
         <translation>在 GitHub 上查看 Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="626"/>
+        <location filename="../ui/status_window.py" line="633"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>根据 Refrain 重启前的播放位置估算</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="707"/>
+        <location filename="../ui/status_window.py" line="714"/>
         <source>Nothing playing</source>
         <translation>未在播放</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="717"/>
+        <location filename="../ui/status_window.py" line="724"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} 正在播放，但没有说明是哪个页面。请安装 Plasma Browser Integration（软件包 plasma-browser-integration 以及浏览器扩展“Plasma Integration”），或改用 Firefox。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="725"/>
+        <location filename="../ui/status_window.py" line="732"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>在浏览器中的 Apple Music 里播放一首歌，或通过手机的 Bluetooth 播放。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="739"/>
+        <location filename="../ui/status_window.py" line="746"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="741"/>
+        <location filename="../ui/status_window.py" line="748"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="745"/>
+        <location filename="../ui/status_window.py" line="754"/>
         <source>Paused · {source}</source>
         <translation>已暂停 · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="795"/>
+        <location filename="../ui/status_window.py" line="823"/>
         <source>Not set up yet</source>
         <translation>尚未设置</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="796"/>
-        <location filename="../ui/status_window.py" line="827"/>
-        <location filename="../ui/status_window.py" line="833"/>
+        <location filename="../ui/status_window.py" line="824"/>
+        <location filename="../ui/status_window.py" line="855"/>
+        <location filename="../ui/status_window.py" line="861"/>
         <source>Set up…</source>
         <translation>设置…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="798"/>
+        <location filename="../ui/status_window.py" line="826"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord 应用未运行</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="800"/>
+        <location filename="../ui/status_window.py" line="828"/>
         <source>Application ID rejected</source>
         <translation>Application ID 被拒绝</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="801"/>
+        <location filename="../ui/status_window.py" line="829"/>
         <source>Fix…</source>
         <translation>修复…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="804"/>
+        <location filename="../ui/status_window.py" line="832"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord 已打开，但尚未登录。请登录 Discord 以显示你的状态。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="807"/>
+        <location filename="../ui/status_window.py" line="835"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord 目前没有响应</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="809"/>
+        <location filename="../ui/status_window.py" line="837"/>
         <source>Ready — waiting for music</source>
         <translation>已就绪——等待音乐</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="811"/>
+        <location filename="../ui/status_window.py" line="839"/>
         <source>Visible on your profile</source>
         <translation>资料中可见</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="813"/>
+        <location filename="../ui/status_window.py" line="841"/>
         <source>Showing “Listening to music”</source>
         <translation>正在显示“Listening to music”</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="815"/>
+        <location filename="../ui/status_window.py" line="843"/>
         <source>Showing the song as paused</source>
         <translation>歌曲显示为已暂停</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="817"/>
+        <location filename="../ui/status_window.py" line="845"/>
         <source>Hidden — sharing is off</source>
         <translation>已隐藏——共享已关闭</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="819"/>
+        <location filename="../ui/status_window.py" line="847"/>
         <source>Checking…</source>
         <translation>正在检查…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="826"/>
+        <location filename="../ui/status_window.py" line="854"/>
         <source>Off</source>
         <translation>关闭</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="829"/>
+        <location filename="../ui/status_window.py" line="857"/>
         <source>Connected, but scrobbling is off</source>
         <translation>已连接，但记录播放已关闭</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="830"/>
+        <location filename="../ui/status_window.py" line="858"/>
         <source>Open Last.fm settings…</source>
         <translation>打开 Last.fm 设置…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="832"/>
+        <location filename="../ui/status_window.py" line="860"/>
         <source>Not connected yet</source>
         <translation>尚未连接</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="836"/>
+        <location filename="../ui/status_window.py" line="864"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n 条待发送的播放记录</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="838"/>
+        <location filename="../ui/status_window.py" line="866"/>
         <source>Sign-in expired</source>
         <translation>登录已过期</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="839"/>
+        <location filename="../ui/status_window.py" line="867"/>
         <source>Reconnect…</source>
         <translation>重新连接…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="841"/>
+        <location filename="../ui/status_window.py" line="869"/>
         <source>Paused — sharing is off</source>
         <translation>已暂停——共享已关闭</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="843"/>
+        <location filename="../ui/status_window.py" line="871"/>
         <source>Scrobbling as {user}</source>
         <translation>正在以 {user} 身份记录播放</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="845"/>
+        <location filename="../ui/status_window.py" line="873"/>
         <source>Scrobbling</source>
         <translation>正在记录播放</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="853"/>
+        <location filename="../ui/status_window.py" line="881"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>Refrain 上次意外关闭。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="854"/>
+        <location filename="../ui/status_window.py" line="882"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>报告位于 &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="870"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>You&apos;re all set.</source>
         <translation>一切就绪。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="872"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>在 Apple Music 中播放一首歌——几秒内就会出现在 Discord 里。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="936"/>
+        <location filename="../ui/status_window.py" line="964"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>最近播放已关闭，因此 Refrain 不会保留你的歌曲列表。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="946"/>
+        <location filename="../ui/status_window.py" line="974"/>
         <source>Resume sharing</source>
         <translation>恢复共享</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="949"/>
+        <location filename="../ui/status_window.py" line="977"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>重新在 Discord 中显示你的歌曲，并恢复向 Last.fm 记录播放。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="952"/>
+        <location filename="../ui/status_window.py" line="980"/>
         <source>Pause sharing</source>
         <translation>暂停共享</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="955"/>
+        <location filename="../ui/status_window.py" line="983"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>隐藏你的 Discord 状态并停止记录播放，直到你恢复共享。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="963"/>
+        <location filename="../ui/status_window.py" line="991"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} 现已可用。</translation>
     </message>
@@ -2114,22 +2114,22 @@ Continue without Discord status?</source>
 <context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="839"/>
+        <location filename="../app.py" line="846"/>
         <source>Already running</source>
         <translation>已在运行</translation>
     </message>
     <message>
-        <location filename="../app.py" line="840"/>
+        <location filename="../app.py" line="847"/>
         <source>Refrain is already running.</source>
         <translation>Refrain 已经在运行。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="851"/>
+        <location filename="../app.py" line="858"/>
         <source>D-Bus session bus unavailable</source>
         <translation>D-Bus 会话总线不可用</translation>
     </message>
     <message>
-        <location filename="../app.py" line="852"/>
+        <location filename="../app.py" line="859"/>
         <source>Refrain needs a working D-Bus session bus to run (it&apos;s used for the single-instance lock, MPRIS metadata from your browser, and the Plasma-panel media-controls publication).
 
 Underlying error: {error}
@@ -2142,22 +2142,22 @@ On a desktop session this should normally be available automatically. Check that
 在桌面会话中，这通常应该自动可用。请检查 dbus-daemon 是否正在运行，以及环境变量 DBUS_SESSION_BUS_ADDRESS 是否已设置。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="883"/>
+        <location filename="../app.py" line="890"/>
         <source>Refrain can&apos;t start</source>
         <translation>Refrain 无法启动</translation>
     </message>
     <message>
-        <location filename="../app.py" line="884"/>
+        <location filename="../app.py" line="891"/>
         <source>This desktop has no system tray, and Refrain lives in one. On GNOME, install the AppIndicator extension; on other desktops, use a bar with StatusNotifierItem support.</source>
         <translation>此桌面没有系统托盘，而 Refrain 常驻在托盘中。在 GNOME 上请安装 AppIndicator 扩展；在其他桌面上，请使用支持 StatusNotifierItem 的状态栏。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="893"/>
+        <location filename="../app.py" line="900"/>
         <source>No system tray</source>
         <translation>没有系统托盘</translation>
     </message>
     <message>
-        <location filename="../app.py" line="894"/>
+        <location filename="../app.py" line="901"/>
         <source>No system tray available. Refrain lives in the tray, so it needs a StatusNotifierItem-aware host. Common fixes:
 
 • GNOME — install the &apos;AppIndicator and KStatusNotifierItem Support&apos; extension, then re-run Refrain.
@@ -2174,29 +2174,29 @@ On a desktop session this should normally be available automatically. Check that
 • KDE Plasma / Cinnamon / LXQt / Budgie——通常开箱即用；如果不行，可能是面板/状态栏崩溃了——尝试注销后重新登录。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1082"/>
         <location filename="../app.py" line="1089"/>
-        <location filename="../app.py" line="1470"/>
+        <location filename="../app.py" line="1096"/>
+        <location filename="../app.py" line="1488"/>
         <source>Updates</source>
         <translation>更新</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1083"/>
+        <location filename="../app.py" line="1090"/>
         <source>You&apos;re already on the latest version ({version}).</source>
         <translation>您已经是最新版本（{version}）。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1212"/>
+        <location filename="../app.py" line="1220"/>
         <source>Refrain keeps running in the tray.</source>
         <translation>Refrain 会继续在托盘中运行。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1237"/>
+        <location filename="../app.py" line="1245"/>
         <source>Refrain closed unexpectedly last time. Click to open the report.</source>
         <translation>Refrain 上次意外关闭。点击可打开报告。</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1296"/>
+        <location filename="../app.py" line="1305"/>
         <source>All Refrain data and the Last.fm keyring credentials were removed. Refrain will now close.
 
 To remove the program itself, run:
@@ -2209,17 +2209,34 @@ To remove the program itself, run:
   {cmd}</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1305"/>
+        <location filename="../app.py" line="1312"/>
+        <source>All Refrain data was removed, but the Last.fm credentials may still be in your keyring. Unlock it and uninstall again, or delete the entries labelled “Refrain” in your keyring app.
+
+Refrain will now close.
+
+To remove the program itself, run:
+
+  {cmd}</source>
+        <translation>所有 Refrain 数据均已删除，但 Last.fm 凭据可能仍在密钥环中。请解锁密钥环后重新卸载，或在密钥环应用中删除名为“Refrain”的条目。
+
+Refrain 现在将关闭。
+
+如需卸载程序本身，请运行：
+
+  {cmd}</translation>
+    </message>
+    <message>
+        <location filename="../app.py" line="1323"/>
         <source>Some files could not be removed:</source>
         <translation>部分文件无法删除：</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1309"/>
+        <location filename="../app.py" line="1327"/>
         <source>Uninstall</source>
         <translation>卸载</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1471"/>
+        <location filename="../app.py" line="1489"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>暂无更新信息。请稍后重试。</translation>
     </message>

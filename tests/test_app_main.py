@@ -794,8 +794,25 @@ def test_history_size_that_cannot_be_saved_is_only_logged(h, caplog):
     assert "disk full" in caplog.text
 
 
+def test_uninstall_dialog_only_claims_the_keyring_when_it_let_go(h, monkeypatch):
+    report = uninstall.UninstallReport(removed=["a"], keyring_cleared=False)
+    monkeypatch.setattr(uninstall, "purge", lambda: report)
+    monkeypatch.setattr("refrain.updater.detect_install_type", lambda: "pip")
+    h.run()
+    h.settings.uninstallRequested.emit()
+    _, text = h.boxes[-1]
+    assert "may still be in your keyring" in text
+    assert "keyring credentials were removed" not in text
+
+    report.keyring_cleared = True
+    h.settings.uninstallRequested.emit()
+    _, text = h.boxes[-1]
+    assert "keyring credentials were removed" in text
+    assert "may still be in your keyring" not in text
+
+
 def test_uninstall_stops_the_daemon_purges_and_quits(h, monkeypatch):
-    report = uninstall.UninstallReport(removed=["a"], failed=["/x/locked"])
+    report = uninstall.UninstallReport(removed=["a"], failed=["/x/locked"], keyring_cleared=True)
     monkeypatch.setattr(uninstall, "purge", lambda: h.order.append("purge") or report)
     monkeypatch.setattr("refrain.updater.detect_install_type", lambda: "pip")
     h.run()

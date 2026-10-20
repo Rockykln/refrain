@@ -341,7 +341,13 @@ def run_uninstall_cli(assume_yes: bool = False) -> int:
         print("Could not remove (check permissions):")
         for f in report.failed:
             print(f"  {f}")
-    if not report.removed and not report.failed:
+    if not report.keyring_cleared:
+        print(
+            "The Last.fm credentials may still be in your keyring. Unlock it and\n"
+            "run --uninstall again, or delete the entries labelled 'Refrain' in\n"
+            "your keyring app."
+        )
+    if not report.removed and not report.failed and report.keyring_cleared:
         print("Nothing to remove — Refrain left no data on this machine.")
     print()
     print(f"Refrain data is gone. To remove the program itself, run:\n  {cmd}")
@@ -1295,12 +1301,22 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
             len(report.failed),
             report.keyring_cleared,
         )
-        body = QCoreApplication.translate(
-            "app",
-            "All Refrain data and the Last.fm keyring credentials were "
-            "removed. Refrain will now close.\n\nTo remove the program "
-            "itself, run:\n\n  {cmd}",
-        ).format(cmd=cmd)
+        if report.keyring_cleared:
+            body = QCoreApplication.translate(
+                "app",
+                "All Refrain data and the Last.fm keyring credentials were "
+                "removed. Refrain will now close.\n\nTo remove the program "
+                "itself, run:\n\n  {cmd}",
+            ).format(cmd=cmd)
+        else:
+            body = QCoreApplication.translate(
+                "app",
+                "All Refrain data was removed, but the Last.fm credentials may "
+                "still be in your keyring. Unlock it and uninstall again, or "
+                "delete the entries labelled “Refrain” in your keyring app."
+                "\n\nRefrain will now close.\n\nTo remove the program itself, "
+                "run:\n\n  {cmd}",
+            ).format(cmd=cmd)
         if report.failed:
             body += (
                 "\n\n"

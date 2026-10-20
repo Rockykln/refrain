@@ -107,7 +107,7 @@ def uninstall_env(monkeypatch):
     monkeypatch.delenv("APPIMAGE", raising=False)
     purged = []
 
-    def _purge(report=UninstallReport()):
+    def _purge(report=UninstallReport(keyring_cleared=True)):
         purged.append(True)
         return report
 
@@ -147,11 +147,23 @@ def test_uninstall_cli_reports_secrets_and_failures(uninstall_env, monkeypatch, 
 
 
 def test_uninstall_cli_does_not_claim_a_failed_keyring_purge(uninstall_env, monkeypatch, capsys):
-    report = UninstallReport(failed=["Last.fm credentials may still be in your keyring."])
+    report = UninstallReport(removed=["/tmp/a"], keyring_cleared=False)
     monkeypatch.setattr(uninstall, "purge", lambda: report)
     assert app.run_uninstall_cli(assume_yes=True) == 0
     out = capsys.readouterr().out
     assert "credentials cleared" not in out
+    assert "may still be in your keyring" in out
+    assert "Could not remove" not in out  # it is not a file
+
+
+def test_uninstall_cli_says_nothing_to_remove_only_when_the_keyring_went_too(
+    uninstall_env, monkeypatch, capsys
+):
+    report = UninstallReport(keyring_cleared=False)
+    monkeypatch.setattr(uninstall, "purge", lambda: report)
+    assert app.run_uninstall_cli(assume_yes=True) == 0
+    out = capsys.readouterr().out
+    assert "Nothing to remove" not in out
     assert "may still be in your keyring" in out
 
 

@@ -83,9 +83,10 @@ def _clear_keyring(store=None) -> bool:
         from refrain.secrets_store import _default as default_store
 
         s = store or default_store
-        secret_gone = s.delete(LASTFM_SHARED_SECRET)
-        session_gone = s.delete(LASTFM_SESSION_KEY)
-        return secret_gone and session_gone
+        # A list, not a generator: all() would stop at the first refusal
+        # and leave the other entry sitting in the keyring.
+        dropped = [s.delete(k) for k in (LASTFM_SHARED_SECRET, LASTFM_SESSION_KEY)]
+        return all(dropped)
     except Exception as e:
         log.warning("Could not purge Last.fm credentials: %s", e)
         return False
@@ -108,10 +109,6 @@ def purge(keyring=None) -> UninstallReport:
         except OSError as e:
             report.failed.append(f"{p}: {e}")
             log.warning("Uninstall could not remove %s: %s", p, e)
+    # Not in ``failed``: the callers print that list as paths.
     report.keyring_cleared = _clear_keyring(keyring)
-    if not report.keyring_cleared:
-        report.failed.append(
-            "Last.fm credentials may still be in your keyring. Unlock the keyring and run "
-            "--uninstall again, or delete the entries labelled 'Refrain' in your keyring app."
-        )
     return report
