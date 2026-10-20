@@ -25,7 +25,7 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolTip, QWidg
 from shiboken6 import Shiboken  # noqa: E402
 
 from refrain.cover_art import image_path_for_url  # noqa: E402
-from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
+from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot  # noqa: E402
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
 from refrain.ui import status_window as sw  # noqa: E402
@@ -92,6 +92,20 @@ def test_a_browser_playing_with_no_url_gets_a_troubleshooting_hint(window):
     assert "Apple Music" in window.hint.text()
 
 
+def test_pausing_the_same_song_again_waits_again(window):
+    """Resuming and pausing once more is a fresh pause, not a continuation
+    of the first one — otherwise the second would be labelled at once."""
+    window.set_track(_playing())
+    window.set_playback(PlaybackStatus.PAUSED)
+    window._paused_since -= PAUSE_SHOWN_AFTER_S
+    window._refresh_song()
+    assert "Paused" in window.source.text()
+    window.set_playback(PlaybackStatus.PLAYING)
+    assert "Paused" not in window.source.text()
+    window.set_playback(PlaybackStatus.PAUSED)
+    assert "Paused" not in window.source.text()
+
+
 def test_the_current_song_with_its_source(window):
     window.set_track(_playing())
     assert window.title.text() == "Glass Tides"
@@ -99,6 +113,10 @@ def test_the_current_song_with_its_source(window):
     assert window.source.text() == "Apple Music Web · Chromium"
     assert window.hint.isHidden()
     window.set_playback(PlaybackStatus.PAUSED)
+    # A track change reads as paused in passing, so the label waits.
+    assert window.source.text() == "Apple Music Web · Chromium"
+    window._paused_since -= PAUSE_SHOWN_AFTER_S
+    window._refresh_song()
     assert window.source.text() == "Paused · Apple Music Web · Chromium"
     window.set_playback(PlaybackStatus.PAUSED)
     window.set_track(_playing(source="bluetooth", player="", artist="", album=""))

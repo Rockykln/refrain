@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__
 from refrain.cover_art import image_path_for_url
-from refrain.history import HistoryEntry, HistorySnapshot
+from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir, state_dir
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
@@ -433,6 +433,13 @@ class StatusWindow(QDialog):
             self.setWindowIcon(QIcon(str(icon_path)))
         self._locale = locale if locale is not None else QLocale()
         self._track = TrackInfo.empty()
+        # When this song first read as paused, so a track change passing
+        # through that state doesn't flash "Paused" on the source line.
+        self._paused_since: float | None = None
+        self._paused_key = ""
+        self._pause_label = QTimer(self)
+        self._pause_label.setSingleShot(True)
+        self._pause_label.timeout.connect(self._refresh_song)
         self._history = HistorySnapshot()
         self._status = StatusSnapshot()
         self._welcome = False
@@ -741,12 +748,33 @@ class StatusWindow(QDialog):
             source = self.tr("Apple Music Web")
         if track.player:
             source = f"{source} · {track.player}"
-        if track.status == PlaybackStatus.PAUSED:
+        if track.status != PlaybackStatus.PAUSED:
+            self._paused_since = None
+        elif self._pause_has_lasted(track):
             source = self.tr("Paused · {source}").format(source=source)
         self.source.setText(source)
         self.source.setVisible(True)
         self._refresh_controls()
         self._show_cover(dpr)
+
+    def _pause_has_lasted(self, track: TrackInfo) -> bool:
+        """Whether this song has read as paused long enough to say so.
+
+        The same wait the history uses: a player reports "paused" for a
+        poll or two between songs, and the label would flicker on every
+        track change. Nothing else brings the window back once the wait
+        is over, so it asks to be refreshed itself.
+        """
+        key = track.content_key()
+        if key != self._paused_key:
+            self._paused_key, self._paused_since = key, time.monotonic()
+        elif self._paused_since is None:
+            self._paused_since = time.monotonic()
+        left = PAUSE_SHOWN_AFTER_S - (time.monotonic() - self._paused_since)
+        if left > 0:
+            self._pause_label.start(int(left * 1000) + 50)
+            return False
+        return True
 
     def set_cover(self, url: str) -> None:
         self._cover_source = url

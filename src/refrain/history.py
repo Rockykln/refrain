@@ -48,7 +48,7 @@ _ESTIMATE_MAX_AGE_S = 60.0
 # Apple Music's web player reports "paused" for a poll or two between
 # songs — the end of one, the loading of the next. A pause only shows as
 # "Paused" once it has lasted this long, so that doesn't flicker.
-_PAUSE_SHOWN_AFTER_S = 2.0
+PAUSE_SHOWN_AFTER_S = 2.0
 # A source that reports no song for a poll or two (a tab reloading its
 # metadata) hasn't stopped; the song only ends once it has been gone this
 # long, as in timing.
@@ -117,7 +117,7 @@ class _Current:
     # first element of the stored list (the same object, not a copy).
     counted: bool = False
     saved_played_ms: int = 0
-    # What the window shows, which lags `playing` by _PAUSE_SHOWN_AFTER_S
+    # What the window shows, which lags `playing` by PAUSE_SHOWN_AFTER_S
     # when it goes from playing to paused.
     shown_playing: bool = True
     paused_at: float | None = None
@@ -378,8 +378,7 @@ class PlayHistory:
                 follows_play = cur is not None and (
                     cur.playing
                     or (
-                        cur.paused_at is not None
-                        and now_mono - cur.paused_at < _PAUSE_SHOWN_AFTER_S
+                        cur.paused_at is not None and now_mono - cur.paused_at < PAUSE_SHOWN_AFTER_S
                     )
                 )
                 changed = self._finish_current_locked()
@@ -439,7 +438,7 @@ class PlayHistory:
             else:
                 if cur.paused_at is None:
                     cur.paused_at = now_mono
-                if cur.shown_playing and now_mono - cur.paused_at >= _PAUSE_SHOWN_AFTER_S:
+                if cur.shown_playing and now_mono - cur.paused_at >= PAUSE_SHOWN_AFTER_S:
                     cur.shown_playing = False
                     changed = True
             if not cur.counted and counts_as_played(cur.played_ms, cur.entry.duration_ms):
