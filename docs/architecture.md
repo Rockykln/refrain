@@ -1,9 +1,10 @@
 # Architecture
 
 Refrain is one process. Two long-lived Qt threads (main + daemon
-worker), short-lived worker executors (cover fetch, Last.fm) and, only
-where Qt isn't built on GLib, a GLib thread — all feeding one Discord
-IPC socket and a few outbound HTTPS clients.
+worker), a plain thread that owns the Discord connection, one-worker
+executors for the cover fetch and Last.fm, a handful of short-lived
+threads and, only where Qt isn't built on GLib, a GLib thread — all
+feeding one Discord IPC socket and a few outbound HTTPS clients.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -22,16 +23,31 @@ IPC socket and a few outbound HTTPS clients.
 │  └─ dispatches the shared session bus: the single-instance      │
 │     name and the published MPRISServer                          │
 │                                                                 │
-│  Worker thread (Qt event loop, QThread)                         │
+│  Worker thread (QThread "refrain-daemon", Qt event loop)        │
 │  ├─ DaemonWorker                                                │
 │  │    ├─ MPRISSource     ──► Session DBus (own connection)      │
 │  │    ├─ BluetoothSource ──► System DBus (own connection)       │
-│  │    ├─ CoverFetcher    ──► iTunes Search (HTTPS)              │
-│  │    ├─ DiscordRPC      ──► Discord IPC socket                 │
-│  │    ├─ Scrobbler       ──► Last.fm API (HTTPS, opt-in)        │
+│  │    ├─ CoverFetcher    ──► hands work to its pool thread      │
+│  │    ├─ Scrobbler       ──► hands work to its pool thread      │
 │  │    ├─ PlayHistory     ──► history.json (local only)          │
-│  │    └─ MPRISServer     ──► handed to the main thread          │
+│  │    ├─ MPRISServer     ──► handed to the main thread          │
+│  │    └─ DiscordRPC      ──► posts to the serving thread below  │
 │  └─ Timer (QTimer, 500 ms default poll, configurable)           │
+│                                                                 │
+│  Discord serving thread ("refrain-discord")                     │
+│  └─ owns the pypresence connection and its asyncio loop,        │
+│     dials, sends and closes it ──► Discord IPC socket           │
+│                                                                 │
+│  One-worker executors                                           │
+│  ├─ "refrain-cover"    ──► iTunes Search + image (HTTPS)        │
+│  └─ "refrain-scrobble" ──► Last.fm API (HTTPS, opt-in)          │
+│                                                                 │
+│  Short-lived, on demand                                         │
+│  ├─ "refrain-update-check"      QThread ──► GitHub Releases     │
+│  ├─ "refrain-startup-check"     QThread ──► Last.fm + Discord   │
+│  ├─ "refrain-appname"           ──► Discord application name    │
+│  ├─ "refrain-bt-devices"        ──► BlueZ list (Settings)       │
+│  └─ "refrain-lastfm-approval"   ──► Last.fm auth (Settings)     │
 │                                                                 │
 │  GLib thread (only when Qt is not GLib-backed)                  │
 │  └─ GLib.MainLoop — takes over dispatching the session bus      │
@@ -289,6 +305,8 @@ default browser.
 | HistoryWindow → DW     | `clearRequested` / `removeRequested` → slots |
 | MPRISServer (Plasma) → DW | `QMetaObject.invokeMethod(Queued)` on `control_*` |
 | DW → MPRISServer       | `GLib.idle_add` (`_on_bus_thread`)         |
+| DaemonWorker → Discord | `post()` / `post_clear()` under a lock      |
+| Discord → DaemonWorker | a snapshot of state + detail, same lock    |
 | Daemon shutdown        | `QMetaObject.invokeMethod(BlockingQueued)` |
 
 Nothing else is shared; `Config` is treated as immutable after `Apply`.
@@ -306,6 +324,13 @@ Nothing else is shared; `Config` is treated as immutable after `Apply`.
   *and* title match. When iTunes can't be reached at all it raises
   rather than returning a miss, so the fetcher retries after 60 s
   instead of remembering "no cover".
+- **DiscordRPC** owns a plain thread of its own, `refrain-discord`. It
+  dials, sends and closes the connection, and nothing else touches it:
+  pypresence builds its asyncio loop in whichever thread calls
+  `connect()`, and an asyncio loop is not thread-safe. The daemon only
+  posts the next payload and reads a snapshot of the state back, both
+  under one lock. That is what lets the handshake wait fifteen seconds
+  and a reply ten without the poll waiting with it.
 - **UpdateOrchestrator** spawns a one-shot QThread for the GitHub Releases
   API call so the GUI stays responsive.
 - **Scrobbler** owns a 1-worker `ThreadPoolExecutor` for Last.fm

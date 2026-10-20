@@ -15,7 +15,8 @@ confirmation, and unlocking developer mode. Only a new language needs a
 restart; Refrain says so and asks before it restarts.
 
 *Privacy* on the General tab decides what is shared: *Full*, *Minimal*
-(only “Listening to music”) or *Off*, which pauses both the Discord status
+(only “Listening to music”, or “Paused” while the music is paused) or
+*Off*, which pauses both the Discord status
 and Last.fm scrobbling. The recently played list keeps working either way.
 Next to it, *Look up songs in Apple's catalog* sends artist and title to
 Apple for the cover, the song link and the length; without it Discord shows

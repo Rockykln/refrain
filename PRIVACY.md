@@ -59,7 +59,7 @@ Refrain never transmits any of the above over a network on its own.
 
 | Recipient | When | What is sent | Default | How to stop it |
 |---|---|---|---|---|
-| **Discord** (your local Discord client → Discord's servers) | Only if you set a Discord Application ID | Track title / artist / album, cover-art URL, optional "Listen on Apple Music" link, the address of the small corner icon, and the Apple Music link again on the two text lines and the cover | **Off** (no ID configured) | Leave the Application ID blank, or set *Privacy → Off*, or *Minimal* (only "Listening to music") |
+| **Discord** (your local Discord client → Discord's servers) | Only if you set a Discord Application ID | Track title / artist / album, cover-art URL, optional "Listen on Apple Music" link, the address of the small corner icon, and the Apple Music link again on the two text lines and the cover | **Off** (no ID configured) | Leave the Application ID blank, or set *Privacy → Off*, or *Minimal* (only "Listening to music", or "Paused" while paused) |
 | **Discord** (`discord.com/api`, HTTPS — direct, **not** via your Discord client) | Only if you switch on *General → Look up the application's name on Discord*: then at startup and every 4 h | The **Application ID** you typed and your IP / User-Agent. No account, no token, no listening data | **Off** (opt-in) | Leave it unticked — it is off unless you turn it on; or set *Privacy → Off* |
 | **Apple** (`itunes.apple.com` + artwork CDN, HTTPS) | If "Look up songs in Apple's catalog" is on **and** a track with artist+title plays | The **artist and song title** (the title without "feat." or version tags; as a last try the title alone), a store country taken from your desktop language (e.g. `DE`, then `US`), a `User-Agent` containing the Refrain version, and your IP — to look up cover, length and Apple Music link; then the cover image is fetched. No album, no account, no auth, no cookies | **On** | Untick *General → Privacy → Look up songs in Apple's catalog* |
 | **Apple** (`itunes.apple.com`, HTTPS) | Once, when the welcome window opens on first start | A fixed test search (`term=test`) to show whether cover lookups will work, and your IP. No listening data | Runs on first start | — (one request; not tied to the cover-art switch) |
@@ -72,7 +72,8 @@ Refrain never transmits any of the above over a network on its own.
 Notes:
 
 - **Privacy modes** (*Settings → General → Privacy*): `Full` sends full
-  metadata to Discord; `Minimal` sends only "Listening to music";
+  metadata to Discord; `Minimal` sends only "Listening to music", or "Paused" while the
+  music is paused;
   `Off` is the global **no-external-broadcasting** kill switch — it
   disables the Discord status **and** silences Last.fm scrobbling.
 - The Apple cover-art lookup and the GitHub update check have their own

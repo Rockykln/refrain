@@ -123,7 +123,9 @@ it prints the same lines there.
 
 **No system tray**
 
-- *What you see:* a dialog "No system tray".
+- *What you see:* a desktop notification "Refrain can't start", and a
+  dialog "No system tray" — a desktop without a tray may swallow a
+  parentless dialog, so Refrain says it both ways.
 - *Why:* your desktop has no tray Refrain can live in.
 - *What to do:* see [A system tray is required](#a-system-tray-is-required),
   then start Refrain again.
@@ -218,13 +220,14 @@ seconds after start-up the live log has a line starting with
 **Discord isn't running, or runs in the browser**
 
 - *Why:* nothing is listening for Refrain. Web Discord never listens.
-- *What to do:* start the Discord desktop app. While music plays,
-  Refrain tries again at least every 15 seconds; there's no need to
-  restart it.
+- *What to do:* start the Discord desktop app. Refrain keeps reaching
+  for one by itself, at least every 15 seconds while it backs off, and
+  whether or not anything is playing; there's no need to restart it.
 - *Log:* `[startup-check] Discord: no client running (nothing listening on discord-ipc-0..9)`
 
 The line `[startup-check] Discord: client is running (…) — not dialled
-yet` is normal: Refrain connects once something plays.
+yet` is normal: the start-up check looks before the connection is up.
+Refrain dials on its own, playing or not.
 
 **The Application ID is rejected**
 
@@ -253,7 +256,7 @@ yet` is normal: Refrain connects once something plays.
 - *Why:* *Settings → General → Privacy → Off* clears the Discord status
   and pauses scrobbling. The tray and controls keep working.
 - *What to do:* set it to *Full*, or to *Minimal* for a plain
-  "Listening to music".
+  "Listening to music" — "Paused" while the music is paused.
 
 **Discord hides your activity**
 

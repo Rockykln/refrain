@@ -42,6 +42,7 @@ time_format = "system"             # not in Settings: "system" follows the deskt
 time_zone = ""                     # not in Settings: empty follows the desktop, or an IANA name like "Europe/Berlin"
 hover_scroll_ms = 1500             # rest this long on a song in the Status window and its title scrolls past once; 0 = never
 developer_mode = false             # local timing + usage metrics, see docs/developer-mode.md
+grace_waits = true                 # not in Settings; with developer_mode on, false skips the waits before a label changes, see docs/developer-mode.md
 developer_unlocked = false         # keeps the Developer switch in Settings once unlocked
 
 [lastfm]

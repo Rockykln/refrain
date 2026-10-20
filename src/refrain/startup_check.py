@@ -97,7 +97,7 @@ def check_discord(rpc) -> CheckResult:
             note += f"; ignoring stale {', '.join(f'discord-ipc-{n}' for n in stale)}"
         log.info(
             "%s Discord: client is running (%s) — not dialled yet, "
-            "the daemon connects once something is playing",
+            "the daemon dials on its own",
             MARKER,
             note,
         )

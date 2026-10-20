@@ -30,6 +30,25 @@ developer_mode = false
 While developer mode is on, the tray menu shows a *Developer mode* line;
 clicking it opens the results.
 
+## Skipping the waits
+
+Several labels wait a few seconds before they change, so a track change
+passing through "paused" doesn't make the card and the Status window
+flicker. Working on them means waiting those seconds out on every try.
+
+```toml
+[advanced]
+grace_waits = false
+```
+
+This is not in Settings, and it counts only while developer mode is on —
+a line left behind in a config cannot change a normal run. It skips the
+waits before the Discord card says *Paused*, before the Status window
+does, before the history shows a pause or drops a song that stopped
+being named, and before the scrobbler writes a play off. The waits that
+protect something rather than steady a label — carrying a play over a
+restart, backing off after a Discord sign-out — are not on the switch.
+
 ## Where to see the results
 
 *Live log* window → *Developer* tab (the tab only exists while developer mode
