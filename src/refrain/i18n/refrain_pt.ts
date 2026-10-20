@@ -228,7 +228,7 @@
     </message>
     <message>
         <location filename="../ui/history_window.py" line="438"/>
-        <location filename="../ui/history_window.py" line="1066"/>
+        <location filename="../ui/history_window.py" line="1072"/>
         <source>Now playing</source>
         <translation>A tocar agora</translation>
     </message>
@@ -258,22 +258,22 @@
         <translation>Clique para abrir no Apple Music.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="617"/>
+        <location filename="../ui/history_window.py" line="622"/>
         <source>Copy artist and title</source>
         <translation>Copiar artista e título</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="623"/>
+        <location filename="../ui/history_window.py" line="628"/>
         <source>Remove from history</source>
         <translation>Remover do histórico</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="687"/>
+        <location filename="../ui/history_window.py" line="693"/>
         <source>Search title, artist or album…</source>
         <translation>Pesquisar título, artista ou álbum…</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="786"/>
+        <location filename="../ui/history_window.py" line="792"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>há %n dia</numerusform>
@@ -281,7 +281,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="906"/>
+        <location filename="../ui/history_window.py" line="912"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%1 de %n música</numerusform>
@@ -289,7 +289,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="909"/>
+        <location filename="../ui/history_window.py" line="915"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>Última música</numerusform>
@@ -297,22 +297,22 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1120"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="613"/>
+        <location filename="../ui/history_window.py" line="618"/>
         <source>Open in Apple Music</source>
         <translation>Abrir no Apple Music</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="778"/>
+        <location filename="../ui/history_window.py" line="784"/>
         <source>just now</source>
         <translation>agora mesmo</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="781"/>
+        <location filename="../ui/history_window.py" line="787"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>há %n minuto</numerusform>
@@ -320,7 +320,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="784"/>
+        <location filename="../ui/history_window.py" line="790"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>há %n hora</numerusform>
@@ -328,78 +328,78 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="648"/>
+        <location filename="../ui/history_window.py" line="654"/>
         <source>Recently played</source>
         <translation>Ouvidas recentemente</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="674"/>
+        <location filename="../ui/history_window.py" line="680"/>
         <source>Clear history…</source>
         <translation>Limpar histórico…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="752"/>
+        <location filename="../ui/history_window.py" line="758"/>
         <source>Close</source>
         <translation>Fechar</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="916"/>
+        <location filename="../ui/history_window.py" line="922"/>
         <source>History is turned off</source>
         <translation>O histórico está desativado</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="917"/>
+        <location filename="../ui/history_window.py" line="923"/>
         <source>Turn it on under Settings → History to see what you played.</source>
         <translation>Ative-o em Definições → Histórico para ver o que ouviu.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>No songs yet</source>
         <translation>Ainda sem músicas</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>Play something and it shows up here.</source>
         <translation>Reproduza algo e aparecerá aqui.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>No matches</source>
         <translation>Sem resultados</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>Try a different search or source.</source>
         <translation>Experimente outra pesquisa ou outra fonte.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1029"/>
+        <location filename="../ui/history_window.py" line="1035"/>
         <source>All sources</source>
         <translation>Todas as fontes</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1047"/>
+        <location filename="../ui/history_window.py" line="1053"/>
         <source>Today</source>
         <translation>Hoje</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1049"/>
+        <location filename="../ui/history_window.py" line="1055"/>
         <source>Yesterday</source>
         <translation>Ontem</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1108"/>
-        <location filename="../ui/history_window.py" line="1111"/>
+        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1117"/>
         <source>Clear history</source>
         <translation>Limpar histórico</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1109"/>
+        <location filename="../ui/history_window.py" line="1115"/>
         <source>Remove every song from the history?</source>
         <translation>Remover todas as músicas do histórico?</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1110"/>
+        <location filename="../ui/history_window.py" line="1116"/>
         <source>This cannot be undone.</source>
         <translation>Esta ação não pode ser desfeita.</translation>
     </message>
@@ -1576,8 +1576,8 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
     </message>
     <message>
         <location filename="../ui/status_window.py" line="815"/>
-        <source>Hidden while the music is paused</source>
-        <translation>Oculto enquanto a música está em pausa</translation>
+        <source>Showing the song as paused</source>
+        <translation>A mostrar a música em pausa</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="817"/>
@@ -1707,6 +1707,11 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
         <translation>Discord: visível no seu perfil</translation>
     </message>
     <message>
+        <location filename="../ui/tray.py" line="411"/>
+        <source>Discord: showing the song as paused</source>
+        <translation>Discord: a mostrar a música em pausa</translation>
+    </message>
+    <message>
         <location filename="../ui/tray.py" line="427"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: não ligado</translation>
@@ -1818,11 +1823,6 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
         <location filename="../ui/tray.py" line="409"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: a mostrar «Listening to music»</translation>
-    </message>
-    <message>
-        <location filename="../ui/tray.py" line="411"/>
-        <source>Discord: hidden while paused</source>
-        <translation>Discord: oculto enquanto em pausa</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="413"/>
@@ -1955,112 +1955,112 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="88"/>
+        <location filename="../ui/welcome_dialog.py" line="91"/>
         <source>Found Discord IPC at {path}</source>
         <translation>IPC do Discord encontrado em {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="91"/>
+        <location filename="../ui/welcome_dialog.py" line="94"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Nenhum socket IPC do Discord encontrado — inicie a aplicação Discord para computador.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="95"/>
+        <location filename="../ui/welcome_dialog.py" line="98"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API acessível.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="97"/>
+        <location filename="../ui/welcome_dialog.py" line="100"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>O iTunes respondeu, mas os dados parecem incorretos.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="100"/>
+        <location filename="../ui/welcome_dialog.py" line="103"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>Não foi possível contactar o iTunes Search: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="102"/>
+        <location filename="../ui/welcome_dialog.py" line="105"/>
         <source>iTunes probe failed: {error}</source>
         <translation>Falha na verificação do iTunes: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173"/>
+        <location filename="../ui/welcome_dialog.py" line="175"/>
         <source>Welcome</source>
         <translation>Bem-vindo</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="209"/>
+        <location filename="../ui/welcome_dialog.py" line="211"/>
         <source>Welcome to Refrain</source>
         <translation>Bem-vindo ao Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="211"/>
+        <location filename="../ui/welcome_dialog.py" line="213"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Discord Rich Presence para Apple Music no Linux.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="226"/>
+        <location filename="../ui/welcome_dialog.py" line="228"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>Vive na bandeja. &lt;b&gt;Clique&lt;/b&gt; nele para ver o estado; &lt;b&gt;clique com o botão direito&lt;/b&gt; para os controlos do leitor.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="248"/>
+        <location filename="../ui/welcome_dialog.py" line="250"/>
         <source>Live diagnostics</source>
         <translation>Diagnóstico em direto</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="251"/>
+        <location filename="../ui/welcome_dialog.py" line="253"/>
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord — a verificar…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="252"/>
+        <location filename="../ui/welcome_dialog.py" line="254"/>
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ Pesquisa de capa — a verificar…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="260"/>
+        <location filename="../ui/welcome_dialog.py" line="262"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266"/>
+        <location filename="../ui/welcome_dialog.py" line="268"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>Registe uma aplicação gratuita no &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — o nome que escolher aparece como «Ouvindo &amp;lt;nome&amp;gt;» no seu estado.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="280"/>
+        <location filename="../ui/welcome_dialog.py" line="282"/>
         <source>e.g. 1234567890123456789</source>
         <translation>ex.: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="291"/>
+        <location filename="../ui/welcome_dialog.py" line="293"/>
         <source>Skip for now</source>
         <translation>Saltar por agora</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="297"/>
+        <location filename="../ui/welcome_dialog.py" line="299"/>
         <source>Apply</source>
         <translation>Aplicar</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="361"/>
+        <location filename="../ui/welcome_dialog.py" line="363"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="364"/>
+        <location filename="../ui/welcome_dialog.py" line="366"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Pesquisa de capa:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="413"/>
+        <location filename="../ui/welcome_dialog.py" line="415"/>
         <source>Discard the Application ID?</source>
         <translation>Descartar o Application ID?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="416"/>
+        <location filename="../ui/welcome_dialog.py" line="418"/>
         <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
 
 Discard what you entered?</source>
@@ -2069,22 +2069,22 @@ Discard what you entered?</source>
 Descartar o que introduziu?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="421"/>
+        <location filename="../ui/welcome_dialog.py" line="423"/>
         <source>Discard</source>
         <translation>Descartar</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="422"/>
+        <location filename="../ui/welcome_dialog.py" line="424"/>
         <source>Keep editing</source>
         <translation>Continuar a editar</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="440"/>
+        <location filename="../ui/welcome_dialog.py" line="442"/>
         <source>Skip Discord setup?</source>
         <translation>Saltar a configuração do Discord?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="443"/>
+        <location filename="../ui/welcome_dialog.py" line="445"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2093,22 +2093,22 @@ Continue without Discord status?</source>
 Continuar sem estado do Discord?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="449"/>
+        <location filename="../ui/welcome_dialog.py" line="451"/>
         <source>Continue without Discord</source>
         <translation>Continuar sem o Discord</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="451"/>
+        <location filename="../ui/welcome_dialog.py" line="453"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="459"/>
+        <location filename="../ui/welcome_dialog.py" line="461"/>
         <source>Invalid Application ID</source>
         <translation>Application ID inválido</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="461"/>
+        <location filename="../ui/welcome_dialog.py" line="463"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>O Discord Application ID é um snowflake numérico (17 a 20 dígitos). Verifique o valor que copiou do Developer Portal.</translation>
     </message>

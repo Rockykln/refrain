@@ -340,7 +340,7 @@ def test_stopping_from_idle_applies_at_once(tray):
         (DiscordStatus.READY, "Discord: ready — waiting for music"),
         (DiscordStatus.SHOWING, "Discord: visible on your profile"),
         (DiscordStatus.SHOWING_MINIMAL, "Discord: showing “Listening to music”"),
-        (DiscordStatus.PAUSED, "Discord: hidden while paused"),
+        (DiscordStatus.PAUSED, "Discord: showing the song as paused"),
         (DiscordStatus.PRIVACY_OFF, "Discord: hidden — sharing is off"),
         (DiscordStatus.STARTING, "Discord: checking…"),
     ],

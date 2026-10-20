@@ -228,7 +228,7 @@
     </message>
     <message>
         <location filename="../ui/history_window.py" line="438"/>
-        <location filename="../ui/history_window.py" line="1066"/>
+        <location filename="../ui/history_window.py" line="1072"/>
         <source>Now playing</source>
         <translation>지금 재생 중</translation>
     </message>
@@ -258,143 +258,143 @@
         <translation>클릭하면 Apple Music에서 엽니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="613"/>
+        <location filename="../ui/history_window.py" line="618"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music에서 열기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="617"/>
+        <location filename="../ui/history_window.py" line="622"/>
         <source>Copy artist and title</source>
         <translation>아티스트와 제목 복사</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="623"/>
+        <location filename="../ui/history_window.py" line="628"/>
         <source>Remove from history</source>
         <translation>기록에서 제거</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="648"/>
+        <location filename="../ui/history_window.py" line="654"/>
         <source>Recently played</source>
         <translation>최근 재생한 곡</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="674"/>
+        <location filename="../ui/history_window.py" line="680"/>
         <source>Clear history…</source>
         <translation>기록 지우기…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="687"/>
+        <location filename="../ui/history_window.py" line="693"/>
         <source>Search title, artist or album…</source>
         <translation>제목, 아티스트 또는 앨범 검색…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="752"/>
+        <location filename="../ui/history_window.py" line="758"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="778"/>
+        <location filename="../ui/history_window.py" line="784"/>
         <source>just now</source>
         <translation>방금 전</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="781"/>
+        <location filename="../ui/history_window.py" line="787"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n분 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="784"/>
+        <location filename="../ui/history_window.py" line="790"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n시간 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="786"/>
+        <location filename="../ui/history_window.py" line="792"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n일 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="906"/>
+        <location filename="../ui/history_window.py" line="912"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%n곡 중 %1곡</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="909"/>
+        <location filename="../ui/history_window.py" line="915"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>최근 %n곡</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="916"/>
+        <location filename="../ui/history_window.py" line="922"/>
         <source>History is turned off</source>
         <translation>기록이 꺼져 있습니다</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="917"/>
+        <location filename="../ui/history_window.py" line="923"/>
         <source>Turn it on under Settings → History to see what you played.</source>
         <translation>재생한 곡을 보려면 설정 → 기록에서 켜세요.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>No songs yet</source>
         <translation>아직 곡이 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>Play something and it shows up here.</source>
         <translation>곡을 재생하면 여기에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>No matches</source>
         <translation>일치하는 항목 없음</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>Try a different search or source.</source>
         <translation>다른 검색어나 소스로 시도해 보세요.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1029"/>
+        <location filename="../ui/history_window.py" line="1035"/>
         <source>All sources</source>
         <translation>모든 소스</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1047"/>
+        <location filename="../ui/history_window.py" line="1053"/>
         <source>Today</source>
         <translation>오늘</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1049"/>
+        <location filename="../ui/history_window.py" line="1055"/>
         <source>Yesterday</source>
         <translation>어제</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1108"/>
-        <location filename="../ui/history_window.py" line="1111"/>
+        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1117"/>
         <source>Clear history</source>
         <translation>기록 지우기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1109"/>
+        <location filename="../ui/history_window.py" line="1115"/>
         <source>Remove every song from the history?</source>
         <translation>기록에서 모든 곡을 제거할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1110"/>
+        <location filename="../ui/history_window.py" line="1116"/>
         <source>This cannot be undone.</source>
         <translation>이 작업은 되돌릴 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1120"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
@@ -1568,8 +1568,8 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/status_window.py" line="815"/>
-        <source>Hidden while the music is paused</source>
-        <translation>음악이 일시 정지된 동안 숨김</translation>
+        <source>Showing the song as paused</source>
+        <translation>곡을 일시정지 상태로 표시 중</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="817"/>
@@ -1698,6 +1698,11 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
         <translation>Discord: 프로필에 표시 중</translation>
     </message>
     <message>
+        <location filename="../ui/tray.py" line="411"/>
+        <source>Discord: showing the song as paused</source>
+        <translation>Discord: 곡을 일시정지 상태로 표시 중</translation>
+    </message>
+    <message>
         <location filename="../ui/tray.py" line="427"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: 연결되지 않음</translation>
@@ -1809,11 +1814,6 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
         <location filename="../ui/tray.py" line="409"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: “Listening to music” 표시 중</translation>
-    </message>
-    <message>
-        <location filename="../ui/tray.py" line="411"/>
-        <source>Discord: hidden while paused</source>
-        <translation>Discord: 일시 정지 중 숨김</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="413"/>
@@ -1945,112 +1945,112 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="88"/>
+        <location filename="../ui/welcome_dialog.py" line="91"/>
         <source>Found Discord IPC at {path}</source>
         <translation>Discord IPC 발견: {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="91"/>
+        <location filename="../ui/welcome_dialog.py" line="94"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Discord IPC 소켓을 찾을 수 없습니다 — Discord 데스크톱 앱을 실행하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="95"/>
+        <location filename="../ui/welcome_dialog.py" line="98"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API에 연결할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="97"/>
+        <location filename="../ui/welcome_dialog.py" line="100"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>iTunes가 응답했지만 응답 데이터가 올바르지 않은 것 같습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="100"/>
+        <location filename="../ui/welcome_dialog.py" line="103"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>iTunes Search에 연결할 수 없음: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="102"/>
+        <location filename="../ui/welcome_dialog.py" line="105"/>
         <source>iTunes probe failed: {error}</source>
         <translation>iTunes 확인 실패: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173"/>
+        <location filename="../ui/welcome_dialog.py" line="175"/>
         <source>Welcome</source>
         <translation>환영합니다</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="209"/>
+        <location filename="../ui/welcome_dialog.py" line="211"/>
         <source>Welcome to Refrain</source>
         <translation>Refrain에 오신 것을 환영합니다</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="211"/>
+        <location filename="../ui/welcome_dialog.py" line="213"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Linux용 Apple Music Discord Rich Presence.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="226"/>
+        <location filename="../ui/welcome_dialog.py" line="228"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>트레이에 상주합니다. &lt;b&gt;클릭&lt;/b&gt;하면 상태를 확인할 수 있고, &lt;b&gt;마우스 오른쪽 버튼 클릭&lt;/b&gt;하면 재생 컨트롤을 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="248"/>
+        <location filename="../ui/welcome_dialog.py" line="250"/>
         <source>Live diagnostics</source>
         <translation>실시간 진단</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="251"/>
+        <location filename="../ui/welcome_dialog.py" line="253"/>
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord — 확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="252"/>
+        <location filename="../ui/welcome_dialog.py" line="254"/>
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ 커버 아트 검색 — 확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="260"/>
+        <location filename="../ui/welcome_dialog.py" line="262"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266"/>
+        <location filename="../ui/welcome_dialog.py" line="268"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>&lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt;에서 무료 앱을 등록하세요 — 선택한 이름이 상태에 “&amp;lt;이름&amp;gt; 듣는 중”으로 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="280"/>
+        <location filename="../ui/welcome_dialog.py" line="282"/>
         <source>e.g. 1234567890123456789</source>
         <translation>예: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="291"/>
+        <location filename="../ui/welcome_dialog.py" line="293"/>
         <source>Skip for now</source>
         <translation>지금은 건너뛰기</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="297"/>
+        <location filename="../ui/welcome_dialog.py" line="299"/>
         <source>Apply</source>
         <translation>적용</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="361"/>
+        <location filename="../ui/welcome_dialog.py" line="363"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="364"/>
+        <location filename="../ui/welcome_dialog.py" line="366"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;커버 아트 검색:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="413"/>
+        <location filename="../ui/welcome_dialog.py" line="415"/>
         <source>Discard the Application ID?</source>
         <translation>Application ID를 취소할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="416"/>
+        <location filename="../ui/welcome_dialog.py" line="418"/>
         <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
 
 Discard what you entered?</source>
@@ -2059,22 +2059,22 @@ Discard what you entered?</source>
 입력한 내용을 취소할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="421"/>
+        <location filename="../ui/welcome_dialog.py" line="423"/>
         <source>Discard</source>
         <translation>저장 안 함</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="422"/>
+        <location filename="../ui/welcome_dialog.py" line="424"/>
         <source>Keep editing</source>
         <translation>계속 편집</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="440"/>
+        <location filename="../ui/welcome_dialog.py" line="442"/>
         <source>Skip Discord setup?</source>
         <translation>Discord 설정을 건너뛸까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="443"/>
+        <location filename="../ui/welcome_dialog.py" line="445"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2083,22 +2083,22 @@ Continue without Discord status?</source>
 Discord 상태 없이 계속할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="449"/>
+        <location filename="../ui/welcome_dialog.py" line="451"/>
         <source>Continue without Discord</source>
         <translation>Discord 없이 계속</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="451"/>
+        <location filename="../ui/welcome_dialog.py" line="453"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="459"/>
+        <location filename="../ui/welcome_dialog.py" line="461"/>
         <source>Invalid Application ID</source>
         <translation>잘못된 Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="461"/>
+        <location filename="../ui/welcome_dialog.py" line="463"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID는 숫자로 된 snowflake(17~20자리)입니다. Developer Portal에서 복사한 값을 다시 확인하세요.</translation>
     </message>

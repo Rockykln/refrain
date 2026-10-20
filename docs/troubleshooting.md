@@ -195,13 +195,12 @@ Check, in this order:
 
 ### Discord shows nothing
 
-First check that a song is detected (see above). The status is also
-cleared on purpose while the music is paused
-([FAQ](faq.md#the-discord-status-disappears-when-i-pause)).
+First check that a song is detected (see above). A paused song stays on
+the card and says so ([FAQ](faq.md#what-does-discord-show-while-i-pause)).
 
 The Status window says in plain words what Discord is doing right now:
 *ready — waiting for music*, *visible on your profile*,
-*showing "Listening to music"*, *hidden while paused*,
+*showing "Listening to music"*, *showing the song as paused*,
 *hidden — sharing is off*, *app isn't running*, *not answering*,
 *not set up — add your Application ID*, *not logged in — log in to
 show your status* or *Application ID rejected — check it*. The last

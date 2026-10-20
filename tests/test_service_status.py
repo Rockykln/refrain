@@ -38,7 +38,10 @@ NOTHING = TrackInfo.empty()
         (RPCState.SHOWING, "minimal", PLAYING, DiscordStatus.SHOWING_MINIMAL),
         (RPCState.CONNECTED_IDLE, "full", PLAYING, DiscordStatus.READY),
         (RPCState.SHOWING, "full", BLANK, DiscordStatus.READY),
-        (RPCState.CONNECTED_IDLE, "full", PAUSED, DiscordStatus.PAUSED),
+        # Paused says the card is up and labelled, so it needs the card to
+        # be up: connected with nothing on the profile is still just ready.
+        (RPCState.SHOWING, "full", PAUSED, DiscordStatus.PAUSED),
+        (RPCState.CONNECTED_IDLE, "full", PAUSED, DiscordStatus.READY),
         (RPCState.CONNECTED_IDLE, "full", NOTHING, DiscordStatus.READY),
     ],
 )

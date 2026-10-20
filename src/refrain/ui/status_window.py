@@ -84,7 +84,7 @@ _DISCORD_TONE = {
     DiscordStatus.READY: "ok",
     DiscordStatus.SHOWING: "ok",
     DiscordStatus.SHOWING_MINIMAL: "ok",
-    DiscordStatus.PAUSED: "off",
+    DiscordStatus.PAUSED: "ok",
     DiscordStatus.PRIVACY_OFF: "off",
 }
 
@@ -812,7 +812,7 @@ class StatusWindow(QDialog):
         elif d is DiscordStatus.SHOWING_MINIMAL:
             text = self.tr("Showing “Listening to music”")
         elif d is DiscordStatus.PAUSED:
-            text = self.tr("Hidden while the music is paused")
+            text = self.tr("Showing the song as paused")
         elif d is DiscordStatus.PRIVACY_OFF:
             text = self.tr("Hidden — sharing is off")
         else:

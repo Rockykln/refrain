@@ -228,7 +228,7 @@
     </message>
     <message>
         <location filename="../ui/history_window.py" line="438"/>
-        <location filename="../ui/history_window.py" line="1066"/>
+        <location filename="../ui/history_window.py" line="1072"/>
         <source>Now playing</source>
         <translation>Spelas nu</translation>
     </message>
@@ -258,47 +258,47 @@
         <translation>Klicka för att öppna i Apple Music.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="613"/>
+        <location filename="../ui/history_window.py" line="618"/>
         <source>Open in Apple Music</source>
         <translation>Öppna i Apple Music</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="617"/>
+        <location filename="../ui/history_window.py" line="622"/>
         <source>Copy artist and title</source>
         <translation>Kopiera artist och titel</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="623"/>
+        <location filename="../ui/history_window.py" line="628"/>
         <source>Remove from history</source>
         <translation>Ta bort från historiken</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="648"/>
+        <location filename="../ui/history_window.py" line="654"/>
         <source>Recently played</source>
         <translation>Senast spelade</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="674"/>
+        <location filename="../ui/history_window.py" line="680"/>
         <source>Clear history…</source>
         <translation>Rensa historik…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="687"/>
+        <location filename="../ui/history_window.py" line="693"/>
         <source>Search title, artist or album…</source>
         <translation>Sök titel, artist eller album…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="752"/>
+        <location filename="../ui/history_window.py" line="758"/>
         <source>Close</source>
         <translation>Stäng</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="778"/>
+        <location filename="../ui/history_window.py" line="784"/>
         <source>just now</source>
         <translation>nyss</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="781"/>
+        <location filename="../ui/history_window.py" line="787"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>för %n minut sedan</numerusform>
@@ -306,7 +306,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="784"/>
+        <location filename="../ui/history_window.py" line="790"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>för %n timme sedan</numerusform>
@@ -314,7 +314,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="786"/>
+        <location filename="../ui/history_window.py" line="792"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>för %n dag sedan</numerusform>
@@ -322,7 +322,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="906"/>
+        <location filename="../ui/history_window.py" line="912"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%1 av %n låt</numerusform>
@@ -330,7 +330,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="909"/>
+        <location filename="../ui/history_window.py" line="915"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>Senaste låten</numerusform>
@@ -338,68 +338,68 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="916"/>
+        <location filename="../ui/history_window.py" line="922"/>
         <source>History is turned off</source>
         <translation>Historiken är avstängd</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="917"/>
+        <location filename="../ui/history_window.py" line="923"/>
         <source>Turn it on under Settings → History to see what you played.</source>
         <translation>Slå på den under Inställningar → Historik för att se vad du har spelat.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>No songs yet</source>
         <translation>Inga låtar än</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="920"/>
+        <location filename="../ui/history_window.py" line="926"/>
         <source>Play something and it shows up here.</source>
         <translation>Spela något så dyker det upp här.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>No matches</source>
         <translation>Inga träffar</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="922"/>
+        <location filename="../ui/history_window.py" line="928"/>
         <source>Try a different search or source.</source>
         <translation>Prova en annan sökning eller källa.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1029"/>
+        <location filename="../ui/history_window.py" line="1035"/>
         <source>All sources</source>
         <translation>Alla källor</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1047"/>
+        <location filename="../ui/history_window.py" line="1053"/>
         <source>Today</source>
         <translation>Idag</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1049"/>
+        <location filename="../ui/history_window.py" line="1055"/>
         <source>Yesterday</source>
         <translation>Igår</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1108"/>
-        <location filename="../ui/history_window.py" line="1111"/>
+        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1117"/>
         <source>Clear history</source>
         <translation>Rensa historik</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1109"/>
+        <location filename="../ui/history_window.py" line="1115"/>
         <source>Remove every song from the history?</source>
         <translation>Ta bort alla låtar från historiken?</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1110"/>
+        <location filename="../ui/history_window.py" line="1116"/>
         <source>This cannot be undone.</source>
         <translation>Detta kan inte ångras.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1114"/>
+        <location filename="../ui/history_window.py" line="1120"/>
         <source>Cancel</source>
         <translation>Avbryt</translation>
     </message>
@@ -1576,8 +1576,8 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
     </message>
     <message>
         <location filename="../ui/status_window.py" line="815"/>
-        <source>Hidden while the music is paused</source>
-        <translation>Dold medan musiken är pausad</translation>
+        <source>Showing the song as paused</source>
+        <translation>Visar låten som pausad</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="817"/>
@@ -1707,6 +1707,11 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
         <translation>Discord: synlig i din profil</translation>
     </message>
     <message>
+        <location filename="../ui/tray.py" line="411"/>
+        <source>Discord: showing the song as paused</source>
+        <translation>Discord: visar låten som pausad</translation>
+    </message>
+    <message>
         <location filename="../ui/tray.py" line="427"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: inte ansluten</translation>
@@ -1818,11 +1823,6 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
         <location filename="../ui/tray.py" line="409"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: visar ”Listening to music”</translation>
-    </message>
-    <message>
-        <location filename="../ui/tray.py" line="411"/>
-        <source>Discord: hidden while paused</source>
-        <translation>Discord: dold när pausad</translation>
     </message>
     <message>
         <location filename="../ui/tray.py" line="413"/>
@@ -1955,112 +1955,112 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="88"/>
+        <location filename="../ui/welcome_dialog.py" line="91"/>
         <source>Found Discord IPC at {path}</source>
         <translation>Hittade Discord-IPC på {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="91"/>
+        <location filename="../ui/welcome_dialog.py" line="94"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Ingen Discord-IPC-socket hittades – starta Discords skrivbordsapp.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="95"/>
+        <location filename="../ui/welcome_dialog.py" line="98"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API kan nås.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="97"/>
+        <location filename="../ui/welcome_dialog.py" line="100"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>iTunes svarade, men svaret såg felaktigt ut.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="100"/>
+        <location filename="../ui/welcome_dialog.py" line="103"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>iTunes Search kan inte nås: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="102"/>
+        <location filename="../ui/welcome_dialog.py" line="105"/>
         <source>iTunes probe failed: {error}</source>
         <translation>iTunes-kontrollen misslyckades: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="173"/>
+        <location filename="../ui/welcome_dialog.py" line="175"/>
         <source>Welcome</source>
         <translation>Välkommen</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="209"/>
+        <location filename="../ui/welcome_dialog.py" line="211"/>
         <source>Welcome to Refrain</source>
         <translation>Välkommen till Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="211"/>
+        <location filename="../ui/welcome_dialog.py" line="213"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Discord Rich Presence för Apple Music på Linux.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="226"/>
+        <location filename="../ui/welcome_dialog.py" line="228"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>Finns i systemfältet. &lt;b&gt;Klicka&lt;/b&gt; för att se status; &lt;b&gt;högerklicka&lt;/b&gt; för spelarkontroller.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="248"/>
+        <location filename="../ui/welcome_dialog.py" line="250"/>
         <source>Live diagnostics</source>
         <translation>Realtidsdiagnostik</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="251"/>
+        <location filename="../ui/welcome_dialog.py" line="253"/>
         <source>⏳ Discord — checking…</source>
         <translation>⏳ Discord – kontrollerar…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="252"/>
+        <location filename="../ui/welcome_dialog.py" line="254"/>
         <source>⏳ Cover-art lookup — checking…</source>
         <translation>⏳ Omslagssökning – kontrollerar…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="260"/>
+        <location filename="../ui/welcome_dialog.py" line="262"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="266"/>
+        <location filename="../ui/welcome_dialog.py" line="268"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>Registrera en gratis app på &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; – namnet du väljer visas som ”Lyssnar på &amp;lt;name&amp;gt;” i din status.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="280"/>
+        <location filename="../ui/welcome_dialog.py" line="282"/>
         <source>e.g. 1234567890123456789</source>
         <translation>t.ex. 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="291"/>
+        <location filename="../ui/welcome_dialog.py" line="293"/>
         <source>Skip for now</source>
         <translation>Hoppa över tills vidare</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="297"/>
+        <location filename="../ui/welcome_dialog.py" line="299"/>
         <source>Apply</source>
         <translation>Verkställ</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="361"/>
+        <location filename="../ui/welcome_dialog.py" line="363"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="364"/>
+        <location filename="../ui/welcome_dialog.py" line="366"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Omslagssökning:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="413"/>
+        <location filename="../ui/welcome_dialog.py" line="415"/>
         <source>Discard the Application ID?</source>
         <translation>Kasta Application ID?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="416"/>
+        <location filename="../ui/welcome_dialog.py" line="418"/>
         <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
 
 Discard what you entered?</source>
@@ -2069,22 +2069,22 @@ Discard what you entered?</source>
 Kasta det du angav?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="421"/>
+        <location filename="../ui/welcome_dialog.py" line="423"/>
         <source>Discard</source>
         <translation>Förkasta</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="422"/>
+        <location filename="../ui/welcome_dialog.py" line="424"/>
         <source>Keep editing</source>
         <translation>Fortsätt redigera</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="440"/>
+        <location filename="../ui/welcome_dialog.py" line="442"/>
         <source>Skip Discord setup?</source>
         <translation>Hoppa över Discord-konfigurationen?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="443"/>
+        <location filename="../ui/welcome_dialog.py" line="445"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2093,22 +2093,22 @@ Continue without Discord status?</source>
 Fortsätta utan Discord-status?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="449"/>
+        <location filename="../ui/welcome_dialog.py" line="451"/>
         <source>Continue without Discord</source>
         <translation>Fortsätt utan Discord</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="451"/>
+        <location filename="../ui/welcome_dialog.py" line="453"/>
         <source>Cancel</source>
         <translation>Avbryt</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="459"/>
+        <location filename="../ui/welcome_dialog.py" line="461"/>
         <source>Invalid Application ID</source>
         <translation>Ogiltigt Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="461"/>
+        <location filename="../ui/welcome_dialog.py" line="463"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discords Application ID är en numerisk snowflake (17–20 siffror). Dubbelkolla värdet du kopierade från Developer Portal.</translation>
     </message>

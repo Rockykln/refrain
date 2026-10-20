@@ -147,7 +147,7 @@ DISCORD = [
     (DiscordStatus.READY, "Ready — waiting for music", "", "ok"),
     (DiscordStatus.SHOWING, "Visible on your profile", "", "ok"),
     (DiscordStatus.SHOWING_MINIMAL, "Showing “Listening to music”", "", "ok"),
-    (DiscordStatus.PAUSED, "Hidden while the music is paused", "", "off"),
+    (DiscordStatus.PAUSED, "Showing the song as paused", "", "ok"),
     (DiscordStatus.PRIVACY_OFF, "Hidden — sharing is off", "", "off"),
 ]
 

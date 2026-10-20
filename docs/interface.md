@@ -145,6 +145,14 @@ song title in its place. Without a title the name stays.
   spot instead. *Settings → General* can turn the corner off.
 - **The album appears as a third line** only when it says something the
   artist line doesn't already.
+- **Pausing keeps the card.** The artist line reads *Paused · Artist*,
+  the progress bar goes, and the timer counts how long the pause has
+  lasted rather than where the song stands
+  ([why](faq.md#what-does-discord-show-while-i-pause)). Taking one
+  headphone out therefore no longer empties your profile for as long as
+  it is out — a pause under four seconds isn't even labelled, since a
+  player reports one on its way from one song to the next. The card goes
+  once the player stops naming the song, or after half an hour paused.
 - **A button "Listen on Apple Music"** goes out with the status when
   there is a song address. *Settings → General* can turn it off.
 

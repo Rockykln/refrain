@@ -192,6 +192,10 @@ def compute_idle_state(
 # ago, and nothing about that reading ever changes again. Past this long
 # without playing, it is stale rather than paused.
 _PAUSED_MAX_S = 30 * 60
+# A source moving from one song to the next reports "paused" in between,
+# for a second or two. Long enough to outlast that, short enough that a
+# real pause is labelled while the user is still looking at the card.
+_RPC_PAUSE_GRACE_S = 4.0
 
 
 def compute_paused_state(
@@ -499,6 +503,11 @@ class DaemonWorker(QObject):
         # resolves. Capped so we don't block forever on iTunes misses.
         self._rpc_cover_wait_count = 0
         self._rpc_cover_wait_key = ""
+        # When the source first said "paused", so a track change passing
+        # through that state doesn't label the card. The wall clock of the
+        # same moment is what Discord counts the pause up from.
+        self._rpc_paused_since: float | None = None
+        self._rpc_paused_at = 0
         # Idle detection: when the same track-content key has been
         # reported as "playing" for longer than its own duration + a
         # grace window, the source is dangling (typical: browser tab
@@ -1590,7 +1599,23 @@ class DaemonWorker(QObject):
         if self._config.privacy.mode == "off":
             self._rpc.clear()
             return
-        if track.status != PlaybackStatus.PLAYING or not track.title.strip():
+        # Dropping a paused song made the card come and go every time a
+        # headphone left an ear. It goes once the source stops naming the
+        # song, or once compute_paused_state calls it stale.
+        is_paused = False
+        if track.status == PlaybackStatus.PAUSED:
+            if self._rpc_paused_since is None:
+                self._rpc_paused_since = time.monotonic()
+                self._rpc_paused_at = int(time.time())
+            if time.monotonic() - self._rpc_paused_since < _RPC_PAUSE_GRACE_S:
+                return  # still inside a track change; leave the card alone
+            is_paused = True
+        else:
+            self._rpc_paused_since = None
+        if not track.title.strip() or track.status not in (
+            PlaybackStatus.PLAYING,
+            PlaybackStatus.PAUSED,
+        ):
             # Connected while idle too, so "ready" and a refused Application
             # ID show before the first song, not only once one plays.
             self._rpc._ensure_connected()
@@ -1600,7 +1625,11 @@ class DaemonWorker(QObject):
         if self._config.privacy.mode == "minimal":
             artwork = self._rpc_artwork("", "")
             self._log_artwork(artwork)
-            self._rpc.update(details="Listening to music", large_text="Refrain", **artwork)
+            self._rpc.update(
+                details="Paused" if is_paused else "Listening to music",
+                large_text="Refrain",
+                **artwork,
+            )
             return
 
         track_key = track.content_key()
@@ -1679,6 +1708,10 @@ class DaemonWorker(QObject):
             state = track.album
         else:
             state = "Apple Music"
+        if is_paused:
+            # In front: the missing progress bar says the same thing, but
+            # only to someone who knows the card.
+            state = f"Paused · {state}"
 
         # Prefer the iTunes-resolved song URL (links to the *specific* track)
         # over xesam:url from the browser tab (often the album / playlist page).
@@ -1715,7 +1748,12 @@ class DaemonWorker(QObject):
         if song_link:
             payload["details_url"] = song_link
             payload["state_url"] = song_link
-        if send_timing:
+        if is_paused:
+            # Discord only ever counts away from a timestamp, so counting
+            # the song would run past its own length. The pause can be
+            # counted honestly for as long as it lasts.
+            payload["start"] = self._rpc_paused_at
+        elif send_timing:
             payload["start"] = self._rpc_start_ts
         # Only emit `large_text` when it adds new info — Discord shows it
         # as a third visible line for LISTENING activity, and an
@@ -1723,7 +1761,9 @@ class DaemonWorker(QObject):
         if album_for_display and album_for_display.lower() != state.lower():
             payload["large_text"] = album_for_display
 
-        if send_timing and effective_duration_ms > 0:
+        # `end` draws the progress bar, and a bar that keeps filling while
+        # the music stands still would be wrong.
+        if send_timing and effective_duration_ms > 0 and not is_paused:
             payload["end"] = self._rpc_start_ts + (effective_duration_ms // 1000)
 
         if song_link and self._config.behavior.show_buttons:

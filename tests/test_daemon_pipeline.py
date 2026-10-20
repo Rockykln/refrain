@@ -75,20 +75,47 @@ def test_start_does_not_move_while_the_song_plays_on(rig):
     assert {p["start"] for p in rpc().updates} == {WALL0}
 
 
-def test_pause_clears_discord_and_resume_shifts_the_timer_by_the_pause(rig):
+def test_pause_keeps_the_song_on_discord_and_resume_shifts_the_timer(rig):
+    """The tray and the Status window keep showing a paused song, and taking
+    a headphone out must not make the card come and go."""
     worker, player, clock = rig()
     player.play()
     player.tick(n=4)
     player.pause()
-    player.tick()
-    assert rpc().last == ("clear", {})
+    player.tick(n=12)  # past the grace that covers a track change
+    kind, payload = rpc().last
+    assert kind == "update"
+    assert payload["details"] == TITLE
+    assert payload["state"] == f"Paused · {ARTIST}"
+    # `end` draws the bar, and nothing is filling it while the music
+    # stands still. `start` stays, but counts the pause rather than the
+    # song: Discord can only count away from a timestamp, and counting
+    # the song would run past its own length.
+    assert "end" not in payload
+    assert clock.wall - payload["start"] == pytest.approx(6, abs=1)
     clock.advance(30)
     player.resume()
     player.tick()
     kind, payload = rpc().last
     assert kind == "update"
-    assert payload["start"] == WALL0 + 30
-    assert payload["end"] == WALL0 + 30 + 200
+    assert payload["state"] == ARTIST
+    assert payload["end"] == payload["start"] + 200
+
+
+def test_a_track_change_does_not_flash_paused(rig):
+    """A source on its way from one song to the next reports "paused" for a
+    poll or two. Labelling the card that fast mislabels every track change."""
+    worker, player, _ = rig()
+    player.play()
+    player.tick(n=4)
+    player.pause()
+    player.tick(n=2)  # a second, as a track change takes
+    assert "Paused" not in rpc().last[1]["state"]
+    worker._cover_fetcher.urls[(ARTIST, "Harbour Lights")] = COVER + "?c"
+    player.play(title="Harbour Lights")
+    player.tick()
+    assert rpc().last[1]["details"] == "Harbour Lights"
+    assert "Paused" not in rpc().last[1]["state"]
 
 
 def test_seek_moves_the_start(rig):
@@ -177,6 +204,31 @@ def test_privacy_minimal_hides_the_song(rig):
         },
     )
     assert worker._scrobbler.calls[-1]["privacy_off"] is False
+
+
+def test_a_song_paused_for_half_an_hour_leaves_the_card(rig):
+    """Keeping a paused song is not keeping it forever — the stale rule
+    takes the track away, and the card goes with it."""
+    worker, player, clock = rig()
+    player.play()
+    player.tick(n=4)
+    player.pause()
+    player.tick()
+    assert rpc().last[0] == "update"
+    clock.advance(31 * 60)
+    player.tick()
+    assert rpc().last == ("clear", {})
+
+
+def test_privacy_minimal_says_paused_too(rig):
+    """Minimal mode never names the song, but "listening" while paused
+    would still be wrong."""
+    worker, player, _ = rig(privacy={"mode": "minimal"})
+    player.play()
+    player.tick()
+    player.pause()
+    player.tick(n=12)
+    assert rpc().last[1]["details"] == "Paused"
 
 
 def test_nothing_playing_clears_discord(rig):

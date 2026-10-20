@@ -57,7 +57,10 @@ def discord_status(rpc_state: RPCState, privacy_mode: str, track: TrackInfo) -> 
             )
         return DiscordStatus.READY
     if track.has_track and track.status == PlaybackStatus.PAUSED:
-        return DiscordStatus.PAUSED
+        # The card stays up while paused, so this only holds once Discord
+        # is actually showing it; otherwise there is nothing on the profile
+        # yet and READY is the honest answer.
+        return DiscordStatus.PAUSED if rpc_state is RPCState.SHOWING else DiscordStatus.READY
     return DiscordStatus.READY
 
 

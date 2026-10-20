@@ -134,11 +134,17 @@ pauses too. The tray icon, player controls, notifications and the recently
 played list keep working. Use this when streaming or when
 you don't want your Discord profile to surface what you're listening to.
 
-## The Discord status disappears when I pause.
+## What does Discord show while I pause?
 
-That's intentional — pausing is implicitly "not listening". If you want
-the status to persist while paused, tell us in
-[a feature request](https://github.com/Rockykln/refrain/issues/new?template=feature_request.yml).
+The song, with *Paused* in front of the artist and no progress bar. The
+timer counts how long the pause has lasted: Discord can only count away
+from a point in time, so a number that stands still is not on offer, and
+counting the song itself would run past its own length. Earlier versions
+cleared the card instead, which meant taking one headphone out emptied
+your profile until you put it back. A pause under four seconds is not
+labelled at all: players report one in passing when a track changes. The
+card goes once the player stops naming the song, or after half an hour
+paused.
 
 ## Refrain says it's connected to Discord, but nobody sees my status.
 

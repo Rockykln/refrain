@@ -408,7 +408,7 @@ class TrayIcon(QObject):
         elif d is DiscordStatus.SHOWING_MINIMAL:
             text, icon = self.tr("Discord: showing “Listening to music”"), "network-connect"
         elif d is DiscordStatus.PAUSED:
-            text, icon = self.tr("Discord: hidden while paused"), "network-disconnect"
+            text, icon = self.tr("Discord: showing the song as paused"), "network-connect"
         elif d is DiscordStatus.PRIVACY_OFF:
             text, icon = self.tr("Discord: hidden — sharing is off"), "network-disconnect"
         else:
