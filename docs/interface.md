@@ -185,7 +185,8 @@ they had.
 any dialog.
 
 - **Songs.** The rows in *Recently played* and in the Status window take
-  focus, and <kbd>Enter</kbd> opens the song in Apple Music. A track
+  focus, and <kbd>Enter</kbd> or <kbd>Space</kbd> opens the song in
+  Apple Music. A track
   change rebuilds both lists and leaves you on the same song.
 - **In *Recently played*** the list scrolls to the row you reach, that row
   is outlined, and the menu key (or <kbd>Shift</kbd>+<kbd>F10</kbd>) gives

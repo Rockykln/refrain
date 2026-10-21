@@ -100,7 +100,7 @@ the old version showing there straight afterwards is not a failed push.
 
 Recipe at [`appimage/AppImageBuilder.yml`](appimage/AppImageBuilder.yml).
 Builds a portable single-file binary (~76 MB, includes Qt 6 + Python +
-all deps) that runs on any glibc-based Linux.
+all deps) that runs on glibc 2.35 or newer, as the table above says.
 
 The release workflow rewrites `version:` from the git tag at build time,
 so the recipe's hardcoded version is just a placeholder.
@@ -287,7 +287,9 @@ packaging/
 │   ├── refrain/PKGBUILD               — release build (stable, signed git tag)
 │   └── refrain-git/PKGBUILD           — git build (auto-bumping pkgver)
 ├── appimage/
-│   └── AppImageBuilder.yml            — AppImage recipe
+│   ├── AppImageBuilder.yml            — AppImage recipe
+│   ├── prune_qt.py                    — drops the Qt modules Refrain doesn't use
+│   └── third_party_notices.py         — writes THIRD-PARTY-NOTICES into the AppDir
 └── flatpak/
     ├── io.github.Rockykln.Refrain.yaml          — Flatpak manifest
     ├── io.github.Rockykln.Refrain.desktop       — desktop entry (Flatpak ID)

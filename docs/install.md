@@ -119,6 +119,7 @@ entry + icon.)
 | Recently played | `$XDG_STATE_HOME/refrain/history.json`    |
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` |
 | Last.fm length references | `$XDG_STATE_HOME/refrain/song_lengths_lastfm.txt` |
+| Status window size | `$XDG_STATE_HOME/refrain/status-window.json` |
 | Logs          | `$XDG_STATE_HOME/refrain/refrain.log` (rotates) |
 | Crash stacks  | `$XDG_STATE_HOME/refrain/crash.log` (written only if Refrain crashes; the next start says so and opens it on click) |
 | Developer-mode metrics | `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (only while developer mode is on) |

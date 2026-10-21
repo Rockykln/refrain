@@ -29,6 +29,7 @@ autostart = false
 notifications = false              # new installs; a config from before 0.5.3 keeps its value
 cover_art = true                   # look songs up in Apple's catalog: cover, song link, length
 show_buttons = true
+show_small_image = true            # the small source icon on the Discord cover
 notify_delay_ms = 0                # 0 = fire ASAP; the cover-art retry loop still waits up to ~2 s
 tray_icon = "white"                # not in Settings: the glyph set for a dark panel; "black" for a light one, "auto" follows the system colour scheme
 

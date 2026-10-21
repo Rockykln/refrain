@@ -172,12 +172,13 @@ To add a new language end-to-end:
 
 ```sh
 # 1. Copy the German translation as a starting point (gives you all
-#    the strings already extracted).
-cp src/refrain/i18n/refrain_de.ts src/refrain/i18n/refrain_nl.ts
+#    the strings already extracted). `da` stands in for your language
+#    code here — the sixteen that already exist are in that directory.
+cp src/refrain/i18n/refrain_de.ts src/refrain/i18n/refrain_da.ts
 
 # 2. Open it in Qt Linguist (friendlier than editing XML by hand) and
 #    replace each German line with your translation.
-pyside6-linguist src/refrain/i18n/refrain_nl.ts
+pyside6-linguist src/refrain/i18n/refrain_da.ts
 
 # 3. Compile to .qm.
 make i18n

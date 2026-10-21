@@ -372,6 +372,7 @@ instance's Status window — and exits. No lockfile in `/tmp`.
 | Recently played    | `$XDG_STATE_HOME/refrain/history.json` (`0600`, atomic; 1–100 songs, 30 by default) |
 | Measured song lengths | `$XDG_STATE_HOME/refrain/song_lengths.txt` (`0600`, atomic; 1000-song cap; hashed keys, one line each) |
 | Last.fm length references | `$XDG_STATE_HOME/refrain/song_lengths_lastfm.txt` (`0600`, atomic; the songs Last.fm was already asked about, so it is asked once each) |
+| Status window geometry | `$XDG_STATE_HOME/refrain/status-window.json` (Qt's base64 geometry blob; written on hide, not `0600`) |
 | Developer-mode metrics | `$XDG_STATE_HOME/refrain/dev-metrics.jsonl` (`0600`, appended; rotated to `.1` at 5 MB; only while developer mode is on, see [developer-mode.md](developer-mode.md)) |
 | Autostart entry    | `$XDG_CONFIG_HOME/autostart/refrain.desktop` (only when enabled) |
 

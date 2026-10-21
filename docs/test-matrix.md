@@ -201,9 +201,9 @@ Triggered automatically when a newer version exists; or set
 - Click the song: its Apple Music page opens in the browser that is
   playing it. Right-click → *Remove from history* takes it out.
 - Between two songs the row doesn't flash *Paused*.
-- Pause Apple Music in the browser: within a second the tray and the
-  row say *Paused*, and the elapsed time stops. Tray → *Play* starts
-  the music again.
+- Pause Apple Music in the browser: the tray says *Paused* within a
+  second and the row after two, and the elapsed time stops. Tray →
+  *Play* starts the music again.
 - Over Bluetooth, with the phone on repeat-one: the elapsed time starts
   again from 0:00 at every loop instead of disappearing, and each loop
   that counts is a row — and a scrobble — of its own.
