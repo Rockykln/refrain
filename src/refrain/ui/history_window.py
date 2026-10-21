@@ -26,6 +26,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QColor,
+    QContextMenuEvent,
     QFont,
     QFontMetricsF,
     QGuiApplication,
@@ -477,6 +478,12 @@ class _SongRow(QWidget):
         self._locale = locale
         self.setToolTip(self._tooltip(started, locale))
 
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(" — ".join(p for p in (entry.title, entry.artist) if p))
+        self.setAccessibleDescription(
+            QCoreApplication.translate("HistoryWindow", "Open in Apple Music")
+        )
+
     def set_highlights(self, words: list[str]) -> None:
         if words == self._highlight:
             return
@@ -569,8 +576,23 @@ class _SongRow(QWidget):
         self.update()
         super().leaveEvent(event)
 
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        # A row reached by Tab may be scrolled out of sight.
+        host = self.parentWidget()
+        scroll = host.parentWidget() if host is not None else None
+        while scroll is not None and not isinstance(scroll, QScrollArea):
+            scroll = scroll.parentWidget()
+        if isinstance(scroll, QScrollArea):
+            scroll.ensureWidgetVisible(self)
+        self.update()
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self.update()
+
     def paintEvent(self, event) -> None:
-        if not (self._hover or self._now_playing):
+        if not (self._hover or self._now_playing or self.hasFocus()):
             return
         highlight = self.palette().color(QPalette.ColorRole.Highlight)
         p = QPainter(self)
@@ -578,6 +600,10 @@ class _SongRow(QWidget):
         path = QPainterPath()
         path.addRoundedRect(QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5), 8, 8)
         p.fillPath(path, _with_alpha(highlight, 0.16 if self._hover else 0.09))
+        # An outline too, because the wash alone is what hover paints.
+        if self.hasFocus():
+            p.setPen(highlight)
+            p.drawPath(path)
         p.end()
 
     # ------------------------------------------------------------- actions
@@ -597,6 +623,13 @@ class _SongRow(QWidget):
             self._open()
             return
         super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self._open()
+            event.accept()
+            return
+        super().keyPressEvent(event)
 
     def _open(self) -> None:
         # Only a browser play names a browser; a Bluetooth device name
@@ -627,7 +660,14 @@ class _SongRow(QWidget):
             icons.themed_icon("edit-delete"),
             QCoreApplication.translate("HistoryWindow", "Remove from history"),
         )
-        chosen = menu.exec(event.globalPos())
+        # The menu key gives no mouse position; put it on the row instead
+        # of wherever the pointer happens to rest.
+        where = (
+            self.mapToGlobal(self.rect().center())
+            if event.reason() == QContextMenuEvent.Reason.Keyboard
+            else event.globalPos()
+        )
+        chosen = menu.exec(where)
         menu.deleteLater()
         if chosen is copy:
             QGuiApplication.clipboard().setText(f"{e.artist} — {e.title}" if e.artist else e.title)

@@ -351,8 +351,18 @@ class _RecentRow(QWidget):
 
     def leaveEvent(self, event) -> None:
         super().leaveEvent(event)
-        self._underline(False)
+        # Keyboard focus keeps the underline: the mouse leaving a row the
+        # user tabbed to must not make it look like a plain line again.
+        self._underline(self.hasFocus())
         self._hover.stop()
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        self._underline(True)
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self._underline(self.underMouse())
 
     def _underline(self, on: bool) -> None:
         # Shows the row is a link, the way a browser does, without cluttering the list.
@@ -382,6 +392,11 @@ class _RecentRow(QWidget):
         row.addWidget(self.when)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(QCoreApplication.translate("StatusWindow", "Open in Apple Music"))
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setAccessibleName(" — ".join(p for p in (entry.title, entry.artist) if p))
+        self.setAccessibleDescription(
+            QCoreApplication.translate("StatusWindow", "Open in Apple Music")
+        )
         self._hover = QTimer(self)
         self._hover.setSingleShot(True)
         self._hover.setInterval(_hover_ms)
@@ -396,11 +411,21 @@ class _RecentRow(QWidget):
 
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
-            confirm_and_open(
-                self.window(), self.link, self.entry.player if self.entry.source == "mpris" else ""
-            )
+            self._open()
             return
         super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self._open()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _open(self) -> None:
+        confirm_and_open(
+            self.window(), self.link, self.entry.player if self.entry.source == "mpris" else ""
+        )
 
 
 def _separator() -> QFrame:

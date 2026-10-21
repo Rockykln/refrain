@@ -15,12 +15,14 @@ from PySide6.QtCore import QCoreApplication, QEvent, QPoint, QPointF, Qt  # noqa
 from PySide6.QtGui import (  # noqa: E402
     QColor,
     QEnterEvent,
+    QFocusEvent,
     QFont,
     QHelpEvent,
     QImage,
     QMouseEvent,
     QPalette,
 )
+from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolTip, QWidget  # noqa: E402
 from shiboken6 import Shiboken  # noqa: E402
 
@@ -721,3 +723,61 @@ def test_a_right_to_left_title_scrolls_from_its_own_end(app, monkeypatch):
     assert not (ltr & int(Qt.AlignmentFlag.AlignRight))
     assert rtl & int(Qt.AlignmentFlag.AlignRight)
     assert not (rtl & int(Qt.AlignmentFlag.AlignLeft))
+
+
+# ------------------------------------------------------------------------- #
+# Reaching a recently played row without a mouse                              #
+# ------------------------------------------------------------------------- #
+
+
+def _first_recent_row(window):
+    window.set_history(_history(n=5))
+    return window.recent_rows.itemAt(0).widget()
+
+
+def test_a_recent_row_can_be_reached_and_named_without_a_mouse(window):
+    row = _first_recent_row(window)
+    assert row.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    assert row.entry.title in row.accessibleName()
+    assert row.entry.artist in row.accessibleName()
+
+
+@pytest.mark.parametrize("key", [Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space])
+def test_enter_on_a_focused_recent_row_opens_the_song(window, monkeypatch, key):
+    opened = []
+    monkeypatch.setattr(
+        "refrain.ui.status_window.confirm_and_open",
+        lambda parent, url, player="": opened.append(url),
+    )
+    row = _first_recent_row(window)
+    QTest.keyClick(row, key)
+    assert len(opened) == 1
+
+
+def test_another_key_on_a_recent_row_opens_nothing(window, monkeypatch):
+    opened = []
+    monkeypatch.setattr(
+        "refrain.ui.status_window.confirm_and_open",
+        lambda parent, url, player="": opened.append(url),
+    )
+    row = _first_recent_row(window)
+    QTest.keyClick(row, Qt.Key.Key_A)
+    assert opened == []
+
+
+def test_the_underline_follows_focus_and_survives_the_mouse_leaving(window, monkeypatch):
+    row = _first_recent_row(window)
+    assert not row.title.font().underline()
+    row.focusInEvent(QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+    assert row.title.font().underline()
+    # The pointer leaving must not undo what the keyboard set.
+    monkeypatch.setattr(type(row), "hasFocus", lambda self: True)
+    row.leaveEvent(QEvent(QEvent.Type.Leave))
+    assert row.title.font().underline()
+
+
+def test_the_underline_goes_when_focus_leaves_and_the_mouse_is_elsewhere(window):
+    row = _first_recent_row(window)
+    row.focusInEvent(QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+    row.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut, Qt.FocusReason.TabFocusReason))
+    assert not row.title.font().underline()

@@ -13,13 +13,15 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtCore import QDate, QEvent, QPoint, Qt  # noqa: E402
 from PySide6.QtGui import (  # noqa: E402
     QContextMenuEvent,
+    QFocusEvent,
     QGuiApplication,
     QHelpEvent,
     QIcon,
+    QImage,
     QPixmap,
 )
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QLabel, QMenu  # noqa: E402
+from PySide6.QtWidgets import QLabel, QMenu, QScrollArea  # noqa: E402
 
 from refrain.cover_art import image_path_for_url  # noqa: E402
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
@@ -216,3 +218,91 @@ def test_a_corrupted_cover_file_falls_back_to_the_placeholder(win):  # noqa: F81
     win.set_snapshot(HistorySnapshot(entries=_demo(GLASS, cover=True)))
     row = win.findChildren(_SongRow)[0]
     assert not row.has_cover
+
+
+# ------------------------------------------------------------------------- #
+# Reaching a row without a mouse                                              #
+# ------------------------------------------------------------------------- #
+
+
+def test_a_row_can_be_reached_and_named_without_a_mouse(win):  # noqa: F811
+    entry = HistoryEntry(
+        title="Glass Tides", artist="Neon Harbor", started_at=_at(QDate.currentDate())
+    )
+    win.set_snapshot(HistorySnapshot(entries=(entry,)))
+    row = win.findChildren(_SongRow)[0]
+    assert row.focusPolicy() == Qt.FocusPolicy.StrongFocus
+    assert "Glass Tides" in row.accessibleName()
+    assert "Neon Harbor" in row.accessibleName()
+
+
+@pytest.mark.parametrize("key", [Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space])
+def test_enter_on_a_focused_row_opens_the_song(win, monkeypatch, key):  # noqa: F811
+    opened = []
+    monkeypatch.setattr(
+        "refrain.ui.history_window.confirm_and_open",
+        lambda parent, url, player="": opened.append(url),
+    )
+    win.set_snapshot(HistorySnapshot(entries=_entries(1)))
+    row = win.findChildren(_SongRow)[0]
+    QTest.keyClick(row, key)
+    assert len(opened) == 1
+
+
+def test_another_key_on_a_row_opens_nothing(win, monkeypatch):  # noqa: F811
+    opened = []
+    monkeypatch.setattr(
+        "refrain.ui.history_window.confirm_and_open",
+        lambda parent, url, player="": opened.append(url),
+    )
+    win.set_snapshot(HistorySnapshot(entries=_entries(1)))
+    row = win.findChildren(_SongRow)[0]
+    QTest.keyClick(row, Qt.Key.Key_A)
+    assert opened == []
+
+
+def test_the_menu_key_puts_the_menu_on_the_row_not_at_the_pointer(win, monkeypatch):  # noqa: F811
+    where = []
+
+    class _Menu(QMenu):
+        def exec(self, point, *_args):
+            where.append(point)
+            return None
+
+    monkeypatch.setattr("refrain.ui.history_window.QMenu", _Menu)
+    win.set_snapshot(HistorySnapshot(entries=_entries(1)))
+    row = win.findChildren(_SongRow)[0]
+    far_away = QPoint(4000, 4000)
+    row.contextMenuEvent(
+        QContextMenuEvent(QContextMenuEvent.Reason.Keyboard, QPoint(0, 0), far_away)
+    )
+    assert where and where[0] != far_away
+    assert where[0] == row.mapToGlobal(row.rect().center())
+
+
+def test_a_focused_row_is_painted_even_without_the_mouse(win, monkeypatch):  # noqa: F811
+    # Offscreen the window is never active, so hasFocus() stays false
+    # however the row is focused; the paint branch is driven directly.
+    win.set_snapshot(HistorySnapshot(entries=_entries(1)))
+    row = win.findChildren(_SongRow)[0]
+    row._hover = False
+    row._now_playing = False
+
+    def _shot() -> QImage:
+        pm = QPixmap(row.size())
+        pm.fill(Qt.GlobalColor.transparent)
+        row.render(pm)
+        return pm.toImage()
+
+    blank = _shot()
+    monkeypatch.setattr(_SongRow, "hasFocus", lambda self: True)
+    assert _shot() != blank
+
+
+def test_tabbing_to_a_row_scrolls_it_into_view(win, monkeypatch):  # noqa: F811
+    seen = []
+    monkeypatch.setattr(QScrollArea, "ensureWidgetVisible", lambda self, w, *a: seen.append(w))
+    win.set_snapshot(HistorySnapshot(entries=_entries(12)))
+    row = win.findChildren(_SongRow)[-1]
+    row.focusInEvent(QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
+    assert seen == [row]

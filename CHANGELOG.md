@@ -11,6 +11,13 @@ lists every version and why.
 
 ### Added
 
+- **The songs in both lists can be reached without a mouse.** The rows in
+  *Recently played* and in the Status window answered to the pointer
+  only, so opening a song needed one — and *Remove from history* could
+  not be reached at all. Tab now walks the rows and Enter opens the song;
+  in *Recently played* the list scrolls to the row you reach and the menu
+  key gives the same menu as a right-click. The row the keyboard sits on
+  is marked, and a screen reader is told its title and artist.
 - **Developer mode can drop the waits before a song counts as paused or
   gone.** Those waits keep the windows, the recently played list, the
   scrobbler and the Discord card from flickering, and also make them

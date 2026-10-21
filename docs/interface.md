@@ -117,6 +117,11 @@ again is listed twice, once per play.
   blind to case and accents, found words marked — and with more than
   one source a filter by source. <kbd>Ctrl</kbd>+<kbd>F</kbd> jumps into
   the search, <kbd>Esc</kbd> clears it.
+- Without a mouse: <kbd>Tab</kbd> walks the songs and the list scrolls to
+  the one you reach, <kbd>Enter</kbd> opens it, and the menu key (or
+  <kbd>Shift</kbd>+<kbd>F10</kbd>) gives the same menu as a right-click.
+  The rows in the Status window answer to <kbd>Tab</kbd> and
+  <kbd>Enter</kbd> as well.
 - The window opens at the size you last left it.
 
 The list stays on your machine (`history.json`, readable only by you)
