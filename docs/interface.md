@@ -178,3 +178,21 @@ they had.
     <img src="screenshots/notification.png" alt="Track-change notification" width="520"/>
   </picture>
 </p>
+
+## Without a mouse
+
+<kbd>Tab</kbd> walks the controls of every window and <kbd>Esc</kbd> closes
+any dialog.
+
+- **Songs.** The rows in *Recently played* and in the Status window take
+  focus, and <kbd>Enter</kbd> opens the song in Apple Music. A track
+  change rebuilds both lists and leaves you on the same song.
+- **In *Recently played*** the list scrolls to the row you reach, that row
+  is outlined, and the menu key (or <kbd>Shift</kbd>+<kbd>F10</kbd>) gives
+  the same menu as a right-click — the only way to *Remove from history*
+  without a pointer. In the Status window the row you are on is
+  underlined instead; it needs no scrolling, since it only ever shows as
+  many songs as fit.
+- **Links.** The ones in the legal notice, in the first-run wizard, under
+  *Settings → Last.fm* and in the banner that points at a crash report
+  answer to <kbd>Tab</kbd> and open with <kbd>Enter</kbd>.
