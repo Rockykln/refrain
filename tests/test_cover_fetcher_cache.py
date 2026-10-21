@@ -139,11 +139,44 @@ def test_a_downloaded_cover_lives_in_a_private_temp_dir_only(fetcher, downloads)
     assert not list(cover_cache_dir().glob("*.jpg"))
 
 
-def test_shutdown_removes_the_temp_dir(fetcher, downloads):
+def test_shutdown_leaves_the_temp_dir_for_the_next_start(fetcher, downloads):
+    # A download already under way writes into the directory after
+    # shutdown returns, so quitting cannot take it with it.
     _settle(fetcher, *KEY)
     temp = fetcher.get_local_path(*KEY).parent
     fetcher.shutdown()
+    assert temp.exists()
+    cf.CoverFetcher().shutdown()
     assert not temp.exists()
+
+
+def test_the_sweep_leaves_everything_that_is_not_ours_alone(fetcher, tmp_path):
+    runtime = Path(os.environ["XDG_RUNTIME_DIR"])
+    stale = runtime / (cf._TEMP_PREFIX + "earlier")
+    stale.mkdir()
+    (stale / "a.jpg").write_bytes(b"x")
+    stranger = runtime / "someone-elses-dir"
+    stranger.mkdir()
+    loose = runtime / (cf._TEMP_PREFIX + "file-not-a-dir")
+    loose.write_bytes(b"x")
+    link = runtime / (cf._TEMP_PREFIX + "link")
+    link.symlink_to(stranger)
+
+    assert cf._clear_stale_temp_dirs() == 1
+    assert not stale.exists()
+    assert stranger.is_dir()
+    assert loose.exists()
+    assert link.is_symlink()
+
+
+def test_a_sweep_that_cannot_list_the_directory_does_not_stop_the_start(monkeypatch):
+    class _Unlistable(Path):
+        def glob(self, _pattern):
+            raise OSError("permission denied")
+
+    monkeypatch.setattr(cf, "_temp_base", lambda: None)
+    monkeypatch.setattr(cf, "Path", lambda _p: _Unlistable("/nonexistent"))
+    assert cf._clear_stale_temp_dirs() == 0
 
 
 def _drop(fetcher, *key):

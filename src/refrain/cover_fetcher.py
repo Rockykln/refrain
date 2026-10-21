@@ -57,6 +57,9 @@ _MAX_MEMO_ENTRIES = 500
 # its cover, its song link and its duration for the rest of the session.
 _RETRY_AFTER_S = 60.0
 
+# Covers on their way live here until the song makes the history.
+_TEMP_PREFIX = "refrain-covers-"
+
 
 def _prune_lookup_cache(max_entries: int = _MAX_CACHED_LOOKUPS) -> int:
     """Drop the oldest lookup answers beyond ``max_entries``; returns how many.
@@ -90,9 +93,32 @@ def _temp_base() -> str | None:
     return runtime if os.path.isabs(runtime) and os.path.isdir(runtime) else None
 
 
+def _clear_stale_temp_dirs() -> int:
+    """Remove cover directories an earlier run left behind; returns how many.
+
+    Safe to do wholesale because the old process cannot still be writing:
+    its download threads are not daemons, so it only exits once they are
+    done, and only then does its bus name — which this run had to take
+    first — come free. Making those threads daemons would break that.
+    """
+    base = Path(_temp_base() or tempfile.gettempdir())
+    removed = 0
+    try:
+        for p in base.glob(_TEMP_PREFIX + "*"):
+            if p.is_dir() and not p.is_symlink():
+                shutil.rmtree(p, ignore_errors=True)
+                removed += 1
+    except OSError as e:
+        log.debug("Stale cover-dir sweep failed: %s", e)
+    if removed:
+        log.info("Swept %d cover dir(s) from an earlier run", removed)
+    return removed
+
+
 class CoverFetcher:
     def __init__(self) -> None:
         _prune_lookup_cache()
+        _clear_stale_temp_dirs()
         self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="refrain-cover")
         self._lock = threading.Lock()
         self._url_cache: dict[str, str] = {}  # key → cover URL ("" = negative)
@@ -235,12 +261,14 @@ class CoverFetcher:
                         p.unlink()
 
     def shutdown(self) -> None:
-        self._executor.shutdown(wait=False, cancel_futures=True)
+        # Closed before the executor, so a worker that has not asked for
+        # its path yet gives up at once. The directory outlives us: a
+        # download under way still writes into it, and waiting would hold
+        # the window open.
         with self._lock:
             self._closed = True
-            temp, self._temp_dir = self._temp_dir, None
-        if temp is not None:
-            shutil.rmtree(temp, ignore_errors=True)
+            self._temp_dir = None
+        self._executor.shutdown(wait=False, cancel_futures=True)
 
     @staticmethod
     def _key(artist: str, title: str, album: str = "") -> str:
@@ -254,9 +282,7 @@ class CoverFetcher:
         with self._lock:
             if self._temp_dir is None and create and not self._closed:
                 try:
-                    self._temp_dir = Path(
-                        tempfile.mkdtemp(prefix="refrain-covers-", dir=_temp_base())
-                    )
+                    self._temp_dir = Path(tempfile.mkdtemp(prefix=_TEMP_PREFIX, dir=_temp_base()))
                 except OSError as e:
                     log.debug("Could not create a temporary cover directory: %s", e)
             temp = self._temp_dir
