@@ -497,6 +497,11 @@ class StatusWindow(QDialog):
         self.banner.setWordWrap(True)
         self.banner.setTextFormat(Qt.TextFormat.RichText)
         self.banner.setObjectName("banner")
+        # Or the link to the crash report needs a mouse.
+        self.banner.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+        )
         self.banner.setVisible(False)
         self.banner.linkActivated.connect(self._on_banner_link)
         layout.addWidget(self.banner)

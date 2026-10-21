@@ -271,6 +271,10 @@ class WelcomeDialog(QDialog):
             ).format(url=_DISCORD_DEVELOPER_PORTAL)
         )
         client_label.setOpenExternalLinks(True)
+        client_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+        )
         client_label.setWordWrap(True)
         # Default text color: palette(mid) is illegible on dark
         # Breeze. Italic + slightly smaller keeps the helper-text feel

@@ -152,6 +152,10 @@ class LegalDialog(QDialog):
             f"The full text is kept in <a href='{LEGAL_URL}'>LEGAL.md</a>."
         )
         intro.setWordWrap(True)
+        intro.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+        )
         intro.setOpenExternalLinks(False)
         intro.linkActivated.connect(self._open_link)
         inner_layout.addWidget(intro)
@@ -165,10 +169,12 @@ class LegalDialog(QDialog):
             text.setWordWrap(True)
             text.setTextFormat(Qt.TextFormat.RichText)
             # Selectable so a user can copy a clause; links go through
-            # QDesktopServices rather than Qt's own handler.
+            # QDesktopServices rather than Qt's own handler, and answer to
+            # the keyboard as well as the mouse.
             text.setTextInteractionFlags(
                 Qt.TextInteractionFlag.TextSelectableByMouse
                 | Qt.TextInteractionFlag.LinksAccessibleByMouse
+                | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
             )
             text.setOpenExternalLinks(False)
             text.linkActivated.connect(self._open_link)

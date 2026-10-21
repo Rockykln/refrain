@@ -20,6 +20,10 @@ lists every version and why.
   is marked, a screen reader is told its title and artist, and a track
   change leaves the keyboard on the same song — including the song that
   was playing, whose row is rebuilt when it stops being the current one.
+- **The links Refrain shows can be reached without a mouse.** The ones in
+  the legal notice, in the first-run wizard, under *Settings → Last.fm*
+  and in the banner that points at a crash report answered to the pointer
+  only. Tab reaches them now and Enter opens them.
 - **Developer mode can drop the waits before a song counts as paused or
   gone.** Those waits keep the windows, the recently played list, the
   scrobbler and the Discord card from flickering, and also make them

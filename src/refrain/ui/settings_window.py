@@ -1038,6 +1038,10 @@ class SettingsWindow(QDialog):
         self.lastfm_attribution = QLabel(
             '<a href="https://www.last.fm">{}</a>'.format(self.tr("Scrobbling via Last.fm"))
         )
+        self.lastfm_attribution.setTextInteractionFlags(
+            Qt.TextInteractionFlag.LinksAccessibleByMouse
+            | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+        )
         self.lastfm_attribution.linkActivated.connect(lambda url: _open_https_link(QUrl(url)))
         lf.addRow(self.lastfm_attribution)
         v.addWidget(lastfm_group)
