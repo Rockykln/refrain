@@ -170,12 +170,13 @@ def test_the_sweep_leaves_everything_that_is_not_ours_alone(fetcher, tmp_path):
 
 
 def test_a_sweep_that_cannot_list_the_directory_does_not_stop_the_start(monkeypatch):
-    class _Unlistable(Path):
+    # A plain stand-in: subclassing Path fails before 3.12, which the CI builds.
+    class _Unlistable:
         def glob(self, _pattern):
             raise OSError("permission denied")
 
     monkeypatch.setattr(cf, "_temp_base", lambda: None)
-    monkeypatch.setattr(cf, "Path", lambda _p: _Unlistable("/nonexistent"))
+    monkeypatch.setattr(cf, "Path", lambda _p: _Unlistable())
     assert cf._clear_stale_temp_dirs() == 0
 
 
