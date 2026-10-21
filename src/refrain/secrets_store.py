@@ -148,7 +148,13 @@ def _keyring_delete(bus, name: str) -> bool:
     for path in list(unlocked) + list(locked):
         try:
             item = bus.get_object(_SS_BUS, path)
-            dbus.Interface(item, _SS_ITEM_IFACE).Delete()
+            # Delete answers with a prompt path when it needs the user to
+            # confirm; "/" means it went through. Taking the call itself as
+            # success would report a secret gone while it is still there.
+            prompt = dbus.Interface(item, _SS_ITEM_IFACE).Delete()
+            if str(prompt) != "/":
+                log.warning("Keyring item delete needs confirmation we cannot ask for")
+                ok = False
         except Exception as e:
             log.warning("Keyring item delete failed: %s", e)
             ok = False

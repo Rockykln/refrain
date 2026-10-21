@@ -202,6 +202,7 @@ class _SecretService:
 
     def Delete(self):  # noqa: N802
         self.items.pop(self._path, None)
+        return "/"  # no prompt needed, as the real service answers here
 
 
 @pytest.fixture
@@ -236,6 +237,17 @@ def test_delete_removes_it_from_the_keyring(keyring):
     assert store.delete(LASTFM_SESSION_KEY) is True
     assert service.items == {}
     assert store.get(LASTFM_SESSION_KEY) is None
+
+
+def test_a_delete_that_needs_confirming_is_not_reported_as_done(keyring, monkeypatch):
+    """The service answers with a prompt path when it wants the user to
+    confirm; the secret is still there until that prompt runs."""
+    service, store = keyring
+    store.set(LASTFM_SESSION_KEY, "sk-123")
+    monkeypatch.setattr(type(service), "Delete", lambda self: "/prompt/1", raising=False)
+
+    assert store.delete(LASTFM_SESSION_KEY) is False
+    assert service.items != {}
 
 
 def test_deleting_what_is_not_there_counts_as_done(keyring):

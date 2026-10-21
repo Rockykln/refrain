@@ -1008,13 +1008,13 @@ class StatusWindow(QDialog):
         # Qt walks a window in the order its widgets were built, and these
         # are rebuilt last, so without this Tab reaches them only after the
         # buttons at the bottom of the window.
-        previous = self.show_all
+        previous: QWidget = self.show_all
         for i in range(self.recent_rows.count()):
             item = self.recent_rows.itemAt(i)
-            row = item.widget() if item is not None else None
-            if row is not None:
-                self.setTabOrder(previous, row)
-                previous = row
+            in_order = item.widget() if item is not None else None
+            if in_order is not None:
+                self.setTabOrder(previous, in_order)
+                previous = in_order
         self.setTabOrder(previous, self.sharing_btn)
         first = self.recent_rows.itemAt(0)
         first_row = first.widget() if first is not None else None
