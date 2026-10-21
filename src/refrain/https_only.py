@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import ssl
+import time
 import urllib.error
 import urllib.request
 
@@ -66,19 +67,42 @@ def opener() -> urllib.request.OpenerDirector:
     return _opener
 
 
-def read_limited(response, limit: int) -> bytes:
+# Read in pieces rather than in one call, so a deadline can be checked
+# between them.
+_CHUNK_BYTES = 64 * 1024
+# A whole answer may take this many times the per-read timeout. The timeout
+# alone bounds nothing: a server that sends a byte before each one can hold
+# the worker for as long as it likes.
+_DEADLINE_FACTOR = 4
+
+
+def read_limited(response, limit: int, deadline: float | None = None) -> bytes:
     """Read ``response``, refusing an answer past ``limit`` bytes.
 
     Reading one byte past the cap tells "exactly at the limit" from
     "cut off", so an endpoint cannot fill memory by answering forever.
+    ``deadline`` is a ``time.monotonic()`` value the whole read must
+    finish by.
     """
-    data = response.read(limit + 1)
-    if len(data) > limit:
+    pieces: list[bytes] = []
+    read = 0
+    while read <= limit:
+        if deadline is not None and time.monotonic() > deadline:
+            raise TimeoutError(f"the answer did not arrive within {_DEADLINE_FACTOR}x the timeout")
+        piece = response.read(min(_CHUNK_BYTES, limit + 1 - read))
+        if not piece:
+            break
+        pieces.append(piece)
+        read += len(piece)
+    if read > limit:
         raise ResponseTooLarge(f"the answer is larger than {limit} bytes")
-    return data
+    return b"".join(pieces)
 
 
 def fetch(request: urllib.request.Request, limit: int, timeout: float) -> bytes:
     """Send ``request`` through the shared opener, at most ``limit`` bytes back."""
+    deadline = time.monotonic() + timeout * _DEADLINE_FACTOR
+    # Set before the connection, not after it, so the deadline covers the
+    # whole request rather than only what follows the first byte.
     with opener().open(request, timeout=timeout) as r:  # nosec B310
-        return read_limited(r, limit)
+        return read_limited(r, limit, deadline)

@@ -138,6 +138,11 @@ lists every version and why.
   that uploads to PyPI checks both against it before publishing, so an
   asset replaced between the signing and the release cannot reach PyPI,
   where an upload cannot be taken back.
+- **An answer that only trickles in no longer holds a worker forever.**
+  The timeout on a request bounded each read on its own, which bounds
+  nothing: a server sending one byte before each of them could keep the
+  cover, Last.fm or Discord thread busy for as long as it liked. The
+  whole request now has a deadline.
 - **Every answer is read with a size limit** that fits what the endpoint
   is asked for — a cover may be 2 MB, a JSON answer much less. The update
   check, the checksum files and the AppImage download were bounded

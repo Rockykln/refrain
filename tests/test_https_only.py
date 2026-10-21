@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import time
 import urllib.error
 import urllib.request
 
@@ -45,6 +46,22 @@ def test_an_answer_exactly_at_the_limit_is_read():
 def test_an_answer_past_the_limit_is_refused():
     with pytest.raises(https_only.ResponseTooLarge, match="larger than 8 bytes"):
         https_only.read_limited(_Body(b"123456789"), 8)
+
+
+def test_an_answer_that_only_trickles_runs_out_of_time(monkeypatch):
+    """The per-read timeout bounds nothing on its own: a server that sends a
+    byte before each one would hold the worker for as long as it liked."""
+
+    class _Trickle:
+        def read(self, n=-1):
+            time.sleep(0.01)
+            return b"x"
+
+    monkeypatch.setattr(https_only, "_CHUNK_BYTES", 1)
+    began = time.monotonic()
+    with pytest.raises(TimeoutError):
+        https_only.read_limited(_Trickle(), 10_000_000, deadline=time.monotonic() + 0.2)
+    assert time.monotonic() - began < 3.0  # generous: a slow runner must not fail this
 
 
 def test_fetch_never_reads_unbounded(monkeypatch):

@@ -1005,6 +1005,17 @@ class StatusWindow(QDialog):
             self.recent_rows.addWidget(row)
             if keep is not None and _same_song(row.entry) == keep:
                 row.setFocus(Qt.FocusReason.OtherFocusReason)
+        # Qt walks a window in the order its widgets were built, and these
+        # are rebuilt last, so without this Tab reaches them only after the
+        # buttons at the bottom of the window.
+        previous = self.show_all
+        for i in range(self.recent_rows.count()):
+            item = self.recent_rows.itemAt(i)
+            row = item.widget() if item is not None else None
+            if row is not None:
+                self.setTabOrder(previous, row)
+                previous = row
+        self.setTabOrder(previous, self.sharing_btn)
         first = self.recent_rows.itemAt(0)
         first_row = first.widget() if first is not None else None
         if first_row is not None:

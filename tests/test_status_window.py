@@ -813,6 +813,22 @@ def test_the_keyboard_keeps_its_place_when_the_list_is_rebuilt(window, monkeypat
     assert landed[0] is not chosen  # a new row, standing for the same song
 
 
+def test_tab_reaches_the_songs_where_they_sit(window):
+    """Rebuilt last, the rows would otherwise come after the buttons below them."""
+    window.set_history(_history(n=5, now_playing=False))
+    rows = [window.recent_rows.itemAt(i).widget() for i in range(window.recent_rows.count())]
+    assert len(rows) == 5
+
+    order = []
+    node = window.show_all
+    for _ in range(len(rows) + 1):
+        node = node.nextInFocusChain()
+        order.append(node)
+
+    assert order[: len(rows)] == rows
+    assert order[len(rows)] is window.sharing_btn
+
+
 def test_nothing_is_focused_when_the_keyboard_was_elsewhere(window, monkeypatch):
     window.set_history(_history(n=5))
     monkeypatch.setattr(type(window), "focusWidget", lambda self: window.show_all)
