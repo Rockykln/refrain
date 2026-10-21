@@ -2021,13 +2021,13 @@ Scrobblování funguje pro tuto relaci, ale po restartu se budete muset k Last.f
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord – kontroluje se…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord – kontroluje se…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Vyhledávání obalů – kontroluje se…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Vyhledávání obalů – kontroluje se…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

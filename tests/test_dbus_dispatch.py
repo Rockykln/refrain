@@ -11,9 +11,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 
-# ---------------------------------------------------------------------------
 # Ordering invariant
-# ---------------------------------------------------------------------------
 def test_dbus_loop_is_wired_before_anything_opens_the_bus():
     """``_ensure_dbus_glib_loop()`` must precede the keyring lookup.
     Checked on the source of ``main``: both calls succeed alone, only the order matters."""
@@ -57,9 +55,7 @@ def test_ensure_dbus_glib_loop_starts_no_thread_of_its_own():
     assert "DBusGMainLoop(set_as_default=True)" in fn
 
 
-# ---------------------------------------------------------------------------
 # Dispatcher classification
-# ---------------------------------------------------------------------------
 class _FakeMeta:
     def __init__(self, name: str) -> None:
         self._name = name
@@ -113,9 +109,7 @@ def test_qt_pumps_glib_context_false_without_qapplication(monkeypatch):
     assert M._qt_pumps_glib_context() is False
 
 
-# ---------------------------------------------------------------------------
 # Pump behaviour
-# ---------------------------------------------------------------------------
 def test_pump_is_a_noop_when_qt_already_pumps(monkeypatch):
     import refrain.sources.mpris_server as M
 

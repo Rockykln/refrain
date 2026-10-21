@@ -2011,13 +2011,13 @@ Die soeben geänderten Einstellungen gelten für diese Sitzung, überstehen aber
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord – wird geprüft…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord – wird geprüft…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Cover-Suche – wird geprüft…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Cover-Suche – wird geprüft…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

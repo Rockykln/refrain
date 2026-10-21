@@ -148,7 +148,7 @@ def test_a_config_with_developer_mode_shows_the_switch(monkeypatch):
     assert window.developer_mode_box.isChecked()
 
 
-# Live log -------------------------------------------------------------------
+# Live log
 
 
 class _Bridge(QObject):
@@ -306,7 +306,7 @@ def test_clicking_log_window_buttons_gives_a_readable_metric_key():
     assert not any("QPushButton#" in key for key in counts)
 
 
-# Tray -----------------------------------------------------------------------
+# Tray
 
 
 def test_the_tray_hint_follows_developer_mode():

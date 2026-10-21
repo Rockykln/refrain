@@ -45,9 +45,7 @@ def _raise(exc):
     return fake_urlopen
 
 
-# --------------------------------------------------------------------------- #
-# looks_like_application_id — the checks worth making without the network      #
-# --------------------------------------------------------------------------- #
+# looks_like_application_id — the checks worth making without the network
 
 
 @pytest.mark.parametrize(
@@ -75,9 +73,7 @@ def test_a_local_reject_never_reaches_the_network(monkeypatch):
     assert fetch_application("nonsense") == (UNKNOWN_ID, "", "")
 
 
-# --------------------------------------------------------------------------- #
-# fetch_application                                                            #
-# --------------------------------------------------------------------------- #
+# fetch_application
 
 
 def test_a_known_id_returns_the_name(monkeypatch):
@@ -117,9 +113,7 @@ def test_a_nameless_application_counts_as_unknown(monkeypatch):
     assert fetch_application(VALID_ID) == (UNKNOWN_ID, "", "")
 
 
-# --------------------------------------------------------------------------- #
-# cached_name_is_fresh                                                         #
-# --------------------------------------------------------------------------- #
+# cached_name_is_fresh
 
 
 def test_a_recent_check_of_the_same_id_is_fresh():
@@ -149,9 +143,7 @@ def test_a_timestamp_from_the_future_ages_out_rather_than_lasting_forever():
     assert cached_name_is_fresh(VALID_ID, VALID_ID, 0, now) is False
 
 
-# --------------------------------------------------------------------------- #
-# refresh_application — the whole job, including when not to do it            #
-# --------------------------------------------------------------------------- #
+# refresh_application — the whole job, including when not to do it
 
 
 @pytest.fixture
@@ -228,9 +220,7 @@ def test_no_client_id_asks_nothing(cfg, monkeypatch):
     assert refresh_application(cfg) == ""
 
 
-# --------------------------------------------------------------------------- #
-# The application's icon — same request, same cache, its own ID                #
-# --------------------------------------------------------------------------- #
+# The application's icon — same request, same cache, its own ID
 
 
 def test_the_answer_carries_the_icon_hash(monkeypatch):

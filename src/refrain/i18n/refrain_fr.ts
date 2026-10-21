@@ -2011,13 +2011,13 @@ Les paramètres que vous venez de modifier s’appliqueront à cette session, ma
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — vérification…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — vérification…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Recherche de pochette — vérification…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Recherche de pochette — vérification…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

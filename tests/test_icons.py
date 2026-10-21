@@ -79,9 +79,7 @@ def icon_theme(tmp_path):
     QIcon.setThemeName(theme_name)
 
 
-# --------------------------------------------------------------------------- #
 # themed_icon() itself
-# --------------------------------------------------------------------------- #
 
 
 def test_kde_name_wins_when_the_theme_has_it(app, icon_theme):
@@ -155,9 +153,7 @@ def test_a_name_with_no_bundled_glyph_and_no_match_stays_null(app, icon_theme):
     assert icons.themed_icon("configure").isNull()
 
 
-# --------------------------------------------------------------------------- #
 # Real UI elements, under a theme with none of the 9 KDE-only names
-# --------------------------------------------------------------------------- #
 
 # What a reasonably complete non-KDE theme (GNOME/Mint-Y-like) ships: every
 # standard name Refrain's UI falls back to, but neither the KDE names nor

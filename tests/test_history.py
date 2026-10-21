@@ -87,9 +87,7 @@ def hist(xdg_tmp):
     return PlayHistory(HistoryConfig())
 
 
-# --------------------------------------------------------------------------- #
-# The rule                                                                     #
-# --------------------------------------------------------------------------- #
+# The rule
 
 
 def test_last_fm_rule_half_or_four_minutes():
@@ -114,9 +112,7 @@ def test_limit_is_clamped():
     assert clamp_limit("junk") == 30
 
 
-# --------------------------------------------------------------------------- #
-# Now playing, kept, dropped                                                   #
-# --------------------------------------------------------------------------- #
+# Now playing, kept, dropped
 
 
 def test_song_shows_as_now_playing_immediately(hist, clock):
@@ -230,9 +226,7 @@ def test_cover_arriving_later_repaints(hist, clock):
     assert hist.snapshot().entries[0].cover_url == "https://x/c.jpg"
 
 
-# --------------------------------------------------------------------------- #
-# Limit and switch                                                             #
-# --------------------------------------------------------------------------- #
+# Limit and switch
 
 
 def test_limit_caps_what_is_kept_and_what_is_shown(xdg_tmp, clock):
@@ -283,9 +277,7 @@ def test_clear_forgets_everything(hist, clock):
     assert not history_path().exists()
 
 
-# --------------------------------------------------------------------------- #
-# On disk                                                                      #
-# --------------------------------------------------------------------------- #
+# On disk
 
 
 def test_survives_a_restart(hist, clock):
@@ -313,9 +305,7 @@ def test_quit_keeps_what_counted_and_drops_the_rest(hist, clock):
     assert _titles(PlayHistory(HistoryConfig())) == ["A"]
 
 
-# --------------------------------------------------------------------------- #
-# Stopping and starting mid-song                                               #
-# --------------------------------------------------------------------------- #
+# Stopping and starting mid-song
 
 
 def test_a_restart_mid_song_carries_on_counting(hist, clock, caplog):
@@ -512,9 +502,7 @@ def test_file_is_owner_only(hist, clock):
     assert os.stat(history_path()).st_mode & 0o777 == 0o600
 
 
-# --------------------------------------------------------------------------- #
-# Last.fm mark                                                                 #
-# --------------------------------------------------------------------------- #
+# Last.fm mark
 
 
 def test_scrobbled_mark_is_kept(hist, clock):
@@ -549,9 +537,7 @@ def test_the_scrobbler_reports_what_it_queued(tmp_path):
     assert seen == [("Artist", "A")]
 
 
-# --------------------------------------------------------------------------- #
-# Links                                                                        #
-# --------------------------------------------------------------------------- #
+# Links
 
 
 @pytest.mark.parametrize(
@@ -601,9 +587,7 @@ def test_a_snapshot_is_a_copy_the_caller_cannot_change_the_history_through(hist,
     assert hist.snapshot().entries[0].scrobbled
 
 
-# --------------------------------------------------------------------------- #
-# The time to show right after a restart                                      #
-# --------------------------------------------------------------------------- #
+# The time to show right after a restart
 
 
 def _shown(h, title, clock, seconds, *, from_s=0, playing=True):

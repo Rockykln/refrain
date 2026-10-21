@@ -110,7 +110,7 @@ class ScrobbleQueue:
         else:
             self._keys.pop(key, None)
 
-    # ------------------------------------------------------------- io
+    # io
 
     def _load(self) -> list[dict]:
         if not self._path.exists():
@@ -186,7 +186,7 @@ class ScrobbleQueue:
         self._file_rows = len(self._items)
         self._file_dirty = False
 
-    # --------------------------------------------------------- mutate
+    # mutate
 
     def __len__(self) -> int:
         with self._lock:

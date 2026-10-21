@@ -2021,13 +2021,13 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — перевірка…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — перевірка…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Пошук обкладинок — перевірка…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Пошук обкладинок — перевірка…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

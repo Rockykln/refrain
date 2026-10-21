@@ -258,7 +258,7 @@ class MPRISServer(dbus.service.Object):
         # dbus.service.Object.__init__ is deferred to start() so a bus
         # connect failure doesn't propagate from the daemon constructor.
 
-    # ----------------------------------------------------------- lifecycle
+    # lifecycle
 
     def start(self) -> bool:
         """Register on the bus. Returns True on success — or, called from
@@ -306,7 +306,7 @@ class MPRISServer(dbus.service.Object):
         self._bus_name = None
         log.info("MPRIS server unpublished")
 
-    # ---------------------------------------------------- updates from daemon
+    # updates from daemon
 
     def update(
         self,
@@ -363,7 +363,7 @@ class MPRISServer(dbus.service.Object):
                     [],
                 )
 
-    # ---------------------------------------------------- helpers
+    # helpers
 
     class _SafeCtx:
         def __init__(self, label: str) -> None:
@@ -380,7 +380,7 @@ class MPRISServer(dbus.service.Object):
     def _safe(self, label: str) -> MPRISServer._SafeCtx:
         return MPRISServer._SafeCtx(label)
 
-    # ---------------------------------------------------- root interface
+    # root interface
 
     @dbus.service.method(_ROOT_IFACE, in_signature="", out_signature="")
     def Raise(self) -> None:
@@ -394,7 +394,7 @@ class MPRISServer(dbus.service.Object):
         # offer it.
         return
 
-    # ---------------------------------------------------- player methods
+    # player methods
 
     @dbus.service.method(_PLAYER_IFACE, in_signature="", out_signature="")
     def PlayPause(self) -> None:
@@ -460,7 +460,7 @@ class MPRISServer(dbus.service.Object):
     def OpenUri(self, _uri: str) -> None:  # noqa: N802
         return
 
-    # ---------------------------------------------------- properties (Get/Set/All)
+    # properties (Get/Set/All)
 
     @dbus.service.method(_PROPS_IFACE, in_signature="ss", out_signature="v")
     def Get(self, interface: str, prop: str) -> object:
@@ -517,7 +517,7 @@ class MPRISServer(dbus.service.Object):
             )
         return dbus.Dictionary({}, signature="sv")
 
-    # ---------------------------------------------------- signals
+    # signals
 
     @dbus.service.signal(_PROPS_IFACE, signature="sa{sv}as")
     def PropertiesChanged(  # noqa: N802

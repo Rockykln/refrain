@@ -2021,13 +2021,13 @@ Właśnie zmienione ustawienia będą obowiązywać w tej sesji, ale nie przetrw
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — sprawdzanie…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — sprawdzanie…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Wyszukiwanie okładki — sprawdzanie…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Wyszukiwanie okładki — sprawdzanie…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

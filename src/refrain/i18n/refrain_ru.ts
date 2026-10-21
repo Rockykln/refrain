@@ -2021,13 +2021,13 @@ The settings you just changed will apply for this session but won&apos;t persist
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — проверка…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — проверка…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Поиск обложки — проверка…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Поиск обложки — проверка…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

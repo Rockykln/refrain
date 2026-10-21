@@ -306,7 +306,7 @@ class PlayHistory:
             # that nothing is kept.
             log.info("History is off — deleted the stored history")
 
-    # ------------------------------------------------------------- feed
+    # feed
 
     def update(
         self,
@@ -504,7 +504,7 @@ class PlayHistory:
                     return True
             return False
 
-    # ----------------------------------------------------------- control
+    # control
 
     def remove(self, started_at: int, title: str, artist: str) -> bool:
         """Take one song out of the list. Returns True if it was there.
@@ -620,7 +620,7 @@ class PlayHistory:
                 enabled=True,
             )
 
-    # ---- internals (call with self._lock held) -------------------------
+    # internals (call with self._lock held)
 
     def _start_locked(
         self,

@@ -719,10 +719,8 @@ def test_a_song_change_never_leaves_the_old_song_on_the_profile(rig):
     assert rpc().last[1]["large_image"] == _REFRAIN_ICON_URL
 
 
-# ---------------------------------------------------------------------------
 # A paused source keeps naming its last track for as long as it stays
 # connected. After half an hour that is stale, not paused.
-# ---------------------------------------------------------------------------
 
 
 def test_a_song_paused_for_half_an_hour_leaves_the_tray(rig):

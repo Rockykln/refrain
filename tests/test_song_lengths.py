@@ -116,7 +116,7 @@ def test_the_least_recently_heard_song_goes_first(tmp_path):
     assert song_key("Art", "T1", "") not in lengths._entries
 
 
-# --------------------------------------------------- what the daemon measures
+# what the daemon measures
 
 
 def _worker(tmp_path, *, catalog_ms=0, tier=PositionTier.COMPUTED, control_at=0.0):
@@ -256,7 +256,7 @@ def test_a_length_is_dropped_even_when_refrain_started_mid_song(tmp_path):
     assert worker._max_reported_ms == 0, "no zero to measure from"
 
 
-# ------------------------------------------------------- Last.fm's length
+# Last.fm's length
 
 
 def test_an_agreeing_lastfm_length_stands_in_for_the_second_play(tmp_path):

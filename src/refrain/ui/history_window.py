@@ -392,7 +392,7 @@ class _SongRow(QWidget):
         self.has_cover = False
         row.addWidget(self._cover_label)
 
-        # ---- title + duration / artist — album --------------------------
+        # title + duration / artist — album
         text_col = QVBoxLayout()
         text_col.setSpacing(2)
         # The length follows the title directly. At the far end of the
@@ -423,7 +423,7 @@ class _SongRow(QWidget):
             self.set_highlights(highlight)
         row.addLayout(text_col, 1)
 
-        # ---- time (or "Now playing") / source ---------------------------
+        # time (or "Now playing") / source
         meta = QWidget()
         meta.setFixedWidth(meta_width)
         meta_col = QVBoxLayout(meta)
@@ -573,7 +573,7 @@ class _SongRow(QWidget):
         )
         return "<qt>" + "<br>".join(lines) + "</qt>"
 
-    # ------------------------------------------------------------ painting
+    # painting
 
     def enterEvent(self, event) -> None:
         self._hover = True
@@ -615,7 +615,7 @@ class _SongRow(QWidget):
             p.drawPath(path)
         p.end()
 
-    # ------------------------------------------------------------- actions
+    # actions
 
     def mousePressEvent(self, event) -> None:
         # Accepted, so the release comes back here rather than to the
@@ -724,7 +724,7 @@ class HistoryWindow(QDialog):
         self._shown_widgets: list[QWidget] = []
         self._shown_keys: list[tuple] = []
 
-        # ---- top bar ------------------------------------------------------
+        # top bar
         self.count_label = QLabel()
         self.clear_btn = QPushButton(self.tr("Clear history…"))
         self.clear_btn.setIcon(icons.themed_icon("edit-clear-history"))
@@ -734,7 +734,7 @@ class HistoryWindow(QDialog):
         top.addStretch(1)
         top.addWidget(self.clear_btn)
 
-        # ---- search + source filter ---------------------------------------
+        # search + source filter
         # Each half shows only once it has something to do: the search from
         # _SEARCH_FROM songs, the source picker once there's more than one
         # source to pick from. Both reset when the window closes.
@@ -763,7 +763,7 @@ class HistoryWindow(QDialog):
         find = QShortcut(QKeySequence(QKeySequence.StandardKey.Find), self)
         find.activated.connect(self._focus_search)
 
-        # ---- list ---------------------------------------------------------
+        # list
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
         self._scroll.setProperty("refrainScrolls", True)
@@ -775,7 +775,7 @@ class HistoryWindow(QDialog):
         self._rows.setSpacing(1)
         self._scroll.setWidget(self._rows_host)
 
-        # ---- empty state --------------------------------------------------
+        # empty state
         empty = QWidget()
         ev = QVBoxLayout(empty)
         ev.addStretch(1)
@@ -803,7 +803,7 @@ class HistoryWindow(QDialog):
         self._stack.addWidget(self._scroll)
         self._stack.addWidget(empty)
 
-        # ---- bottom bar ---------------------------------------------------
+        # bottom bar
         close_btn = QPushButton(self.tr("Close"))
         close_btn.clicked.connect(self.hide)
         bottom = QHBoxLayout()
@@ -820,7 +820,7 @@ class HistoryWindow(QDialog):
         self._rebuild()
         apply_interactive_cursors(self)
 
-    # ------------------------------------------------------------- public
+    # public
 
     def relative_time(self, seconds: int) -> str:
         """ "just now", "5 minutes ago", "2 hours ago", "3 days ago".
@@ -873,7 +873,7 @@ class HistoryWindow(QDialog):
         if self.isVisible():
             self._rebuild()
 
-    # ---------------------------------------------------------- lifecycle
+    # lifecycle
 
     def showEvent(self, event) -> None:
         # "Today" / "Yesterday" are relative to when the window is looked
@@ -915,7 +915,7 @@ class HistoryWindow(QDialog):
             self._apply_muted_colors()
             self._rebuild()
 
-    # ----------------------------------------------------------- building
+    # building
 
     def _apply_muted_colors(self) -> None:
         muted = _muted(self.palette())
@@ -1165,7 +1165,7 @@ class HistoryWindow(QDialog):
         keep.add(("", dpr))
         self._covers = {k: v for k, v in self._covers.items() if k in keep}
 
-    # ------------------------------------------------------------ actions
+    # actions
 
     def _on_clear_clicked(self) -> None:
         box = QMessageBox(self)

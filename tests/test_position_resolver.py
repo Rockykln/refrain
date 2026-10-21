@@ -22,7 +22,7 @@ def step(state, key, reported_ms, now, *, duration_ms=DUR, playing=True, length_
     return resolve_position(state, key, reported_ms, duration_ms, playing, now, **kw)
 
 
-# --------------------------------------------------- tier 1: believe the source
+# tier 1: believe the source
 
 
 def test_ordinary_source_is_passed_through():
@@ -67,7 +67,7 @@ def test_missing_duration_still_believes_a_moving_source():
     assert (pos, tier) == (6_000, PositionTier.REPORTED)
 
 
-# ------------------------------------------------ tier 2: fall back to our clock
+# tier 2: fall back to our clock
 
 
 def test_frozen_position_falls_back_to_our_clock():
@@ -130,7 +130,7 @@ def test_a_track_starting_at_zero_anchors_even_without_a_predecessor():
     assert (pos, tier) == (30_000, PositionTier.COMPUTED)
 
 
-# ------------------------------------------------------- tier 3: show nothing
+# tier 3: show nothing
 
 
 def test_no_anchor_and_a_bad_value_hides_the_time():
@@ -208,7 +208,7 @@ def test_stall_check_disabled_keeps_believing_a_frozen_source():
     assert (pos, tier) == (60_000, PositionTier.REPORTED)
 
 
-# ------------------------------------------- a source that streams, not tracks
+# a source that streams, not tracks
 
 
 def test_stream_relative_source_stops_being_believed_after_one_change():
@@ -384,7 +384,7 @@ def test_microsecond_rounding_is_not_growth():
     assert state.cumulative is False
 
 
-# ---------------------------------------- when the two lengths disagree
+# when the two lengths disagree
 
 
 def test_a_disputed_length_hides_a_track_we_did_not_see_start():
@@ -430,7 +430,7 @@ def test_a_mid_track_frame_switch_also_proves_the_source_counts_tracks():
     assert (state.cumulative, state.track_relative) == (False, True)
 
 
-# ------------------------------------------- the freshness window itself
+# the freshness window itself
 
 
 def test_a_zero_stall_window_never_calls_the_source_stale():
@@ -445,7 +445,7 @@ def test_a_zero_stall_window_never_calls_the_source_stale():
     assert source_position_is_fresh(1000.0, 1005.0, 4) is False
 
 
-# ------------------------------- a source that counts media segments
+# a source that counts media segments
 
 
 def test_a_source_that_resets_every_few_seconds_is_not_switching_frames():
@@ -522,7 +522,7 @@ def test_a_segment_source_after_a_track_change_counts_from_the_change():
     assert 34_000 <= shown[-1] <= 36_000
 
 
-# ------------------------------------------ a song that begins again
+# a song that begins again
 
 
 def test_a_segment_source_shows_a_repeat_as_a_start_frame():
@@ -700,7 +700,7 @@ def test_a_buffered_length_mid_song_is_no_loop():
     assert state.restarts == 0
 
 
-# ------------------------------------------- tier 3: the estimate after a restart
+# tier 3: the estimate after a restart
 
 
 def test_an_estimate_carries_a_source_without_a_position_after_a_restart():

@@ -2001,13 +2001,13 @@ The settings you just changed will apply for this session but won&apos;t persist
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord——正在检查…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord——正在检查…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ 封面查找——正在检查…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>封面查找——正在检查…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

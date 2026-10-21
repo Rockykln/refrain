@@ -654,9 +654,7 @@ def test_the_clear_on_the_way_out_ignores_the_rate_limit(discord, clock):
     assert presence.clear.called is True
 
 
-# ---------------------------------------------------------------------------
 # What the member list shows — one line, and the title says more than the name.
-# ---------------------------------------------------------------------------
 
 
 def _pending(monkeypatch, **payload):

@@ -47,7 +47,7 @@ def _live_socket(path, keep):
     keep.append(srv)
 
 
-# ---------------------------------------------------------------- Last.fm
+# Last.fm
 def test_lastfm_disabled_is_not_a_problem(caplog):
     with caplog.at_level(logging.INFO):
         result = check_lastfm(FakeLastfmCfg(enabled=False))
@@ -100,7 +100,7 @@ def test_lastfm_network_failure_is_not_reported_as_invalid(monkeypatch):
     assert not result.needs_attention
 
 
-# ---------------------------------------------------------------- Discord
+# Discord
 def test_discord_without_client_id_is_disabled():
     assert check_discord(FakeRPC(client_id="")).state == DISABLED
 
@@ -173,7 +173,7 @@ def test_several_clients_are_reported(runtime_dir, caplog):
             s.close()
 
 
-# ------------------------------------------------------------------ shape
+# shape
 def test_every_log_line_carries_the_marker(runtime_dir, caplog):
     """`grep '[startup-check]'` must find the whole verdict."""
     with caplog.at_level(logging.INFO):

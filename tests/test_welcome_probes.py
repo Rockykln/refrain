@@ -237,8 +237,8 @@ def test_diagnostics_run_in_the_background_and_fill_the_rows(app, monkeypatch):
             app.processEvents()
             time.sleep(0.005)
         assert dlg._diag_thread is None and dlg._diag_worker is None
-        assert dlg._diag_discord.text() == "✅ <b>Discord:</b> socket found"
-        assert dlg._diag_itunes.text() == "⚠️ <b>Cover-art lookup:</b> offline"
+        assert dlg._diag_discord.text() == "✓ <b>Discord:</b> socket found"
+        assert dlg._diag_itunes.text() == "! <b>Cover-art lookup:</b> offline"
     finally:
         dlg.deleteLater()
 

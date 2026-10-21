@@ -12,9 +12,7 @@ from refrain.scrobble import GONE_GRACE_S, LastfmError, Scrobbler, accrue_play_m
 from refrain.scrobble_queue import ScrobbleQueue
 from refrain.sources.base import PlaybackStatus, TrackInfo
 
-# --------------------------------------------------------------------------- #
-# accrue_play_ms (pure)                                                        #
-# --------------------------------------------------------------------------- #
+# accrue_play_ms (pure)
 
 
 def test_accrue_first_observation_credits_nothing():
@@ -37,9 +35,7 @@ def test_accrue_ignores_backwards_clock_defensively():
     assert accrue_play_ms(500, 100.0, True, 99.0) == (500, 99.0)
 
 
-# --------------------------------------------------------------------------- #
-# Scrobbler                                                                    #
-# --------------------------------------------------------------------------- #
+# Scrobbler
 
 
 class FakeClient:
@@ -198,7 +194,7 @@ def test_an_unknown_position_never_splits_a_play(tmp_path):
     assert sent + [p["track"] for p in q.pending()] == ["A"]
 
 
-# ------------------------------------------------------ across a restart
+# across a restart
 
 T0 = 1_700_000_000
 
@@ -556,9 +552,7 @@ def test_a_key_or_server_problem_keeps_the_queue(tmp_path, code):
     assert len(q) == 1
 
 
-# --------------------------------------------------------------------------- #
-# scrobble_duration_ms — what Last.fm gets when the two lengths disagree       #
-# --------------------------------------------------------------------------- #
+# scrobble_duration_ms — what Last.fm gets when the two lengths disagree
 
 
 def test_an_undisputed_length_is_passed_straight_through():

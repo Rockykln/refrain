@@ -742,9 +742,7 @@ def test_a_right_to_left_title_scrolls_from_its_own_end(app, monkeypatch):
     assert not (rtl & int(Qt.AlignmentFlag.AlignLeft))
 
 
-# ------------------------------------------------------------------------- #
-# Reaching a recently played row without a mouse                              #
-# ------------------------------------------------------------------------- #
+# Reaching a recently played row without a mouse
 
 
 def _first_recent_row(window):

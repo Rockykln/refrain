@@ -352,7 +352,7 @@ class LogWindow(QDialog):
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
-        # ---- toolbar -------------------------------------------------------
+        # toolbar
         bar = QHBoxLayout()
 
         bar.addWidget(QLabel(self.tr("Level:")))
@@ -393,7 +393,7 @@ class LogWindow(QDialog):
         close_btn.clicked.connect(self.hide)
         bar.addWidget(close_btn)
 
-        # ---- view ----------------------------------------------------------
+        # view
         self.view = QPlainTextEdit()
         self.view.setReadOnly(True)
         font = QFont("monospace")
@@ -454,7 +454,7 @@ class LogWindow(QDialog):
         if self.developer_panel is not None:
             self.tabs.setCurrentWidget(self.developer_panel)
 
-    # --------------------------------------------------------------- handlers
+    # handlers
 
     def _append(self, msg: str, level: int) -> None:
         # Kept at every level, so a lower filter can show them later.

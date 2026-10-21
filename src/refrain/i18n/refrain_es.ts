@@ -2011,13 +2011,13 @@ Los ajustes que acabas de cambiar se aplicarán en esta sesión, pero no se cons
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — comprobando…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — comprobando…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Búsqueda de portada — comprobando…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Búsqueda de portada — comprobando…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

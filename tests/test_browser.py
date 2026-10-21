@@ -53,9 +53,7 @@ def test_only_https_links_are_opened(url):
     assert open_url(url, "Chromium") is False
 
 
-# --------------------------------------------------------------------------- #
-# open_url: what is actually started                                           #
-# --------------------------------------------------------------------------- #
+# open_url: what is actually started
 
 
 class _Proc:

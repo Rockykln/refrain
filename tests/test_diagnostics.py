@@ -98,7 +98,7 @@ def test_versions_and_install_type_survive_a_missing_piece(monkeypatch):
     assert diagnostics._install_type() == "unknown"
 
 
-# ---------------------------------------------------------------- MPRIS players
+# MPRIS players
 
 
 class _FakeBus:

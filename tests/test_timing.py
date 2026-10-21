@@ -6,9 +6,7 @@ import pytest
 
 from refrain.timing import compute_rpc_start_ts, pick_effective_duration_ms
 
-# ---------------------------------------------------------------------------
 # Happy path: a new track always triggers a recompute.
-# ---------------------------------------------------------------------------
 
 
 def test_new_track_triggers_recompute():
@@ -36,9 +34,7 @@ def test_track_change_recomputes_even_with_no_drift():
     assert start == 900  # 910 - 10
 
 
-# ---------------------------------------------------------------------------
 # Steady playback: small jitter must NOT trigger recompute (avoids twitching).
-# ---------------------------------------------------------------------------
 
 
 def test_steady_playback_no_jitter():
@@ -80,9 +76,7 @@ def test_two_second_drift_is_ignored():
     assert start == 1000
 
 
-# ---------------------------------------------------------------------------
 # Pause/resume: Discord must not drift off the elapsed time after a pause.
-# ---------------------------------------------------------------------------
 
 
 def test_pause_resume_short_pause_resyncs():
@@ -111,10 +105,8 @@ def test_pause_resume_long_pause_resyncs():
     assert start == 60  # 90 - 30
 
 
-# ---------------------------------------------------------------------------
 # Seek: same track, position jumps. Must resync so Discord doesn't show the
 # wrong elapsed time.
-# ---------------------------------------------------------------------------
 
 
 def test_seek_forward_resyncs():
@@ -143,9 +135,7 @@ def test_seek_backward_resyncs():
     assert start == 55
 
 
-# ---------------------------------------------------------------------------
 # Boundary conditions.
-# ---------------------------------------------------------------------------
 
 
 def test_threshold_boundary_not_recomputed():
@@ -202,9 +192,7 @@ def test_negative_position_is_clamped_to_zero():
     assert start == 10
 
 
-# ---------------------------------------------------------------------------
 # Custom drift threshold.
-# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -228,9 +216,7 @@ def test_custom_drift_threshold(drift_threshold, position_ms, now, expected_chan
     assert changed is expected_changed
 
 
-# ---------------------------------------------------------------------------
 # pick_effective_duration_ms: MPRIS / iTunes reconciliation.
-# ---------------------------------------------------------------------------
 
 
 def test_duration_no_itunes_falls_back_to_mpris():

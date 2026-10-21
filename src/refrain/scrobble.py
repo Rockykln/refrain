@@ -191,7 +191,7 @@ class LastfmClient:
         self.shared_secret = (shared_secret or "").strip()
         self.session_key = (session_key or "").strip()
 
-    # ---------------------------------------------------------- transport
+    # transport
 
     def _call(self, method: str, *, http_post: bool, signed: bool = True, **params: str) -> dict:
         if not self.api_key or (signed and not self.shared_secret):
@@ -253,10 +253,10 @@ class LastfmClient:
             )
         return payload
 
-    # ------------------------------------------------------------- auth
+    # auth
 
     def get_token(self) -> str:
-        """Step 1 of the desktop auth flow — an unauthorized request token."""
+        """An unauthorized request token, the first leg of the desktop auth flow."""
         data = self._call("auth.getToken", http_post=False)
         token = str(data.get("token", "")).strip()
         if not token:
@@ -264,11 +264,11 @@ class LastfmClient:
         return token
 
     def authorize_url(self, token: str) -> str:
-        """The page the user opens in a browser to grant access (step 2)."""
+        """The page the user opens in a browser to grant access."""
         return f"{AUTH_URL}?{urllib.parse.urlencode({'api_key': self.api_key, 'token': token})}"
 
     def get_session(self, token: str) -> tuple[str, str]:
-        """Step 3 — exchange an authorized token for a (session_key, username)."""
+        """Exchange an authorized token for a (session_key, username)."""
         # POST, not GET: the token and the session key it returns would
         # otherwise sit in the query string, where proxies and server
         # logs keep them long after the request.
@@ -309,7 +309,7 @@ class LastfmClient:
         except (TypeError, ValueError, AttributeError):
             return 0
 
-    # ---------------------------------------------------------- scrobbling
+    # scrobbling
 
     def update_now_playing(
         self, artist: str, track: str, album: str = "", duration_s: int = 0
@@ -354,9 +354,7 @@ class LastfmClient:
             return len(items)
 
 
-# --------------------------------------------------------------------------- #
-# Play-time accounting (pure)                                                  #
-# --------------------------------------------------------------------------- #
+# Play-time accounting (pure)
 
 # A single tick gap longer than this is treated as "the machine was
 # asleep / the daemon stalled", not as listening time — so a laptop
@@ -464,7 +462,7 @@ class Scrobbler:
         self._last_drain_mono = 0.0
         self._session_invalid = False
 
-    # ----------------------------------------------------------- helpers
+    # helpers
 
     @staticmethod
     def _make_client(cfg: LastfmConfig) -> LastfmClient | None:
@@ -491,7 +489,7 @@ class Scrobbler:
             and effective_duration_ms >= 30_000
         )
 
-    # ----------------------------------------------------------- lifecycle
+    # lifecycle
 
     @staticmethod
     def _identity(cfg: LastfmConfig) -> tuple:
@@ -573,7 +571,7 @@ class Scrobbler:
             invalid, sending = self._session_invalid, self._drain_inflight
         return invalid, 0 if sending else len(self._queue)
 
-    # ----------------------------------------------------------- core
+    # core
 
     def update(
         self,
@@ -700,7 +698,7 @@ class Scrobbler:
 
             self._maybe_drain_locked(now_mono)
 
-    # ---- internals (call with self._lock held) -------------------------
+    # internals (call with self._lock held)
 
     def _note_too_short_locked(
         self, track: TrackInfo, effective_duration_ms: int, now_mono: float
@@ -892,7 +890,7 @@ class Scrobbler:
             # Executor already shut down (app quitting) — ignore.
             pass
 
-    # ---- executor-thread work -----------------------------------------
+    # executor-thread work
 
     def _do_now_playing(self, artist: str, title: str, album: str, dur_s: int) -> None:
         client = self._client

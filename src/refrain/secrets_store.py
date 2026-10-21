@@ -32,9 +32,7 @@ def _fallback_path() -> Path:
     return config_dir() / "secrets.json"
 
 
-# --------------------------------------------------------------------------- #
-# Secret Service (keyring) backend                                             #
-# --------------------------------------------------------------------------- #
+# Secret Service (keyring) backend
 
 
 class _KeyringUnavailable(Exception):
@@ -157,9 +155,7 @@ def _keyring_delete(bus, name: str) -> bool:
     return ok
 
 
-# --------------------------------------------------------------------------- #
-# 0600 file fallback                                                           #
-# --------------------------------------------------------------------------- #
+# 0600 file fallback
 
 
 def _file_read_all() -> dict[str, str]:
@@ -198,9 +194,7 @@ def _file_write_all(data: dict[str, str]) -> bool:
         return False
 
 
-# --------------------------------------------------------------------------- #
-# Public API                                                                   #
-# --------------------------------------------------------------------------- #
+# Public API
 
 
 class SecretStore:

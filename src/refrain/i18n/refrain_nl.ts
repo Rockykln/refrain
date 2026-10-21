@@ -2011,13 +2011,13 @@ Scrobbelen werkt voor deze sessie, maar je moet na een herstart opnieuw verbindi
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — controleren…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — controleren…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Hoezen zoeken — controleren…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Hoezen zoeken — controleren…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

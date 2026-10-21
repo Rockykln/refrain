@@ -60,9 +60,7 @@ def test_everything_else_really_does_go_back_to_defaults():
     assert out.privacy.mode == default.privacy.mode
 
 
-# --------------------------------------------------------------------------- #
-# The line beside the Client ID                                                #
-# --------------------------------------------------------------------------- #
+# The line beside the Client ID
 
 
 def test_an_empty_client_id_says_nothing():

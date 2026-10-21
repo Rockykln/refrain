@@ -114,7 +114,7 @@ def count(root) -> int:
     return sum(len(root.findChildren(cls)) for cls in CLICKABLE)
 
 
-# ------------------------------------------------------------------ the helper
+# the helper
 
 
 def test_clickable_widgets_get_the_hand(qapp):
@@ -165,7 +165,7 @@ def test_calling_twice_installs_one_guard(qapp):
     assert len(root.findChildren(_DisabledCursorGuard)) == 1
 
 
-# ------------------------------------------------------------- the real dialogs
+# the real dialogs
 
 
 def test_settings_window_covers_every_control(qapp, xdg_tmp):
@@ -225,7 +225,7 @@ def test_update_dialog_covers_every_control(qapp, xdg_tmp):
     assert missed(dlg) == []
 
 
-# ------------------------------------- dialogs Refrain doesn't build itself
+# dialogs Refrain doesn't build itself
 
 
 def test_message_boxes_are_covered_too(qapp):

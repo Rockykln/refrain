@@ -188,9 +188,7 @@ def lastfm_connection_state(session_key: str, api_key: str, shared_secret: str) 
     return "disconnected"
 
 
-# ---------------------------------------------------------------------------
 # Layout helpers — keep every tab visually consistent.
-# ---------------------------------------------------------------------------
 
 # Outer padding inside each tab page.
 _TAB_MARGINS = (16, 16, 16, 16)
@@ -681,9 +679,7 @@ class SettingsWindow(QDialog):
         # see refrain.ui.cursors.
         apply_interactive_cursors(self)
 
-    # ====================================================================
     # General tab
-    # ====================================================================
 
     def _build_general_tab(self) -> QWidget:
         w = QWidget()
@@ -838,9 +834,7 @@ class SettingsWindow(QDialog):
         v.addStretch(1)
         return w
 
-    # ====================================================================
     # History tab
-    # ====================================================================
 
     def _build_history_tab(self) -> QWidget:
         # Its own tab rather than a group under General: General was
@@ -981,9 +975,7 @@ class SettingsWindow(QDialog):
             except (AttributeError, TypeError):
                 widget.setVisible(visible)
 
-    # ====================================================================
     # Last.fm tab
-    # ====================================================================
 
     def _build_lastfm_tab(self) -> QWidget:
         # Last.fm gets its own tab rather than crowding General: opt-in
@@ -1049,15 +1041,13 @@ class SettingsWindow(QDialog):
         v.addStretch(1)
         return w
 
-    # ====================================================================
     # Sources tab
-    # ====================================================================
 
     def _build_sources_tab(self) -> QWidget:
         w = QWidget()
         v = _tab_layout(w)
 
-        # ---- Apple Music Web group ---------------------------------------
+        # Apple Music Web group
         mpris_group, mf = _new_group(self.tr("Apple Music Web (browser)"))
         self.mpris_box = QCheckBox(self.tr("Enable browser source"))
         mf.addRow(self.mpris_box)
@@ -1116,7 +1106,7 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(mpris_group)
 
-        # ---- Bluetooth group ---------------------------------------------
+        # Bluetooth group
         bt_group, bf = _new_group(self.tr("Bluetooth (AVRCP)"))
         self.bluetooth_box = QCheckBox(self.tr("Enable Bluetooth source"))
         bf.addRow(self.bluetooth_box)
@@ -1213,9 +1203,7 @@ class SettingsWindow(QDialog):
         ago = self._relative_time(max(0, dt.secsTo(QDateTime.currentDateTime())))
         return f"{stamp} ({ago})"
 
-    # ====================================================================
     # Updates tab
-    # ====================================================================
 
     def _build_updates_tab(self) -> QWidget:
         w = QWidget()
@@ -1280,9 +1268,7 @@ class SettingsWindow(QDialog):
 
         return w
 
-    # ====================================================================
     # External hooks for the update orchestrator
-    # ====================================================================
 
     def set_latest_release(self, release: ReleaseInfo | None) -> None:
         """Update the in-tab release-notes pane + the latest-known label.
@@ -1312,15 +1298,13 @@ class SettingsWindow(QDialog):
         body = release.body or self.tr("_No release notes provided._")
         self.release_notes_view.setMarkdown(prepare_release_notes(body))
 
-    # ====================================================================
     # Advanced tab
-    # ====================================================================
 
     def _build_advanced_tab(self) -> QWidget:
         w = QWidget()
         v = _tab_layout(w)
 
-        # ---- Performance group -------------------------------------------
+        # Performance group
         perf_group, pf = _new_group(self.tr("Performance"))
         self.poll_spin = QSpinBox()
         self.poll_spin.setRange(250, 10000)
@@ -1346,7 +1330,7 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(perf_group)
 
-        # ---- Localization group ------------------------------------------
+        # Localization group
         # Only languages with a complete translation ship in the dropdown —
         # picking a stub language would silently fall back to English source
         # strings. New languages get added here as their .ts files reach
@@ -1377,7 +1361,7 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(lang_group)
 
-        # ---- Logging group -----------------------------------------------
+        # Logging group
         log_group, lgf = _new_group(self.tr("Logging"))
         self.log_level_combo = QComboBox()
         self.log_level_combo.setFixedWidth(_INPUT_MAX_WIDTH)
@@ -1401,7 +1385,7 @@ class SettingsWindow(QDialog):
         v.addWidget(log_group)
         _align_labels(pf, lf, lgf)
 
-        # ---- Maintenance group -------------------------------------------
+        # Maintenance group
         maint_group, mf = _new_group(self.tr("Maintenance"))
         restart_btn = QPushButton(self.tr("Restart Refrain"))
         restart_btn.clicked.connect(self.restartRequested.emit)
@@ -1422,7 +1406,7 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(maint_group)
 
-        # ---- Developer group (hidden until unlocked) -----------------------
+        # Developer group (hidden until unlocked)
         self.developer_group, df = _new_group(self.tr("Developer"))
         self.developer_mode_box = QCheckBox(self.tr("Developer mode"))
         df.addRow(self.developer_mode_box)
@@ -1492,9 +1476,7 @@ class SettingsWindow(QDialog):
         msg.exec()
         return msg.clickedButton() is on_btn
 
-    # ====================================================================
     # Discord application name
-    # ====================================================================
 
     def _on_client_id_edited(self, _text: str) -> None:
         """Restart the debounce, and clear a name that no longer applies."""
@@ -1563,9 +1545,7 @@ class SettingsWindow(QDialog):
         colour = "palette(link)" if ok else "palette(text)"
         self.app_name_label.setStyleSheet(_hint_style(colour))
 
-    # ====================================================================
     # Reset
-    # ====================================================================
 
     def _on_reset_clicked(self) -> None:
         fresh = reset_to_defaults(self._config)
@@ -1670,9 +1650,7 @@ class SettingsWindow(QDialog):
         if msg.clickedButton() is go:
             self.uninstallRequested.emit()
 
-    # ====================================================================
     # Last.fm connect flow
-    # ====================================================================
 
     def _refresh_lastfm_status(self) -> None:
         state = lastfm_connection_state(
@@ -1825,9 +1803,7 @@ class SettingsWindow(QDialog):
             self.tr("Could not connect to Last.fm:\n\n{error}").format(error=message),
         )
 
-    # ====================================================================
     # Form load + save
-    # ====================================================================
 
     def _show_legal(self) -> None:
         """Open the legal notice. Imported lazily — it is a rarely used

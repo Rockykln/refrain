@@ -19,9 +19,7 @@ from refrain.ui.settings_window import (  # noqa: E402
     lastfm_connection_state,
 )
 
-# --------------------------------------------------------------------------- #
-# pure logic — no QApplication, fully deterministic                            #
-# --------------------------------------------------------------------------- #
+# pure logic — no QApplication, fully deterministic
 
 
 @pytest.mark.parametrize(
@@ -41,9 +39,7 @@ def test_connection_state(sk, ak, ss, expected):
     assert lastfm_connection_state(sk, ak, ss) == expected
 
 
-# --------------------------------------------------------------------------- #
-# UI rendering — ONE window, stubbed Bluetooth (no D-Bus), reused per case      #
-# --------------------------------------------------------------------------- #
+# UI rendering — ONE window, stubbed Bluetooth (no D-Bus), reused per case
 
 
 @pytest.fixture(scope="module")
@@ -118,9 +114,7 @@ def test_incomplete_connect_button_runs_connect_not_disconnect(win, monkeypatch)
     assert win._lastfm_session_key == "S"  # leftover NOT cleared as disconnect
 
 
-# --------------------------------------------------------------------------- #
-# connecting: wait for the approval, confirm a disconnect, warn when unusable   #
-# --------------------------------------------------------------------------- #
+# connecting: wait for the approval, confirm a disconnect, warn when unusable
 
 
 def test_disconnect_asks_first(win, monkeypatch):

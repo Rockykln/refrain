@@ -99,7 +99,7 @@ def win(make):
     return make()
 
 
-# ------------------------------------------------------------ dirty tracking
+# dirty tracking
 
 
 @pytest.mark.parametrize(
@@ -150,7 +150,7 @@ def test_a_connection_made_in_the_window_is_a_change(win):
     assert win.is_dirty()
 
 
-# ------------------------------------------------------------ Apply and OK
+# Apply and OK
 
 
 def test_apply_saves_keeps_the_window_open_and_starts_a_new_baseline(win):
@@ -188,7 +188,7 @@ def test_ok_stays_open_when_a_question_is_turned_down(win, answer):
     assert win.isVisible() and win.sent == []
 
 
-# ------------------------------------------------------------ Cancel, X, Esc
+# Cancel, X, Esc
 
 
 def test_cancel_without_changes_closes_without_asking(win, answer):
@@ -273,7 +273,7 @@ def test_the_choice_is_measured_in_developer_mode(win, answer, monkeypatch):
     assert seen == [("settings_unsaved", {"choice": "keep"})]
 
 
-# ------------------------------------------------------------ restarts
+# restarts
 
 
 def test_a_new_language_is_announced_before_the_restart(win, answer):
@@ -307,7 +307,7 @@ def test_other_changes_never_restart(win):
     assert win.restarts == []
 
 
-# ------------------------------------------------------------ Reset
+# Reset
 
 
 def test_reset_saves_at_once_and_says_so(win, answer):
@@ -340,7 +340,7 @@ def test_reset_that_changes_the_language_says_it_restarts(make, answer):
     assert window.sent[-1].advanced.language == "system"
 
 
-# ------------------------------------------------------------ Last.fm
+# Last.fm
 
 
 def _with_keys(win):
@@ -431,7 +431,7 @@ def test_connected_but_off_can_be_turned_on(make, answer):
     assert window.lastfm_enabled_box.isChecked()
 
 
-# ------------------------------------------------------------ developer switch
+# developer switch
 
 
 def test_an_unlocked_switch_stays_after_a_restart_with_it_off(make):
@@ -480,7 +480,7 @@ def test_reset_keeps_the_unlocked_switch():
     assert out.advanced.developer_mode is False
 
 
-# ------------------------------------------------------------ wording and layout
+# wording and layout
 
 
 def test_privacy_off_names_both_services(win):

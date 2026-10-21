@@ -23,9 +23,7 @@ from refrain.paths import cover_cache_dir  # noqa: E402
 from refrain.ui.log_window import LogWindow  # noqa: E402
 from refrain.ui.tray import TrayIcon  # noqa: E402
 
-# ------------------------------------------------------------------------- #
-# log_window.py: palette redraw, Clear, Copy all                            #
-# ------------------------------------------------------------------------- #
+# log_window.py: palette redraw, Clear, Copy all
 
 
 class _Bridge(QObject):
@@ -84,9 +82,7 @@ def test_copy_all_puts_the_visible_log_on_the_clipboard(qapp):
     assert QGuiApplication.clipboard().text() == window.view.toPlainText()
 
 
-# ------------------------------------------------------------------------- #
-# tray.py: hint bubble + its click callback                                 #
-# ------------------------------------------------------------------------- #
+# tray.py: hint bubble + its click callback
 
 
 @pytest.fixture
@@ -112,9 +108,7 @@ def test_clicking_a_hint_notification_runs_its_action_exactly_once(tray):
     assert clicks == [1]
 
 
-# ------------------------------------------------------------------------- #
-# welcome_dialog.py: growing the dialog to fit the diagnostics text         #
-# ------------------------------------------------------------------------- #
+# welcome_dialog.py: growing the dialog to fit the diagnostics text
 
 
 def test_a_missing_layout_leaves_the_welcome_dialogs_size_alone(qapp, monkeypatch):
@@ -142,9 +136,7 @@ def test_a_label_that_is_not_word_wrapped_is_skipped_when_measuring_the_deficit(
     dialog.deleteLater()
 
 
-# ------------------------------------------------------------------------- #
-# legal_dialog.py: links open the system browser, not an in-app view        #
-# ------------------------------------------------------------------------- #
+# legal_dialog.py: links open the system browser, not an in-app view
 
 
 def test_clicking_a_legal_notice_link_opens_it_in_the_system_browser(qapp, monkeypatch):
@@ -166,9 +158,7 @@ def test_clicking_a_legal_notice_link_opens_it_in_the_system_browser(qapp, monke
     dialog.deleteLater()
 
 
-# ------------------------------------------------------------------------- #
-# mpris_server.py: the PropertiesChanged signal declaration itself          #
-# ------------------------------------------------------------------------- #
+# mpris_server.py: the PropertiesChanged signal declaration itself
 
 
 def test_properties_changed_runs_without_raising_before_the_server_is_exported():
@@ -186,9 +176,7 @@ def test_properties_changed_runs_without_raising_before_the_server_is_exported()
     )
 
 
-# ------------------------------------------------------------------------- #
-# cover_fetcher.py: pruning survives a file that refuses to be deleted      #
-# ------------------------------------------------------------------------- #
+# cover_fetcher.py: pruning survives a file that refuses to be deleted
 
 
 def test_a_cache_file_that_cannot_be_deleted_does_not_stop_the_rest_from_being_pruned(

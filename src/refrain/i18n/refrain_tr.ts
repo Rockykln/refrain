@@ -2001,13 +2001,13 @@ Scrobble bu oturum için çalışır, ancak yeniden başlattıktan sonra Last.fm
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — denetleniyor…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — denetleniyor…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Kapak arama — denetleniyor…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Kapak arama — denetleniyor…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

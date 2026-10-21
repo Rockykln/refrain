@@ -354,10 +354,8 @@ def test_aur_helper_prefers_an_installed_helper(updater, monkeypatch):
     assert updater._aur_helper() == ("paru", "-Syu", "refrain")
 
 
-# ---------------------------------------------------------------------------
 # cleanup_orphan_downloads — self-heal of *.AppImage.new files left behind
 # by a SIGKILL / power-loss mid-download.
-# ---------------------------------------------------------------------------
 
 
 def test_cleanup_orphan_downloads_removes_stale_new(tmp_path, monkeypatch, updater):
@@ -420,9 +418,7 @@ def test_a_pip_install_in_a_venv_is_still_pip(updater, tmp_path, monkeypatch):
     assert updater.detect_install_type() == "pip"
 
 
-# --------------------------------------------------------------------------- #
-# apply_update: which way each install type is updated                         #
-# --------------------------------------------------------------------------- #
+# apply_update: which way each install type is updated
 
 
 def _release(updater):

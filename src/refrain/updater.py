@@ -109,9 +109,7 @@ def _open_download(url: str, timeout: float):
     return _download_opener.open(req, timeout=timeout)  # nosec B310
 
 
-# ---------------------------------------------------------------------------
 # Install-type detection
-# ---------------------------------------------------------------------------
 
 
 def detect_install_type() -> str:
@@ -183,9 +181,7 @@ def _in_user_site() -> bool:
     return Path(__file__).resolve().is_relative_to(user_site)
 
 
-# ---------------------------------------------------------------------------
 # Version compare
-# ---------------------------------------------------------------------------
 
 
 _VERSION_RE = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)(?:(\+.*)|[-.]?((?:dev|a|b|rc|pre).*))?$")
@@ -207,9 +203,7 @@ def is_newer(remote: str, local: str) -> bool:
     return r > loc
 
 
-# ---------------------------------------------------------------------------
 # Release info
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -307,9 +301,7 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
     )
 
 
-# ---------------------------------------------------------------------------
 # Apply
-# ---------------------------------------------------------------------------
 
 
 @dataclass

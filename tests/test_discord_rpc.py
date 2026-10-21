@@ -44,9 +44,7 @@ def _later(clock):
     clock.t += 5.0
 
 
-# ---------------------------------------------------------------------------
 # Payload-dedup behavior.
-# ---------------------------------------------------------------------------
 
 
 def test_identical_consecutive_payloads_only_send_once(fake_pypresence):
@@ -159,9 +157,7 @@ def test_update_failure_invalidates_cache(fake_pypresence):
     assert presence_mock.update.call_count == 2
 
 
-# ---------------------------------------------------------------------------
 # Sandboxed-IPC bridge.
-# ---------------------------------------------------------------------------
 
 
 def test_bridge_no_op_when_standard_path_already_has_socket(tmp_path, monkeypatch):

@@ -133,9 +133,8 @@ _WRITE_TOKENS = 5
 _WRITE_WINDOW_S = 20.0
 # pypresence waits 30 s to connect, 10 s for a reply and forever during the
 # handshake, so each gets a bound of its own. They are this roomy because the
-# waiting happens on the serving thread: measured against a real client, a
-# handshake answers at once or takes five to ten seconds, and the three
-# seconds this used to allow lost that race more often than it won it.
+# waiting happens on the serving thread, and a handshake either answers at
+# once or takes five to ten seconds.
 _CONNECT_TIMEOUT_S = 2.0
 _RESPONSE_TIMEOUT_S = 10.0
 _HANDSHAKE_TIMEOUT_S = 15.0
@@ -827,10 +826,8 @@ class DiscordRPC:
     def start(self) -> None:
         """Serve Discord from a thread of its own.
 
-        Everything here used to run inside the poll that follows the music,
-        so a client taking five seconds to answer a handshake stopped the
-        daemon for five seconds. The waits are now out of that path, which
-        is what lets them be generous enough for Discord to finish.
+        Off the poll that follows the music, so the waits can be generous
+        enough for Discord to finish without holding anything up.
         """
         if self._thread is not None:
             return

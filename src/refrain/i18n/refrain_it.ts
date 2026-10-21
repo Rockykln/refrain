@@ -2011,13 +2011,13 @@ Le impostazioni appena modificate valgono per questa sessione, ma non sopravvivo
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — controllo in corso…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — controllo in corso…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Ricerca copertina — controllo in corso…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Ricerca copertina — controllo in corso…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

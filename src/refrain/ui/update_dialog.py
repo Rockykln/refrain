@@ -146,7 +146,7 @@ class UpdateDialog(QDialog):
         # see refrain.ui.cursors.
         apply_interactive_cursors(self)
 
-    # ----------------------------------------------------------- helpers
+    # helpers
 
     def _update_button_label(self) -> str:
         if self._install_type == "appimage":
@@ -163,7 +163,7 @@ class UpdateDialog(QDialog):
         if self._release.html_url:
             _open_https_link(QUrl(self._release.html_url))
 
-    # --------------------------------------------------------- handlers
+    # handlers
 
     def _on_update_clicked(self) -> None:
         # For install types we can't auto-update, just show the command.

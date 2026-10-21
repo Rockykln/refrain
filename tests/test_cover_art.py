@@ -79,9 +79,7 @@ def _install(monkeypatch, cover_art, store):
     return store
 
 
-# --------------------------------------------------------------------------- #
-# Picking the right result                                                     #
-# --------------------------------------------------------------------------- #
+# Picking the right result
 
 
 def test_lookup_upgrades_artwork_to_600(monkeypatch, cover_art):
@@ -171,9 +169,7 @@ def test_clean_title(cover_art, title, clean):
     assert cover_art.clean_title(title) == clean
 
 
-# --------------------------------------------------------------------------- #
-# Cache                                                                        #
-# --------------------------------------------------------------------------- #
+# Cache
 
 
 def test_lookup_returns_empty_for_blank_input(cover_art):

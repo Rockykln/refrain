@@ -56,7 +56,7 @@ def test_a_title_beyond_ascii_still_makes_a_valid_track_id():
         assert path.startswith("/refrain/track/")
 
 
-# --------------------------------------------------- what the panel reads
+# what the panel reads
 
 
 def _published(**kw):

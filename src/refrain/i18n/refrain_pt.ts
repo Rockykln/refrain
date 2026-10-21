@@ -2011,13 +2011,13 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord — a verificar…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord — a verificar…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Pesquisa de capa — a verificar…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Pesquisa de capa — a verificar…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

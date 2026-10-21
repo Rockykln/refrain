@@ -16,9 +16,7 @@ from refrain.scrobble import (
     should_scrobble,
 )
 
-# --------------------------------------------------------------------------- #
-# api_signature                                                               #
-# --------------------------------------------------------------------------- #
+# api_signature
 
 
 def test_api_signature_is_sorted_md5_with_secret():
@@ -36,9 +34,7 @@ def test_api_signature_excludes_format_and_callback():
     assert api_signature(base, "s") == api_signature(with_fmt, "s")
 
 
-# --------------------------------------------------------------------------- #
-# should_scrobble — Last.fm's documented rule                                  #
-# --------------------------------------------------------------------------- #
+# should_scrobble — Last.fm's documented rule
 
 
 @pytest.mark.parametrize(
@@ -59,9 +55,7 @@ def test_should_scrobble_rule(played_ms, duration_ms, expected):
     assert should_scrobble(played_ms, duration_ms) is expected
 
 
-# --------------------------------------------------------------------------- #
-# LastfmClient — mocked transport                                             #
-# --------------------------------------------------------------------------- #
+# LastfmClient — mocked transport
 
 
 def _resp(payload):

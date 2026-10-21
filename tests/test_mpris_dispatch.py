@@ -212,7 +212,7 @@ def test_play_pause_goes_to_the_apple_music_tab_itself_when_known():
     assert plasma.calls == [], "one click, one toggle"
 
 
-# ------------------------------------------------ reading: whose state counts
+# reading: whose state counts
 
 PLASMA = "org.mpris.MediaPlayer2.plasma-browser-integration"
 CHROMIUM = "org.mpris.MediaPlayer2.chromium.instance10001"

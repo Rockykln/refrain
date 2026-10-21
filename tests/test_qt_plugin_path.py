@@ -11,9 +11,7 @@ import pytest
 pytest.importorskip("PySide6")
 
 
-# ---------------------------------------------------------------------------
 # Version compatibility
-# ---------------------------------------------------------------------------
 @pytest.mark.parametrize(
     ("bundled", "system", "loadable"),
     [
@@ -47,9 +45,7 @@ def test_qt_version_tuple_stops_at_non_numeric():
     assert _qt_version_tuple("garbage") == ()
 
 
-# ---------------------------------------------------------------------------
 # Augmentation behaviour
-# ---------------------------------------------------------------------------
 class _FakeQCoreApplication:
     """Records library-path mutations the way Qt would apply them."""
 

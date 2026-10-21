@@ -25,7 +25,7 @@ def _lengths(tmp_path):
     return LearnedLengths(path=tmp_path / "lengths.txt")
 
 
-# --------------------------------------------------------------- key format
+# key format
 
 
 def test_song_key_is_the_hash_the_format_was_built_on():
@@ -48,7 +48,7 @@ def test_song_key_treats_ampersand_as_and():
     assert song_key("Simon & Garfunkel", "X", "Y") == song_key("Simon and Garfunkel", "X", "Y")
 
 
-# ------------------------------------------------------------- file format
+# file format
 
 
 def test_the_entries_file_is_written_in_todays_exact_format(tmp_path):
@@ -85,7 +85,7 @@ def test_the_lastfm_file_permissions_are_locked_down(tmp_path):
     assert mode == 0o600
 
 
-# ----------------------------------------------------- loading stale lines
+# loading stale lines
 
 
 def test_stored_lengths_outside_the_allowed_range_are_dropped(tmp_path):
@@ -137,7 +137,7 @@ def test_a_bad_number_line_is_skipped_not_a_stop_sign(tmp_path):
     assert other in lengths._entries, "the corrupt line above it must not swallow it"
 
 
-# -------------------------------------------------- exact tolerance edges
+# exact tolerance edges
 
 
 def test_two_plays_agree_at_exactly_the_tolerance(tmp_path):
@@ -220,7 +220,7 @@ def test_a_lastfm_length_one_second_past_the_tolerance_confirms_nothing(tmp_path
     assert lengths.get_ms(*A) == 0
 
 
-# ------------------------------------------------- CONFIRMATIONS_NEEDED
+# CONFIRMATIONS_NEEDED
 
 
 def test_confirmations_needed_is_the_constant_that_gates_get_ms(tmp_path, monkeypatch):
@@ -242,7 +242,7 @@ def test_confirmations_needed_gates_wants_reference(tmp_path, monkeypatch):
     assert lengths.wants_reference(*A) is False, "already confirmed with just one play"
 
 
-# ----------------------------------------------------- MAX_ENTRIES order
+# MAX_ENTRIES order
 
 
 def test_lastfm_references_drop_the_oldest_first(tmp_path, monkeypatch):
@@ -267,7 +267,7 @@ def test_max_entries_is_the_constant_that_gates_trimming(tmp_path, monkeypatch):
     assert song_key("Art", "First", "") not in lengths._entries
 
 
-# ------------------------------------------------------------- concurrency
+# concurrency
 
 
 def test_concurrent_observers_do_not_corrupt_state(tmp_path):
@@ -292,7 +292,7 @@ def test_concurrent_observers_do_not_corrupt_state(tmp_path):
     assert reloaded._entries == lengths._entries
 
 
-# ------------------------------------------------------------- generation
+# generation
 
 
 def test_generation_starts_at_zero(tmp_path):
@@ -323,7 +323,7 @@ def test_generation_bumps_by_exactly_one_when_a_reference_confirms(tmp_path):
     assert lengths.generation == before + 1
 
 
-# ----------------------------------------------------------------- forget
+# forget
 
 
 def test_forget_removes_a_learned_length_and_persists_it(tmp_path):
@@ -342,7 +342,7 @@ def test_forgetting_a_song_never_learned_does_nothing(tmp_path):
     assert lengths.generation == before, "nothing changed, so nothing to persist"
 
 
-# --------------------------------------------- the Last.fm "0 = unknown" rule
+# the Last.fm "0 = unknown" rule
 
 
 def test_agrees_locked_treats_a_zero_reference_as_unknown(tmp_path):
@@ -402,7 +402,7 @@ def test_touching_a_lastfm_reference_again_refreshes_its_recency(tmp_path, monke
     assert song_key("Art", "Third", "") in lengths._references
 
 
-# --------------------------------------------------------------- lengths_path
+# lengths_path
 
 
 def test_lengths_path_is_state_dir_song_lengths_txt(monkeypatch, tmp_path):

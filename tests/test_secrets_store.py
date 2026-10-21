@@ -153,9 +153,7 @@ def test_legacy_plaintext_config_is_scrubbed_on_next_save(tmp_path):
     assert 'shared_secret = ""' in text
 
 
-# --------------------------------------------------------------------------- #
-# keyring path, against a stand-in Secret Service                              #
-# --------------------------------------------------------------------------- #
+# keyring path, against a stand-in Secret Service
 
 
 class _SecretService:

@@ -54,9 +54,7 @@ def win(monkeypatch, boxes):
     app.processEvents()
 
 
-# ------------------------------------------------------------------------- #
-# LastfmApprovalDialog: a poll already in flight is not asked again          #
-# ------------------------------------------------------------------------- #
+# LastfmApprovalDialog: a poll already in flight is not asked again
 
 
 class _FakeLastfmClient:
@@ -91,9 +89,7 @@ def test_a_poll_still_waiting_on_an_answer_is_not_asked_again(monkeypatch):
     dialog._give_up.stop()
 
 
-# ------------------------------------------------------------------------- #
-# Guards on widgets that may not exist yet (theme change mid-construction)   #
-# ------------------------------------------------------------------------- #
+# Guards on widgets that may not exist yet (theme change mid-construction)
 
 
 def test_a_theme_change_before_the_github_button_exists_is_ignored(win):
@@ -128,9 +124,7 @@ def test_a_form_without_row_visibility_support_still_shows_the_fields(win):
     assert not win.client_id_bluetooth_input.isHidden()
 
 
-# ------------------------------------------------------------------------- #
-# Bluetooth device refresh: stale answers and a device that vanished        #
-# ------------------------------------------------------------------------- #
+# Bluetooth device refresh: stale answers and a device that vanished
 
 
 def test_a_stale_bluetooth_refresh_answer_is_ignored(win):
@@ -184,9 +178,7 @@ def test_a_configured_bluetooth_device_already_listed_is_selected_on_load(win):
     assert win.bluetooth_device.currentData() == "AA:BB:CC:00:00:04"
 
 
-# ------------------------------------------------------------------------- #
-# Discord application-name lookup short-circuits                            #
-# ------------------------------------------------------------------------- #
+# Discord application-name lookup short-circuits
 
 
 def test_turning_off_name_resolution_stops_pending_lookups_and_clears_the_name(win):
@@ -232,10 +224,8 @@ def test_lookup_is_skipped_while_resolving_names_is_turned_off(win, monkeypatch)
     assert win.app_name_label.text() == ""
 
 
-# ------------------------------------------------------------------------- #
-# Last.fm connect: an auth round-trip already running, and a real one       #
-# (offline, so it fails quickly) that starts and cleans up a real QThread   #
-# ------------------------------------------------------------------------- #
+# Last.fm connect: an auth round-trip already running, and a real one
+# (offline, so it fails quickly) that starts and cleans up a real QThread
 
 
 def test_clicking_connect_again_mid_authorization_does_nothing(win):

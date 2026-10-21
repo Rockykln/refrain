@@ -37,9 +37,7 @@ from tests.test_history_window import (  # noqa: E402, F401
     win,
 )
 
-# ------------------------------------------------------------------------- #
-# Search word highlighting                                                    #
-# ------------------------------------------------------------------------- #
+# Search word highlighting
 
 
 def test_an_empty_search_word_adds_no_highlight():
@@ -60,9 +58,7 @@ def test_a_highlight_past_the_elided_text_does_not_break_painting(_window):  # n
     assert not pixmap.isNull()
 
 
-# ------------------------------------------------------------------------- #
-# Row: theme icon, tooltip, hover                                             #
-# ------------------------------------------------------------------------- #
+# Row: theme icon, tooltip, hover
 
 
 def test_a_matching_theme_icon_is_shown_next_to_the_source(win, monkeypatch):  # noqa: F811
@@ -111,9 +107,7 @@ def test_a_right_click_on_a_row_does_not_open_it(win, monkeypatch):  # noqa: F81
     assert opened == []
 
 
-# ------------------------------------------------------------------------- #
-# Row context menu                                                            #
-# ------------------------------------------------------------------------- #
+# Row context menu
 
 
 def _fire_context_menu(row, monkeypatch, action_text) -> None:
@@ -165,9 +159,7 @@ def test_context_menu_remove_asks_the_window_to_remove_the_song(win, monkeypatch
     assert [e.title for e in removed] == ["Glass Tides"]
 
 
-# ------------------------------------------------------------------------- #
-# Window: shortcuts, palette changes, covers                                  #
-# ------------------------------------------------------------------------- #
+# Window: shortcuts, palette changes, covers
 
 
 def test_escape_with_an_empty_search_closes_the_window(win):  # noqa: F811
@@ -220,9 +212,7 @@ def test_a_corrupted_cover_file_falls_back_to_the_placeholder(win):  # noqa: F81
     assert not row.has_cover
 
 
-# ------------------------------------------------------------------------- #
-# Reaching a row without a mouse                                              #
-# ------------------------------------------------------------------------- #
+# Reaching a row without a mouse
 
 
 def test_a_row_can_be_reached_and_named_without_a_mouse(win):  # noqa: F811

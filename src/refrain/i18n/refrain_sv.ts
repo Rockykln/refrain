@@ -2011,13 +2011,13 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="253"/>
-        <source>⏳ Discord — checking…</source>
-        <translation>⏳ Discord – kontrollerar…</translation>
+        <source>Discord — checking…</source>
+        <translation>Discord – kontrollerar…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="254"/>
-        <source>⏳ Cover-art lookup — checking…</source>
-        <translation>⏳ Omslagssökning – kontrollerar…</translation>
+        <source>Cover-art lookup — checking…</source>
+        <translation>Omslagssökning – kontrollerar…</translation>
     </message>
     <message>
         <location filename="../ui/welcome_dialog.py" line="262"/>

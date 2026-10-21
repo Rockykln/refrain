@@ -398,7 +398,7 @@ def resolve_position(
         state = replace(state, moved_at=now)
     state = _track_pause(state, is_playing, now)
 
-    # -- tier 1: the source's own value -------------------------------
+    # tier 1: the source's own value
     # `stall_after_s <= 0` disables the freshness check entirely, which
     # is what `advanced.position_stall_s = 0` is documented to do.
     frozen = is_playing and not source_position_is_fresh(state.moved_at, now, stall_after_s)
@@ -438,13 +438,13 @@ def resolve_position(
             ),
         )
 
-    # -- tier 2: our own clock ----------------------------------------
+    # tier 2: our own clock
     if state.anchored:
         elapsed = elapsed_ms(state, now)
         if elapsed >= 0 and (duration_ms <= 0 or elapsed <= duration_ms + overrun_grace_ms):
             return elapsed, PositionTier.COMPUTED, state
 
-    # -- tier 3: the progress saved before a restart ------------------
+    # tier 3: the progress saved before a restart
     if state.estimated and not state.anchored:
         estimate = elapsed_ms(state, now)
         # No overrun grace: an estimate past the end is more likely wrong
@@ -453,7 +453,7 @@ def resolve_position(
             return estimate, PositionTier.ESTIMATED, state
         state = replace(state, estimated=False)
 
-    # -- tier 4: no honest answer -------------------------------------
+    # tier 4: no honest answer
     return None, PositionTier.UNKNOWN, state
 
 

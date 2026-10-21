@@ -568,7 +568,7 @@ class DaemonWorker(QObject):
             on_previous=lambda: self._queue_control("control_previous"),
         )
 
-    # ----------------------------------------------------------------- lifecycle
+    # lifecycle
 
     @Slot()
     def start_polling(self) -> None:
@@ -670,7 +670,7 @@ class DaemonWorker(QObject):
             if self._history.reconfigure(config.history):
                 self._emit_history()
 
-    # ---------------------------------------------------------------- history
+    # history
 
     def history_snapshot(self) -> HistorySnapshot:
         return self._history.snapshot()
@@ -742,7 +742,7 @@ class DaemonWorker(QObject):
                 self._history_error_logged = True
                 log.exception("History update failed")
 
-    # --------------------------------------------------------------- controls
+    # controls
 
     @Slot()
     def control_play_pause(self) -> None:
@@ -815,7 +815,7 @@ class DaemonWorker(QObject):
         else:
             log.debug("control %s: no source dispatched", action)
 
-    # -------------------------------------------------------------------- core
+    # core
 
     def _tick(self) -> None:
         if self._stopped:

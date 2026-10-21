@@ -8,9 +8,7 @@ import pytest
 
 from refrain.config import Config, _coerce_value
 
-# --------------------------------------------------------------------------- #
-# _coerce_value — every branch, called directly rather than through a section  #
-# --------------------------------------------------------------------------- #
+# _coerce_value — every branch, called directly rather than through a section
 
 
 def test_a_bool_field_accepts_a_truthy_or_falsy_number():
@@ -43,9 +41,7 @@ def test_an_unannotated_field_is_accepted_as_is():
     assert _coerce_value(None, "anything", sentinel) is sentinel
 
 
-# --------------------------------------------------------------------------- #
-# Those coercions as they play out through a real section                      #
-# --------------------------------------------------------------------------- #
+# Those coercions as they play out through a real section
 
 
 def test_a_numeric_bool_from_a_hand_edit_is_coerced(caplog):
@@ -69,9 +65,7 @@ def test_a_junk_string_int_is_dropped_with_a_warning(caplog):
     assert any("poll_interval_ms" in r.getMessage() for r in caplog.records)
 
 
-# --------------------------------------------------------------------------- #
-# Config.load — the broken-file rename itself failing                         #
-# --------------------------------------------------------------------------- #
+# Config.load — the broken-file rename itself failing
 
 
 def test_when_the_broken_copy_cannot_be_kept_the_original_is_named_instead(
@@ -96,9 +90,7 @@ def test_when_the_broken_copy_cannot_be_kept_the_original_is_named_instead(
     assert any(str(path) in r.getMessage() for r in caplog.records)
 
 
-# --------------------------------------------------------------------------- #
-# Config.save — the comment-preserving merge failing                          #
-# --------------------------------------------------------------------------- #
+# Config.save — the comment-preserving merge failing
 
 
 def test_a_config_that_turns_unreadable_mid_save_still_saves(tmp_path, monkeypatch, caplog):
@@ -143,9 +135,7 @@ def test_a_merge_failure_falls_back_to_a_clean_rewrite(tmp_path, monkeypatch, ca
     assert any("merge failed" in r.getMessage() for r in caplog.records)
 
 
-# --------------------------------------------------------------------------- #
-# Config.load — the very first save failing                                   #
-# --------------------------------------------------------------------------- #
+# Config.load — the very first save failing
 
 
 def test_a_first_start_without_a_writable_config_dir_still_starts(tmp_path, caplog):

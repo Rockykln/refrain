@@ -250,8 +250,8 @@ class WelcomeDialog(QDialog):
         diag_heading = QLabel(self.tr("Live diagnostics"))
         diag_heading.setStyleSheet("font-weight: 600; font-size: 12px;")
         diag_layout.addWidget(diag_heading)
-        self._diag_discord = QLabel(self.tr("⏳ Discord — checking…"))
-        self._diag_itunes = QLabel(self.tr("⏳ Cover-art lookup — checking…"))
+        self._diag_discord = QLabel(self.tr("Discord — checking…"))
+        self._diag_itunes = QLabel(self.tr("Cover-art lookup — checking…"))
         for lbl in (self._diag_discord, self._diag_itunes):
             lbl.setWordWrap(True)
             lbl.setStyleSheet("color: palette(text);")
@@ -361,8 +361,8 @@ class WelcomeDialog(QDialog):
             self.resize(self.width(), self.height() + deficit)
 
     def _on_diag_finished(self, d_ok: bool, d_msg: str, i_ok: bool, i_msg: str) -> None:
-        d_mark = "✅" if d_ok else "⚠️"
-        i_mark = "✅" if i_ok else "⚠️"
+        d_mark = "✓" if d_ok else "!"
+        i_mark = "✓" if i_ok else "!"
         self._diag_discord.setText(
             self.tr("{mark} <b>Discord:</b> {msg}").format(mark=d_mark, msg=d_msg)
         )

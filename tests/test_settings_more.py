@@ -71,7 +71,7 @@ def _release(version):
     )
 
 
-# ------------------------------------------------------------------ Apply
+# Apply
 
 
 def test_apply_saves_and_keeps_the_window_open(win):
@@ -137,7 +137,7 @@ def test_typed_browser_names_are_kept_after_the_ticked_ones(win):
     assert win.sent[-1].sources.browser_hints == f"{first},vivaldi"
 
 
-# ------------------------------------------------------------- confirm boxes
+# confirm boxes
 
 
 @pytest.mark.parametrize(
@@ -201,7 +201,7 @@ def test_reset_question_defaults_to_cancel(win, monkeypatch):
     assert defaults == ["Cancel"]
 
 
-# ------------------------------------------------------------- update tab
+# update tab
 
 
 def test_latest_release_label_follows_each_check(win):
@@ -218,7 +218,7 @@ def test_latest_release_label_follows_each_check(win):
     assert "Could not reach GitHub" in win.release_notes_view.toPlainText()
 
 
-# ------------------------------------------------------------ Last.fm flow
+# Last.fm flow
 
 
 def test_connect_without_api_credentials_asks_for_them_first(win, boxes):

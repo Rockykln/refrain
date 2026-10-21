@@ -214,9 +214,7 @@ def test_remove_from_the_context_menu(win, monkeypatch):
     assert [e.title for e in removed] == ["Song 1"]
 
 
-# --------------------------------------------------------------------------- #
-# Search and source filter                                                     #
-# --------------------------------------------------------------------------- #
+# Search and source filter
 
 
 def _mixed(n: int) -> tuple[HistoryEntry, ...]:
@@ -432,9 +430,7 @@ def test_song_rows_are_left_to_elide(win):
     assert not any("_SongRow" in p or "_ElidedLabel" in p for p in paths)
 
 
-# --------------------------------------------------------------------------- #
-# Every song is a link                                                         #
-# --------------------------------------------------------------------------- #
+# Every song is a link
 
 
 def test_a_song_page_is_used_as_is():

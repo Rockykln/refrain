@@ -76,9 +76,7 @@ class TrackLookup:
     album: str = ""
 
 
-# --------------------------------------------------------------------------- #
-# Matching                                                                     #
-# --------------------------------------------------------------------------- #
+# Matching
 
 _FEAT_PAREN = re.compile(r"\s*[\(\[]\s*(?:feat\.?|ft\.?|featuring|with)\s[^\)\]]*[\)\]]", re.I)
 _FEAT_TAIL = re.compile(r"\s+(?:feat\.?|ft\.?|featuring)\s.*$", re.I)
@@ -282,9 +280,7 @@ def lookup_track_info(artist: str, title: str, album: str = "") -> TrackLookup:
     return result
 
 
-# --------------------------------------------------------------------------- #
-# Cache                                                                        #
-# --------------------------------------------------------------------------- #
+# Cache
 
 
 def _key(artist: str, title: str, album: str) -> str:

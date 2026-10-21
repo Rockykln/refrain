@@ -95,18 +95,14 @@ artifacts = [
 ]
 exclude = ["src/refrain/i18n/*.ts"]
 
-# ----------------------------------------------------------------------------
 # Test runner
-# ----------------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
 python_files = ["test_*.py"]
 addopts      = "-q --strict-markers --tb=short"
 pythonpath   = ["src"]
 
-# ----------------------------------------------------------------------------
 # Coverage
-# ----------------------------------------------------------------------------
 [tool.coverage.run]
 source = ["refrain"]
 omit   = [
@@ -124,9 +120,7 @@ exclude_lines = [
     "raise NotImplementedError",
 ]
 
-# ----------------------------------------------------------------------------
 # Linting + formatting
-# ----------------------------------------------------------------------------
 [tool.ruff]
 line-length    = 100
 target-version = "py311"
@@ -151,9 +145,7 @@ ignore = [
 "tests/*"            = ["E402"]   # late imports after sys.path manipulation
 "src/refrain/sources/mpris.py" = ["A003"]  # `next` shadows builtin (intentional method name)
 
-# ----------------------------------------------------------------------------
 # Bandit (Python SAST)
-# ----------------------------------------------------------------------------
 [tool.bandit]
 exclude_dirs = ["tests", ".venv", "reference"]
 # B404 (subprocess imp) — used only for notify-send, list-form, no shell=True
@@ -172,9 +164,7 @@ exclude_dirs = ["tests", ".venv", "reference"]
 # B101 (assert) — used in tests, not in src/
 skips = ["B101", "B404", "B603", "B606", "B607"]
 
-# ----------------------------------------------------------------------------
 # Type checking
-# ----------------------------------------------------------------------------
 [tool.mypy]
 python_version       = "3.11"
 files                = ["src/refrain"]

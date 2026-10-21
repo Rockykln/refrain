@@ -262,7 +262,7 @@ def test_nothing_is_sent_while_measuring(monkeypatch, tmp_path):
     assert opened == []
 
 
-# Qt side --------------------------------------------------------------------
+# Qt side
 
 
 class _Window(QDialog):

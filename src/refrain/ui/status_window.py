@@ -653,7 +653,7 @@ class StatusWindow(QDialog):
         self._refresh()
         apply_interactive_cursors(self)
 
-    # ------------------------------------------------------------- public
+    # public
 
     def set_track(self, track: TrackInfo) -> None:
         self._track = track
@@ -733,7 +733,7 @@ class StatusWindow(QDialog):
         self.raise_()
         self.activateWindow()
 
-    # ------------------------------------------------------------ refresh
+    # refresh
 
     def _refresh(self) -> None:
         self._refresh_song()
@@ -1045,7 +1045,7 @@ class StatusWindow(QDialog):
     def _act(self, action: str) -> None:
         self.settingsRequested.emit(action)
 
-    # ----------------------------------------------------------- geometry
+    # geometry
 
     def _restore_geometry(self) -> None:
         try:

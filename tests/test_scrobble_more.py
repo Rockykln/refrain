@@ -147,9 +147,7 @@ def test_an_unreadable_accepted_count_assumes_all_were_taken(monkeypatch, reply)
     assert _client().scrobble(items) == 2
 
 
-# --------------------------------------------------------------------------- #
-# Scrobbler                                                                    #
-# --------------------------------------------------------------------------- #
+# Scrobbler
 
 
 @pytest.mark.parametrize(

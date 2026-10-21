@@ -49,9 +49,7 @@ def _seed(iso):
     iso["icon"].write_text("svg", encoding="utf-8")
 
 
-# --------------------------------------------------------------------------- #
-# collect_paths                                                               #
-# --------------------------------------------------------------------------- #
+# collect_paths
 
 
 def test_collect_paths_only_existing(iso):
@@ -95,9 +93,7 @@ def test_collect_paths_defaults_to_local_share(xdg_tmp, monkeypatch, tmp_path, v
     assert uninstall.collect_paths() == [apps, icon]
 
 
-# --------------------------------------------------------------------------- #
-# removal_command                                                             #
-# --------------------------------------------------------------------------- #
+# removal_command
 
 
 @pytest.mark.parametrize(
@@ -120,9 +116,7 @@ def test_removal_command_appimage_uses_path():
     assert "<the Refrain" in uninstall.removal_command("appimage", None)
 
 
-# --------------------------------------------------------------------------- #
-# purge                                                                       #
-# --------------------------------------------------------------------------- #
+# purge
 
 
 def test_purge_removes_everything_and_is_idempotent(iso):
@@ -182,9 +176,7 @@ def test_purge_reports_credentials_the_keyring_would_not_drop(iso, refused):
     assert store.deleted == [k for k in both if k != refused]
 
 
-# --------------------------------------------------------------------------- #
-# CLI wrapper (refrain --uninstall)                                           #
-# --------------------------------------------------------------------------- #
+# CLI wrapper (refrain --uninstall)
 
 
 def test_cli_aborts_without_confirmation(iso, monkeypatch):
