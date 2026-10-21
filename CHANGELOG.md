@@ -46,6 +46,22 @@ lists every version and why.
 
 ### Fixed
 
+- **A song with no length no longer feeds the one before it.** Refrain
+  carries a play on for ten seconds when the source stops reporting, so a
+  tab reloading its metadata does not end it. A *different* song that
+  cannot be scrobbled — one with no length, which is what a missing
+  iTunes match leaves behind — was reported in that window as playing,
+  and its time was credited to the previous song.
+- **The same song straight after a gap counts twice again.** A replay is
+  told apart by where the player says it is, and a poll that reported no
+  song at all cleared that position, so the second play went unscrobbled.
+  The last position a song actually reported is now kept across the gap.
+- **Uninstalling takes the covers still in flight with it.** They live in
+  a directory of their own, outside the cache, and are swept at the next
+  start — which after an uninstall never comes.
+- **Tab no longer stops at paragraphs that do nothing.** Two sections of
+  the legal notice have no link in them but were marked as reachable by
+  keyboard, which in Qt is enough to make a label a tab stop.
 - **Repaints nobody will see are thrown away as Refrain quits.** One
   still queued for a window was delivered as the event loop wound down,
   and Qt's Wayland client then read through a null pointer, which can

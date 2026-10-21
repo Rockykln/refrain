@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import contextlib
 import os
+import tempfile
 from pathlib import Path
+
+# Covers on their way live in a directory of their own, outside the cache
+# the history keeps. Here rather than in cover_fetcher so the uninstall can
+# find them without importing Qt.
+COVER_TEMP_PREFIX = "refrain-covers-"
 
 
 def _xdg(env_var: str, default_subpath: str) -> Path:
@@ -102,3 +108,19 @@ def desktop_entry() -> str:
 def assets_dir() -> Path:
     """Bundled assets directory (lives inside the installed package)."""
     return Path(__file__).parent / "assets"
+
+
+def cover_temp_base() -> Path:
+    """$XDG_RUNTIME_DIR (private, gone at logout), else the system default."""
+    runtime = os.environ.get("XDG_RUNTIME_DIR", "")
+    if os.path.isabs(runtime) and os.path.isdir(runtime):
+        return Path(runtime)
+    return Path(tempfile.gettempdir())
+
+
+def cover_temp_dirs() -> list[Path]:
+    """Every in-flight cover directory, this run's included."""
+    with contextlib.suppress(OSError):
+        base = cover_temp_base()
+        return sorted(p for p in base.glob(COVER_TEMP_PREFIX + "*") if p.is_dir())
+    return []

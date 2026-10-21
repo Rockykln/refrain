@@ -170,14 +170,17 @@ class LegalDialog(QDialog):
             text.setTextFormat(Qt.TextFormat.RichText)
             # Selectable so a user can copy a clause; links go through
             # QDesktopServices rather than Qt's own handler, and answer to
-            # the keyboard as well as the mouse.
-            text.setTextInteractionFlags(
-                Qt.TextInteractionFlag.TextSelectableByMouse
-                | Qt.TextInteractionFlag.LinksAccessibleByMouse
-                | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
-            )
+            # the keyboard as well as the mouse. The keyboard flag also
+            # makes a label a tab stop, so a section without a link must
+            # not carry it — Tab would stop at a paragraph that does
+            # nothing.
+            flags = Qt.TextInteractionFlag.TextSelectableByMouse
+            if "<a href" in body:
+                flags |= Qt.TextInteractionFlag.LinksAccessibleByMouse
+                flags |= Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+                text.linkActivated.connect(self._open_link)
+            text.setTextInteractionFlags(flags)
             text.setOpenExternalLinks(False)
-            text.linkActivated.connect(self._open_link)
             inner_layout.addWidget(text)
 
         inner_layout.addStretch()

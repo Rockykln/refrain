@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib
+import tempfile
+from pathlib import Path
 
 
 def test_xdg_overrides_take_effect(xdg_tmp):
@@ -68,3 +70,21 @@ def test_relative_xdg_values_are_ignored(monkeypatch, tmp_path):
     assert p.state_dir() == home / ".local" / "state" / "refrain"
     assert p.cache_dir() == home / ".cache" / "refrain"
     assert p.autostart_path() == home / ".config" / "autostart" / "refrain.desktop"
+
+
+def test_covers_in_flight_fall_back_to_the_system_temp_dir(monkeypatch, tmp_path):
+    """Without a runtime dir they still need somewhere to go, or no cover
+    is ever downloaded."""
+    import refrain.paths as p
+
+    monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    assert p.cover_temp_base() == Path(tempfile.gettempdir())
+
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(runtime))
+    assert p.cover_temp_base() == runtime
+
+    # A relative value is no more valid here than anywhere else.
+    monkeypatch.setenv("XDG_RUNTIME_DIR", "relative/runtime")
+    assert p.cover_temp_base() == Path(tempfile.gettempdir())

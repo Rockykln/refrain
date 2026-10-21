@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 import refrain.cover_fetcher as cf
+import refrain.paths as paths
 from refrain.cover_art import TrackLookup, image_path_for_url
 from refrain.paths import cover_cache_dir
 
@@ -152,14 +153,14 @@ def test_shutdown_leaves_the_temp_dir_for_the_next_start(fetcher, downloads):
 
 def test_the_sweep_leaves_everything_that_is_not_ours_alone(fetcher, tmp_path):
     runtime = Path(os.environ["XDG_RUNTIME_DIR"])
-    stale = runtime / (cf._TEMP_PREFIX + "earlier")
+    stale = runtime / (cf.COVER_TEMP_PREFIX + "earlier")
     stale.mkdir()
     (stale / "a.jpg").write_bytes(b"x")
     stranger = runtime / "someone-elses-dir"
     stranger.mkdir()
-    loose = runtime / (cf._TEMP_PREFIX + "file-not-a-dir")
+    loose = runtime / (cf.COVER_TEMP_PREFIX + "file-not-a-dir")
     loose.write_bytes(b"x")
-    link = runtime / (cf._TEMP_PREFIX + "link")
+    link = runtime / (cf.COVER_TEMP_PREFIX + "link")
     link.symlink_to(stranger)
 
     assert cf._clear_stale_temp_dirs() == 1
@@ -175,8 +176,7 @@ def test_a_sweep_that_cannot_list_the_directory_does_not_stop_the_start(monkeypa
         def glob(self, _pattern):
             raise OSError("permission denied")
 
-    monkeypatch.setattr(cf, "_temp_base", lambda: None)
-    monkeypatch.setattr(cf, "Path", lambda _p: _Unlistable())
+    monkeypatch.setattr(paths, "cover_temp_base", lambda: _Unlistable())
     assert cf._clear_stale_temp_dirs() == 0
 
 

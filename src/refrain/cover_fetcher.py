@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import os
 import shutil
 import tempfile
 import threading
@@ -38,7 +37,7 @@ from refrain.cover_art import (
     keep_cover_images,
     lookup_track_info,
 )
-from refrain.paths import cover_cache_dir
+from refrain.paths import COVER_TEMP_PREFIX, cover_cache_dir, cover_temp_base, cover_temp_dirs
 
 log = logging.getLogger(__name__)
 
@@ -56,9 +55,6 @@ _MAX_MEMO_ENTRIES = 500
 # not an answer, and caching it meant one offline minute cost the track
 # its cover, its song link and its duration for the rest of the session.
 _RETRY_AFTER_S = 60.0
-
-# Covers on their way live here until the song makes the history.
-_TEMP_PREFIX = "refrain-covers-"
 
 
 def _prune_lookup_cache(max_entries: int = _MAX_CACHED_LOOKUPS) -> int:
@@ -87,12 +83,6 @@ def _prune_lookup_cache(max_entries: int = _MAX_CACHED_LOOKUPS) -> int:
     return removed
 
 
-def _temp_base() -> str | None:
-    """$XDG_RUNTIME_DIR (private, gone at logout), else the system default."""
-    runtime = os.environ.get("XDG_RUNTIME_DIR", "")
-    return runtime if os.path.isabs(runtime) and os.path.isdir(runtime) else None
-
-
 def _clear_stale_temp_dirs() -> int:
     """Remove cover directories an earlier run left behind; returns how many.
 
@@ -101,15 +91,11 @@ def _clear_stale_temp_dirs() -> int:
     done, and only then does its bus name — which this run had to take
     first — come free. Making those threads daemons would break that.
     """
-    base = Path(_temp_base() or tempfile.gettempdir())
     removed = 0
-    try:
-        for p in base.glob(_TEMP_PREFIX + "*"):
-            if p.is_dir() and not p.is_symlink():
-                shutil.rmtree(p, ignore_errors=True)
-                removed += 1
-    except OSError as e:
-        log.debug("Stale cover-dir sweep failed: %s", e)
+    for p in cover_temp_dirs():
+        if not p.is_symlink():
+            shutil.rmtree(p, ignore_errors=True)
+            removed += 1
     if removed:
         log.info("Swept %d cover dir(s) from an earlier run", removed)
     return removed
@@ -282,7 +268,9 @@ class CoverFetcher:
         with self._lock:
             if self._temp_dir is None and create and not self._closed:
                 try:
-                    self._temp_dir = Path(tempfile.mkdtemp(prefix=_TEMP_PREFIX, dir=_temp_base()))
+                    self._temp_dir = Path(
+                        tempfile.mkdtemp(prefix=COVER_TEMP_PREFIX, dir=cover_temp_base())
+                    )
                 except OSError as e:
                     log.debug("Could not create a temporary cover directory: %s", e)
             temp = self._temp_dir

@@ -9,7 +9,14 @@ import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from refrain.paths import _xdg, autostart_path, cache_dir, config_dir, state_dir
+from refrain.paths import (
+    _xdg,
+    autostart_path,
+    cache_dir,
+    config_dir,
+    cover_temp_dirs,
+    state_dir,
+)
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +38,9 @@ def collect_paths() -> list[Path]:
         config_dir(),
         state_dir(),
         cache_dir(),
+        # Covers in flight live outside the cache, and since they are left
+        # for the next run to sweep there is no next run to do it.
+        *cover_temp_dirs(),
         autostart_path(),
         _user_apps_desktop(),
         _user_icon_svg(),

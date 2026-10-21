@@ -610,16 +610,20 @@ class Scrobbler:
             key = self._content_key(track) if candidate else None
             if not candidate:
                 self._note_too_short_locked(track, effective_duration_ms, now_mono)
+            # The key below is then carried over, not this poll's own, so
+            # what the source reports belongs to something else.
+            bridged = False
             if key is not None:
                 self._gone_since = None
             elif self._key is not None:
                 if self._gone_since is None:
                     self._gone_since = now_mono
                 if now_mono - self._gone_since <= dev_metrics.grace(GONE_GRACE_S):
-                    # Carry the play on as it stands. The track is stopped,
-                    # so nothing is credited for the gap and no "now
-                    # playing" goes out; only the count survives.
+                    # Carry the play on as it stands. Nothing is credited
+                    # for the gap and no "now playing" goes out; only the
+                    # count survives.
                     key = self._key
+                    bridged = True
             # Not before a song shows up: a first poll that sees nothing
             # yet says nothing about whether the saved play is still going.
             if self._resume is not None and key is not None:
@@ -641,7 +645,10 @@ class Scrobbler:
                 and key == self._key
                 and (is_replay(counted, self._position_ms, position_ms) or (restarted and counted))
             )
-            self._position_ms = position_ms
+            # Keeping the last real position is what still tells a replay
+            # right after a short gap apart.
+            if not bridged:
+                self._position_ms = position_ms
 
             if key != self._key or replay:
                 # Track boundary: bank the previous one if it earned it,
@@ -659,7 +666,7 @@ class Scrobbler:
                 self._banked = False
                 self._saved_played_ms = 0
             else:
-                is_playing = track.status == PlaybackStatus.PLAYING
+                is_playing = not bridged and track.status == PlaybackStatus.PLAYING
                 self._played_ms, self._last_mono = accrue_play_ms(
                     self._played_ms, self._last_mono, is_playing, now_mono
                 )
