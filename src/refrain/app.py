@@ -1330,6 +1330,10 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     settings.uninstallRequested.connect(_uninstall)
 
     _install_signal_handlers(app)
+    # A repaint queued for a widget is delivered even as the loop winds
+    # down, and Qt's Wayland client then reads through a null pointer
+    # (QTBUG-150645). Hiding takes the queued repaints with it.
+    app.aboutToQuit.connect(app.closeAllWindows)
     _sync_autostart(config)
 
     daemon.start()

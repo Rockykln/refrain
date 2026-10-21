@@ -91,6 +91,9 @@ class FakeApp(_Recorder):
     def setWindowIcon(self, icon):
         self._rec("icon")
 
+    def closeAllWindows(self):
+        self._rec("close_all_windows")
+
     def exec(self):
         self.h.order.append("exec")
         if self.h.during_exec:
@@ -1348,3 +1351,11 @@ def test_another_version_starting_is_not_a_crash():
     with crash_log.open("a", encoding="utf-8") as fh:
         fh.write("Fatal Python error: Segmentation fault\n")
     assert app._crash_since_last_start(crash_log) is True
+
+
+def test_quitting_takes_the_windows_down_first(h):
+    # Hiding takes a window's queued repaints with it (QTBUG-150645).
+    h.run()
+    assert h.app.called("close_all_windows") == []
+    h.app.aboutToQuit.emit()
+    assert h.app.called("close_all_windows") == [()]
