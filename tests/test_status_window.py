@@ -781,3 +781,29 @@ def test_the_underline_goes_when_focus_leaves_and_the_mouse_is_elsewhere(window)
     row.focusInEvent(QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
     row.focusOutEvent(QFocusEvent(QEvent.Type.FocusOut, Qt.FocusReason.TabFocusReason))
     assert not row.title.font().underline()
+
+
+def test_the_keyboard_keeps_its_place_when_the_list_is_rebuilt(window, monkeypatch):
+    window.set_history(_history(n=5))
+    rows = [window.recent_rows.itemAt(i).widget() for i in range(window.recent_rows.count())]
+    chosen = rows[1]
+    # Offscreen the window is never active, so focusWidget() has to be told.
+    monkeypatch.setattr(type(window), "focusWidget", lambda self: chosen)
+    landed = []
+    monkeypatch.setattr(sw._RecentRow, "setFocus", lambda self, *a: landed.append(self))
+
+    window._refresh_recent()
+
+    assert [r.entry.title for r in landed] == [chosen.entry.title]
+    assert landed[0] is not chosen  # a new row, standing for the same song
+
+
+def test_nothing_is_focused_when_the_keyboard_was_elsewhere(window, monkeypatch):
+    window.set_history(_history(n=5))
+    monkeypatch.setattr(type(window), "focusWidget", lambda self: window.show_all)
+    landed = []
+    monkeypatch.setattr(sw._RecentRow, "setFocus", lambda self, *a: landed.append(self))
+
+    window._refresh_recent()
+
+    assert landed == []

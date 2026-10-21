@@ -306,3 +306,38 @@ def test_tabbing_to_a_row_scrolls_it_into_view(win, monkeypatch):  # noqa: F811
     row = win.findChildren(_SongRow)[-1]
     row.focusInEvent(QFocusEvent(QEvent.Type.FocusIn, Qt.FocusReason.TabFocusReason))
     assert seen == [row]
+
+
+def test_the_keyboard_stays_on_the_song_when_the_track_changes(win, monkeypatch):  # noqa: F811
+    # The row playing now gets a fresh widget on the next track, so the
+    # keyboard has to be put back by hand.
+    playing = HistoryEntry(title="Glass Tides", artist="Neon Harbor", started_at=1_700_000_000)
+    older = HistoryEntry(title="Northbound", artist="The Quiet Hours", started_at=1_699_999_000)
+    win.set_snapshot(HistorySnapshot(entries=(playing, older), now_playing=True))
+    rows = win.findChildren(_SongRow)
+    monkeypatch.setattr(type(win), "focusWidget", lambda self: rows[0])
+    landed = []
+    monkeypatch.setattr(_SongRow, "setFocus", lambda self, *a: landed.append(self))
+
+    # A new song arrives, and the one that was playing has since learned
+    # its length and been scrobbled — so the entry is no longer equal.
+    grown = HistoryEntry(
+        title="Glass Tides",
+        artist="Neon Harbor",
+        started_at=1_700_000_000,
+        duration_ms=201_000,
+        scrobbled=True,
+    )
+    fresh = HistoryEntry(title="Ferrous", artist="Oskar Lind", started_at=1_700_000_300)
+    win.set_snapshot(HistorySnapshot(entries=(fresh, grown, older), now_playing=True))
+
+    assert [r.entry.title for r in landed] == ["Glass Tides"]
+
+
+def test_the_keyboard_is_left_alone_when_it_was_not_on_a_song(win, monkeypatch):  # noqa: F811
+    win.set_snapshot(HistorySnapshot(entries=_entries(2)))
+    monkeypatch.setattr(type(win), "focusWidget", lambda self: win.search)
+    landed = []
+    monkeypatch.setattr(_SongRow, "setFocus", lambda self, *a: landed.append(self))
+    win.set_snapshot(HistorySnapshot(entries=_entries(3)))
+    assert landed == []

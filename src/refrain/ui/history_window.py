@@ -350,6 +350,11 @@ def _placeholder_cover(palette: QPalette, dpr: float) -> QPixmap:
     return out
 
 
+def _same_song(entry: HistoryEntry) -> tuple:
+    """What makes two rows the same play, across a rebuild."""
+    return (entry.title, entry.artist, entry.started_at)
+
+
 class _SongRow(QWidget):
     """One song: cover, title + artist/album, time + source."""
 
@@ -483,6 +488,10 @@ class _SongRow(QWidget):
         self.setAccessibleDescription(
             QCoreApplication.translate("HistoryWindow", "Open in Apple Music")
         )
+
+    @property
+    def entry(self) -> HistoryEntry:
+        return self._entry
 
     def set_highlights(self, words: list[str]) -> None:
         if words == self._highlight:
@@ -932,6 +941,10 @@ class HistoryWindow(QDialog):
 
     def _rebuild(self) -> None:
         snap = self._snapshot
+        # Playing is part of a row's identity, so the song playing now
+        # gets a fresh widget on the next track and loses the keyboard.
+        focused = self.focusWidget()
+        keep = _same_song(focused.entry) if isinstance(focused, _SongRow) else None
         count = len(snap.entries)
         self._update_filter_bar(snap)
         query = self.search.text()
@@ -1059,6 +1072,12 @@ class HistoryWindow(QDialog):
             # Child order follows too, so accessibility reads the list
             # in the order it is shown.
             widget.raise_()
+            if (
+                keep is not None
+                and isinstance(widget, _SongRow)
+                and _same_song(widget.entry) == keep
+            ):
+                widget.setFocus(Qt.FocusReason.OtherFocusReason)
         self._rows.addStretch(1)
         # The new rows lay out on the next event-loop pass; restoring the
         # position before that would clamp it to the old, empty range.

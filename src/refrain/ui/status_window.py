@@ -54,7 +54,14 @@ from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.ui import clock, icons
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
-from refrain.ui.history_window import _ElidedLabel, _muted, _read_scaled, _set_color, song_link
+from refrain.ui.history_window import (
+    _ElidedLabel,
+    _muted,
+    _read_scaled,
+    _same_song,
+    _set_color,
+    song_link,
+)
 from refrain.ui.legal_dialog import GITHUB_URL
 from refrain.ui.tooltips import keep_on_text, keep_on_window, show_on_window
 
@@ -961,6 +968,10 @@ class StatusWindow(QDialog):
 
     def _refresh_recent(self) -> None:
         snap = self._history
+        # Every row is rebuilt on a track change; put the keyboard back
+        # on the same song.
+        focused = self.focusWidget()
+        keep = _same_song(focused.entry) if isinstance(focused, _RecentRow) else None
         # An off history leaves the window bare; say so instead of hiding the box.
         self.recent_off.setVisible(not snap.enabled)
         while self.recent_rows.count():
@@ -976,9 +987,10 @@ class StatusWindow(QDialog):
         available = list(snap.entries[1:] if snap.now_playing else snap.entries)
         entries = available[: self._fits()]
         for entry in entries:
-            self.recent_rows.addWidget(
-                _RecentRow(entry, clock.when(self._locale, entry.started_at))
-            )
+            row = _RecentRow(entry, clock.when(self._locale, entry.started_at))
+            self.recent_rows.addWidget(row)
+            if keep is not None and _same_song(row.entry) == keep:
+                row.setFocus(Qt.FocusReason.OtherFocusReason)
         first = self.recent_rows.itemAt(0)
         first_row = first.widget() if first is not None else None
         if first_row is not None:
