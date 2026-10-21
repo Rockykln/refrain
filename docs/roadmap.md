@@ -614,7 +614,41 @@ were tracked internally as "v0.2.8" but never separately tagged.
   watcher that reports text which does not fit its window. Nothing it
   measures ever leaves the machine.
 
+## Done — v0.5.4
+
+- **The tray icon says what Refrain is doing, in colour**, and the menu
+  stays quiet while everything works.
+- **The elapsed time survives a restart mid-song** instead of starting
+  the song over.
+- **Discord open but not logged in** is now said out loud, as is a
+  browser that plays without naming the page.
+- **Last.fm can confirm a length Refrain measured itself** where Apple's
+  catalog has none.
+
+## Done — v0.5.5
+
+- **The AppImage can update itself outside Debian and Ubuntu again.** Its
+  bundled OpenSSL was pointed at the host's certificates a moment too
+  late, which left every other distribution unable to check or download
+  a release.
+- **A missing system library is named** rather than coming out as a
+  traceback, even when Qt itself links against it.
+- **Python 3.14** is tested and declared.
+
 ## Up next — v0.5.x
+
+- **A length for the songs nothing can settle.** Apple's catalog, the
+  number the player reports and the length Refrain measures from whole
+  plays usually find one between them. When none of the three does, the
+  song is never scrobbled, the Discord card has no end time, and its
+  history row shows no length at all.
+- **Last.fm as a length source, not only a second opinion.** Refrain
+  already asks `track.getInfo`, but only to confirm a length it measured
+  itself. For a song it has no measurement for, it never asks at all.
+- **Your own Apple Music API credentials** as a field in Settings.
+  Refrain asks Apple's keyless search API today; a developer token,
+  which needs an Apple Developer account, would let it ask the Apple
+  Music API itself.
 
 ## Maybe — v0.5+
 
