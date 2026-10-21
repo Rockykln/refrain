@@ -23,6 +23,12 @@ _FIELD_MAX = 512
 _TIME_MAX_MS = 24 * 60 * 60 * 1000
 
 
+# Every call here runs on the daemon thread, which polls every 500 ms.
+# dbus-python would otherwise wait out its own 25-second default and
+# take the tray, Discord and the controls down with it.
+_DBUS_TIMEOUT_S = 2.0
+
+
 def _safe_ms(value) -> int:
     """A millisecond count from a device, or 0 when it cannot be one."""
     try:
@@ -52,7 +58,7 @@ def _bluez_owned(bus) -> bool | None:
     try:
         dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
         dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
-        return bool(dbus_iface.NameHasOwner("org.bluez"))
+        return bool(dbus_iface.NameHasOwner("org.bluez", timeout=_DBUS_TIMEOUT_S))
     except dbus.exceptions.DBusException as e:
         log.debug("Bluetooth: NameHasOwner(org.bluez) failed: %s", e)
         return None
@@ -166,7 +172,7 @@ class BluetoothSource:
         try:
             player = bus.get_object("org.bluez", player_path, introspect=False)
             props = dbus.Interface(player, "org.freedesktop.DBus.Properties")
-            track = props.Get("org.bluez.MediaPlayer1", "Track")
+            track = props.Get("org.bluez.MediaPlayer1", "Track", timeout=_DBUS_TIMEOUT_S)
 
             # Capped like the MPRIS side, and for the same reason.
             title = clean_field(str(track.get("Title", "") or "")[:_FIELD_MAX])
@@ -177,15 +183,21 @@ class BluetoothSource:
             # can put anything in "Duration", so the value is range-checked.
             duration_ms = _safe_ms(track.get("Duration", 0))
             try:
-                position_ms = _safe_ms(props.Get("org.bluez.MediaPlayer1", "Position"))
+                position_ms = _safe_ms(
+                    props.Get("org.bluez.MediaPlayer1", "Position", timeout=_DBUS_TIMEOUT_S)
+                )
             except dbus.exceptions.DBusException:
                 position_ms = 0
             try:
-                raw_status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
+                raw_status = str(
+                    props.Get("org.bluez.MediaPlayer1", "Status", timeout=_DBUS_TIMEOUT_S)
+                ).lower()
             except dbus.exceptions.DBusException:
                 raw_status = "stopped"
             try:
-                repeat = str(props.Get("org.bluez.MediaPlayer1", "Repeat")).lower()
+                repeat = str(
+                    props.Get("org.bluez.MediaPlayer1", "Repeat", timeout=_DBUS_TIMEOUT_S)
+                ).lower()
             except dbus.exceptions.DBusException:
                 repeat = ""  # optional in AVRCP; many devices don't report it
 
@@ -200,7 +212,7 @@ class BluetoothSource:
             self._last_player_path = player_path
 
             try:
-                app = str(props.Get("org.bluez.MediaPlayer1", "Name"))
+                app = str(props.Get("org.bluez.MediaPlayer1", "Name", timeout=_DBUS_TIMEOUT_S))
             except dbus.exceptions.DBusException:
                 app = ""  # optional in AVRCP
             if not is_apple_music(app):
@@ -241,7 +253,9 @@ class BluetoothSource:
             bus = self._system_bus()
             obj = bus.get_object("org.bluez", path, introspect=False)
             props = dbus.Interface(obj, "org.freedesktop.DBus.Properties")
-            status = str(props.Get("org.bluez.MediaPlayer1", "Status")).lower()
+            status = str(
+                props.Get("org.bluez.MediaPlayer1", "Status", timeout=_DBUS_TIMEOUT_S)
+            ).lower()
         except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth status query failed: %s", _masked(e))
             status = "stopped"
@@ -270,7 +284,7 @@ class BluetoothSource:
                 return False
             obj = bus.get_object("org.bluez", path, introspect=False)
             iface = dbus.Interface(obj, "org.bluez.MediaPlayer1")
-            getattr(iface, method)()
+            getattr(iface, method)(timeout=_DBUS_TIMEOUT_S)
             return True
         except dbus.exceptions.DBusException as e:
             log.debug("BlueZ %s on %s failed: %s", method, _masked(path), _masked(e))
@@ -292,7 +306,7 @@ class BluetoothSource:
         try:
             obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
-            objects = mgr.GetManagedObjects()
+            objects = mgr.GetManagedObjects(timeout=_DBUS_TIMEOUT_S)
         except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth: GetManagedObjects failed: %s", _masked(e))
             return None
@@ -330,7 +344,7 @@ class BluetoothSource:
         try:
             obj = bus.get_object("org.bluez", "/", introspect=False)
             mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
-            objects = mgr.GetManagedObjects()
+            objects = mgr.GetManagedObjects(timeout=_DBUS_TIMEOUT_S)
         except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth list_paired_devices failed: %s", _masked(e))
             return []

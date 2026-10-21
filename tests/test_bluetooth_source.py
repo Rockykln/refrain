@@ -26,17 +26,17 @@ class _Obj:
         self._bus = bus
         self._path = path
 
-    def NameHasOwner(self, name):  # noqa: N802
+    def NameHasOwner(self, name, timeout=None):  # noqa: N802
         if self._bus.dead:
             raise bluetooth.dbus.DBusException("Disconnected")
         return self._bus.owned
 
-    def GetManagedObjects(self):  # noqa: N802
+    def GetManagedObjects(self, timeout=None):  # noqa: N802
         if self._bus.dead:
             raise bluetooth.dbus.DBusException("Disconnected")
         return self._bus.objects
 
-    def Get(self, iface, prop):  # noqa: N802
+    def Get(self, iface, prop, timeout=None):  # noqa: N802
         assert iface == "org.bluez.MediaPlayer1"
         try:
             return self._bus.props[self._path][prop]
@@ -46,7 +46,7 @@ class _Obj:
             raise bluetooth.dbus.DBusException(f"No such property {prop}") from None
 
     def __getattr__(self, method):
-        def call():
+        def call(timeout=None):
             if self._bus.fail_calls:
                 raise bluetooth.dbus.DBusException("org.bluez.Error.Failed")
             self._bus.calls.append((self._path, method))
@@ -483,7 +483,7 @@ def test_bluez_owned_lets_a_programming_error_through(monkeypatch):
     """A DBusException means "can't tell"; anything else is a bug and must not be hidden."""
 
     class BrokenIface:
-        def NameHasOwner(self, name):
+        def NameHasOwner(self, name, timeout=None):
             raise TypeError("boom")
 
     monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: BrokenIface())
@@ -493,7 +493,7 @@ def test_bluez_owned_lets_a_programming_error_through(monkeypatch):
 
 def test_find_player_lets_a_programming_error_through(monkeypatch):
     class BrokenMgr:
-        def GetManagedObjects(self):  # noqa: N802
+        def GetManagedObjects(self, timeout=None):  # noqa: N802
             raise TypeError("boom")
 
     monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: BrokenMgr())

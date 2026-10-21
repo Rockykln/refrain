@@ -199,24 +199,24 @@ jobs:
           fi
           rm -rf "$tmp"
 
-      # The in-app updater only installs an AppImage listed here, and only once
-      # the owner has signed this file (SHA256SUMS.sig, see packaging/README.md).
-      - name: Checksums for the in-app updater
-        # *.cdx.json (the SBOMs above) rides along in the same file: the
-        # updater only ever looks up the one line matching the AppImage's
-        # own name (see _expected_sha256 in src/refrain/updater.py), so
-        # extra lines for other assets are inert as far as it's concerned.
-        run: |
-          cd dist
-          sha256sum *.AppImage *.cdx.json > SHA256SUMS
-          cat SHA256SUMS
-
       - name: Publish the AppImage's third-party notices next to it
         run: |
           cd dist
           ./Refrain-*-x86_64.AppImage --appimage-extract usr/share/doc/refrain/THIRD-PARTY-NOTICES > /dev/null
           mv squashfs-root/usr/share/doc/refrain/THIRD-PARTY-NOTICES .
           rm -rf squashfs-root
+
+      # Everything the release publishes, so the owner's signature covers
+      # all of it. The updater only ever looks up the one line matching the
+      # AppImage's own name (see _expected_sha256 in updater.py), so the
+      # other lines are inert as far as it is concerned — but the `pypi`
+      # job checks the wheel and the sdist against them before uploading.
+      - name: Checksums for the in-app updater
+        run: |
+          cd dist
+          sha256sum *.AppImage *.AppImage.zsync *.cdx.json *.whl *.tar.gz \
+            THIRD-PARTY-NOTICES > SHA256SUMS
+          cat SHA256SUMS
 
       # Extract the matching `## [X.Y.Z]` section from CHANGELOG.md
       # and feed it into the GitHub release body. Without this we'd
@@ -339,9 +339,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'SHA256SUMS.sig' --dir .
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'SHA256SUMS' --pattern 'SHA256SUMS.sig' --dir .
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.whl' --pattern '*.tar.gz' --dir pypi-dist
           ls -la pypi-dist/
+
+      # The signature covers SHA256SUMS, and SHA256SUMS covers these two —
+      # so this is what ties the upload to what the owner signed. Without
+      # it an asset swapped after the signing would go to PyPI unnoticed,
+      # and a PyPI upload cannot be taken back.
+      - name: Check the distributions against the signed checksums
+        run: |
+          grep -E '(\.whl|\.tar\.gz)$' SHA256SUMS > pypi-dist/SHA256SUMS.pypi
+          cd pypi-dist
+          sha256sum -c SHA256SUMS.pypi
+          rm SHA256SUMS.pypi
 
       # PyPI upload via Trusted Publishers (OIDC). No API token needed; the
       # one-time setup is on pypi.org → Manage → Publishing → Add a new

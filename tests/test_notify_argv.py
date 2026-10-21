@@ -77,12 +77,19 @@ class _FakeDbus:
     class UInt32(int):
         pass
 
+    mainloop = SimpleNamespace(NULL_MAIN_LOOP=object())
+
     def __init__(self, calls, answer=7):
         self.calls = calls
         self.answer = answer
+        self.closed = 0
 
-    def SessionBus(self):  # noqa: N802 — mirrors the dbus API
-        return SimpleNamespace(get_object=lambda *a: object())
+    def SessionBus(self, **kwargs):  # noqa: N802 — mirrors the dbus API
+        self.bus_kwargs = kwargs
+        return SimpleNamespace(
+            get_object=lambda *a: object(),
+            close=lambda: setattr(self, "closed", self.closed + 1),
+        )
 
     def Interface(self, _obj, _name):  # noqa: N802 — mirrors the dbus API
         def notify(*args):
@@ -124,3 +131,15 @@ def test_a_service_that_is_not_there_is_not_an_error(monkeypatch):
 
     monkeypatch.setitem(sys.modules, "dbus", _Broken([]))
     assert notify_over_dbus(None, "Song", "") is None
+
+
+def test_the_notification_uses_its_own_bus_connection(monkeypatch):
+    """The shared SessionBus is dispatched by the GLib thread; calling it from
+    the daemon thread as well corrupts the heap."""
+    fake = _FakeDbus([])
+    monkeypatch.setitem(sys.modules, "dbus", fake)
+    monkeypatch.setitem(sys.modules, "dbus.mainloop", fake.mainloop)
+
+    assert notify_over_dbus(None, "Song", "") == 7
+    assert fake.bus_kwargs == {"private": True, "mainloop": fake.mainloop.NULL_MAIN_LOOP}
+    assert fake.closed == 1

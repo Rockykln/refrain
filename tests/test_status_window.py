@@ -416,6 +416,23 @@ def test_a_cover_pushed_in_live_shows_up_even_without_a_history_entry(window):
     assert window._cover_url == COVER
 
 
+def test_a_cover_shows_from_the_fetcher_s_own_file(window, tmp_path):
+    """With the history off the image never reaches the cache, so the window
+    has to take the file the fetcher is still holding."""
+    assert not image_path_for_url(COVER).exists()
+    held = tmp_path / "held.png"
+    image = QImage(120, 120, QImage.Format.Format_RGB32)
+    image.fill(QColor("#3a6ea5"))
+    image.save(str(held), "PNG")
+    window.set_track(_playing())
+
+    window.set_cover(COVER)
+    assert window._cover_url == ""
+
+    window.set_cover(COVER, str(held))
+    assert window._cover_url == COVER
+
+
 def test_a_title_too_wide_for_the_window_scrolls_twice_then_settles_elided(window, monkeypatch):
     """The marquee shows the full title twice before falling back to the elided line."""
     window.show()

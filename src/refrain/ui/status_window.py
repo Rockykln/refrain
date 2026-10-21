@@ -481,6 +481,7 @@ class StatusWindow(QDialog):
         self._update_version = ""
         self._cover_url = ""
         self._cover_source = ""
+        self._cover_file = ""
         # Measured from the window itself once it has rows; guesses until then.
         self._row_px = 0
 
@@ -813,8 +814,9 @@ class StatusWindow(QDialog):
             return False
         return True
 
-    def set_cover(self, url: str) -> None:
+    def set_cover(self, url: str, local_path: str = "") -> None:
         self._cover_source = url
+        self._cover_file = local_path
         self._show_cover(self.devicePixelRatioF())
 
     def _refresh_controls(self) -> None:
@@ -839,12 +841,19 @@ class StatusWindow(QDialog):
             return
         pixmap = None
         if url:
-            path = image_path_for_url(url)
-            with contextlib.suppress(OSError):
-                if path.exists() and path.stat().st_size > 0:
-                    image = _read_scaled(str(path), round(_COVER_PX * dpr))
-                    if not image.isNull():
-                        pixmap = _rounded(image, _COVER_PX, _COVER_RADIUS, dpr)
+            # The cache first, then the file the fetcher is holding: a song
+            # only reaches the cache once the history keeps it, and the
+            # history can be off.
+            paths = [image_path_for_url(url)]
+            if self._cover_file:
+                paths.append(Path(self._cover_file))
+            for path in paths:
+                with contextlib.suppress(OSError):
+                    if path.exists() and path.stat().st_size > 0:
+                        image = _read_scaled(str(path), round(_COVER_PX * dpr))
+                        if not image.isNull():
+                            pixmap = _rounded(image, _COVER_PX, _COVER_RADIUS, dpr)
+                            break
         if pixmap is None:
             pixmap = _placeholder(self.palette(), _COVER_PX, dpr)
             url = ""

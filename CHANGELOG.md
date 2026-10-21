@@ -46,6 +46,23 @@ lists every version and why.
 
 ### Fixed
 
+- **The Status window shows the cover again with *Recently played* off.**
+  The image only reaches the cache the window reads from once a song
+  makes the history, so turning the history off left the window on the
+  placeholder for every song. It now also takes the file the cover
+  fetcher is still holding.
+- **A notification no longer shares a D-Bus connection across threads.**
+  Where `notify-send` is missing — which is how the AUR packages stopped
+  needing `libnotify` — Refrain asks the notification service itself, and
+  did so over the connection the exported MPRIS player is dispatched on,
+  from a different thread. Two threads on one dbus-glib connection
+  corrupt the heap. It opens its own connection now, as the sources do.
+- **A Bluetooth device that stops answering holds Refrain up for
+  seconds rather than minutes.** None of the BlueZ calls carried a
+  timeout, so each could wait out dbus-python's 25-second default on the
+  thread that also serves the tray, Discord and the controls — five of
+  them in one poll, against a poll that runs every half second. Two
+  seconds each is the limit now.
 - **Repaints nobody will see are thrown away as Refrain quits.** One
   still queued for a window was delivered as the event loop wound down,
   and Qt's Wayland client then read through a null pointer, which can
@@ -115,6 +132,12 @@ lists every version and why.
   lookups, the Discord application lookup and the first-run probe
   followed such a redirect and would have carried their answer, and what
   they sent with it, in the clear.
+- **The owner's signature now covers the wheel and the source
+  distribution too**, along with the zsync file and the third-party
+  notices — `SHA256SUMS` listed only the AppImage and the SBOMs. The job
+  that uploads to PyPI checks both against it before publishing, so an
+  asset replaced between the signing and the release cannot reach PyPI,
+  where an upload cannot be taken back.
 - **Every answer is read with a size limit** that fits what the endpoint
   is asked for — a cover may be 2 MB, a JSON answer much less. The update
   check, the checksum files and the AppImage download were bounded

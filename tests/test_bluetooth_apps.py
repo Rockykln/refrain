@@ -37,7 +37,7 @@ class _Player:
             "Name": app,
         }
 
-    def Get(self, _iface, prop):  # noqa: N802 — the D-Bus method's name
+    def Get(self, _iface, prop, timeout=None):  # noqa: N802 — the D-Bus method's name
         return self._props[prop]
 
 
@@ -83,7 +83,7 @@ def _find(monkeypatch, objects, device_mac=""):
 
     class Bus:
         def get_object(self, *_a, **_k):
-            return type("M", (), {"GetManagedObjects": lambda self: objects})()
+            return type("M", (), {"GetManagedObjects": lambda self, timeout=None: objects})()
 
     monkeypatch.setattr(bluetooth.dbus, "Interface", lambda obj, iface: obj)
     return src._find_player(Bus()), src._player_name

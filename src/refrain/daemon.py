@@ -371,10 +371,16 @@ def notify_over_dbus(
     Returns the notification id, which the interface hands back directly —
     no --print-id round trip. None when the service is not reachable.
     """
+    bus = None
     try:
         import dbus
+        import dbus.mainloop
 
-        bus = dbus.SessionBus()
+        # Its own connection, like the sources have: this runs on the daemon
+        # thread, and the shared dbus.SessionBus() is dispatched by the GLib
+        # thread that owns the exported MPRIS object. Two threads on one
+        # dbus-glib connection corrupt the heap — see MPRISServer.
+        bus = dbus.SessionBus(private=True, mainloop=dbus.mainloop.NULL_MAIN_LOOP)
         server = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
         hints = {"image-path": f"file://{image_path}"} if image_path else {}
         new_id = dbus.Interface(server, "org.freedesktop.Notifications").Notify(
@@ -391,6 +397,10 @@ def notify_over_dbus(
     except Exception as e:
         log.debug("Notification over D-Bus failed: %s", e)
         return None
+    finally:
+        if bus is not None:
+            with contextlib.suppress(Exception):
+                bus.close()
 
 
 def parse_notify_id(stdout: str) -> int | None:
@@ -420,7 +430,11 @@ class DaemonWorker(QObject):
     discordStateChanged = Signal(str, str)
     lastfmStateChanged = Signal(str, str)
     historyChanged = Signal(object)  # HistorySnapshot
-    coverChanged = Signal(str)  # cover URL of the song playing now, "" when there is none
+    # Cover URL of the song playing now and the file it is in, "" for
+    # neither. The file matters on its own: until a song reaches the
+    # history its image lives only in the temporary directory, so the
+    # URL alone leaves the Status window with nothing to show.
+    coverChanged = Signal(str, str)
 
     def __init__(self, config: Config):
         super().__init__()
@@ -435,7 +449,7 @@ class DaemonWorker(QObject):
         self._rpc_active_client_id: str = config.discord.client_id
         # The Status window shows the same song; a popup on top of it is noise.
         self._notifications_muted = False
-        self._cover_emitted = ""
+        self._cover_emitted: tuple[str, str] = ("", "")
         self._cover_fetcher = CoverFetcher()
         # Last.fm scrobbling — opt-in, alongside (never replacing) the
         # Discord RPC. Constructed always; inert until the user enables
@@ -1278,9 +1292,13 @@ class DaemonWorker(QObject):
                 found = self._catalog_album_for(track)
                 if found:
                     track = dataclasses.replace(track, album=found)
-        if cover_now != self._cover_emitted:
-            self._cover_emitted = cover_now
-            self.coverChanged.emit(cover_now)
+        cover_file = ""
+        if cover_now:
+            local = self._cover_fetcher.get_local_path(shown.artist, shown.title, shown.album)
+            cover_file = str(local) if local is not None else ""
+        if (cover_now, cover_file) != self._cover_emitted:
+            self._cover_emitted = (cover_now, cover_file)
+            self.coverChanged.emit(cover_now, cover_file)
         self._update_rpc(shown, effective_dur_ms, itunes_dur_ms)
         self._clock.lap("discord")
 
