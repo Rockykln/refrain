@@ -15,7 +15,7 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QCoreApplication, QObject, Signal  # noqa: E402
+from PySide6.QtCore import QCoreApplication, QEvent, QObject, Signal  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMessageBox  # noqa: E402
 
 from refrain import app, uninstall  # noqa: E402
@@ -91,8 +91,10 @@ class FakeApp(_Recorder):
     def setWindowIcon(self, icon):
         self._rec("icon")
 
-    def closeAllWindows(self):
-        self._rec("close_all_windows")
+    def allWidgets(self):
+        self._rec("all_widgets")
+        # A real QObject, so the caller can actually clear its queue.
+        return [self]
 
     def exec(self):
         self.h.order.append("exec")
@@ -1353,9 +1355,15 @@ def test_another_version_starting_is_not_a_crash():
     assert app._crash_since_last_start(crash_log) is True
 
 
-def test_quitting_takes_the_windows_down_first(h):
-    # Hiding takes a window's queued repaints with it (QTBUG-150645).
+def test_quitting_throws_the_queued_repaints_away(h):
+    # Delivering one to a window on its way out crashes Qt's Wayland
+    # client (QTBUG-150645). Closing the windows would take them too,
+    # but it runs every dialog's reject().
     h.run()
-    assert h.app.called("close_all_windows") == []
+    arrived = []
+    h.app.event = lambda e: arrived.append(e.type()) or False
+    QCoreApplication.postEvent(h.app, QEvent(QEvent.Type.UpdateRequest))
     h.app.aboutToQuit.emit()
-    assert h.app.called("close_all_windows") == [()]
+    assert h.app.called("all_widgets") == [()]
+    QCoreApplication.processEvents()
+    assert QEvent.Type.UpdateRequest not in arrived

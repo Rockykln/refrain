@@ -46,13 +46,12 @@ lists every version and why.
 
 ### Fixed
 
-- **Refrain closes its windows before it quits.** A repaint still queued
-  for a window was delivered as the event loop wound down, and Qt's
-  Wayland client then read through a null pointer, which can take
-  Refrain down on its way out
+- **Repaints nobody will see are thrown away as Refrain quits.** One
+  still queued for a window was delivered as the event loop wound down,
+  and Qt's Wayland client then read through a null pointer, which can
+  take Refrain down on its way out
   ([QTBUG-150645](https://qt-project.atlassian.net/browse/QTBUG-150645)).
-  Closing first takes those queued repaints with it. The fault is Qt's,
-  and this removes the queued repaints rather than the fault.
+  The fault is Qt's, and this clears the queue rather than the fault.
 - **The warning sign in the tray no longer comes and goes while Discord is
   starting up.** Refrain talked to Discord inside the same poll that follows
   the music, so it could only ever allow the handshake three seconds before

@@ -18,6 +18,7 @@ from pathlib import Path
 
 from PySide6.QtCore import (
     QCoreApplication,
+    QEvent,
     QLibraryInfo,
     QLocale,
     QObject,
@@ -471,6 +472,17 @@ def _install_signal_handlers(app: QApplication) -> None:
     timer = QTimer(app)
     timer.start(500)
     timer.timeout.connect(lambda: None)
+
+
+def _drop_queued_repaints(app: QApplication) -> None:
+    """Throw away repaints nobody will see any more.
+
+    One queued for a widget is still delivered as the loop winds down,
+    and Qt's Wayland client then reads through a null pointer
+    (QTBUG-150645).
+    """
+    for widget in app.allWidgets():
+        QCoreApplication.removePostedEvents(widget, QEvent.Type.UpdateRequest)
 
 
 def _sync_autostart(config: Config) -> None:
@@ -1330,10 +1342,7 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     settings.uninstallRequested.connect(_uninstall)
 
     _install_signal_handlers(app)
-    # A repaint queued for a widget is delivered even as the loop winds
-    # down, and Qt's Wayland client then reads through a null pointer
-    # (QTBUG-150645). Hiding takes the queued repaints with it.
-    app.aboutToQuit.connect(app.closeAllWindows)
+    app.aboutToQuit.connect(lambda: _drop_queued_repaints(app))
     _sync_autostart(config)
 
     daemon.start()
