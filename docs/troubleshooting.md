@@ -42,6 +42,8 @@ interface for media players.
   Cinnamon.
 - Firefox and Zen report the Apple Music tab themselves, on every
   desktop.
+- A tab that makes no sound may not be reported at all, and the rule
+  differs per engine — see [Silent tabs](#silent-tabs) below.
 - Chrome, Chromium, Brave, Vivaldi, Edge and Opera are all Chromium
   underneath, and none of them say which page is playing on their own —
   not even outside KDE. Refrain gets that from **Plasma Browser
@@ -64,6 +66,30 @@ interface for media players.
 - Browsers installed as a **Snap** can't publish MPRIS at all — Snap
   sandboxes it away, regardless of browser or desktop. See the
   [FAQ](faq.md#refrain-isnt-picking-up-my-browser).
+
+### Silent tabs
+
+Browsers don't all agree on whether a tab that makes no sound should be
+announced over MPRIS, so "no song is detected" sometimes just means
+"nothing is audible". What applies to your browser:
+
+| Browser | Who publishes the player | A tab playing without sound |
+|---|---|---|
+| Firefox, Zen, LibreWolf, Floorp | the browser, as `org.mpris.MediaPlayer2.firefox.instance_*` (Zen, LibreWolf and Floorp keep Firefox's name) | Media that starts silent is held back: Gecko waits until the element is audible and its computed volume is above zero, unless the tab is fullscreen or picture-in-picture. A player that was already audible stays on the bus when the page is turned down afterwards. Media shorter than 3 seconds, and Web Audio, never register at all. |
+| Chromium, Chrome, Vivaldi, Edge, Opera | the browser, as `org.mpris.MediaPlayer2.chromium.instance<pid>` — but Refrain reads Plasma Browser Integration instead, because the browser's own player doesn't say which page is playing | Muting the **tab** withdraws the browser's own player; turning the **page's** volume down to 0 does not. Media without an audio track, and anything that never played unmuted, don't register either. |
+| Brave | same as the rest of Chromium, but under `org.mpris.MediaPlayer2.brave.instance<pid>` | same as the rest of Chromium |
+| Plasma Browser Integration | `org.mpris.MediaPlayer2.plasma-browser-integration` | Volume and muting are ignored entirely: a silent tab is still reported. Media shorter than 8 seconds are skipped, and the most recently started tab wins. |
+
+Practical upshot: on Firefox and its relatives, start playback at an
+audible volume at least once. To listen quietly afterwards, turn the
+page down or mute the browser's stream in your desktop's volume mixer —
+both keep the player. Starting a tab at volume 0 means Refrain never
+sees it.
+
+This table comes from reading Gecko, Chromium and Plasma Browser
+Integration themselves. Vivaldi, Edge and Opera are closed source and
+publish nothing about it, so their row is what the Chromium code they
+are built on does, not something we could verify in those browsers.
 
 ### Bluetooth needs BlueZ and a cooperative phone
 
@@ -193,7 +219,10 @@ Check, in this order:
 3. The browser publishes MPRIS at all. `playerctl -l` lists every player;
    the [FAQ](faq.md#refrain-isnt-picking-up-my-browser) explains what to
    do when yours is missing (Firefox setting, Snap and Flatpak browsers).
-4. The Apple Music tab is the one playing, and only one is playing.
+4. The tab is making sound. On Firefox and its relatives a tab that
+   started at volume 0 is never announced at all; see
+   [Silent tabs](#silent-tabs) for what each browser does.
+5. The Apple Music tab is the one playing, and only one is playing.
 
 ### Discord shows nothing
 

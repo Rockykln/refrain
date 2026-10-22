@@ -75,6 +75,11 @@ terminal — it lists every MPRIS player on your session bus.
     `about:config` → set `media.hardwaremediakeys.enabled = true` →
     fully quit Firefox (close all windows + wait for `pgrep firefox`
     to be empty) → relaunch.
+  - **Firefox, Zen, LibreWolf or Floorp with a tab that started
+    silent**: Gecko holds the media controller back until the element
+    is audible, so a tab started at volume 0 never gets a player. Play
+    it audibly once; after that you can turn it down again. See
+    [Silent tabs](troubleshooting.md#silent-tabs).
   - **Snap-confined browsers** (Snap Firefox, Snap Chromium on
     Ubuntu): the snap sandbox blocks D-Bus session-bus access for
     MPRIS. Switch to a deb-channel browser:
