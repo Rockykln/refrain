@@ -34,6 +34,12 @@ lists every version and why.
 
 ### Changed
 
+- **PySide6 6.6.1 is now the oldest version Refrain runs on, up from
+  6.6.** Refrain's one-shot timers are tied to the object they belong
+  to, so they can no longer fire into something that has already been
+  taken apart, and that form of the call exists only from 6.6.1 on. On
+  6.6.0 quitting would have ended in a `TypeError`. Distributions carry
+  far newer versions; this only matters if you pinned 6.6.0 by hand.
 - **One User-Agent for every request.** The line Refrain sends with each
   request to Last.fm, iTunes, GitHub and Discord was spelled out in three
   modules and assembled in a fourth, so the four could drift apart. It now
