@@ -53,6 +53,17 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.5.6" date="2026-10-22">
+      <description>
+        <p>
+          Fixed the crash when quitting while a window was being drawn, along
+          with a long list of smaller faults around Discord, Last.fm, Bluetooth
+          and the history. Made the song lists and the links reachable from the
+          keyboard, and put every network request through one opener with
+          timeouts and size limits.
+        </p>
+      </description>
+    </release>
     <release version="0.5.5" date="2026-10-01">
       <description>
         <p>

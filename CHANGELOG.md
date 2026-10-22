@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Versions that no longer work were taken down; [docs/releases.md](docs/releases.md)
 lists every version and why.
 
-## [Unreleased]
+## [0.5.6] - 2026-10-22
 
 ### Added
 
@@ -2429,7 +2429,8 @@ with a proper, installable Linux app.
   pip-audit, trufflehog, release), Dependabot, issue + PR templates,
   `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`.
 
-[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/Rockykln/refrain/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/Rockykln/refrain/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/Rockykln/refrain/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/Rockykln/refrain/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/Rockykln/refrain/compare/v0.5.2...v0.5.3
