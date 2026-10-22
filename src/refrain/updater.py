@@ -39,6 +39,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from PySide6.QtCore import QCoreApplication
+
 from refrain import USER_AGENT, __version__, dev_metrics, ed25519, https_only
 
 # Match http(s) URLs not already inside <>, [text](…), or `code`.
@@ -465,7 +467,9 @@ def apply_update(
         log.warning("Refusing to install %s over the running version", release.version)
         return UpdateResult(
             success=False,
-            message=f"Refrain {release.version} is not newer than the version already installed.",
+            message=QCoreApplication.translate(
+                "updater", "Refrain {version} is not newer than the version already installed."
+            ).format(version=release.version),
         )
 
     if install_type == "appimage":
@@ -477,47 +481,58 @@ def apply_update(
     if install_type == "dev":
         return UpdateResult(
             success=False,
-            message="This is a development checkout — pull manually with "
-            "`git pull` and reinstall with `pip install -e .`.",
+            message=QCoreApplication.translate(
+                "updater",
+                "This is a development checkout — pull manually with `git pull` "
+                "and reinstall with `pip install -e .`.",
+            ),
         )
     if install_type == "flatpak":
         cmd: tuple[str, ...] = _FLATPAK_UPDATE
         if _run_in_terminal(cmd):
             return UpdateResult(
                 success=True,
-                message=(
+                message=QCoreApplication.translate(
+                    "updater",
                     "Launched the update in a new terminal:\n\n"
-                    f"    {shlex.join(cmd)}\n\n"
+                    "    {command}\n\n"
                     "Confirm any prompts there. Restart Refrain afterwards "
-                    "to load the new version."
-                ),
+                    "to load the new version.",
+                ).format(command=shlex.join(cmd)),
                 needs_restart=True,
             )
         return UpdateResult(
             success=False,
-            message=f"Flatpak install detected. Update via:\n\n    {shlex.join(cmd)}",
+            message=QCoreApplication.translate(
+                "updater", "Flatpak install detected. Update via:\n\n    {command}"
+            ).format(command=shlex.join(cmd)),
         )
     if install_type == "aur":
         cmd = _aur_helper()
         if _run_in_terminal(cmd):
             return UpdateResult(
                 success=True,
-                message=(
+                message=QCoreApplication.translate(
+                    "updater",
                     "Launched the update in a new terminal:\n\n"
-                    f"    {shlex.join(cmd)}\n\n"
+                    "    {command}\n\n"
                     "Confirm any sudo prompt there. Restart Refrain "
-                    "afterwards to load the new version."
-                ),
+                    "afterwards to load the new version.",
+                ).format(command=shlex.join(cmd)),
                 needs_restart=True,
             )
         return UpdateResult(
             success=False,
-            message=f"AUR install detected. Update via your AUR helper:\n\n    {shlex.join(cmd)}",
+            message=QCoreApplication.translate(
+                "updater", "AUR install detected. Update via your AUR helper:\n\n    {command}"
+            ).format(command=shlex.join(cmd)),
         )
     return UpdateResult(
         success=False,
-        message="System install detected. Use your distribution's package "
-        "manager to update Refrain.",
+        message=QCoreApplication.translate(
+            "updater",
+            "System install detected. Use your distribution's package manager to update Refrain.",
+        ),
     )
 
 
@@ -529,25 +544,34 @@ def _apply_appimage(
     if not appimage_path:
         return UpdateResult(
             success=False,
-            message="APPIMAGE environment variable is missing — Refrain wasn't "
-            "launched from an AppImage after all.",
+            message=QCoreApplication.translate(
+                "updater",
+                "APPIMAGE environment variable is missing — Refrain wasn't launched "
+                "from an AppImage after all.",
+            ),
         )
     if not release.appimage_url:
         return UpdateResult(
             success=False,
-            message=f"The latest release doesn't ship an .AppImage for {_machine_arch()}.",
+            message=QCoreApplication.translate(
+                "updater", "The latest release doesn't ship an .AppImage for {arch}."
+            ).format(arch=_machine_arch()),
         )
     if not release.appimage_url.startswith(_DOWNLOAD_PREFIX):
         log.warning("AppImage URL outside the Refrain releases: %s", release.appimage_url)
         return UpdateResult(
             success=False,
-            message="The AppImage download isn't hosted on the Refrain releases page.",
+            message=QCoreApplication.translate(
+                "updater", "The AppImage download isn't hosted on the Refrain releases page."
+            ),
         )
     if not _MIN_APPIMAGE_BYTES <= release.appimage_size <= _MAX_APPIMAGE_BYTES:
         log.warning("Implausible AppImage size in release: %d bytes", release.appimage_size)
         return UpdateResult(
             success=False,
-            message="The release reports an implausible size for the AppImage.",
+            message=QCoreApplication.translate(
+                "updater", "The release reports an implausible size for the AppImage."
+            ),
         )
 
     target = Path(appimage_path)
@@ -621,28 +645,40 @@ def _apply_appimage(
         log.warning("AppImage update refused: %s", e)
         return UpdateResult(
             success=False,
-            message=(
-                f"Refrain could not verify this update: {e}.\n\n"
+            message=QCoreApplication.translate(
+                "updater",
+                "Refrain could not verify this update: {reason}.\n\n"
                 "Your AppImage was not changed. Download the new one "
-                f"from the Releases page instead:\n\n    {RELEASES_PAGE}"
-            ),
+                "from the Releases page instead:\n\n    {page}",
+            ).format(reason=e, page=RELEASES_PAGE),
         )
     except _DownloadCancelled:
         log.info("AppImage update cancelled by user")
         if tmp.exists():
             with contextlib.suppress(Exception):
                 tmp.unlink()
-        return UpdateResult(success=False, message="Update canceled.", cancelled=True)
+        return UpdateResult(
+            success=False,
+            message=QCoreApplication.translate("updater", "Update canceled."),
+            cancelled=True,
+        )
     except Exception as e:
         log.warning("AppImage update aborted: %s", e)
         if tmp.exists():
             with contextlib.suppress(Exception):
                 tmp.unlink()
-        return UpdateResult(success=False, message=f"AppImage download failed: {e}")
+        return UpdateResult(
+            success=False,
+            message=QCoreApplication.translate(
+                "updater", "AppImage download failed: {reason}"
+            ).format(reason=e),
+        )
 
     return UpdateResult(
         success=True,
-        message=f"Downloaded Refrain {release.version}. Restart Refrain to use it.",
+        message=QCoreApplication.translate(
+            "updater", "Downloaded Refrain {version}. Restart Refrain to use it."
+        ).format(version=release.version),
         needs_restart=True,
     )
 
@@ -659,10 +695,11 @@ def _apply_pipx() -> UpdateResult:
     if not pipx:
         return UpdateResult(
             success=False,
-            message=(
+            message=QCoreApplication.translate(
+                "updater",
                 "Refrain was installed with pipx, but the `pipx` command "
                 "isn't on PATH so it can't self-update. Update manually:\n\n"
-                "    pipx upgrade refrain"
+                "    pipx upgrade refrain",
             ),
         )
     cmd = [pipx, "upgrade", "refrain"]
@@ -671,7 +708,12 @@ def _apply_pipx() -> UpdateResult:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
     except Exception as e:
         log.warning("pipx update invocation failed: %s", e)
-        return UpdateResult(success=False, message=f"pipx invocation failed: {e}")
+        return UpdateResult(
+            success=False,
+            message=QCoreApplication.translate(
+                "updater", "pipx invocation failed: {reason}"
+            ).format(reason=e),
+        )
 
     out = (result.stdout or "") + (result.stderr or "")
     last_line = next((ln for ln in reversed(out.splitlines()) if ln.strip()), "")
@@ -679,7 +721,9 @@ def _apply_pipx() -> UpdateResult:
     if result.returncode != 0:
         return UpdateResult(
             success=False,
-            message=f"pipx exited with code {result.returncode}:\n{out.strip()[:400]}",
+            message=QCoreApplication.translate(
+                "updater", "pipx exited with code {code}:\n{output}"
+            ).format(code=result.returncode, output=out.strip()[:400]),
         )
     low = out.lower()
     # pipx prints "upgraded package refrain from X to Y" on a real
@@ -688,16 +732,19 @@ def _apply_pipx() -> UpdateResult:
     if "already at latest version" in low and "upgraded" not in low:
         return UpdateResult(
             success=False,
-            message=(
+            message=QCoreApplication.translate(
+                "updater",
                 "pipx reports Refrain is already at the latest version — "
                 "usually PyPI's CDN is lagging the new release by a few "
                 "minutes. Wait a moment and try again, or force it:\n\n"
-                "    pipx upgrade --force refrain"
+                "    pipx upgrade --force refrain",
             ),
         )
     return UpdateResult(
         success=True,
-        message="pipx upgrade complete. Restart Refrain to load the new version.",
+        message=QCoreApplication.translate(
+            "updater", "pipx upgrade complete. Restart Refrain to load the new version."
+        ),
         needs_restart=True,
     )
 
@@ -716,7 +763,12 @@ def _apply_pip() -> UpdateResult:
         )
     except Exception as e:
         log.warning("pip update invocation failed: %s", e)
-        return UpdateResult(success=False, message=f"pip invocation failed: {e}")
+        return UpdateResult(
+            success=False,
+            message=QCoreApplication.translate("updater", "pip invocation failed: {reason}").format(
+                reason=e
+            ),
+        )
 
     # Log the meaningful tail line of pip's stdout so the live log
     # shows "Successfully installed refrain-X.Y.Z" or
@@ -738,7 +790,9 @@ def _apply_pip() -> UpdateResult:
         log.warning("pip stderr: %s", result.stderr.strip()[:400])
         return UpdateResult(
             success=False,
-            message=f"pip exited with code {result.returncode}:\n{result.stderr.strip()}",
+            message=QCoreApplication.translate(
+                "updater", "pip exited with code {code}:\n{output}"
+            ).format(code=result.returncode, output=result.stderr.strip()),
         )
     # Distinguish a real upgrade from pip's "already-satisfied" no-op.
     # PyPI's CDN can lag the GitHub Releases API by minutes after a
@@ -751,27 +805,31 @@ def _apply_pip() -> UpdateResult:
     if "successfully installed" in stdout_lower:
         return UpdateResult(
             success=True,
-            message="pip upgrade complete. Restart Refrain to load the new version.",
+            message=QCoreApplication.translate(
+                "updater", "pip upgrade complete. Restart Refrain to load the new version."
+            ),
             needs_restart=True,
         )
     if "requirement already satisfied" in stdout_lower:
         return UpdateResult(
             success=False,
-            message=(
+            message=QCoreApplication.translate(
+                "updater",
                 "pip considered the package already up to date — usually "
                 "PyPI's CDN cache is lagging the new release by a few "
                 "minutes. Wait a moment and try again, or force the "
                 "refresh manually:\n\n"
-                "    pip install --upgrade --force-reinstall refrain"
+                "    pip install --upgrade --force-reinstall refrain",
             ),
         )
     # Pip exited 0 but neither marker is present — unusual, surface
     # the tail of stdout so the user has *something* to act on.
     return UpdateResult(
         success=True,
-        message=(
-            "pip exited successfully. Restart Refrain to load the new "
-            "version. (pip output: " + (last_line[:120] or "<empty>") + ")"
-        ),
+        message=QCoreApplication.translate(
+            "updater",
+            "pip exited successfully. Restart Refrain to load the new version. "
+            "(pip output: {output})",
+        ).format(output=last_line[:120] or "<empty>"),
         needs_restart=True,
     )

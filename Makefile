@@ -66,10 +66,12 @@ i18n:
 i18n-update:
 	@"$(LUPDATE)" -no-obsolete \
 		src/refrain/app.py \
+		src/refrain/updater.py \
 		src/refrain/ui/*.py \
 		-ts $(filter-out %_en.ts,$(wildcard src/refrain/i18n/refrain_*.ts))
 	@"$(LUPDATE)" -no-obsolete -pluralonly \
 		src/refrain/app.py \
+		src/refrain/updater.py \
 		src/refrain/ui/*.py \
 		-ts src/refrain/i18n/refrain_en.ts
 	@$(MAKE) i18n
