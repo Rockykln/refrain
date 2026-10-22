@@ -580,6 +580,7 @@ class DaemonWorker(QObject):
         # PySide6's QDBusConnection connect-signature handling is too brittle.
         # Discord gets its own thread: a client that takes seconds to
         # answer must not hold up the poll that follows the music.
+        self._rpc.set_sharing(self._config.privacy.mode != "off")
         self._rpc.start()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
@@ -1618,8 +1619,10 @@ class DaemonWorker(QObject):
             self._rpc_track_key = ""
 
         if self._config.privacy.mode == "off":
+            self._rpc.set_sharing(False)
             self._rpc.post_clear()
             return
+        self._rpc.set_sharing(True)
         # Dropping a paused song made the card come and go every time a
         # headphone left an ear. It goes once the source stops naming the
         # song, or once compute_paused_state calls it stale.

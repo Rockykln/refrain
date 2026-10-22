@@ -74,7 +74,7 @@
 <context>
     <name>StatusWindow</name>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="921"/>
+        <location filename="../ui/status_window.py" line="919"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble waiting to be sent</numerusform>

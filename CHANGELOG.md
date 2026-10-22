@@ -52,6 +52,21 @@ lists every version and why.
 
 ### Fixed
 
+- **Privacy "Off" keeps Refrain away from Discord again.** It still hid
+  the status, as it always has, but it no longer kept Refrain from
+  opening a connection to Discord at all — new in this release, and not
+  what the setting promises. Nothing was ever shared, and the Status
+  window said "Off" throughout. Refrain now stays away entirely.
+- **The last song leaves your Discord profile when you quit, even if
+  Discord is slow to answer.** Quitting sends Discord a last "nothing is
+  playing". If Discord took its time, Refrain stopped waiting and closed
+  anyway, and the song stayed on the profile. It now waits as long as
+  that message may take — but only while actually connected, so quitting
+  is as quick as before otherwise.
+- **The hint for an empty history pointed at a tab that doesn't exist.**
+  With *Recently played* turned off, the window said to turn it on under
+  *Settings → History* — the tab is called *Recently played*. In all 15
+  translations too.
 - **Firefox is no longer told to install Plasma Browser Integration, or
   to use Firefox.** When a browser played something Refrain couldn't
   place, the Status window always gave the same advice — install Plasma

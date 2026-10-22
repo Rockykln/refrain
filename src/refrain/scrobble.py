@@ -235,7 +235,9 @@ class LastfmClient:
             # Last.fm returns its JSON error body even on 4xx — try to
             # surface the real code/message instead of a bare HTTP 403.
             try:
-                error_body = https_only.read_limited(e, _MAX_RESPONSE_BYTES)
+                error_body = https_only.read_limited(
+                    e, _MAX_RESPONSE_BYTES, https_only.deadline_for(_TIMEOUT_S)
+                )
                 payload = json.loads(error_body.decode("utf-8", "replace"))
             except Exception as parse_err:
                 raise LastfmError(f"Last.fm HTTP {e.code}: {e.reason}") from parse_err

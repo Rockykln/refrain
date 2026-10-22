@@ -297,6 +297,11 @@
         </translation>
     </message>
     <message>
+        <location filename="../ui/history_window.py" line="976"/>
+        <source>Turn it on under Settings → Recently played to see what you played.</source>
+        <translation>Actívalo en Ajustes → Escuchado recientemente para ver lo que has escuchado.</translation>
+    </message>
+    <message>
         <location filename="../ui/history_window.py" line="1179"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
@@ -347,11 +352,6 @@
         <location filename="../ui/history_window.py" line="975"/>
         <source>History is turned off</source>
         <translation>El historial está desactivado</translation>
-    </message>
-    <message>
-        <location filename="../ui/history_window.py" line="976"/>
-        <source>Turn it on under Settings → History to see what you played.</source>
-        <translation>Actívalo en Ajustes → Historial para ver lo que has escuchado.</translation>
     </message>
     <message>
         <location filename="../ui/history_window.py" line="979"/>
@@ -1470,7 +1470,7 @@ Los ajustes que acabas de cambiar se aplicarán en esta sesión, pero no se cons
     </message>
     <message>
         <location filename="../ui/status_window.py" line="604"/>
-        <location filename="../ui/status_window.py" line="1035"/>
+        <location filename="../ui/status_window.py" line="1033"/>
         <source>Songs you play show up here.</source>
         <translation>Las canciones que reproduzcas aparecerán aquí.</translation>
     </message>
@@ -1500,124 +1500,124 @@ Los ajustes que acabas de cambiar se aplicarán en esta sesión, pero no se cons
         <translation>Nada en reproducción</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="763"/>
+        <location filename="../ui/status_window.py" line="761"/>
         <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
         <translation>{player} está reproduciendo algo, pero no indica qué página. Refrain reconoce Apple Music por la dirección de la página — comprueba que la pestaña que suena sea la de Apple Music.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="773"/>
+        <location filename="../ui/status_window.py" line="771"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} está reproduciendo algo, pero no indica qué página. Instala Plasma Browser Integration (el paquete plasma-browser-integration más la extensión de navegador «Plasma Integration») o usa Firefox.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="781"/>
+        <location filename="../ui/status_window.py" line="779"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>Reproduce una canción en Apple Music en tu navegador, o en tu teléfono por Bluetooth.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="795"/>
+        <location filename="../ui/status_window.py" line="793"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="797"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="803"/>
+        <location filename="../ui/status_window.py" line="801"/>
         <source>Paused · {source}</source>
         <translation>En pausa · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="880"/>
+        <location filename="../ui/status_window.py" line="878"/>
         <source>Not set up yet</source>
         <translation>Aún no configurado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="881"/>
-        <location filename="../ui/status_window.py" line="912"/>
-        <location filename="../ui/status_window.py" line="918"/>
+        <location filename="../ui/status_window.py" line="879"/>
+        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="916"/>
         <source>Set up…</source>
         <translation>Configurar…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="883"/>
+        <location filename="../ui/status_window.py" line="881"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>La app de Discord no está en ejecución</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="885"/>
+        <location filename="../ui/status_window.py" line="883"/>
         <source>Application ID rejected</source>
         <translation>Application ID rechazado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="886"/>
+        <location filename="../ui/status_window.py" line="884"/>
         <source>Fix…</source>
         <translation>Corregir…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="887"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord está abierto, pero no has iniciado sesión. Inicia sesión en Discord para mostrar tu estado.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="892"/>
+        <location filename="../ui/status_window.py" line="890"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord no responde ahora mismo</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="894"/>
+        <location filename="../ui/status_window.py" line="892"/>
         <source>Ready — waiting for music</source>
         <translation>Listo — esperando música</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="896"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Visible on your profile</source>
         <translation>Visible en tu perfil</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="898"/>
+        <location filename="../ui/status_window.py" line="896"/>
         <source>Showing “Listening to music”</source>
         <translation>Mostrando «Listening to music»</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>Showing the song as paused</source>
         <translation>Mostrando la canción como en pausa</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="902"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Hidden — sharing is off</source>
         <translation>Oculto — compartir está desactivado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="902"/>
         <source>Checking…</source>
         <translation>Comprobando…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="911"/>
+        <location filename="../ui/status_window.py" line="909"/>
         <source>Off</source>
         <translation>Apagado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="914"/>
+        <location filename="../ui/status_window.py" line="912"/>
         <source>Connected, but scrobbling is off</source>
         <translation>Conectado, pero el scrobbling está desactivado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="915"/>
+        <location filename="../ui/status_window.py" line="913"/>
         <source>Open Last.fm settings…</source>
         <translation>Abrir ajustes de Last.fm…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Not connected yet</source>
         <translation>Aún no conectado</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="921"/>
+        <location filename="../ui/status_window.py" line="919"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble esperando para enviarse</numerusform>
@@ -1625,77 +1625,77 @@ Los ajustes que acabas de cambiar se aplicarán en esta sesión, pero no se cons
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="923"/>
+        <location filename="../ui/status_window.py" line="921"/>
         <source>Sign-in expired</source>
         <translation>Sesión caducada</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="924"/>
+        <location filename="../ui/status_window.py" line="922"/>
         <source>Reconnect…</source>
         <translation>Reconectar…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="926"/>
+        <location filename="../ui/status_window.py" line="924"/>
         <source>Paused — sharing is off</source>
         <translation>En pausa — compartir está desactivado</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Scrobbling as {user}</source>
         <translation>Scrobbling como {user}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="930"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Scrobbling</source>
         <translation>Scrobbling</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="938"/>
+        <location filename="../ui/status_window.py" line="936"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>Refrain se cerró de forma inesperada la última vez.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="939"/>
+        <location filename="../ui/status_window.py" line="937"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>El informe está en &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="955"/>
+        <location filename="../ui/status_window.py" line="953"/>
         <source>You&apos;re all set.</source>
         <translation>Ya está todo listo.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="957"/>
+        <location filename="../ui/status_window.py" line="955"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Reproduce una canción en Apple Music — aparecerá en Discord en pocos segundos.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1037"/>
+        <location filename="../ui/status_window.py" line="1035"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>Escuchado recientemente está desactivado, así que Refrain no guarda ninguna lista de tus canciones.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1047"/>
+        <location filename="../ui/status_window.py" line="1045"/>
         <source>Resume sharing</source>
         <translation>Reanudar compartir</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1050"/>
+        <location filename="../ui/status_window.py" line="1048"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Vuelve a mostrar tu canción en Discord y a hacer scrobbling en Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1051"/>
         <source>Pause sharing</source>
         <translation>Pausar compartir</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1056"/>
+        <location filename="../ui/status_window.py" line="1054"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>Oculta tu estado de Discord y detén el scrobbling hasta que reanudes.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1064"/>
+        <location filename="../ui/status_window.py" line="1062"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} está disponible.</translation>
     </message>
@@ -2261,17 +2261,17 @@ Para eliminar el programa en sí, ejecuta:
 <context>
     <name>updater</name>
     <message>
-        <location filename="../updater.py" line="470"/>
+        <location filename="../updater.py" line="473"/>
         <source>Refrain {version} is not newer than the version already installed.</source>
         <translation>Refrain {version} no es más reciente que la versión ya instalada.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="484"/>
+        <location filename="../updater.py" line="487"/>
         <source>This is a development checkout — pull manually with `git pull` and reinstall with `pip install -e .`.</source>
         <translation>Esta es una copia de desarrollo: actualízala a mano con `git pull` y reinstala con `pip install -e .`.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="495"/>
+        <location filename="../updater.py" line="498"/>
         <source>Launched the update in a new terminal:
 
     {command}
@@ -2284,7 +2284,7 @@ Confirm any prompts there. Restart Refrain afterwards to load the new version.</
 Confirma ahí lo que te pida. Reinicia Refrain después para cargar la nueva versión.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="506"/>
+        <location filename="../updater.py" line="509"/>
         <source>Flatpak install detected. Update via:
 
     {command}</source>
@@ -2293,7 +2293,7 @@ Confirma ahí lo que te pida. Reinicia Refrain después para cargar la nueva ver
     {command}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="515"/>
+        <location filename="../updater.py" line="518"/>
         <source>Launched the update in a new terminal:
 
     {command}
@@ -2306,7 +2306,7 @@ Confirm any sudo prompt there. Restart Refrain afterwards to load the new versio
 Confirma ahí la petición de sudo. Reinicia Refrain después para cargar la nueva versión.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="526"/>
+        <location filename="../updater.py" line="529"/>
         <source>AUR install detected. Update via your AUR helper:
 
     {command}</source>
@@ -2315,32 +2315,32 @@ Confirma ahí la petición de sudo. Reinicia Refrain después para cargar la nue
     {command}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="532"/>
+        <location filename="../updater.py" line="535"/>
         <source>System install detected. Use your distribution&apos;s package manager to update Refrain.</source>
         <translation>Instalación del sistema detectada. Usa el gestor de paquetes de tu distribución para actualizar Refrain.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="547"/>
+        <location filename="../updater.py" line="550"/>
         <source>APPIMAGE environment variable is missing — Refrain wasn&apos;t launched from an AppImage after all.</source>
         <translation>Falta la variable de entorno APPIMAGE: Refrain no se inició desde un AppImage después de todo.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="556"/>
+        <location filename="../updater.py" line="559"/>
         <source>The latest release doesn&apos;t ship an .AppImage for {arch}.</source>
         <translation>La última versión no incluye un .AppImage para {arch}.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="564"/>
+        <location filename="../updater.py" line="567"/>
         <source>The AppImage download isn&apos;t hosted on the Refrain releases page.</source>
         <translation>La descarga del AppImage no está alojada en la página de versiones de Refrain.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="572"/>
+        <location filename="../updater.py" line="575"/>
         <source>The release reports an implausible size for the AppImage.</source>
         <translation>La versión indica un tamaño inverosímil para el AppImage.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="648"/>
+        <location filename="../updater.py" line="651"/>
         <source>Refrain could not verify this update: {reason}.
 
 Your AppImage was not changed. Download the new one from the Releases page instead:
@@ -2353,22 +2353,22 @@ Tu AppImage no se ha modificado. Descarga el nuevo desde la página de versiones
     {page}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="662"/>
+        <location filename="../updater.py" line="665"/>
         <source>Update canceled.</source>
         <translation>Actualización cancelada.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="672"/>
+        <location filename="../updater.py" line="675"/>
         <source>AppImage download failed: {reason}</source>
         <translation>Error al descargar el AppImage: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="679"/>
+        <location filename="../updater.py" line="682"/>
         <source>Downloaded Refrain {version}. Restart Refrain to use it.</source>
         <translation>Refrain {version} descargado. Reinicia Refrain para usarlo.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="698"/>
+        <location filename="../updater.py" line="701"/>
         <source>Refrain was installed with pipx, but the `pipx` command isn&apos;t on PATH so it can&apos;t self-update. Update manually:
 
     pipx upgrade refrain</source>
@@ -2377,19 +2377,19 @@ Tu AppImage no se ha modificado. Descarga el nuevo desde la página de versiones
     pipx upgrade refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="713"/>
+        <location filename="../updater.py" line="716"/>
         <source>pipx invocation failed: {reason}</source>
         <translation>Error al invocar pipx: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="724"/>
+        <location filename="../updater.py" line="727"/>
         <source>pipx exited with code {code}:
 {output}</source>
         <translation>pipx terminó con el código {code}:
 {output}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="735"/>
+        <location filename="../updater.py" line="738"/>
         <source>pipx reports Refrain is already at the latest version — usually PyPI&apos;s CDN is lagging the new release by a few minutes. Wait a moment and try again, or force it:
 
     pipx upgrade --force refrain</source>
@@ -2398,29 +2398,29 @@ Tu AppImage no se ha modificado. Descarga el nuevo desde la página de versiones
     pipx upgrade --force refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="745"/>
+        <location filename="../updater.py" line="748"/>
         <source>pipx upgrade complete. Restart Refrain to load the new version.</source>
         <translation>Actualización con pipx completada. Reinicia Refrain para cargar la nueva versión.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="768"/>
+        <location filename="../updater.py" line="771"/>
         <source>pip invocation failed: {reason}</source>
         <translation>Error al invocar pip: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="793"/>
+        <location filename="../updater.py" line="796"/>
         <source>pip exited with code {code}:
 {output}</source>
         <translation>pip terminó con el código {code}:
 {output}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="808"/>
+        <location filename="../updater.py" line="811"/>
         <source>pip upgrade complete. Restart Refrain to load the new version.</source>
         <translation>Actualización con pip completada. Reinicia Refrain para cargar la nueva versión.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="816"/>
+        <location filename="../updater.py" line="819"/>
         <source>pip considered the package already up to date — usually PyPI&apos;s CDN cache is lagging the new release by a few minutes. Wait a moment and try again, or force the refresh manually:
 
     pip install --upgrade --force-reinstall refrain</source>
@@ -2429,7 +2429,7 @@ Tu AppImage no se ha modificado. Descarga el nuevo desde la página de versiones
     pip install --upgrade --force-reinstall refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="829"/>
+        <location filename="../updater.py" line="832"/>
         <source>pip exited successfully. Restart Refrain to load the new version. (pip output: {output})</source>
         <translation>pip terminó correctamente. Reinicia Refrain para cargar la nueva versión. (salida de pip: {output})</translation>
     </message>

@@ -57,6 +57,11 @@ interface for media players.
   of staying empty: `<Browser> is playing, but doesn't say which page.
   Install Plasma Browser Integration (package plasma-browser-integration
   plus the browser extension "Plasma Integration") or use Firefox.`
+- Firefox, Zen, LibreWolf and Floorp do say which page they play, so
+  they never get that hint. When Refrain can't place what they report,
+  they get this one instead: `<Browser> is playing, but didn't say which
+  page. Refrain recognises Apple Music by the page address — check that
+  the Apple Music tab is the one playing.`
 - After installing the extension, restart the browser. Until then the
   browser keeps playing without saying which page, and Refrain still
   shows the hint above.

@@ -40,10 +40,14 @@ class _RecordingBody:
 
 
 def test_fetch_release_file_reads_with_a_bounded_limit(monkeypatch):
+    """Read in chunks, so the deadline is checked between them — but never
+    ask for more than one byte past the cap in total."""
     body = _RecordingBody(b"x" * 10)
     monkeypatch.setattr(updater, "_open_download", lambda *a, **k: body)
     updater._fetch_release_file(_SUMS, "SHA256SUMS", 64 * 1024)
-    assert body.read_calls == [64 * 1024 + 1]
+    assert body.read_calls, "the body was never read"
+    assert None not in body.read_calls, "an unbounded read would ignore the cap"
+    assert max(body.read_calls) <= 64 * 1024 + 1
 
 
 def test_fetch_release_file_never_reads_unbounded(monkeypatch):
@@ -184,3 +188,11 @@ def test_a_download_that_never_finishes_is_given_up(monkeypatch, tmp_path):
     assert "did not finish within" in result.message
     assert target.read_bytes() == b"old build"
     assert not (tmp_path / (name + ".new")).exists()
+
+
+def test_a_release_file_past_the_cap_is_refused(monkeypatch):
+    """The signed checksums are small; anything bigger is not what it claims."""
+    body = _RecordingBody(b"x" * 200)
+    monkeypatch.setattr(updater, "_open_download", lambda *a, **k: body)
+    with pytest.raises(updater.UnverifiedReleaseError, match="larger than 100 bytes"):
+        updater._fetch_release_file(_SUMS, "SHA256SUMS", 100)

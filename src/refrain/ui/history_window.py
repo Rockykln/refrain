@@ -973,7 +973,7 @@ class HistoryWindow(QDialog):
         if not snap.enabled:
             empty = (
                 self.tr("History is turned off"),
-                self.tr("Turn it on under Settings → History to see what you played."),
+                self.tr("Turn it on under Settings → Recently played to see what you played."),
             )
         elif not count:
             empty = (self.tr("No songs yet"), self.tr("Play something and it shows up here."))

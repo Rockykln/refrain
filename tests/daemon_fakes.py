@@ -51,6 +51,7 @@ class FakeRPC:
         self.forced_state = None
         self.detail = ""
         self.started = False
+        self.sharing = True
         FakeRPC.instances.append(self)
 
     def update(self, **payload) -> None:
@@ -61,6 +62,9 @@ class FakeRPC:
 
     def start(self) -> None:
         self.started = True
+
+    def set_sharing(self, on: bool) -> None:
+        self.sharing = on
 
     # The daemon hands work to the serving thread rather than doing it
     # inline; the fake does it at once so the tests stay synchronous.

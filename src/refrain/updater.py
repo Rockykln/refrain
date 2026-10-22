@@ -241,12 +241,14 @@ def check_latest_release(timeout_s: float = _TIMEOUT_S) -> ReleaseInfo | None:
                 "Accept": "application/vnd.github+json",
             },
         )
-        with dev_metrics.network("github"):
-            # Same opener as the downloads: an answer that arrives over plain
-            # HTTP names the version and the asset addresses to fetch next.
-            with _download_opener.open(req, timeout=timeout_s) as r:  # nosec B310
-                raw = r.read(_MAX_API_BYTES + 1)
-        if len(raw) > _MAX_API_BYTES:
+        deadline = https_only.deadline_for(timeout_s)
+        try:
+            with dev_metrics.network("github"):
+                # Same opener as the downloads: an answer that arrives over plain
+                # HTTP names the version and the asset addresses to fetch next.
+                with _download_opener.open(req, timeout=timeout_s) as r:  # nosec B310
+                    raw = https_only.read_limited(r, _MAX_API_BYTES, deadline)
+        except https_only.ResponseTooLarge:
             log.info("Update check failed: the releases API answered with too much data")
             return None
         data = json.loads(raw)
@@ -327,11 +329,12 @@ def _fetch_release_file(url: str | None, name: str, limit: int) -> bytes:
         raise UnverifiedReleaseError(f"the release has no {name}")
     if not url.startswith(_DOWNLOAD_PREFIX):
         raise UnverifiedReleaseError(f"{name} is not served from the Refrain releases: {url}")
-    with _open_download(url, _TIMEOUT_S) as r:
-        data = r.read(limit + 1)
-    if len(data) > limit:
-        raise UnverifiedReleaseError(f"{name} is larger than {limit} bytes")
-    return data
+    deadline = https_only.deadline_for(_TIMEOUT_S)
+    try:
+        with _open_download(url, _TIMEOUT_S) as r:
+            return https_only.read_limited(r, limit, deadline)
+    except https_only.ResponseTooLarge as e:
+        raise UnverifiedReleaseError(f"{name} is larger than {limit} bytes") from e
 
 
 def _expected_sha256(release: ReleaseInfo) -> str:

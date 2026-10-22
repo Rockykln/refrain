@@ -340,8 +340,8 @@
     </message>
     <message>
         <location filename="../ui/history_window.py" line="976"/>
-        <source>Turn it on under Settings → History to see what you played.</source>
-        <translation>재생한 곡을 보려면 설정 → 기록에서 켜세요.</translation>
+        <source>Turn it on under Settings → Recently played to see what you played.</source>
+        <translation>재생한 곡을 보려면 설정 → 최근 재생한 곡에서 켜세요.</translation>
     </message>
     <message>
         <location filename="../ui/history_window.py" line="979"/>
@@ -1462,7 +1462,7 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/status_window.py" line="604"/>
-        <location filename="../ui/status_window.py" line="1035"/>
+        <location filename="../ui/status_window.py" line="1033"/>
         <source>Songs you play show up here.</source>
         <translation>재생한 곡이 여기에 표시됩니다.</translation>
     </message>
@@ -1492,201 +1492,201 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
         <translation>재생 중인 항목 없음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="763"/>
+        <location filename="../ui/status_window.py" line="761"/>
         <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
         <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Refrain은 페이지 주소로 Apple Music을 구분합니다. 재생 중인 탭이 Apple Music인지 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="773"/>
+        <location filename="../ui/status_window.py" line="771"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Plasma Browser Integration (패키지 plasma-browser-integration과 브라우저 확장 프로그램 “Plasma Integration”)을 설치하거나 Firefox를 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="781"/>
+        <location filename="../ui/status_window.py" line="779"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>브라우저의 Apple Music에서 곡을 재생하거나, 휴대폰에서 Bluetooth로 재생하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="795"/>
+        <location filename="../ui/status_window.py" line="793"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="797"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="803"/>
+        <location filename="../ui/status_window.py" line="801"/>
         <source>Paused · {source}</source>
         <translation>일시 정지됨 · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="880"/>
+        <location filename="../ui/status_window.py" line="878"/>
         <source>Not set up yet</source>
         <translation>아직 설정하지 않음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="881"/>
-        <location filename="../ui/status_window.py" line="912"/>
-        <location filename="../ui/status_window.py" line="918"/>
+        <location filename="../ui/status_window.py" line="879"/>
+        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="916"/>
         <source>Set up…</source>
         <translation>설정…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="883"/>
+        <location filename="../ui/status_window.py" line="881"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord 앱이 실행되고 있지 않습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="885"/>
+        <location filename="../ui/status_window.py" line="883"/>
         <source>Application ID rejected</source>
         <translation>Application ID가 거부되었습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="886"/>
+        <location filename="../ui/status_window.py" line="884"/>
         <source>Fix…</source>
         <translation>수정…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="887"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord가 열려 있지만 로그인되어 있지 않습니다. 상태를 표시하려면 Discord에 로그인하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="892"/>
+        <location filename="../ui/status_window.py" line="890"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord가 지금 응답하지 않습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="894"/>
+        <location filename="../ui/status_window.py" line="892"/>
         <source>Ready — waiting for music</source>
         <translation>준비됨 — 음악 대기 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="896"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Visible on your profile</source>
         <translation>프로필에 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="898"/>
+        <location filename="../ui/status_window.py" line="896"/>
         <source>Showing “Listening to music”</source>
         <translation>“Listening to music” 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>Showing the song as paused</source>
         <translation>곡을 일시정지 상태로 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="902"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Hidden — sharing is off</source>
         <translation>숨김 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="902"/>
         <source>Checking…</source>
         <translation>확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="911"/>
+        <location filename="../ui/status_window.py" line="909"/>
         <source>Off</source>
         <translation>꺼짐</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="914"/>
+        <location filename="../ui/status_window.py" line="912"/>
         <source>Connected, but scrobbling is off</source>
         <translation>연결됨, 하지만 스크로블이 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="915"/>
+        <location filename="../ui/status_window.py" line="913"/>
         <source>Open Last.fm settings…</source>
         <translation>Last.fm 설정 열기…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Not connected yet</source>
         <translation>아직 연결되지 않음</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="921"/>
+        <location filename="../ui/status_window.py" line="919"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>전송 대기 중인 스크로블 %n개</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="923"/>
+        <location filename="../ui/status_window.py" line="921"/>
         <source>Sign-in expired</source>
         <translation>로그인이 만료됨</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="924"/>
+        <location filename="../ui/status_window.py" line="922"/>
         <source>Reconnect…</source>
         <translation>다시 연결…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="926"/>
+        <location filename="../ui/status_window.py" line="924"/>
         <source>Paused — sharing is off</source>
         <translation>일시 중지됨 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Scrobbling as {user}</source>
         <translation>{user}(으)로 스크로블 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="930"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Scrobbling</source>
         <translation>스크로블 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="938"/>
+        <location filename="../ui/status_window.py" line="936"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>지난번에 Refrain이 예기치 않게 종료되었습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="939"/>
+        <location filename="../ui/status_window.py" line="937"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>보고서는 &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;에 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="955"/>
+        <location filename="../ui/status_window.py" line="953"/>
         <source>You&apos;re all set.</source>
         <translation>모든 준비가 끝났습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="957"/>
+        <location filename="../ui/status_window.py" line="955"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Apple Music에서 곡을 재생해 보세요 — 몇 초 안에 Discord에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1037"/>
+        <location filename="../ui/status_window.py" line="1035"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>최근 재생한 곡이 꺼져 있어 Refrain이 곡 목록을 보관하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1047"/>
+        <location filename="../ui/status_window.py" line="1045"/>
         <source>Resume sharing</source>
         <translation>공유 재개</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1050"/>
+        <location filename="../ui/status_window.py" line="1048"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Discord에 곡을 다시 표시하고 Last.fm 스크로블도 다시 시작합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1051"/>
         <source>Pause sharing</source>
         <translation>공유 일시 중지</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1056"/>
+        <location filename="../ui/status_window.py" line="1054"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>다시 시작할 때까지 Discord 상태를 숨기고 스크로블을 중지합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1064"/>
+        <location filename="../ui/status_window.py" line="1062"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version}을(를) 사용할 수 있습니다.</translation>
     </message>
@@ -2251,17 +2251,17 @@ Refrain이 곧 종료됩니다.
 <context>
     <name>updater</name>
     <message>
-        <location filename="../updater.py" line="470"/>
+        <location filename="../updater.py" line="473"/>
         <source>Refrain {version} is not newer than the version already installed.</source>
         <translation>Refrain {version}은(는) 이미 설치된 버전보다 새롭지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="484"/>
+        <location filename="../updater.py" line="487"/>
         <source>This is a development checkout — pull manually with `git pull` and reinstall with `pip install -e .`.</source>
         <translation>개발용 체크아웃입니다. `git pull`로 직접 내려받고 `pip install -e .`로 다시 설치하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="495"/>
+        <location filename="../updater.py" line="498"/>
         <source>Launched the update in a new terminal:
 
     {command}
@@ -2274,7 +2274,7 @@ Confirm any prompts there. Restart Refrain afterwards to load the new version.</
 그곳에서 묻는 내용을 확인하세요. 끝나면 새 버전을 불러오도록 Refrain을 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="506"/>
+        <location filename="../updater.py" line="509"/>
         <source>Flatpak install detected. Update via:
 
     {command}</source>
@@ -2283,7 +2283,7 @@ Confirm any prompts there. Restart Refrain afterwards to load the new version.</
     {command}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="515"/>
+        <location filename="../updater.py" line="518"/>
         <source>Launched the update in a new terminal:
 
     {command}
@@ -2296,7 +2296,7 @@ Confirm any sudo prompt there. Restart Refrain afterwards to load the new versio
 그곳에서 sudo 요청을 확인하세요. 끝나면 새 버전을 불러오도록 Refrain을 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="526"/>
+        <location filename="../updater.py" line="529"/>
         <source>AUR install detected. Update via your AUR helper:
 
     {command}</source>
@@ -2305,32 +2305,32 @@ Confirm any sudo prompt there. Restart Refrain afterwards to load the new versio
     {command}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="532"/>
+        <location filename="../updater.py" line="535"/>
         <source>System install detected. Use your distribution&apos;s package manager to update Refrain.</source>
         <translation>시스템 설치가 확인되었습니다. 배포판의 패키지 관리자로 Refrain을 업데이트하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="547"/>
+        <location filename="../updater.py" line="550"/>
         <source>APPIMAGE environment variable is missing — Refrain wasn&apos;t launched from an AppImage after all.</source>
         <translation>APPIMAGE 환경 변수가 없습니다. Refrain이 AppImage에서 실행된 것이 아닙니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="556"/>
+        <location filename="../updater.py" line="559"/>
         <source>The latest release doesn&apos;t ship an .AppImage for {arch}.</source>
         <translation>최신 릴리스에는 {arch}용 .AppImage가 없습니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="564"/>
+        <location filename="../updater.py" line="567"/>
         <source>The AppImage download isn&apos;t hosted on the Refrain releases page.</source>
         <translation>이 AppImage는 Refrain 릴리스 페이지에서 제공되는 파일이 아닙니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="572"/>
+        <location filename="../updater.py" line="575"/>
         <source>The release reports an implausible size for the AppImage.</source>
         <translation>릴리스가 알려 준 AppImage 크기가 타당하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="648"/>
+        <location filename="../updater.py" line="651"/>
         <source>Refrain could not verify this update: {reason}.
 
 Your AppImage was not changed. Download the new one from the Releases page instead:
@@ -2343,22 +2343,22 @@ Your AppImage was not changed. Download the new one from the Releases page inste
     {page}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="662"/>
+        <location filename="../updater.py" line="665"/>
         <source>Update canceled.</source>
         <translation>업데이트가 취소되었습니다.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="672"/>
+        <location filename="../updater.py" line="675"/>
         <source>AppImage download failed: {reason}</source>
         <translation>AppImage 내려받기에 실패했습니다: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="679"/>
+        <location filename="../updater.py" line="682"/>
         <source>Downloaded Refrain {version}. Restart Refrain to use it.</source>
         <translation>Refrain {version}을(를) 내려받았습니다. 사용하려면 Refrain을 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="698"/>
+        <location filename="../updater.py" line="701"/>
         <source>Refrain was installed with pipx, but the `pipx` command isn&apos;t on PATH so it can&apos;t self-update. Update manually:
 
     pipx upgrade refrain</source>
@@ -2367,19 +2367,19 @@ Your AppImage was not changed. Download the new one from the Releases page inste
     pipx upgrade refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="713"/>
+        <location filename="../updater.py" line="716"/>
         <source>pipx invocation failed: {reason}</source>
         <translation>pipx 호출에 실패했습니다: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="724"/>
+        <location filename="../updater.py" line="727"/>
         <source>pipx exited with code {code}:
 {output}</source>
         <translation>pipx가 코드 {code}(으)로 종료되었습니다:
 {output}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="735"/>
+        <location filename="../updater.py" line="738"/>
         <source>pipx reports Refrain is already at the latest version — usually PyPI&apos;s CDN is lagging the new release by a few minutes. Wait a moment and try again, or force it:
 
     pipx upgrade --force refrain</source>
@@ -2388,29 +2388,29 @@ Your AppImage was not changed. Download the new one from the Releases page inste
     pipx upgrade --force refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="745"/>
+        <location filename="../updater.py" line="748"/>
         <source>pipx upgrade complete. Restart Refrain to load the new version.</source>
         <translation>pipx 업데이트가 끝났습니다. 새 버전을 불러오도록 Refrain을 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="768"/>
+        <location filename="../updater.py" line="771"/>
         <source>pip invocation failed: {reason}</source>
         <translation>pip 호출에 실패했습니다: {reason}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="793"/>
+        <location filename="../updater.py" line="796"/>
         <source>pip exited with code {code}:
 {output}</source>
         <translation>pip가 코드 {code}(으)로 종료되었습니다:
 {output}</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="808"/>
+        <location filename="../updater.py" line="811"/>
         <source>pip upgrade complete. Restart Refrain to load the new version.</source>
         <translation>pip 업데이트가 끝났습니다. 새 버전을 불러오도록 Refrain을 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="816"/>
+        <location filename="../updater.py" line="819"/>
         <source>pip considered the package already up to date — usually PyPI&apos;s CDN cache is lagging the new release by a few minutes. Wait a moment and try again, or force the refresh manually:
 
     pip install --upgrade --force-reinstall refrain</source>
@@ -2419,7 +2419,7 @@ Your AppImage was not changed. Download the new one from the Releases page inste
     pip install --upgrade --force-reinstall refrain</translation>
     </message>
     <message>
-        <location filename="../updater.py" line="829"/>
+        <location filename="../updater.py" line="832"/>
         <source>pip exited successfully. Restart Refrain to load the new version. (pip output: {output})</source>
         <translation>pip가 정상으로 종료되었습니다. 새 버전을 불러오도록 Refrain을 다시 시작하세요. (pip 출력: {output})</translation>
     </message>

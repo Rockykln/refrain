@@ -182,3 +182,36 @@ def test_a_thread_that_will_not_stop_is_reported(discord, monkeypatch, caplog):
         assert rpc._thread is None
     finally:
         held.set()
+
+
+def test_sharing_off_keeps_the_thread_away_from_discord(discord):
+    """The setting stops Refrain talking to Discord, sockets included."""
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    rpc.set_sharing(False)
+    rpc.start()
+    try:
+        rpc.post_clear()
+        assert not until(rpc.is_connected, limit=0.5)
+        assert discord.made == []
+        rpc.set_sharing(True)
+        assert until(rpc.is_connected)
+    finally:
+        rpc.close()
+
+
+def test_the_last_clear_still_goes_out_when_discord_is_slow(discord, monkeypatch):
+    """A clear that misses its turn leaves the song on the profile."""
+    monkeypatch.setattr(drpc, "_STOP_WAIT_S", 0.1)
+    monkeypatch.setattr(drpc, "_RESPONSE_TIMEOUT_S", 3.0)
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    rpc.start()
+    assert until(rpc.is_connected)
+    presence = discord.made[-1]
+    presence.update.side_effect = lambda *a, **k: time.sleep(0.6)
+
+    rpc.post(state="Glass Tides", details="Neon Harbor")
+    assert until(lambda: presence.update.called)
+    rpc.post_clear(force=True)
+    rpc.close()
+
+    assert presence.clear.called, "the clear was dropped, the song stays on the profile"

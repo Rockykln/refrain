@@ -99,9 +99,14 @@ def read_limited(response, limit: int, deadline: float | None = None) -> bytes:
     return b"".join(pieces)
 
 
+def deadline_for(timeout: float) -> float:
+    """When a request started now has to be finished, whole."""
+    return time.monotonic() + timeout * _DEADLINE_FACTOR
+
+
 def fetch(request: urllib.request.Request, limit: int, timeout: float) -> bytes:
     """Send ``request`` through the shared opener, at most ``limit`` bytes back."""
-    deadline = time.monotonic() + timeout * _DEADLINE_FACTOR
+    deadline = deadline_for(timeout)
     # Set before the connection, not after it, so the deadline covers the
     # whole request rather than only what follows the first byte.
     with opener().open(request, timeout=timeout) as r:  # nosec B310

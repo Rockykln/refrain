@@ -1,4 +1,4 @@
-"""Settings → History: the two settings, and the one Apply that deletes.
+"""Settings → Recently played: the two settings, and the one Apply that deletes.
 One window per module with the Bluetooth probe stubbed, as in test_settings_lastfm.py."""
 
 from __future__ import annotations

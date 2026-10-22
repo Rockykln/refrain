@@ -386,6 +386,9 @@ class DiscordRPC:
         self._thread: threading.Thread | None = None
         self._wake = threading.Event()
         self._stop = threading.Event()
+        # Set while the privacy setting is off: with nothing to send,
+        # opening a socket to Discord would defeat the setting itself.
+        self._sharing_off = threading.Event()
         # Guards the handover both ways: what to send next, and what the
         # daemon is told about the connection.
         self._gate = threading.Lock()
@@ -835,6 +838,13 @@ class DiscordRPC:
         self._thread = threading.Thread(target=self._serve, name="refrain-discord", daemon=True)
         self._thread.start()
 
+    def set_sharing(self, on: bool) -> None:
+        """Whether the serving thread may reach for Discord on its own."""
+        if on:
+            self._sharing_off.clear()
+        else:
+            self._sharing_off.set()
+
     def post(self, **payload) -> None:
         """Hand the serving thread what Discord should show next."""
         with self._gate:
@@ -864,7 +874,8 @@ class DiscordRPC:
                 else:
                     # Nothing new: keep reaching for a client that is not
                     # there yet, and let a held-back payload go out.
-                    self._ensure_connected()
+                    if not self._sharing_off.is_set():
+                        self._ensure_connected()
                     self.pump()
             except Exception:
                 # Dying here would leave Discord unserved for the rest of
@@ -893,7 +904,10 @@ class DiscordRPC:
             return
         self._stop.set()
         self._wake.set()
-        thread.join(timeout=_STOP_WAIT_S)
+        # Without a connection there is nothing to clear, so nothing to
+        # wait for; with one, the clear needs as long as a send may take.
+        wait = _RESPONSE_TIMEOUT_S + _STOP_WAIT_S if self.is_connected() else _STOP_WAIT_S
+        thread.join(timeout=wait)
         self._thread = None
         if thread.is_alive():
             # Nothing safe is left to do: the socket and its asyncio loop
