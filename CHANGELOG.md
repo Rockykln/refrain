@@ -46,6 +46,14 @@ lists every version and why.
 
 ### Fixed
 
+- **Quitting no longer crashes while a window is being drawn.** A
+  `SIGTERM`, or Ctrl+C, took Refrain down from inside Python's signal
+  handler, which runs at any point in the code — including inside an
+  event the Wayland plugin is still holding a window for. The window
+  went away under the frame that was about to read it again, and the
+  process died with a segmentation fault. The quit now goes through the
+  event loop, so it waits for the event being delivered to finish.
+
 - **The Status window shows the cover again with *Recently played* off.**
   The image only reaches the cache the window reads from once a song
   makes the history, so turning the history off left the window on the

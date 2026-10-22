@@ -112,6 +112,9 @@ def test_sigint_and_sigterm_quit_the_event_loop(qapp, monkeypatch):
     assert set(handlers) == {signal.SIGINT, signal.SIGTERM}
     handlers[signal.SIGINT](signal.SIGINT, None)
     handlers[signal.SIGTERM](signal.SIGTERM, None)
+    assert fake.quits == 0
+    QTimer.singleShot(20, qapp, qapp.quit)
+    qapp.exec()
     assert fake.quits == 2
     timer = fake.findChild(QTimer)
     assert timer.isActive()

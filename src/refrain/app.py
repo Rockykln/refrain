@@ -464,9 +464,18 @@ def _qt_message_handler(msg_type, _context, message: str) -> None:
 
 
 def _install_signal_handlers(app: QApplication) -> None:
-    """Make Ctrl+C / SIGTERM cleanly quit the Qt event loop."""
-    signal.signal(signal.SIGINT, lambda *_: app.quit())
-    signal.signal(signal.SIGTERM, lambda *_: app.quit())
+    """Make Ctrl+C / SIGTERM cleanly quit the Qt event loop.
+
+    Python runs a handler at any bytecode boundary, including one inside
+    an event the platform plugin still holds a window for. Quitting there
+    frees that window under the running C++ frame, so the quit is queued.
+    """
+
+    def quit_through_the_loop(*_: object) -> None:
+        QTimer.singleShot(0, app, app.quit)
+
+    signal.signal(signal.SIGINT, quit_through_the_loop)
+    signal.signal(signal.SIGTERM, quit_through_the_loop)
     # Qt's event loop blocks Python signal delivery on Linux; a no-op timer
     # wakes Python frequently enough to deliver them.
     timer = QTimer(app)
