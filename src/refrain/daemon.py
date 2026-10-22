@@ -656,7 +656,7 @@ class DaemonWorker(QObject):
             # without having to press Play.
             # Trigger an immediate poll so any currently-playing track
             # shows up in Discord without waiting for the next tick.
-            QTimer.singleShot(0, self._tick)
+            QTimer.singleShot(0, self, self._tick)
         if self._timer is not None and config.advanced.poll_interval_ms != old_interval:
             self._timer.setInterval(max(config.advanced.poll_interval_ms, 250))
         # Last.fm: pick up enable/disable, new credentials, or a freshly
@@ -811,7 +811,7 @@ class DaemonWorker(QObject):
             # slower mediaSession ack while keeping the worst case
             # under one second.
             for delay_ms in (0, 50, 150, 350, 750):
-                QTimer.singleShot(delay_ms, self._tick)
+                QTimer.singleShot(delay_ms, self, self._tick)
         else:
             log.debug("control %s: no source dispatched", action)
 

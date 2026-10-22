@@ -319,7 +319,7 @@ class Harness:
         self.shown_boxes: list = []
         self.closed_boxes: list = []
         self.dialogs: list = []
-        self.shots: list[tuple[int, object]] = []
+        self.shots: list[tuple[int, object, object]] = []
         self.timers: list = []
         self.log_levels: list[str] = []
         self.execs: list[tuple[str, list[str]]] = []
@@ -416,8 +416,8 @@ class Harness:
                 pass
 
             @staticmethod
-            def singleShot(ms, fn):
-                h.shots.append((ms, fn))
+            def singleShot(ms, context, fn):
+                h.shots.append((ms, context, fn))
 
         mp.setattr(app, "QTimer", Timer)
         mp.setattr(app, "TrayIcon", lambda **kw: self._keep("tray", FakeTray(**kw)))
@@ -471,7 +471,7 @@ class Harness:
             raise self.exec_errors.pop(0)
 
     def shot(self, ms):
-        return next(fn for delay, fn in self.shots if delay == ms)
+        return next(fn for delay, _ctx, fn in self.shots if delay == ms)
 
     def run(self, *args: str) -> int:
         self.mp.setattr(sys, "argv", ["refrain", *args])
@@ -1224,17 +1224,17 @@ def test_tray_hint_that_cannot_be_saved_is_still_shown_and_logged(h, monkeypatch
 
 def test_new_lastfm_credentials_check_again(h):
     h.run()
-    before = len([ms for ms, _ in h.shots if ms == 0])
+    before = len([ms for ms, _ctx, _fn in h.shots if ms == 0])
     same = Config()
     same.save = lambda: None
     h.settings.applied.emit(same)
-    assert len([ms for ms, _ in h.shots if ms == 0]) == before
+    assert len([ms for ms, _ctx, _fn in h.shots if ms == 0]) == before
     changed = Config()
     changed.save = lambda: None
     changed.lastfm.enabled = True
     changed.lastfm.session_key = "new-session"
     h.settings.applied.emit(changed)
-    assert len([ms for ms, _ in h.shots if ms == 0]) == before + 1
+    assert len([ms for ms, _ctx, _fn in h.shots if ms == 0]) == before + 1
 
 
 def test_update_found_at_startup_opens_the_dialog_and_the_status_hint(h, monkeypatch):
