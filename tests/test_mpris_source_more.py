@@ -495,12 +495,13 @@ def test_a_stopped_blip_from_plasma_is_not_overruled(bus):
     assert mpris.MPRISSource().read().status == PlaybackStatus.STOPPED
 
 
-def test_without_an_apple_music_tab_browser_players_stay_available_for_controls(bus):
+def test_without_an_apple_music_tab_no_browser_player_is_offered_for_controls(bus):
+    """A tray click must not reach a stranger's tab while the tray shows nothing."""
     video = _player(title="Some Video - YouTube", url="https://video.example/12345")
     bus({CHROMIUM: video, FIREFOX: _player("Stopped", identity="Firefox", url=None)})
     src = mpris.MPRISSource()
     assert src.read().has_track is False
-    assert src._control_fallback_names == [CHROMIUM]
+    assert src._control_fallback_names == []
     assert src._native_apple_names == []
 
 

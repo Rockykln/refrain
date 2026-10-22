@@ -300,9 +300,8 @@ class MPRISSource:
         bus = self._bus
 
         candidates: list[tuple[int, TrackInfo, str]] = []
-        # Browser-looking players that *can* control playback but failed the
-        # apple-music URL filter — kept around so skip/next/prev fall back
-        # onto them when the metadata player can't dispatch the action.
+        # The other entries describing the same Apple Music playback, filled
+        # in below once the best candidate is known.
         fallbacks: list[str] = []
         native: dict[str, str] = {}  # the Apple Music tab's own entries → "playing"/"paused"
         no_url_hint = ""  # a browser playing with no URL at all — see _read_player
@@ -331,11 +330,9 @@ class MPRISSource:
             ):
                 # The name may have passed to a new owner; look it up again.
                 result = self._read_player(bus, name)
-            ti, score, control_capable, native_status, hint = result
+            ti, score, native_status, hint = result
             if ti is not None:
                 candidates.append((score, ti, name))
-            elif control_capable:
-                fallbacks.append(name)
             if native_status:
                 native[name] = native_status
             if hint and not no_url_hint:
@@ -343,7 +340,9 @@ class MPRISSource:
 
         self._native_apple_names = list(native)
         if not candidates:
-            self._control_fallback_names = fallbacks
+            # Nothing of ours is playing: a tray click must not flip some
+            # other tab while the tray shows nothing.
+            self._control_fallback_names = []
             if no_url_hint:
                 # Display-only: no track, just who is playing unrecognised —
                 # `player` is never part of fingerprint(), so this never
@@ -464,7 +463,13 @@ class MPRISSource:
             capable.sort(key=lambda n: 1 if "plasma-browser-integration" in n else 0)
 
         for target in capable:
-            if self._call_method_on(bus, target, method):
+            outcome = self._call_method_on(bus, target, method)
+            if outcome:
+                return True
+            if outcome is None:
+                # Unanswered is not refused: the player may be acting on
+                # it, and the next candidate would toggle it right back.
+                log.info("MPRIS %s on %s went unanswered; not trying another", method, target)
                 return True
         return False
 
@@ -477,7 +482,8 @@ class MPRISSource:
             log.debug("MPRIS %s.%s probe failed: %s", name, prop, e)
             return False
 
-    def _call_method_on(self, bus, name: str, method: str) -> bool:
+    def _call_method_on(self, bus, name: str, method: str) -> bool | None:
+        """True when the player took it, False on a refusal, None when unanswered."""
         try:
             obj = bus.get_object(name, "/org/mpris/MediaPlayer2", introspect=False)
             iface = dbus.Interface(obj, "org.mpris.MediaPlayer2.Player")
@@ -488,29 +494,27 @@ class MPRISSource:
             return True
         except dbus.DBusException as e:
             log.debug("MPRIS %s on %s failed: %s", method, name, e)
+            if any(h in str(e) for h in _HUNG_ERRORS):
+                return None
             return False
         except Exception:
             log.exception("MPRIS %s on %s unexpected error", method, name)
             return False
 
-    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, bool, str, str]:
-        """Returns (track_info_or_None, score, is_browser_control_fallback,
-        apple_music_tab_status, no_url_browser_identity).
+    def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, str, str]:
+        """Returns (track_info_or_None, score, apple_music_tab_status,
+        no_url_browser_identity).
 
-        The third element is True iff this player looks like a browser
-        playing media but failed the apple-music URL filter — meaning
-        we can use it as a control fallback for skip/play/pause when the
-        rich-metadata player can't dispatch those actions itself. The
-        fourth is that fallback's "playing"/"paused" when its title — the
-        page title — says it is the Apple Music tab, else "". The fifth is
-        the browser's Identity when it is playing but reported no URL at
-        all (Chromium outside KDE never does) — the Status window's cue
-        that Plasma Browser Integration is missing — else "".
+        The third is "playing"/"paused" when the player's title — the page
+        title — says it is the Apple Music tab, else "". The fourth is the
+        browser's Identity when it is playing but reported no URL at all
+        (Chromium outside KDE never does) — the Status window's cue that
+        Plasma Browser Integration is missing — else "".
         """
         try:
             ident = self._identities.get(name)
             if ident is not None and not _looks_browser(name, *ident, self._browser_hints):
-                return None, 0, False, "", ""
+                return None, 0, "", ""
             props = self._proxies.get(name)
             if props is None:
                 # introspect=False so a flaky MPRIS player can't hang our poll
@@ -531,7 +535,7 @@ class MPRISSource:
                     self._identities[name] = ident
             identity, desktop_entry = ident
             if not _looks_browser(name, identity, desktop_entry, self._browser_hints):
-                return None, 0, False, "", ""
+                return None, 0, "", ""
 
             values, _ = self._read_props(
                 props, name, _PLAYER_IFACE, ("PlaybackStatus", "Metadata", "Position")
@@ -561,7 +565,7 @@ class MPRISSource:
                 # this is the "can't tell which page" case, not "not Apple
                 # Music" (a YouTube URL is the latter and gets no hint).
                 no_url_hint = identity or desktop_entry if not url and playback == "playing" else ""
-                return None, 0, control_capable, playback if apple_tab else "", no_url_hint
+                return None, 0, playback if apple_tab else "", no_url_hint
 
             if not artist and _is_apple_music_page_title(title):
                 # The page's own title ("Apple Music – Webplayer"), reported
@@ -600,7 +604,6 @@ class MPRISSource:
                     player=identity or desktop_entry,
                 ),
                 score,
-                False,
                 "",
                 "",
             )
@@ -608,10 +611,10 @@ class MPRISSource:
         except dbus.DBusException as e:
             log.debug("MPRIS player %s gone or unreadable: %s", name, e)
             self._forget_player(name)
-            return None, 0, False, "", ""
+            return None, 0, "", ""
         except Exception as e:
             log.debug("MPRIS player %s read error: %s", name, e)
-            return None, 0, False, "", ""
+            return None, 0, "", ""
 
     def _blacklist(self, name: str, what: str) -> None:
         self._timeout_blacklist[name] = time.monotonic() + self._BLACKLIST_S

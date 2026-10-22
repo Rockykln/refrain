@@ -46,6 +46,13 @@ def test_delete_removes_key(file_store):
     assert file_store.get(LASTFM_SESSION_KEY) is None
 
 
+def test_delete_says_no_when_the_keyring_cannot_be_reached(file_store):
+    """A keyring nobody could ask may still hold the secret from an earlier run."""
+    file_store.set(LASTFM_SESSION_KEY, "tok")
+    assert file_store.delete(LASTFM_SESSION_KEY) is False
+    assert file_store.get(LASTFM_SESSION_KEY) is None
+
+
 def test_keyring_ok_false_in_file_mode(file_store):
     assert file_store.keyring_ok() is False
 

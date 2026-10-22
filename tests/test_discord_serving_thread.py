@@ -25,6 +25,14 @@ def discord(monkeypatch):
         p = MagicMock(name=f"presence-{pipe}")
         p.client_id = client_id
         p.pipe = pipe
+        # Which thread touched the connection, for the test below.
+        p.threads = {}
+        p.connect.side_effect = lambda *a, **k: p.threads.setdefault(
+            "connect", threading.current_thread()
+        )
+        p.close.side_effect = lambda *a, **k: p.threads.setdefault(
+            "close", threading.current_thread()
+        )
         if pipe in state.failures:
             p.connect.side_effect = state.failures[pipe]
         state.made.append(p)
@@ -89,9 +97,11 @@ def test_the_thread_takes_the_connection_down_itself(discord):
     rpc = drpc.DiscordRPC(CLIENT_ID)
     rpc.start()
     assert until(rpc.is_connected)
-    closer = discord.made[0].close
+    p = discord.made[0]
     rpc.close()
-    assert closer.called
+    assert p.close.called
+    assert p.threads["close"] is p.threads["connect"], "a foreign thread closed the loop"
+    assert p.threads["connect"] is not threading.current_thread()
     assert rpc._thread is None
     assert rpc.is_connected() is False
 

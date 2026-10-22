@@ -135,9 +135,9 @@ class BluetoothSource:
         """This source's own system-bus connection, with no main loop.
 
         Same reason as ``MPRISSource._session_bus``: the source runs on the
-        daemon thread, and sharing ``dbus.SystemBus()`` — which the
-        Settings window's device picker uses on the main thread — would put
-        both threads on one dbus-glib-dispatched connection.
+        daemon thread, and the shared ``dbus.SystemBus()`` is dispatched
+        through dbus-glib, so two threads on it race. The device picker
+        takes a private one too — it runs on a worker thread as well.
         """
         if self._bus is None:
             self._bus = dbus.SystemBus(private=True, mainloop=dbus.mainloop.NULL_MAIN_LOOP)
@@ -274,7 +274,7 @@ class BluetoothSource:
     def previous(self) -> bool:
         return self._call_method("Previous")
 
-    def _call_method(self, method: str) -> bool:
+    def _call_method(self, method: str, retry: bool = True) -> bool:
         path = self._last_player_path or self._find_player_safe()
         if not path:
             return False
@@ -289,6 +289,11 @@ class BluetoothSource:
         except dbus.exceptions.DBusException as e:
             log.debug("BlueZ %s on %s failed: %s", method, _masked(path), _masked(e))
             self._last_player_path = None
+            # One fresh lookup, so a stale path costs no key press.
+            fresh = self._find_player_safe() if retry else None
+            if fresh and fresh != path:
+                self._last_player_path = fresh
+                return self._call_method(method, retry=False)
             return False
         except Exception as e:
             log.error("BlueZ %s on %s unexpected error: %s", method, _masked(path), _masked(e))
@@ -315,6 +320,7 @@ class BluetoothSource:
 
         # With two devices connected, the first player listed may be the idle one.
         rank = {"playing": 0, "paused": 1}
+        last = self._last_player_path
         best: tuple[int, str, dict] | None = None
         for path, ifaces in objects.items():
             if "org.bluez.MediaPlayer1" not in ifaces:
@@ -324,7 +330,8 @@ class BluetoothSource:
                 continue
             props = ifaces["org.bluez.MediaPlayer1"]
             score = rank.get(str(props.get("Status", "")).lower(), 2)
-            if best is None or score < best[0]:
+            # On a tie, keep the one we had rather than listing order.
+            if best is None or score < best[0] or (score == best[0] and path_str == last):
                 best = (score, path_str, props)
         if best is None:
             return None
@@ -333,33 +340,44 @@ class BluetoothSource:
 
     @staticmethod
     def list_paired_devices() -> list[dict]:
-        """Enumerate paired devices (for the settings-window picker)."""
+        """Enumerate paired devices (for the settings-window picker).
+
+        On its own private connection, closed on the way out: this runs on
+        a worker thread, and the shared ``SystemBus`` is dispatched.
+        """
         try:
-            bus = dbus.SystemBus()
+            bus = dbus.SystemBus(private=True, mainloop=dbus.mainloop.NULL_MAIN_LOOP)
         except dbus.exceptions.DBusException as e:
             log.debug("Bluetooth list_paired_devices: bus connect failed: %s", e)
             return []
-        if not _bluez_owned(bus):
-            return []
         try:
-            obj = bus.get_object("org.bluez", "/", introspect=False)
-            mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
-            objects = mgr.GetManagedObjects(timeout=_DBUS_TIMEOUT_S)
-        except dbus.exceptions.DBusException as e:
-            log.debug("Bluetooth list_paired_devices failed: %s", _masked(e))
-            return []
+            if not _bluez_owned(bus):
+                return []
+            try:
+                obj = bus.get_object("org.bluez", "/", introspect=False)
+                mgr = dbus.Interface(obj, "org.freedesktop.DBus.ObjectManager")
+                objects = mgr.GetManagedObjects(timeout=_DBUS_TIMEOUT_S)
+            except dbus.exceptions.DBusException as e:
+                log.debug("Bluetooth list_paired_devices failed: %s", _masked(e))
+                return []
+            return _paired_from(objects)
+        finally:
+            with contextlib.suppress(Exception):
+                bus.close()
 
-        devices: list[dict] = []
-        for _, ifaces in objects.items():
-            dev = ifaces.get("org.bluez.Device1")
-            if not dev:
-                continue
-            devices.append(
-                {
-                    "address": str(dev.get("Address", "")),
-                    "name": str(dev.get("Name", "") or dev.get("Alias", "") or ""),
-                    "connected": bool(dev.get("Connected", False)),
-                    "paired": bool(dev.get("Paired", False)),
-                }
-            )
-        return devices
+
+def _paired_from(objects) -> list[dict]:
+    devices: list[dict] = []
+    for _, ifaces in objects.items():
+        dev = ifaces.get("org.bluez.Device1")
+        if not dev:
+            continue
+        devices.append(
+            {
+                "address": str(dev.get("Address", "")),
+                "name": str(dev.get("Name", "") or dev.get("Alias", "") or ""),
+                "connected": bool(dev.get("Connected", False)),
+                "paired": bool(dev.get("Paired", False)),
+            }
+        )
+    return devices

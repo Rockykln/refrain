@@ -19,7 +19,9 @@ in the Recently played history — puts images in the lasting cover cache.
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import logging
+import os
 import shutil
 import tempfile
 import threading
@@ -83,17 +85,35 @@ def _prune_lookup_cache(max_entries: int = _MAX_CACHED_LOOKUPS) -> int:
     return removed
 
 
-def _clear_stale_temp_dirs() -> int:
-    """Remove cover directories an earlier run left behind; returns how many.
+_IN_USE_NAME = ".in-use"
 
-    Safe to do wholesale because the old process cannot still be writing:
-    its download threads are not daemons, so it only exits once they are
-    done, and only then does its bus name — which this run had to take
-    first — come free. Making those threads daemons would break that.
+
+def _dir_is_idle(p: Path) -> bool:
+    """True when no live run still holds ``p``.
+
+    The single-instance bus name cannot answer this: a run on its own
+    session bus takes that name while the other keeps writing.
     """
+    try:
+        fd = os.open(p / _IN_USE_NAME, os.O_RDWR)
+    except FileNotFoundError:
+        return True  # left by a version that took no lock
+    except OSError:
+        return False
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    finally:
+        os.close(fd)
+    return True
+
+
+def _clear_stale_temp_dirs() -> int:
+    """Remove cover directories an earlier run left behind; returns how many."""
     removed = 0
     for p in cover_temp_dirs():
-        if not p.is_symlink():
+        if not p.is_symlink() and _dir_is_idle(p):
             shutil.rmtree(p, ignore_errors=True)
             removed += 1
     if removed:
@@ -116,6 +136,7 @@ class CoverFetcher:
         self._image_inflight: set[str] = set()  # cover URLs being downloaded
         self._image_failed_at: dict[str, float] = {}  # cover URL → monotonic ts
         self._temp_dir: Path | None = None
+        self._in_use_fd: int | None = None
         self._closed = False
         # Serialises the copies into, and the deletions from, the cover cache.
         self._keep_lock = threading.Lock()
@@ -260,6 +281,20 @@ class CoverFetcher:
     def _key(artist: str, title: str, album: str = "") -> str:
         return f"{artist}|{title}|{album}".lower()
 
+    def _hold(self, path: Path) -> None:
+        """Mark ``path`` as in use so another run's sweep leaves it alone.
+
+        Never released by hand — the kernel does it at exit, which is the
+        first moment the directory may go.
+        """
+        try:
+            fd = os.open(path / _IN_USE_NAME, os.O_CREAT | os.O_RDWR, 0o600)
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as e:
+            log.debug("Could not mark the cover directory as in use: %s", e)
+            return
+        self._in_use_fd = fd
+
     def _temp_sources(self) -> list[Path]:
         with self._lock:
             return [self._temp_dir] if self._temp_dir is not None else []
@@ -271,6 +306,7 @@ class CoverFetcher:
                     self._temp_dir = Path(
                         tempfile.mkdtemp(prefix=COVER_TEMP_PREFIX, dir=cover_temp_base())
                     )
+                    self._hold(self._temp_dir)
                 except OSError as e:
                     log.debug("Could not create a temporary cover directory: %s", e)
             temp = self._temp_dir

@@ -83,11 +83,13 @@ class _FakePlayer:
         can_go_next: bool = False,
         can_go_previous: bool = False,
         raise_on_method: str | None = None,
+        error_text: str = "player rejected",
     ):
         self.can_pause = can_pause
         self.can_go_next = can_go_next
         self.can_go_previous = can_go_previous
         self.raise_on_method = raise_on_method
+        self.error_text = error_text
         self.calls: list[str] = []
 
     def get_prop(self, prop: str) -> bool:
@@ -99,7 +101,7 @@ class _FakePlayer:
 
     def call(self, method: str) -> None:
         if self.raise_on_method == method:
-            raise _FakeDBusException(f"player rejected {method}")
+            raise _FakeDBusException(f"{self.error_text} {method}")
         self.calls.append(method)
 
 
@@ -189,6 +191,44 @@ def test_play_pause_prefers_primary():
     assert src.play_pause() is True
     assert plasma.calls == ["PlayPause"]
     assert chromium.calls == []
+
+
+def test_an_unanswered_toggle_is_not_handed_to_the_next_player():
+    """A timeout is no refusal: the player may be acting on it, and a second one would undo it."""
+    slow = _FakePlayer(can_pause=True, raise_on_method="PlayPause", error_text="NoReply from")
+    chromium = _FakePlayer(can_pause=True)
+    _wire_bus(
+        {
+            "org.mpris.MediaPlayer2.plasma-browser-integration": slow,
+            "org.mpris.MediaPlayer2.chromium.instance123": chromium,
+        }
+    )
+
+    src = MPRISSource()
+    src._last_player_name = "org.mpris.MediaPlayer2.plasma-browser-integration"
+    src._control_fallback_names = ["org.mpris.MediaPlayer2.chromium.instance123"]
+
+    assert src.play_pause() is True
+    assert chromium.calls == [], "the second player would have toggled it straight back"
+
+
+def test_a_refused_toggle_still_reaches_the_next_player():
+    """A clean refusal is different: nothing happened, so the fallback must try."""
+    refusing = _FakePlayer(can_pause=True, raise_on_method="PlayPause")
+    chromium = _FakePlayer(can_pause=True)
+    _wire_bus(
+        {
+            "org.mpris.MediaPlayer2.plasma-browser-integration": refusing,
+            "org.mpris.MediaPlayer2.chromium.instance123": chromium,
+        }
+    )
+
+    src = MPRISSource()
+    src._last_player_name = "org.mpris.MediaPlayer2.plasma-browser-integration"
+    src._control_fallback_names = ["org.mpris.MediaPlayer2.chromium.instance123"]
+
+    assert src.play_pause() is True
+    assert chromium.calls == ["PlayPause"]
 
 
 def test_play_pause_goes_to_the_apple_music_tab_itself_when_known():

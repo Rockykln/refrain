@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -147,8 +148,17 @@ def test_shutdown_leaves_the_temp_dir_for_the_next_start(fetcher, downloads):
     temp = fetcher.get_local_path(*KEY).parent
     fetcher.shutdown()
     assert temp.exists()
+    os.close(fetcher._in_use_fd)  # what the kernel does once the process is gone
     cf.CoverFetcher().shutdown()
     assert not temp.exists()
+
+
+def test_a_directory_another_run_still_holds_is_left_alone(fetcher, downloads):
+    """A run on its own session bus takes the bus name without the other letting go."""
+    _settle(fetcher, *KEY)
+    temp = fetcher.get_local_path(*KEY).parent
+    cf.CoverFetcher().shutdown()
+    assert temp.exists()
 
 
 def test_the_sweep_leaves_everything_that_is_not_ours_alone(fetcher, tmp_path):
@@ -257,3 +267,29 @@ def test_the_first_sync_cleans_up_even_with_nothing_to_keep(fetcher):
     stray.write_bytes(b"\xff\xd8\xff\xe0cover")
     fetcher.keep_covers([])
     assert not stray.exists()
+
+
+def test_shutdown_lets_a_download_already_running_finish(fetcher, monkeypatch):
+    """The threads are not daemons on purpose, so the process waits for them."""
+    running = threading.Event()
+    release = threading.Event()
+    finished = []
+
+    def slow(url, dest):
+        running.set()
+        release.wait(3)
+        dest.write_bytes(b"\xff\xd8\xff\xe0cover")
+        finished.append(url)
+        return dest
+
+    monkeypatch.setattr(cf, "download_cover_image", slow)
+    fetcher.get(*KEY)
+    assert running.wait(3), "the download never started"
+
+    fetcher.shutdown()
+    assert finished == [], "it should still be running, not cancelled"
+    release.set()
+    deadline = time.monotonic() + 3
+    while not finished and time.monotonic() < deadline:
+        time.sleep(0.005)
+    assert finished == [COVER], "shutdown cut a download short"

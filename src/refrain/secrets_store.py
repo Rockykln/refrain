@@ -265,10 +265,16 @@ class SecretStore:
         return _file_read_all().get(name) or None
 
     def delete(self, name: str) -> bool:
-        """True when nothing is left under ``name``, including when there was nothing."""
-        ok = True
+        """True when nothing is left under ``name``.
+
+        A keyring we cannot reach counts as a no: it may still hold the
+        secret from an earlier run.
+        """
         bus = self._get_bus()
-        if bus is not None and _keyring_available(bus):
+        if bus is None or not _keyring_available(bus):
+            log.warning("Keyring unreachable, cannot confirm %s is gone", name)
+            ok = False
+        else:
             try:
                 ok = _keyring_delete(bus, name)
             except Exception as e:

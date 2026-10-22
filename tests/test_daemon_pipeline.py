@@ -624,6 +624,21 @@ def test_scrobbler_failure_does_not_stop_discord(rig):
     assert len(rpc().updates) == 2
 
 
+def test_a_discord_failure_does_not_stop_the_history_and_the_scrobble(rig, caplog):
+    worker, player, _ = rig()
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("pipe closed")
+
+    worker._update_rpc = broken
+    player.play()
+    with caplog.at_level(logging.WARNING, logger="refrain.daemon"):
+        player.tick(n=2)
+    assert len(worker._history.calls) == 2
+    assert len(worker._scrobbler.calls) == 2
+    assert [r.getMessage() for r in caplog.records] == ["Discord update failed: pipe closed"] * 2
+
+
 def test_mpris_server_gets_the_corrected_length_and_cover(rig):
     worker, player, _ = rig()
     worker._cover_fetcher.durations[(ARTIST, TITLE)] = 200_000

@@ -47,7 +47,7 @@ class _Obj:
 
     def __getattr__(self, method):
         def call(timeout=None):
-            if self._bus.fail_calls:
+            if self._bus.fail_calls or self._path in self._bus.fail_paths:
                 raise bluetooth.dbus.DBusException("org.bluez.Error.Failed")
             self._bus.calls.append((self._path, method))
 
@@ -61,6 +61,7 @@ class _Bus:
         self.owned = owned
         self.dead = False
         self.fail_calls = False
+        self.fail_paths: set[str] = set()
         self.calls = []
         self.closed = False
 
@@ -423,11 +424,15 @@ def test_list_paired_devices_reports_every_device(system_bus):
     ]
 
 
-def test_list_paired_devices_uses_the_shared_system_bus(system_bus):
+def test_list_paired_devices_takes_a_private_bus_and_closes_it(system_bus):
+    """The picker runs on a worker thread, so it must not share the dispatched bus."""
     queue, opened = system_bus
-    queue.append(_Bus())
+    bus = _Bus()
+    queue.append(bus)
     assert bluetooth.BluetoothSource.list_paired_devices() == []
-    assert opened == [{}]
+    assert [o["private"] for o in opened] == [True]
+    assert "mainloop" in opened[0]
+    assert bus.closed
 
 
 def test_list_paired_devices_is_empty_without_a_bus(system_bus):
@@ -526,3 +531,37 @@ def test_a_device_between_apps_is_not_playing(system_bus):
     assert track.has_track is False
     assert track.status == PlaybackStatus.STOPPED
     assert track.player == ""
+
+
+def test_two_paused_devices_keep_the_player_we_had(system_bus):
+    """The choice must not follow BlueZ's listing order, which can flip between polls."""
+    both = _objects(
+        (MAC, "paused", "Desk Speaker", "Speaker 5000"),
+        (OTHER_MAC, "paused", "Kitchen", "Kitchen Radio"),
+    )
+    bus = _Bus(both, {_player(MAC): _track_props("paused")})
+    system_bus[0].append(bus)
+    src = bluetooth.BluetoothSource()
+    src.read()
+    assert src._last_player_path == _player(MAC)
+
+    bus.objects = dict(reversed(list(both.items())))
+    src.read()
+    assert src._last_player_path == _player(MAC)
+
+
+def test_a_stale_player_path_is_looked_up_again_instead_of_losing_the_press(system_bus):
+    """A device swap must not cost the first key press."""
+    bus = _Bus(
+        _objects((MAC, "playing", "Desk Speaker", "Speaker 5000")),
+        {_player(MAC): _track_props("playing")},
+    )
+    system_bus[0].append(bus)
+    src = bluetooth.BluetoothSource()
+    src.read()
+    assert src._last_player_path == _player(MAC)
+
+    bus.objects = _objects((OTHER_MAC, "playing", "Kitchen", "Kitchen Radio"))
+    bus.fail_paths = {_player(MAC)}
+    assert src.next() is True
+    assert bus.calls == [(_player(OTHER_MAC), "Next")]

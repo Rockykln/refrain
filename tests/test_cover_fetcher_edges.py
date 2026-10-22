@@ -103,3 +103,26 @@ def test_get_album_is_empty_until_the_background_lookup_has_one(fetcher, monkeyp
 def test_get_album_is_empty_for_missing_input(fetcher):
     assert fetcher.get_album("", "Title") == ""
     assert fetcher.get_album("Artist", "") == ""
+
+
+def test_a_lock_file_nobody_may_open_counts_as_in_use(tmp_path):
+    """Unreadable means unknown, and unknown means leave the directory alone."""
+    d = tmp_path / "held"
+    d.mkdir()
+    lock = d / cf._IN_USE_NAME
+    lock.touch(mode=0o000)
+    try:
+        assert cf._dir_is_idle(d) is False
+    finally:
+        lock.chmod(0o600)
+
+
+def test_a_directory_that_cannot_be_marked_is_still_usable(fetcher, tmp_path):
+    """Failing to take the lock must not stop covers from being fetched."""
+    d = tmp_path / "read-only"
+    d.mkdir(mode=0o500)
+    try:
+        fetcher._hold(d)
+        assert fetcher._in_use_fd is None
+    finally:
+        d.chmod(0o700)

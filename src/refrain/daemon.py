@@ -1299,7 +1299,12 @@ class DaemonWorker(QObject):
         if (cover_now, cover_file) != self._cover_emitted:
             self._cover_emitted = (cover_now, cover_file)
             self.coverChanged.emit(cover_now, cover_file)
-        self._update_rpc(shown, effective_dur_ms, itunes_dur_ms)
+        # A failure on the Discord side must not take the history entry
+        # and the scrobble below down with it.
+        try:
+            self._update_rpc(shown, effective_dur_ms, itunes_dur_ms)
+        except Exception as e:
+            log.warning("Discord update failed: %s", e)
         self._clock.lap("discord")
 
         # Last.fm and the history judge "played" from the same length:
