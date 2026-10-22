@@ -1415,273 +1415,278 @@ The settings you just changed will apply for this session but won&apos;t persist
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="393"/>
+        <location filename="../ui/status_window.py" line="394"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm にスクロブル済み</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="401"/>
-        <location filename="../ui/status_window.py" line="405"/>
+        <location filename="../ui/status_window.py" line="402"/>
+        <location filename="../ui/status_window.py" line="406"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music で開く</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="459"/>
+        <location filename="../ui/status_window.py" line="460"/>
         <source>Status</source>
         <translation>ステータス</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="542"/>
+        <location filename="../ui/status_window.py" line="543"/>
         <source>Previous song</source>
         <translation>前の曲</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="545"/>
+        <location filename="../ui/status_window.py" line="546"/>
         <source>Play or pause</source>
         <translation>再生または一時停止</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="549"/>
+        <location filename="../ui/status_window.py" line="550"/>
         <source>Next song</source>
         <translation>次の曲</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="577"/>
+        <location filename="../ui/status_window.py" line="578"/>
         <source>Update…</source>
         <translation>アップデート…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="591"/>
+        <location filename="../ui/status_window.py" line="592"/>
         <source>Recently played</source>
         <translation>最近再生した曲</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="595"/>
+        <location filename="../ui/status_window.py" line="596"/>
         <source>Show all</source>
         <translation>すべて表示</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="603"/>
-        <location filename="../ui/status_window.py" line="1024"/>
+        <location filename="../ui/status_window.py" line="604"/>
+        <location filename="../ui/status_window.py" line="1035"/>
         <source>Songs you play show up here.</source>
         <translation>再生した曲がここに表示されます。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="605"/>
+        <location filename="../ui/status_window.py" line="606"/>
         <source>Turn on Recently played</source>
         <translation>最近再生した曲をオンにする</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="626"/>
+        <location filename="../ui/status_window.py" line="627"/>
         <source>Settings…</source>
         <translation>設定…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="639"/>
+        <location filename="../ui/status_window.py" line="640"/>
         <source>View Refrain on GitHub</source>
         <translation>GitHub で Refrain を見る</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="671"/>
+        <location filename="../ui/status_window.py" line="672"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Refrain の再起動前の再生位置からの推定</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="752"/>
+        <location filename="../ui/status_window.py" line="753"/>
         <source>Nothing playing</source>
         <translation>再生中の曲はありません</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="762"/>
+        <location filename="../ui/status_window.py" line="763"/>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
+        <translation>{player} は再生中ですが、どのページか分かりません。Refrain はページのアドレスで Apple Music を見分けます。再生しているタブが Apple Music か確認してください。</translation>
+    </message>
+    <message>
+        <location filename="../ui/status_window.py" line="773"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} は再生中ですが、どのページか分かりません。Plasma Browser Integration（パッケージ plasma-browser-integration とブラウザ拡張機能「Plasma Integration」）をインストールするか、Firefox を使用してください。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="770"/>
+        <location filename="../ui/status_window.py" line="781"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>ブラウザの Apple Music で曲を再生するか、スマートフォンから Bluetooth 経由で再生してください。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="784"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="786"/>
+        <location filename="../ui/status_window.py" line="797"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="792"/>
+        <location filename="../ui/status_window.py" line="803"/>
         <source>Paused · {source}</source>
         <translation>一時停止中 · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="869"/>
+        <location filename="../ui/status_window.py" line="880"/>
         <source>Not set up yet</source>
         <translation>まだ設定されていません</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="870"/>
-        <location filename="../ui/status_window.py" line="901"/>
-        <location filename="../ui/status_window.py" line="907"/>
+        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="918"/>
         <source>Set up…</source>
         <translation>設定する…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="872"/>
+        <location filename="../ui/status_window.py" line="883"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord アプリが実行されていません</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="874"/>
+        <location filename="../ui/status_window.py" line="885"/>
         <source>Application ID rejected</source>
         <translation>Application ID が拒否されました</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="875"/>
+        <location filename="../ui/status_window.py" line="886"/>
         <source>Fix…</source>
         <translation>修正…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="878"/>
+        <location filename="../ui/status_window.py" line="889"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord は起動していますが、ログインしていません。ステータスを表示するには Discord にログインしてください。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="892"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord が現在応答していません</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="883"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Ready — waiting for music</source>
         <translation>準備完了 — 音楽を待っています</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="885"/>
+        <location filename="../ui/status_window.py" line="896"/>
         <source>Visible on your profile</source>
         <translation>プロフィールに表示中</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="887"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>Showing “Listening to music”</source>
         <translation>「Listening to music」を表示中</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Showing the song as paused</source>
         <translation>曲を一時停止中として表示中</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="891"/>
+        <location filename="../ui/status_window.py" line="902"/>
         <source>Hidden — sharing is off</source>
         <translation>非表示 — 共有はオフです</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="893"/>
+        <location filename="../ui/status_window.py" line="904"/>
         <source>Checking…</source>
         <translation>確認中…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="911"/>
         <source>Off</source>
         <translation>オフ</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="903"/>
+        <location filename="../ui/status_window.py" line="914"/>
         <source>Connected, but scrobbling is off</source>
         <translation>接続済みですが、スクロブルはオフです</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Open Last.fm settings…</source>
         <translation>Last.fm の設定を開く…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="917"/>
         <source>Not connected yet</source>
         <translation>まだ接続されていません</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="921"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>送信待ちのスクロブル %n 件</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="923"/>
         <source>Sign-in expired</source>
         <translation>サインインの有効期限が切れました</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="913"/>
+        <location filename="../ui/status_window.py" line="924"/>
         <source>Reconnect…</source>
         <translation>再接続…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="915"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Paused — sharing is off</source>
         <translation>一時停止 — 共有はオフです</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Scrobbling as {user}</source>
         <translation>{user} としてスクロブル中</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="919"/>
+        <location filename="../ui/status_window.py" line="930"/>
         <source>Scrobbling</source>
         <translation>スクロブル中</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="938"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>前回、Refrain は予期せず終了しました。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="939"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>レポートは &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt; にあります。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="944"/>
+        <location filename="../ui/status_window.py" line="955"/>
         <source>You&apos;re all set.</source>
         <translation>準備は完了です。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="946"/>
+        <location filename="../ui/status_window.py" line="957"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Apple Music で曲を再生してください — 数秒以内に Discord に表示されます。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1026"/>
+        <location filename="../ui/status_window.py" line="1037"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>最近再生した曲がオフのため、Refrain は曲のリストを保存しません。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1036"/>
+        <location filename="../ui/status_window.py" line="1047"/>
         <source>Resume sharing</source>
         <translation>共有を再開</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1039"/>
+        <location filename="../ui/status_window.py" line="1050"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Discord に曲を再び表示し、Last.fm へのスクロブルも再開します。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1042"/>
+        <location filename="../ui/status_window.py" line="1053"/>
         <source>Pause sharing</source>
         <translation>共有を一時停止</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1045"/>
+        <location filename="../ui/status_window.py" line="1056"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>再開するまで、Discord ステータスを非表示にし、スクロブルを停止します。</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1064"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} が利用可能です。</translation>
     </message>

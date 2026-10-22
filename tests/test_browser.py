@@ -124,3 +124,11 @@ def test_a_sandboxed_refrain_always_uses_the_default_browser(monkeypatch):
     monkeypatch.setattr(browser, "running_processes", lambda: {"firefox"})
     assert browser.open_url("https://music.apple.com/x", "Firefox") is True
     assert _Proc.started == [] and opened == ["https://music.apple.com/x"]
+
+
+def test_only_firefox_based_browsers_are_said_to_name_their_page():
+    for player in ("Mozilla firefox-esr", "Zen Browser", "LibreWolf", "Floorp"):
+        assert browser.names_its_page(player) is True
+    for player in ("Chromium", "Google Chrome", "Brave", "Vivaldi", "Microsoft Edge", "Opera"):
+        assert browser.names_its_page(player) is False
+    assert browser.names_its_page("") is False

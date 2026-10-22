@@ -1415,273 +1415,278 @@ Scrobble bu oturum için çalışır, ancak yeniden başlattıktan sonra Last.fm
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="393"/>
+        <location filename="../ui/status_window.py" line="394"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm&apos;e scrobble edildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="401"/>
-        <location filename="../ui/status_window.py" line="405"/>
+        <location filename="../ui/status_window.py" line="402"/>
+        <location filename="../ui/status_window.py" line="406"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music&apos;te aç</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="459"/>
+        <location filename="../ui/status_window.py" line="460"/>
         <source>Status</source>
         <translation>Durum</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="542"/>
+        <location filename="../ui/status_window.py" line="543"/>
         <source>Previous song</source>
         <translation>Önceki şarkı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="545"/>
+        <location filename="../ui/status_window.py" line="546"/>
         <source>Play or pause</source>
         <translation>Çal veya duraklat</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="549"/>
+        <location filename="../ui/status_window.py" line="550"/>
         <source>Next song</source>
         <translation>Sonraki şarkı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="577"/>
+        <location filename="../ui/status_window.py" line="578"/>
         <source>Update…</source>
         <translation>Güncelle…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="591"/>
+        <location filename="../ui/status_window.py" line="592"/>
         <source>Recently played</source>
         <translation>Son çalınanlar</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="595"/>
+        <location filename="../ui/status_window.py" line="596"/>
         <source>Show all</source>
         <translation>Tümünü göster</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="603"/>
-        <location filename="../ui/status_window.py" line="1024"/>
+        <location filename="../ui/status_window.py" line="604"/>
+        <location filename="../ui/status_window.py" line="1035"/>
         <source>Songs you play show up here.</source>
         <translation>Çaldığınız şarkılar burada görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="605"/>
+        <location filename="../ui/status_window.py" line="606"/>
         <source>Turn on Recently played</source>
         <translation>Son çalınanları aç</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="626"/>
+        <location filename="../ui/status_window.py" line="627"/>
         <source>Settings…</source>
         <translation>Ayarlar…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="639"/>
+        <location filename="../ui/status_window.py" line="640"/>
         <source>View Refrain on GitHub</source>
         <translation>Refrain&apos;i GitHub&apos;da görüntüle</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="671"/>
+        <location filename="../ui/status_window.py" line="672"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Refrain yeniden başlamadan önceki şarkı konumundan tahmin edildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="752"/>
+        <location filename="../ui/status_window.py" line="753"/>
         <source>Nothing playing</source>
         <translation>Hiçbir şey çalmıyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="762"/>
+        <location filename="../ui/status_window.py" line="763"/>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
+        <translation>{player} çalıyor, ancak hangi sayfada olduğunu belirtmiyor. Refrain, Apple Music’i sayfa adresinden tanır — çalanın Apple Music sekmesi olduğundan emin olun.</translation>
+    </message>
+    <message>
+        <location filename="../ui/status_window.py" line="773"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} çalıyor, ancak hangi sayfada olduğunu belirtmiyor. Plasma Browser Integration&apos;ı kurun (plasma-browser-integration paketi ve “Plasma Integration” tarayıcı eklentisi) veya Firefox kullanın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="770"/>
+        <location filename="../ui/status_window.py" line="781"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>Tarayıcınızda Apple Music&apos;te bir şarkı başlatın ya da telefonunuzda Bluetooth üzerinden çalın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="784"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="786"/>
+        <location filename="../ui/status_window.py" line="797"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="792"/>
+        <location filename="../ui/status_window.py" line="803"/>
         <source>Paused · {source}</source>
         <translation>Duraklatıldı · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="869"/>
+        <location filename="../ui/status_window.py" line="880"/>
         <source>Not set up yet</source>
         <translation>Henüz kurulmadı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="870"/>
-        <location filename="../ui/status_window.py" line="901"/>
-        <location filename="../ui/status_window.py" line="907"/>
+        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="918"/>
         <source>Set up…</source>
         <translation>Kur…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="872"/>
+        <location filename="../ui/status_window.py" line="883"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord uygulaması çalışmıyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="874"/>
+        <location filename="../ui/status_window.py" line="885"/>
         <source>Application ID rejected</source>
         <translation>Application ID reddedildi</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="875"/>
+        <location filename="../ui/status_window.py" line="886"/>
         <source>Fix…</source>
         <translation>Düzelt…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="878"/>
+        <location filename="../ui/status_window.py" line="889"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord açık ama oturum açılmamış. Durumunuzu göstermek için Discord&apos;a giriş yapın.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="892"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord şu anda yanıt vermiyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="883"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Ready — waiting for music</source>
         <translation>Hazır — müzik bekleniyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="885"/>
+        <location filename="../ui/status_window.py" line="896"/>
         <source>Visible on your profile</source>
         <translation>Profilinde görünür</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="887"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>Showing “Listening to music”</source>
         <translation>“Listening to music” gösteriliyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Showing the song as paused</source>
         <translation>Şarkı duraklatıldı olarak gösteriliyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="891"/>
+        <location filename="../ui/status_window.py" line="902"/>
         <source>Hidden — sharing is off</source>
         <translation>Gizli — paylaşım kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="893"/>
+        <location filename="../ui/status_window.py" line="904"/>
         <source>Checking…</source>
         <translation>Denetleniyor…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="911"/>
         <source>Off</source>
         <translation>Kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="903"/>
+        <location filename="../ui/status_window.py" line="914"/>
         <source>Connected, but scrobbling is off</source>
         <translation>Bağlı, ancak scrobble kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Open Last.fm settings…</source>
         <translation>Last.fm ayarlarını aç…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="917"/>
         <source>Not connected yet</source>
         <translation>Henüz bağlı değil</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="921"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>Gönderilmeyi bekleyen %n scrobble</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="923"/>
         <source>Sign-in expired</source>
         <translation>Oturum açma süresi doldu</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="913"/>
+        <location filename="../ui/status_window.py" line="924"/>
         <source>Reconnect…</source>
         <translation>Yeniden bağlan…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="915"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Paused — sharing is off</source>
         <translation>Duraklatıldı — paylaşım kapalı</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Scrobbling as {user}</source>
         <translation>Scrobble ediliyor: {user}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="919"/>
+        <location filename="../ui/status_window.py" line="930"/>
         <source>Scrobbling</source>
         <translation>Scrobble ediliyor</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="938"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>Refrain son seferinde beklenmedik şekilde kapandı.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="939"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>Rapor &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt; içinde.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="944"/>
+        <location filename="../ui/status_window.py" line="955"/>
         <source>You&apos;re all set.</source>
         <translation>Her şey hazır.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="946"/>
+        <location filename="../ui/status_window.py" line="957"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Apple Music&apos;te bir şarkı çalın — birkaç saniye içinde Discord&apos;da görünür.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1026"/>
+        <location filename="../ui/status_window.py" line="1037"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>Son çalınanlar kapalı, bu yüzden Refrain şarkılarınızın listesini tutmuyor.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1036"/>
+        <location filename="../ui/status_window.py" line="1047"/>
         <source>Resume sharing</source>
         <translation>Paylaşımı sürdür</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1039"/>
+        <location filename="../ui/status_window.py" line="1050"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Şarkınızı yeniden Discord&apos;da gösterin ve Last.fm&apos;e scrobble edin.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1042"/>
+        <location filename="../ui/status_window.py" line="1053"/>
         <source>Pause sharing</source>
         <translation>Paylaşımı duraklat</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1045"/>
+        <location filename="../ui/status_window.py" line="1056"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>Sürdürene kadar Discord durumunuzu gizleyin ve scrobble&apos;ı durdurun.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1064"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} kullanılabilir.</translation>
     </message>

@@ -1423,196 +1423,201 @@ Les paramètres que vous venez de modifier s’appliqueront à cette session, ma
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="393"/>
+        <location filename="../ui/status_window.py" line="394"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Scrobblé sur Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="401"/>
-        <location filename="../ui/status_window.py" line="405"/>
+        <location filename="../ui/status_window.py" line="402"/>
+        <location filename="../ui/status_window.py" line="406"/>
         <source>Open in Apple Music</source>
         <translation>Ouvrir dans Apple Music</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="459"/>
+        <location filename="../ui/status_window.py" line="460"/>
         <source>Status</source>
         <translation>État</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="542"/>
+        <location filename="../ui/status_window.py" line="543"/>
         <source>Previous song</source>
         <translation>Morceau précédent</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="545"/>
+        <location filename="../ui/status_window.py" line="546"/>
         <source>Play or pause</source>
         <translation>Lecture ou pause</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="549"/>
+        <location filename="../ui/status_window.py" line="550"/>
         <source>Next song</source>
         <translation>Morceau suivant</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="577"/>
+        <location filename="../ui/status_window.py" line="578"/>
         <source>Update…</source>
         <translation>Mise à jour…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="591"/>
+        <location filename="../ui/status_window.py" line="592"/>
         <source>Recently played</source>
         <translation>Écoutés récemment</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="595"/>
+        <location filename="../ui/status_window.py" line="596"/>
         <source>Show all</source>
         <translation>Tout afficher</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="603"/>
-        <location filename="../ui/status_window.py" line="1024"/>
+        <location filename="../ui/status_window.py" line="604"/>
+        <location filename="../ui/status_window.py" line="1035"/>
         <source>Songs you play show up here.</source>
         <translation>Les morceaux que vous écoutez apparaissent ici.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="605"/>
+        <location filename="../ui/status_window.py" line="606"/>
         <source>Turn on Recently played</source>
         <translation>Activer Écoutés récemment</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="626"/>
+        <location filename="../ui/status_window.py" line="627"/>
         <source>Settings…</source>
         <translation>Paramètres…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="639"/>
+        <location filename="../ui/status_window.py" line="640"/>
         <source>View Refrain on GitHub</source>
         <translation>Voir Refrain sur GitHub</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="671"/>
+        <location filename="../ui/status_window.py" line="672"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Estimation à partir de l’endroit où en était le morceau avant le redémarrage de Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="752"/>
+        <location filename="../ui/status_window.py" line="753"/>
         <source>Nothing playing</source>
         <translation>Rien en lecture</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="762"/>
+        <location filename="../ui/status_window.py" line="763"/>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
+        <translation>{player} joue quelque chose, mais ne dit pas quelle page. Refrain reconnaît Apple Music à l’adresse de la page — vérifiez que c’est bien l’onglet Apple Music qui joue.</translation>
+    </message>
+    <message>
+        <location filename="../ui/status_window.py" line="773"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} joue quelque chose, mais ne dit pas quelle page. Installez Plasma Browser Integration (paquet plasma-browser-integration plus l’extension de navigateur «&#xa0;Plasma Integration&#xa0;») ou utilisez Firefox.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="770"/>
+        <location filename="../ui/status_window.py" line="781"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>Lancez un morceau dans Apple Music dans votre navigateur, ou sur votre téléphone via Bluetooth.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="784"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="786"/>
+        <location filename="../ui/status_window.py" line="797"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="792"/>
+        <location filename="../ui/status_window.py" line="803"/>
         <source>Paused · {source}</source>
         <translation>En pause · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="869"/>
+        <location filename="../ui/status_window.py" line="880"/>
         <source>Not set up yet</source>
         <translation>Pas encore configuré</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="870"/>
-        <location filename="../ui/status_window.py" line="901"/>
-        <location filename="../ui/status_window.py" line="907"/>
+        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="918"/>
         <source>Set up…</source>
         <translation>Configurer…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="872"/>
+        <location filename="../ui/status_window.py" line="883"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>L’application Discord n’est pas lancée</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="874"/>
+        <location filename="../ui/status_window.py" line="885"/>
         <source>Application ID rejected</source>
         <translation>Application ID refusé</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="875"/>
+        <location filename="../ui/status_window.py" line="886"/>
         <source>Fix…</source>
         <translation>Corriger…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="878"/>
+        <location filename="../ui/status_window.py" line="889"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord est ouvert, mais vous n’êtes pas connecté. Connectez-vous à Discord pour afficher votre statut.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="881"/>
+        <location filename="../ui/status_window.py" line="892"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord ne répond pas pour le moment</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="883"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Ready — waiting for music</source>
         <translation>Prêt — en attente de musique</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="885"/>
+        <location filename="../ui/status_window.py" line="896"/>
         <source>Visible on your profile</source>
         <translation>Visible sur votre profil</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="887"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>Showing “Listening to music”</source>
         <translation>Affiche «&#xa0;Listening to music&#xa0;»</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Showing the song as paused</source>
         <translation>Affiche le titre comme en pause</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="891"/>
+        <location filename="../ui/status_window.py" line="902"/>
         <source>Hidden — sharing is off</source>
         <translation>Masqué — le partage est désactivé</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="893"/>
+        <location filename="../ui/status_window.py" line="904"/>
         <source>Checking…</source>
         <translation>Vérification…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="911"/>
         <source>Off</source>
         <translation>Désactivé</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="903"/>
+        <location filename="../ui/status_window.py" line="914"/>
         <source>Connected, but scrobbling is off</source>
         <translation>Connecté, mais le scrobbling est désactivé</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Open Last.fm settings…</source>
         <translation>Ouvrir les paramètres Last.fm…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="917"/>
         <source>Not connected yet</source>
         <translation>Pas encore connecté</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="921"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble en attente d’envoi</numerusform>
@@ -1620,77 +1625,77 @@ Les paramètres que vous venez de modifier s’appliqueront à cette session, ma
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="923"/>
         <source>Sign-in expired</source>
         <translation>Connexion expirée</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="913"/>
+        <location filename="../ui/status_window.py" line="924"/>
         <source>Reconnect…</source>
         <translation>Se reconnecter…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="915"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Paused — sharing is off</source>
         <translation>En pause — le partage est désactivé</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Scrobbling as {user}</source>
         <translation>Scrobbling en tant que {user}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="919"/>
+        <location filename="../ui/status_window.py" line="930"/>
         <source>Scrobbling</source>
         <translation>Scrobbling</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="938"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>Refrain s’est fermé de manière inattendue la dernière fois.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="939"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>Le rapport se trouve dans &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="944"/>
+        <location filename="../ui/status_window.py" line="955"/>
         <source>You&apos;re all set.</source>
         <translation>Tout est prêt.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="946"/>
+        <location filename="../ui/status_window.py" line="957"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Lancez un morceau dans Apple Music — il apparaît dans Discord en quelques secondes.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1026"/>
+        <location filename="../ui/status_window.py" line="1037"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>Écoutés récemment sont désactivés, donc Refrain ne conserve aucune liste de vos morceaux.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1036"/>
+        <location filename="../ui/status_window.py" line="1047"/>
         <source>Resume sharing</source>
         <translation>Reprendre le partage</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1039"/>
+        <location filename="../ui/status_window.py" line="1050"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Réaffichez votre morceau dans Discord et reprenez le scrobbling vers Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1042"/>
+        <location filename="../ui/status_window.py" line="1053"/>
         <source>Pause sharing</source>
         <translation>Mettre le partage en pause</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1045"/>
+        <location filename="../ui/status_window.py" line="1056"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>Masquez votre statut Discord et arrêtez le scrobbling jusqu’à ce que vous repreniez.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1064"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version} est disponible.</translation>
     </message>

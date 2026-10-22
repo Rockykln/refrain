@@ -838,3 +838,12 @@ def test_nothing_is_focused_when_the_keyboard_was_elsewhere(window, monkeypatch)
     window._refresh_recent()
 
     assert landed == []
+
+
+def test_firefox_without_a_url_is_not_told_to_install_plasma(window):
+    """It publishes the tab itself, so that advice cannot be the cure."""
+    window.set_track(TrackInfo(source="none", player="Mozilla firefox-esr"))
+    hint = window.hint.text()
+    assert "Mozilla firefox-esr" in hint
+    assert "Plasma" not in hint
+    assert "page address" in hint

@@ -52,6 +52,14 @@ lists every version and why.
 
 ### Fixed
 
+- **Firefox is no longer told to install Plasma Browser Integration, or
+  to use Firefox.** When a browser played something Refrain couldn't
+  place, the Status window always gave the same advice — install Plasma
+  Browser Integration or switch to Firefox. That advice is for Chromium,
+  which doesn't say which page is playing; Firefox, Zen, LibreWolf and
+  Floorp do say it. They now get a hint that fits: Refrain recognises
+  Apple Music by the page address, so the thing to check is whether the
+  Apple Music tab is the one playing.
 - **Quitting no longer crashes while a window is being drawn.** A
   `SIGTERM`, or Ctrl+C, took Refrain down from inside Python's signal
   handler, which runs at any point in the code — including inside an

@@ -18,15 +18,16 @@ class _Browser:
     keyword: str  # matched against the player's MPRIS Identity, lower-cased
     executables: tuple[str, ...]
     processes: tuple[str, ...]  # as in /proc/<pid>/comm, cut at 15 characters
+    names_the_page: bool = False  # Gecko publishes the tab's URL, Chromium doesn't
 
 
 # More specific names first: Zen, LibreWolf and Floorp are Firefox
 # underneath, and "chrome" would otherwise catch nothing but Chrome.
 _BROWSERS = (
-    _Browser("zen", ("zen-browser", "zen"), ("zen-bin", "zen")),
-    _Browser("librewolf", ("librewolf",), ("librewolf",)),
-    _Browser("floorp", ("floorp",), ("floorp",)),
-    _Browser("firefox", ("firefox",), ("firefox", "firefox-bin")),
+    _Browser("zen", ("zen-browser", "zen"), ("zen-bin", "zen"), names_the_page=True),
+    _Browser("librewolf", ("librewolf",), ("librewolf",), names_the_page=True),
+    _Browser("floorp", ("floorp",), ("floorp",), names_the_page=True),
+    _Browser("firefox", ("firefox",), ("firefox", "firefox-bin"), names_the_page=True),
     _Browser("chromium", ("chromium", "chromium-browser"), ("chromium", "chromium-browse")),
     _Browser("brave", ("brave", "brave-browser"), ("brave",)),
     _Browser("vivaldi", ("vivaldi-stable", "vivaldi"), ("vivaldi-bin",)),
@@ -34,6 +35,13 @@ _BROWSERS = (
     _Browser("opera", ("opera",), ("opera",)),
     _Browser("chrome", ("google-chrome-stable", "google-chrome"), ("chrome",)),
 )
+
+
+def names_its_page(player: str) -> bool:
+    """Whether the browser behind this MPRIS identity reports the tab it plays."""
+    hay = player.lower()
+    return any(b.keyword in hay for b in _BROWSERS if b.names_the_page)
+
 
 # Belong to the Refrain process, not to a browser it starts: a Qt plugin
 # path pointing into PySide6 is enough to break a Qt-based Chromium.

@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 )
 
 from refrain import __version__, dev_metrics
+from refrain.browser import names_its_page
 from refrain.cover_art import image_path_for_url
 from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir, state_dir
@@ -754,7 +755,15 @@ class StatusWindow(QDialog):
             self.source.setText("")
             self.artist.setVisible(False)
             self.source.setVisible(False)
-            if track.player:
+            if track.player and names_its_page(track.player):
+                self.hint.setText(
+                    self.tr(
+                        "{player} is playing, but didn't say which page. Refrain recognises "
+                        "Apple Music by the page address — check that the Apple Music tab is "
+                        "the one playing."
+                    ).format(player=track.player)
+                )
+            elif track.player:
                 # A browser is playing but MPRIS gave no URL to recognise
                 # Apple Music by — Chromium outside KDE, typically.
                 self.hint.setText(
