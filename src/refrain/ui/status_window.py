@@ -759,8 +759,8 @@ class StatusWindow(QDialog):
                 self.hint.setText(
                     self.tr(
                         "{player} is playing, but didn't say which page. Refrain recognises "
-                        "Apple Music by the page address — check that the Apple Music tab is "
-                        "the one playing."
+                        "Apple Music by the page address, and a private window never sends one. "
+                        "Otherwise, check that the Apple Music tab is the one playing."
                     ).format(player=track.player)
                 )
             elif track.player:

@@ -14,6 +14,10 @@ lists every version and why.
 - **Discord is reached before the first song again.** With nothing
   playing, the Status window claimed the Discord app wasn't running, and
   a refused Application ID stayed hidden until a song started.
+- **A private browsing window is named as the reason.** Firefox keeps
+  the page to itself there, so Refrain cannot tell what is playing no
+  matter how the tabs are arranged. The hint used to send you through
+  them; it now says what is going on.
 
 ## [0.5.6] - 2026-10-22
 

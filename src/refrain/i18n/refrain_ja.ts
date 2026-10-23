@@ -1493,8 +1493,8 @@ The settings you just changed will apply for this session but won&apos;t persist
     </message>
     <message>
         <location filename="../ui/status_window.py" line="761"/>
-        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
-        <translation>{player} は再生中ですが、どのページか分かりません。Refrain はページのアドレスで Apple Music を見分けます。再生しているタブが Apple Music か確認してください。</translation>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
+        <translation>{player} は再生中ですが、どのページか分かりません。Refrain はページのアドレスで Apple Music を見分けますが、プライベートウィンドウはアドレスを送りません。そうでなければ、再生しているタブが Apple Music か確認してください。</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="771"/>

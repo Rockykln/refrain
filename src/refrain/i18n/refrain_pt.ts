@@ -1501,8 +1501,8 @@ As definições que acabou de alterar aplicam-se a esta sessão, mas não se man
     </message>
     <message>
         <location filename="../ui/status_window.py" line="761"/>
-        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
-        <translation>O {player} está a tocar, mas não diz qual é a página. O Refrain reconhece o Apple Music pelo endereço da página — verifique se é o separador do Apple Music que está a tocar.</translation>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
+        <translation>O {player} está a tocar, mas não diz qual é a página. O Refrain reconhece o Apple Music pelo endereço da página, e uma janela privada nunca o envia. Caso contrário, verifique se é o separador do Apple Music que está a tocar.</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="771"/>

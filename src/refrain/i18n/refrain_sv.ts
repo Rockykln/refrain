@@ -1501,8 +1501,8 @@ Scrobbling fungerar under den här sessionen, men du måste ansluta Last.fm igen
     </message>
     <message>
         <location filename="../ui/status_window.py" line="761"/>
-        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
-        <translation>{player} spelar, men anger inte vilken sida. Refrain känner igen Apple Music på sidans adress — kontrollera att det är Apple Music-fliken som spelar.</translation>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
+        <translation>{player} spelar, men anger inte vilken sida. Refrain känner igen Apple Music på sidans adress, och ett privat fönster skickar aldrig någon. Kontrollera annars att det är Apple Music-fliken som spelar.</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="771"/>

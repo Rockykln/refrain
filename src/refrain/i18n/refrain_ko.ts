@@ -1493,8 +1493,8 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/status_window.py" line="761"/>
-        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
-        <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Refrain은 페이지 주소로 Apple Music을 구분합니다. 재생 중인 탭이 Apple Music인지 확인하세요.</translation>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
+        <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Refrain은 페이지 주소로 Apple Music을 구분하는데, 사생활 보호 창은 주소를 보내지 않습니다. 그렇지 않다면 재생 중인 탭이 Apple Music인지 확인하세요.</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="771"/>

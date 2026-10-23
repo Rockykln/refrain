@@ -1501,8 +1501,8 @@ Die soeben geänderten Einstellungen gelten für diese Sitzung, überstehen aber
     </message>
     <message>
         <location filename="../ui/status_window.py" line="761"/>
-        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address — check that the Apple Music tab is the one playing.</source>
-        <translation>{player} spielt etwas ab, sagt aber nicht, welche Seite. Refrain erkennt Apple Music an der Seitenadresse — prüfe, ob wirklich der Apple-Music-Tab spielt.</translation>
+        <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
+        <translation>{player} spielt etwas ab, sagt aber nicht, welche Seite. Refrain erkennt Apple Music an der Seitenadresse, und ein privates Fenster sendet nie eine. Sonst prüfe, ob wirklich der Apple-Music-Tab spielt.</translation>
     </message>
     <message>
         <location filename="../ui/status_window.py" line="771"/>

@@ -60,8 +60,14 @@ interface for media players.
 - Firefox, Zen, LibreWolf and Floorp do say which page they play, so
   they never get that hint. When Refrain can't place what they report,
   they get this one instead: `<Browser> is playing, but didn't say which
-  page. Refrain recognises Apple Music by the page address — check that
-  the Apple Music tab is the one playing.`
+  page. Refrain recognises Apple Music by the page address, and a private
+  window never sends one. Otherwise, check that the Apple Music tab is
+  the one playing.`
+- **A private window is never placed.** Gecko withholds the page title
+  and address from the media controls there, so a lock screen can't give
+  away what is being browsed. Refrain sees only the browser's own
+  placeholder ("Firefox is playing media") and no address at all — play
+  Apple Music in a normal window.
 - After installing the extension, restart the browser. Until then the
   browser keeps playing without saying which page, and Refrain still
   shows the hint above.
