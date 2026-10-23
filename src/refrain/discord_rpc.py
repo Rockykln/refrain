@@ -867,15 +867,16 @@ class DiscordRPC:
                 job, force = self._inbox, self._inbox_force
                 self._inbox, self._inbox_force = None, False
             try:
+                # Every tick: with nothing playing the inbox is never empty,
+                # so a branch that waits for one would never come round.
+                if not self._sharing_off.is_set():
+                    self._ensure_connected()
                 if job is _CLEAR:
                     self.clear(force=force)
                 elif isinstance(job, dict):
                     self.update(**job)
                 else:
-                    # Nothing new: keep reaching for a client that is not
-                    # there yet, and let a held-back payload go out.
-                    if not self._sharing_off.is_set():
-                        self._ensure_connected()
+                    # Let a held-back payload go out.
                     self.pump()
             except Exception:
                 # Dying here would leave Discord unserved for the rest of

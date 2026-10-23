@@ -215,3 +215,18 @@ def test_the_last_clear_still_goes_out_when_discord_is_slow(discord, monkeypatch
     rpc.close()
 
     assert presence.clear.called, "the clear was dropped, the song stays on the profile"
+
+
+def test_the_client_is_reached_while_the_daemon_keeps_clearing(discord):
+    """With nothing playing the daemon posts a clear on every poll, which
+    leaves the thread no tick with an empty inbox."""
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    rpc.start()
+    try:
+        deadline = time.monotonic() + 2.0
+        while time.monotonic() < deadline and not rpc.is_connected():
+            rpc.post_clear()
+            time.sleep(drpc._SERVE_TICK_S / 4)
+        assert rpc.is_connected()
+    finally:
+        rpc.close()

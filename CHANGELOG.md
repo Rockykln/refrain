@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Versions that no longer work were taken down; [docs/releases.md](docs/releases.md)
 lists every version and why.
 
+## [Unreleased]
+
+### Fixed
+
+- **Discord is reached before the first song again.** With nothing
+  playing, the Status window claimed the Discord app wasn't running, and
+  a refused Application ID stayed hidden until a song started.
+
 ## [0.5.6] - 2026-10-22
 
 ### Added
