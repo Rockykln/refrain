@@ -926,11 +926,21 @@ def test_restart_re_execs_the_launcher_after_stopping_the_daemon(restart, tmp_pa
     launcher = tmp_path / "refrain"
     launcher.write_text("#!/bin/sh\n")
     launcher.chmod(0o755)
-    restart.mp.setattr(sys, "argv", [str(launcher), "--silent", "--debug"])
+    restart.mp.setattr(sys, "argv", [str(launcher), "--debug"])
     assert app.main() == 0
     assert restart.order[-2:] == ["exec", "daemon.stop"]
-    assert restart.execs == [(str(launcher), [str(launcher), "--silent", "--debug"])]
+    assert restart.execs == [(str(launcher), [str(launcher), "--debug"])]
     assert restart.app._refrain_bus_lock is None
+
+
+def test_a_restart_the_user_asked_for_is_not_silent(restart, tmp_path):
+    """--silent is for the session start, not for a restart."""
+    launcher = tmp_path / "refrain"
+    launcher.write_text("#!/bin/sh\n")
+    launcher.chmod(0o755)
+    restart.mp.setattr(sys, "argv", [str(launcher), "--silent"])
+    app.main()
+    assert restart.execs == [(str(launcher), [str(launcher)])]
 
 
 def test_settings_restart_button_restarts_too(restart, tmp_path):
@@ -944,15 +954,15 @@ def test_restart_inside_an_appimage_uses_the_appimage(restart, tmp_path, monkeyp
     image.write_text("")
     image.chmod(0o755)
     monkeypatch.setenv("APPIMAGE", str(image))
-    restart.run("--silent")
-    assert restart.execs == [(str(image), [str(image), "--silent"])]
+    restart.run("--debug")
+    assert restart.execs == [(str(image), [str(image), "--debug"])]
 
 
 def test_restart_from_a_script_path_falls_back_to_python_m(restart):
-    restart.mp.setattr(sys, "argv", ["/src/refrain/__main__.py", "--silent"])
+    restart.mp.setattr(sys, "argv", ["/src/refrain/__main__.py", "--debug"])
     app.main()
     assert restart.execs == [
-        (sys.executable, [sys.executable, "-m", "refrain", "--silent"]),
+        (sys.executable, [sys.executable, "-m", "refrain", "--debug"]),
     ]
 
 
@@ -967,10 +977,10 @@ def test_failed_re_exec_falls_back_to_python_m(restart, tmp_path):
 
 
 def test_failed_python_m_restart_retries_without_doubling_the_module_args(restart):
-    restart.mp.setattr(sys, "argv", ["/src/refrain/__main__.py", "--silent"])
+    restart.mp.setattr(sys, "argv", ["/src/refrain/__main__.py", "--debug"])
     restart.exec_errors = [OSError("ENOENT")]
     app.main()
-    assert restart.execs[1] == (sys.executable, [sys.executable, "-m", "refrain", "--silent"])
+    assert restart.execs[1] == (sys.executable, [sys.executable, "-m", "refrain", "--debug"])
 
 
 def test_restart_that_cannot_exec_at_all_exits_non_zero(restart):

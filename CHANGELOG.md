@@ -18,6 +18,10 @@ lists every version and why.
   the page to itself there, so Refrain cannot tell what is playing no
   matter how the tabs are arranged. The hint used to send you through
   them; it now says what is going on.
+- **Restarting Refrain brings the Status window back.** *Restart Refrain*
+  handed every start-up option to the new process, `--silent` among
+  them. Started from the autostart entry, Refrain came back without a
+  window — and a restart for a new language left nothing to look at.
 
 ## [0.5.6] - 2026-10-22
 

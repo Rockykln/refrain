@@ -1440,9 +1440,13 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
 
     if getattr(app, "_refrain_should_restart", False):
         log.info("Re-execing for restart")
-        # Drop one-shot CLI flags from the next launch.
+        # Drop one-shot CLI flags from the next launch. --silent describes
+        # how the session should start (autostart opens no window) — a
+        # restart the user asked for has to show that Refrain is back.
         new_argv = [
-            arg for arg in sys.argv[1:] if arg not in ("--install-desktop", "--uninstall-desktop")
+            arg
+            for arg in sys.argv[1:]
+            if arg not in ("--install-desktop", "--uninstall-desktop", "--silent")
         ]
         # Pick the right binary to re-exec:
         #   - Inside an AppImage, $APPIMAGE is the original .AppImage path
