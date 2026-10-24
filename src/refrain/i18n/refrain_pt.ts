@@ -545,8 +545,8 @@
     <message>
         <location filename="../ui/settings_window.py" line="627"/>
         <location filename="../ui/settings_window.py" line="939"/>
-        <location filename="../ui/settings_window.py" line="1710"/>
-        <location filename="../ui/settings_window.py" line="1785"/>
+        <location filename="../ui/settings_window.py" line="1744"/>
+        <location filename="../ui/settings_window.py" line="1819"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
@@ -565,10 +565,10 @@
         <location filename="../ui/settings_window.py" line="903"/>
         <location filename="../ui/settings_window.py" line="914"/>
         <location filename="../ui/settings_window.py" line="931"/>
-        <location filename="../ui/settings_window.py" line="1474"/>
-        <location filename="../ui/settings_window.py" line="1573"/>
-        <location filename="../ui/settings_window.py" line="1647"/>
-        <location filename="../ui/settings_window.py" line="2024"/>
+        <location filename="../ui/settings_window.py" line="1508"/>
+        <location filename="../ui/settings_window.py" line="1607"/>
+        <location filename="../ui/settings_window.py" line="1681"/>
+        <location filename="../ui/settings_window.py" line="2071"/>
         <source>Cancel</source>
         <translation>Cancelar</translation>
     </message>
@@ -846,7 +846,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1005"/>
-        <location filename="../ui/settings_window.py" line="1678"/>
+        <location filename="../ui/settings_window.py" line="1712"/>
         <source>Not connected</source>
         <translation>Não ligado</translation>
     </message>
@@ -857,8 +857,8 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1008"/>
-        <location filename="../ui/settings_window.py" line="1676"/>
-        <location filename="../ui/settings_window.py" line="1679"/>
+        <location filename="../ui/settings_window.py" line="1710"/>
+        <location filename="../ui/settings_window.py" line="1713"/>
         <source>Connect…</source>
         <translation>Ligar…</translation>
     </message>
@@ -899,6 +899,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1098"/>
+        <location filename="../ui/settings_window.py" line="1131"/>
         <source>Other (comma-separated):</source>
         <translation>Outros (separados por vírgula):</translation>
     </message>
@@ -909,53 +910,73 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1110"/>
+        <source>Apple Music app (native)</source>
+        <translation>Aplicação Apple Music (nativa)</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1111"/>
+        <source>Detected apps:</source>
+        <translation>Aplicações detetadas:</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1130"/>
+        <source>e.g. another Apple Music client</source>
+        <translation>ex.: outro cliente Apple Music</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1135"/>
+        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. They share the switch above.</source>
+        <translation>Reprodutores que são eles próprios um cliente Apple Music, detetados da mesma forma. Não reproduzem mais nada, por isso o Refrain deteta-os sem endereço de página. Partilham o interruptor acima.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1144"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1111"/>
+        <location filename="../ui/settings_window.py" line="1145"/>
         <source>Enable Bluetooth source</source>
         <translation>Ativar a fonte Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1117"/>
+        <location filename="../ui/settings_window.py" line="1151"/>
         <source>Refresh</source>
         <translation>Atualizar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
+        <location filename="../ui/settings_window.py" line="1159"/>
         <source>Device:</source>
         <translation>Dispositivo:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1129"/>
+        <location filename="../ui/settings_window.py" line="1163"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Escolha um dispositivo emparelhado ou deixe em deteção automática para ler a fonte compatível com AVRCP que estiver ligada no momento.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1142"/>
-        <location filename="../ui/settings_window.py" line="1154"/>
-        <location filename="../ui/settings_window.py" line="1928"/>
+        <location filename="../ui/settings_window.py" line="1176"/>
+        <location filename="../ui/settings_window.py" line="1188"/>
+        <location filename="../ui/settings_window.py" line="1974"/>
         <source>(auto-detect)</source>
         <translation>(deteção automática)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1156"/>
+        <location filename="../ui/settings_window.py" line="1190"/>
         <source>(unknown device)</source>
         <translation>(dispositivo desconhecido)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1159"/>
+        <location filename="../ui/settings_window.py" line="1193"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (ligado)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1179"/>
+        <location filename="../ui/settings_window.py" line="1213"/>
         <source>just now</source>
         <translation>agora mesmo</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1182"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>há %n minuto</numerusform>
@@ -963,7 +984,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1185"/>
+        <location filename="../ui/settings_window.py" line="1219"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>há %n hora</numerusform>
@@ -971,7 +992,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1187"/>
+        <location filename="../ui/settings_window.py" line="1221"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>há %n dia</numerusform>
@@ -979,209 +1000,209 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1200"/>
+        <location filename="../ui/settings_window.py" line="1234"/>
         <source>never</source>
         <translation>nunca</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1212"/>
+        <location filename="../ui/settings_window.py" line="1246"/>
         <source>Update checking</source>
         <translation>Verificação de atualizações</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1215"/>
+        <location filename="../ui/settings_window.py" line="1249"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Verificar automaticamente ao iniciar (no máximo uma vez por dia)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1220"/>
+        <location filename="../ui/settings_window.py" line="1254"/>
         <source>Current version:</source>
         <translation>Versão atual:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1222"/>
+        <location filename="../ui/settings_window.py" line="1256"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1223"/>
+        <location filename="../ui/settings_window.py" line="1257"/>
         <source>Latest known:</source>
         <translation>Última conhecida:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1226"/>
+        <location filename="../ui/settings_window.py" line="1260"/>
         <source>Last checked:</source>
         <translation>Última verificação:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1230"/>
+        <location filename="../ui/settings_window.py" line="1264"/>
         <source>Check for updates now</source>
         <translation>Procurar atualizações agora</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1237"/>
+        <location filename="../ui/settings_window.py" line="1271"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>O Refrain consulta a API GitHub Releases. O comportamento da atualização depende de como o Refrain foi instalado (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1256"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>Latest release notes</source>
         <translation>Notas da última versão</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1262"/>
+        <location filename="../ui/settings_window.py" line="1296"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_Clique em_ **Procurar atualizações agora** _para obter o registo de alterações mais recente do GitHub._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1285"/>
+        <location filename="../ui/settings_window.py" line="1319"/>
         <source>(check failed)</source>
         <translation>(falha na verificação)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1287"/>
+        <location filename="../ui/settings_window.py" line="1321"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_Não foi possível contactar o GitHub. Verifique a ligação à rede e tente novamente._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1292"/>
+        <location filename="../ui/settings_window.py" line="1326"/>
         <source>{version} (update available)</source>
         <translation>{version} (atualização disponível)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1296"/>
+        <location filename="../ui/settings_window.py" line="1330"/>
         <source>{version} (up to date)</source>
         <translation>{version} (atualizado)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1298"/>
+        <location filename="../ui/settings_window.py" line="1332"/>
         <source>_No release notes provided._</source>
         <translation>_Sem notas de versão._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1308"/>
+        <location filename="../ui/settings_window.py" line="1342"/>
         <source>Performance</source>
         <translation>Desempenho</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1314"/>
+        <location filename="../ui/settings_window.py" line="1348"/>
         <source>Poll interval:</source>
         <translation>Intervalo de sondagem:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1321"/>
+        <location filename="../ui/settings_window.py" line="1355"/>
         <source>Notification delay:</source>
         <translation>Atraso da notificação:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1325"/>
+        <location filename="../ui/settings_window.py" line="1359"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>O intervalo de sondagem é a frequência com que o Refrain pergunta ao leitor o que está a tocar: um valor mais baixo reage mais depressa, mas usa um pouco mais de CPU. O atraso da notificação dá tempo para a capa carregar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1338"/>
+        <location filename="../ui/settings_window.py" line="1372"/>
         <source>Localization</source>
         <translation>Idioma</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1341"/>
+        <location filename="../ui/settings_window.py" line="1375"/>
         <source>System default</source>
         <translation>Predefinição do sistema</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1358"/>
+        <location filename="../ui/settings_window.py" line="1392"/>
         <source>Language:</source>
         <translation>Idioma:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1365"/>
+        <location filename="../ui/settings_window.py" line="1399"/>
         <source>Logging</source>
         <translation>Registo</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1369"/>
+        <location filename="../ui/settings_window.py" line="1403"/>
         <source>Detailed (DEBUG)</source>
         <translation>Detalhado (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1370"/>
+        <location filename="../ui/settings_window.py" line="1404"/>
         <source>Normal (INFO)</source>
         <translation>Normal (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1371"/>
+        <location filename="../ui/settings_window.py" line="1405"/>
         <source>Warnings only</source>
         <translation>Apenas avisos</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1372"/>
+        <location filename="../ui/settings_window.py" line="1406"/>
         <source>Errors only</source>
         <translation>Apenas erros</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1375"/>
+        <location filename="../ui/settings_window.py" line="1409"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Escolha Detalhado quando reportar um erro.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1376"/>
+        <location filename="../ui/settings_window.py" line="1410"/>
         <source>Log level:</source>
         <translation>Nível de registo:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1378"/>
+        <location filename="../ui/settings_window.py" line="1412"/>
         <source>Open live-log window</source>
         <translation>Abrir a janela do registo em direto</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1380"/>
+        <location filename="../ui/settings_window.py" line="1414"/>
         <source>Open log folder</source>
         <translation>Abrir a pasta dos registos</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1389"/>
+        <location filename="../ui/settings_window.py" line="1423"/>
         <source>Maintenance</source>
         <translation>Manutenção</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1390"/>
-        <location filename="../ui/settings_window.py" line="2021"/>
+        <location filename="../ui/settings_window.py" line="1424"/>
+        <location filename="../ui/settings_window.py" line="2068"/>
         <source>Restart Refrain</source>
         <translation>Reiniciar o Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1392"/>
+        <location filename="../ui/settings_window.py" line="1426"/>
         <source>Reset all settings to defaults</source>
         <translation>Repor todas as definições nos valores predefinidos</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1395"/>
+        <location filename="../ui/settings_window.py" line="1429"/>
         <source>Uninstall Refrain…</source>
         <translation>Desinstalar o Refrain…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1410"/>
+        <location filename="../ui/settings_window.py" line="1444"/>
         <source>Developer</source>
         <translation>Programador</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1411"/>
-        <location filename="../ui/settings_window.py" line="1461"/>
+        <location filename="../ui/settings_window.py" line="1445"/>
+        <location filename="../ui/settings_window.py" line="1495"/>
         <source>Developer mode</source>
         <translation>Modo de programador</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1416"/>
+        <location filename="../ui/settings_window.py" line="1450"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Mede tempos e como usa o Refrain, apenas neste computador. Nada é alguma vez enviado. Os resultados ficam na janela de registo em direto.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1462"/>
+        <location filename="../ui/settings_window.py" line="1496"/>
         <source>Turn on developer mode?</source>
         <translation>Ativar o modo de programador?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1465"/>
+        <location filename="../ui/settings_window.py" line="1499"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1190,22 +1211,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Tudo fica neste computador e nunca é enviado para lado nenhum. Medir custa um pouco de desempenho. Pode desligar de novo em Avançado.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1473"/>
+        <location filename="../ui/settings_window.py" line="1507"/>
         <source>Turn on</source>
         <translation>Ativar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1537"/>
+        <location filename="../ui/settings_window.py" line="1571"/>
         <source>Checking…</source>
         <translation>A verificar…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1557"/>
+        <location filename="../ui/settings_window.py" line="1591"/>
         <source>Reset all settings</source>
         <translation>Repor todas as definições</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1560"/>
+        <location filename="../ui/settings_window.py" line="1594"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1214,47 +1235,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 A reposição é guardada de imediato, e as alterações que ainda não guardou são perdidas.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1572"/>
+        <location filename="../ui/settings_window.py" line="1606"/>
         <source>Reset</source>
         <translation>Repor</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1599"/>
+        <location filename="../ui/settings_window.py" line="1633"/>
         <source>Unsaved changes</source>
         <translation>Alterações não guardadas</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1600"/>
+        <location filename="../ui/settings_window.py" line="1634"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Alterou definições que ainda não estão guardadas.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1601"/>
+        <location filename="../ui/settings_window.py" line="1635"/>
         <source>Save</source>
         <translation>Guardar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1602"/>
+        <location filename="../ui/settings_window.py" line="1636"/>
         <source>Discard</source>
         <translation>Descartar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1603"/>
+        <location filename="../ui/settings_window.py" line="1637"/>
         <source>Keep editing</source>
         <translation>Continuar a editar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1630"/>
+        <location filename="../ui/settings_window.py" line="1664"/>
         <source>(no data files found)</source>
         <translation>(nenhum ficheiro de dados encontrado)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1636"/>
+        <location filename="../ui/settings_window.py" line="1670"/>
         <source>Uninstall Refrain</source>
         <translation>Desinstalar o Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1639"/>
+        <location filename="../ui/settings_window.py" line="1673"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1277,57 +1298,57 @@ NÃO remove o próprio programa — depois execute:
 O Refrain será fechado. Esta ação não pode ser desfeita.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1646"/>
+        <location filename="../ui/settings_window.py" line="1680"/>
         <source>Uninstall</source>
         <translation>Desinstalar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1664"/>
+        <location filename="../ui/settings_window.py" line="1698"/>
         <source>Connected as {user}</source>
         <translation>Ligado como {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1667"/>
+        <location filename="../ui/settings_window.py" line="1701"/>
         <source>Connected</source>
         <translation>Ligado</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1719"/>
+        <location filename="../ui/settings_window.py" line="1753"/>
         <source>Requesting authorization token…</source>
         <translation>A pedir o token de autorização…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1778"/>
+        <location filename="../ui/settings_window.py" line="1812"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Ligado como {user}. O scrobbling começa com a próxima música.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1782"/>
+        <location filename="../ui/settings_window.py" line="1816"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Ligado. O scrobbling começa com a próxima música.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1784"/>
+        <location filename="../ui/settings_window.py" line="1818"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Continua pausado enquanto a Privacidade estiver definida como Desligado.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2015"/>
+        <location filename="../ui/settings_window.py" line="2062"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>O Refrain reinicia para aplicar o novo idioma.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2023"/>
+        <location filename="../ui/settings_window.py" line="2070"/>
         <source>Save and restart</source>
         <translation>Guardar e reiniciar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2095"/>
+        <location filename="../ui/settings_window.py" line="2142"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Não foi possível guardar as credenciais do Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2097"/>
+        <location filename="../ui/settings_window.py" line="2144"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -1337,7 +1358,7 @@ O scrobbling funciona nesta sessão, mas terá de voltar a ligar o Last.fm depoi
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="913"/>
-        <location filename="../ui/settings_window.py" line="1668"/>
+        <location filename="../ui/settings_window.py" line="1702"/>
         <source>Disconnect</source>
         <translation>Desligar</translation>
     </message>
@@ -1367,33 +1388,33 @@ O scrobbling funciona nesta sessão, mas terá de voltar a ligar o Last.fm depoi
         <translation>Registe uma conta de API gratuita, cole a chave + o segredo, depois clique em Ligar para autorizar no seu navegador. O scrobbling funciona a par do Discord e nunca o substitui; pausa enquanto a Privacidade estiver definida como Desligado. O segredo partilhado e o token de sessão ficam guardados no porta-chaves do sistema, nunca em texto simples.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1360"/>
+        <location filename="../ui/settings_window.py" line="1394"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Um novo idioma precisa de reiniciar; o Refrain pergunta antes de reiniciar.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1401"/>
+        <location filename="../ui/settings_window.py" line="1435"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Desinstalar elimina todos os dados do Refrain e as credenciais do Last.fm, depois mostra o comando que remove o programa. Isto não pode ser desfeito.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1674"/>
+        <location filename="../ui/settings_window.py" line="1708"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Não ligado — introduza novamente a chave de API e o segredo e clique em Ligar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1712"/>
+        <location filename="../ui/settings_window.py" line="1746"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Introduza primeiro a sua chave de API e o segredo partilhado do Last.fm. Use «Criar conta de API» para registar uma gratuitamente.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1758"/>
-        <location filename="../ui/settings_window.py" line="1802"/>
+        <location filename="../ui/settings_window.py" line="1792"/>
+        <location filename="../ui/settings_window.py" line="1836"/>
         <source>Last.fm connection failed</source>
         <translation>Falha na ligação ao Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1803"/>
+        <location filename="../ui/settings_window.py" line="1837"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1402,12 +1423,12 @@ O scrobbling funciona nesta sessão, mas terá de voltar a ligar o Last.fm depoi
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2081"/>
+        <location filename="../ui/settings_window.py" line="2128"/>
         <source>Could not save settings</source>
         <translation>Não foi possível guardar as definições</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2083"/>
+        <location filename="../ui/settings_window.py" line="2130"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -2193,7 +2214,7 @@ Numa sessão de ambiente de trabalho, isto deve normalmente estar disponível de
     <message>
         <location filename="../app.py" line="1110"/>
         <location filename="../app.py" line="1117"/>
-        <location filename="../app.py" line="1510"/>
+        <location filename="../app.py" line="1514"/>
         <source>Updates</source>
         <translation>Atualizações</translation>
     </message>
@@ -2253,7 +2274,7 @@ Para remover o próprio programa, execute:
         <translation>Desinstalar</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1511"/>
+        <location filename="../app.py" line="1515"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>Ainda não há informações de atualização. Tente novamente daqui a pouco.</translation>
     </message>

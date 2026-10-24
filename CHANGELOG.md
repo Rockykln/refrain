@@ -9,6 +9,17 @@ lists every version and why.
 
 ## [Unreleased]
 
+### Added
+
+- **Native Apple Music clients are picked up.** Until now Refrain only
+  listened to browser tabs on `music.apple.com`, so a desktop client
+  went unnoticed. Slipmat, Cider and Sidra are recognised out of the
+  box, and `app_hints` in the Sources tab takes any other client. They
+  report the song length themselves, so a song Apple's catalogue doesn't
+  know still gets a scrobble and an end time on the Discord card. What
+  they cannot give is the page address, so the *Listen on Apple Music*
+  button stays off for them.
+
 ### Fixed
 
 - **Discord is reached before the first song again.** With nothing

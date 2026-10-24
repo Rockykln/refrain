@@ -545,8 +545,8 @@
     <message>
         <location filename="../ui/settings_window.py" line="627"/>
         <location filename="../ui/settings_window.py" line="939"/>
-        <location filename="../ui/settings_window.py" line="1710"/>
-        <location filename="../ui/settings_window.py" line="1785"/>
+        <location filename="../ui/settings_window.py" line="1744"/>
+        <location filename="../ui/settings_window.py" line="1819"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
@@ -565,10 +565,10 @@
         <location filename="../ui/settings_window.py" line="903"/>
         <location filename="../ui/settings_window.py" line="914"/>
         <location filename="../ui/settings_window.py" line="931"/>
-        <location filename="../ui/settings_window.py" line="1474"/>
-        <location filename="../ui/settings_window.py" line="1573"/>
-        <location filename="../ui/settings_window.py" line="1647"/>
-        <location filename="../ui/settings_window.py" line="2024"/>
+        <location filename="../ui/settings_window.py" line="1508"/>
+        <location filename="../ui/settings_window.py" line="1607"/>
+        <location filename="../ui/settings_window.py" line="1681"/>
+        <location filename="../ui/settings_window.py" line="2071"/>
         <source>Cancel</source>
         <translation>Avbryt</translation>
     </message>
@@ -781,7 +781,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="913"/>
-        <location filename="../ui/settings_window.py" line="1668"/>
+        <location filename="../ui/settings_window.py" line="1702"/>
         <source>Disconnect</source>
         <translation>Koppla från</translation>
     </message>
@@ -852,7 +852,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1005"/>
-        <location filename="../ui/settings_window.py" line="1678"/>
+        <location filename="../ui/settings_window.py" line="1712"/>
         <source>Not connected</source>
         <translation>Inte ansluten</translation>
     </message>
@@ -863,8 +863,8 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1008"/>
-        <location filename="../ui/settings_window.py" line="1676"/>
-        <location filename="../ui/settings_window.py" line="1679"/>
+        <location filename="../ui/settings_window.py" line="1710"/>
+        <location filename="../ui/settings_window.py" line="1713"/>
         <source>Connect…</source>
         <translation>Anslut…</translation>
     </message>
@@ -910,6 +910,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1098"/>
+        <location filename="../ui/settings_window.py" line="1131"/>
         <source>Other (comma-separated):</source>
         <translation>Andra (kommaseparerade):</translation>
     </message>
@@ -920,53 +921,73 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1110"/>
+        <source>Apple Music app (native)</source>
+        <translation>Apple Music-app (inbyggd)</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1111"/>
+        <source>Detected apps:</source>
+        <translation>Identifierade appar:</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1130"/>
+        <source>e.g. another Apple Music client</source>
+        <translation>t.ex. en annan Apple Music-klient</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1135"/>
+        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. They share the switch above.</source>
+        <translation>Spelare som själva är en Apple Music-klient, identifierade på samma sätt. De spelar inget annat, så Refrain känner igen dem utan sidadress. De delar reglaget ovan.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1144"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1111"/>
+        <location filename="../ui/settings_window.py" line="1145"/>
         <source>Enable Bluetooth source</source>
         <translation>Aktivera Bluetooth-källa</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1117"/>
+        <location filename="../ui/settings_window.py" line="1151"/>
         <source>Refresh</source>
         <translation>Uppdatera</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
+        <location filename="../ui/settings_window.py" line="1159"/>
         <source>Device:</source>
         <translation>Enhet:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1129"/>
+        <location filename="../ui/settings_window.py" line="1163"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Välj en parkopplad enhet, eller låt ”identifiera automatiskt” vara valt för att läsa den AVRCP-kompatibla källa som är ansluten just nu.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1142"/>
-        <location filename="../ui/settings_window.py" line="1154"/>
-        <location filename="../ui/settings_window.py" line="1928"/>
+        <location filename="../ui/settings_window.py" line="1176"/>
+        <location filename="../ui/settings_window.py" line="1188"/>
+        <location filename="../ui/settings_window.py" line="1974"/>
         <source>(auto-detect)</source>
         <translation>(identifiera automatiskt)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1156"/>
+        <location filename="../ui/settings_window.py" line="1190"/>
         <source>(unknown device)</source>
         <translation>(okänd enhet)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1159"/>
+        <location filename="../ui/settings_window.py" line="1193"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (ansluten)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1179"/>
+        <location filename="../ui/settings_window.py" line="1213"/>
         <source>just now</source>
         <translation>nyss</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1182"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>för %n minut sedan</numerusform>
@@ -974,7 +995,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1185"/>
+        <location filename="../ui/settings_window.py" line="1219"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>för %n timme sedan</numerusform>
@@ -982,7 +1003,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1187"/>
+        <location filename="../ui/settings_window.py" line="1221"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>för %n dag sedan</numerusform>
@@ -990,152 +1011,152 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1200"/>
+        <location filename="../ui/settings_window.py" line="1234"/>
         <source>never</source>
         <translation>aldrig</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1212"/>
+        <location filename="../ui/settings_window.py" line="1246"/>
         <source>Update checking</source>
         <translation>Uppdateringskontroll</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1215"/>
+        <location filename="../ui/settings_window.py" line="1249"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Kontrollera automatiskt vid start (högst en gång per dag)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1220"/>
+        <location filename="../ui/settings_window.py" line="1254"/>
         <source>Current version:</source>
         <translation>Nuvarande version:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1222"/>
+        <location filename="../ui/settings_window.py" line="1256"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1223"/>
+        <location filename="../ui/settings_window.py" line="1257"/>
         <source>Latest known:</source>
         <translation>Senaste kända:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1226"/>
+        <location filename="../ui/settings_window.py" line="1260"/>
         <source>Last checked:</source>
         <translation>Senast kontrollerad:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1230"/>
+        <location filename="../ui/settings_window.py" line="1264"/>
         <source>Check for updates now</source>
         <translation>Sök efter uppdateringar nu</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1237"/>
+        <location filename="../ui/settings_window.py" line="1271"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain använder GitHubs Releases-API. Hur uppdateringen sker beror på hur Refrain installerades (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1256"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>Latest release notes</source>
         <translation>Senaste versionsinformation</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1262"/>
+        <location filename="../ui/settings_window.py" line="1296"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_Klicka på_ **Sök efter uppdateringar nu** _för att hämta den senaste ändringsloggen från GitHub._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1285"/>
+        <location filename="../ui/settings_window.py" line="1319"/>
         <source>(check failed)</source>
         <translation>(kontrollen misslyckades)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1287"/>
+        <location filename="../ui/settings_window.py" line="1321"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_Kunde inte nå GitHub. Kontrollera nätverket och försök igen._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1292"/>
+        <location filename="../ui/settings_window.py" line="1326"/>
         <source>{version} (update available)</source>
         <translation>{version} (uppdatering tillgänglig)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1296"/>
+        <location filename="../ui/settings_window.py" line="1330"/>
         <source>{version} (up to date)</source>
         <translation>{version} (aktuell)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1298"/>
+        <location filename="../ui/settings_window.py" line="1332"/>
         <source>_No release notes provided._</source>
         <translation>_Ingen versionsinformation angavs._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1308"/>
+        <location filename="../ui/settings_window.py" line="1342"/>
         <source>Performance</source>
         <translation>Prestanda</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1314"/>
+        <location filename="../ui/settings_window.py" line="1348"/>
         <source>Poll interval:</source>
         <translation>Avsökningsintervall:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1321"/>
+        <location filename="../ui/settings_window.py" line="1355"/>
         <source>Notification delay:</source>
         <translation>Aviseringsfördröjning:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1325"/>
+        <location filename="../ui/settings_window.py" line="1359"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>Avsökningsintervallet är hur ofta Refrain frågar spelaren vad som spelas: lägre reagerar snabbare men använder lite mer CPU. Aviseringsfördröjningen ger omslaget tid att laddas.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1338"/>
+        <location filename="../ui/settings_window.py" line="1372"/>
         <source>Localization</source>
         <translation>Språk</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1341"/>
+        <location filename="../ui/settings_window.py" line="1375"/>
         <source>System default</source>
         <translation>Systemstandard</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1358"/>
+        <location filename="../ui/settings_window.py" line="1392"/>
         <source>Language:</source>
         <translation>Språk:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1360"/>
+        <location filename="../ui/settings_window.py" line="1394"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Ett nytt språk kräver omstart; Refrain frågar innan den startar om.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1401"/>
+        <location filename="../ui/settings_window.py" line="1435"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Avinstallation raderar alla Refrain-data och Last.fm-inloggningsuppgifterna och visar sedan kommandot som tar bort programmet. Detta kan inte ångras.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1719"/>
+        <location filename="../ui/settings_window.py" line="1753"/>
         <source>Requesting authorization token…</source>
         <translation>Begär auktoriseringstoken…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1778"/>
+        <location filename="../ui/settings_window.py" line="1812"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Ansluten som {user}. Scrobblingen börjar med nästa låt.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1782"/>
+        <location filename="../ui/settings_window.py" line="1816"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Ansluten. Scrobblingen börjar med nästa låt.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1784"/>
+        <location filename="../ui/settings_window.py" line="1818"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Den förblir pausad medan Integritet är satt till Av.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1365"/>
+        <location filename="../ui/settings_window.py" line="1399"/>
         <source>Logging</source>
         <translation>Loggning</translation>
     </message>
@@ -1160,89 +1181,89 @@
         <translation>Vad Refrain delar medan musik spelas. Av stoppar även Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1369"/>
+        <location filename="../ui/settings_window.py" line="1403"/>
         <source>Detailed (DEBUG)</source>
         <translation>Detaljerad (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1370"/>
+        <location filename="../ui/settings_window.py" line="1404"/>
         <source>Normal (INFO)</source>
         <translation>Normal (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1371"/>
+        <location filename="../ui/settings_window.py" line="1405"/>
         <source>Warnings only</source>
         <translation>Endast varningar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1372"/>
+        <location filename="../ui/settings_window.py" line="1406"/>
         <source>Errors only</source>
         <translation>Endast fel</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1375"/>
+        <location filename="../ui/settings_window.py" line="1409"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Välj Detaljerad när du rapporterar ett fel.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1376"/>
+        <location filename="../ui/settings_window.py" line="1410"/>
         <source>Log level:</source>
         <translation>Loggnivå:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1378"/>
+        <location filename="../ui/settings_window.py" line="1412"/>
         <source>Open live-log window</source>
         <translation>Öppna realtidsloggen</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1380"/>
+        <location filename="../ui/settings_window.py" line="1414"/>
         <source>Open log folder</source>
         <translation>Öppna loggmappen</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1389"/>
+        <location filename="../ui/settings_window.py" line="1423"/>
         <source>Maintenance</source>
         <translation>Underhåll</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1390"/>
-        <location filename="../ui/settings_window.py" line="2021"/>
+        <location filename="../ui/settings_window.py" line="1424"/>
+        <location filename="../ui/settings_window.py" line="2068"/>
         <source>Restart Refrain</source>
         <translation>Starta om Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1392"/>
+        <location filename="../ui/settings_window.py" line="1426"/>
         <source>Reset all settings to defaults</source>
         <translation>Återställ alla inställningar till standardvärden</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1395"/>
+        <location filename="../ui/settings_window.py" line="1429"/>
         <source>Uninstall Refrain…</source>
         <translation>Avinstallera Refrain…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1410"/>
+        <location filename="../ui/settings_window.py" line="1444"/>
         <source>Developer</source>
         <translation>Utvecklare</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1411"/>
-        <location filename="../ui/settings_window.py" line="1461"/>
+        <location filename="../ui/settings_window.py" line="1445"/>
+        <location filename="../ui/settings_window.py" line="1495"/>
         <source>Developer mode</source>
         <translation>Utvecklarläge</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1416"/>
+        <location filename="../ui/settings_window.py" line="1450"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Mäter tider och hur du använder Refrain, bara på den här datorn. Inget skickas någonsin. Resultaten finns i realtidsloggen.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1462"/>
+        <location filename="../ui/settings_window.py" line="1496"/>
         <source>Turn on developer mode?</source>
         <translation>Slå på utvecklarläget?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1465"/>
+        <location filename="../ui/settings_window.py" line="1499"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1251,22 +1272,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Allt stannar på den här datorn och skickas aldrig någonstans. Mätningen kostar lite prestanda. Du kan stänga av det igen under Avancerat.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1473"/>
+        <location filename="../ui/settings_window.py" line="1507"/>
         <source>Turn on</source>
         <translation>Slå på</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1537"/>
+        <location filename="../ui/settings_window.py" line="1571"/>
         <source>Checking…</source>
         <translation>Kontrollerar…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1557"/>
+        <location filename="../ui/settings_window.py" line="1591"/>
         <source>Reset all settings</source>
         <translation>Återställ alla inställningar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1560"/>
+        <location filename="../ui/settings_window.py" line="1594"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1275,47 +1296,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 Återställningen sparas direkt, och ändringar du inte har sparat än går förlorade.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1572"/>
+        <location filename="../ui/settings_window.py" line="1606"/>
         <source>Reset</source>
         <translation>Återställ</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1599"/>
+        <location filename="../ui/settings_window.py" line="1633"/>
         <source>Unsaved changes</source>
         <translation>Osparade ändringar</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1600"/>
+        <location filename="../ui/settings_window.py" line="1634"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Du har ändrat inställningar som inte har sparats än.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1601"/>
+        <location filename="../ui/settings_window.py" line="1635"/>
         <source>Save</source>
         <translation>Spara</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1602"/>
+        <location filename="../ui/settings_window.py" line="1636"/>
         <source>Discard</source>
         <translation>Förkasta</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1603"/>
+        <location filename="../ui/settings_window.py" line="1637"/>
         <source>Keep editing</source>
         <translation>Fortsätt redigera</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1630"/>
+        <location filename="../ui/settings_window.py" line="1664"/>
         <source>(no data files found)</source>
         <translation>(inga datafiler hittades)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1636"/>
+        <location filename="../ui/settings_window.py" line="1670"/>
         <source>Uninstall Refrain</source>
         <translation>Avinstallera Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1639"/>
+        <location filename="../ui/settings_window.py" line="1673"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1338,38 +1359,38 @@ Själva programmet tas INTE bort – kör efteråt:
 Refrain stängs. Detta kan inte ångras.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1646"/>
+        <location filename="../ui/settings_window.py" line="1680"/>
         <source>Uninstall</source>
         <translation>Avinstallera</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1664"/>
+        <location filename="../ui/settings_window.py" line="1698"/>
         <source>Connected as {user}</source>
         <translation>Ansluten som {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1667"/>
+        <location filename="../ui/settings_window.py" line="1701"/>
         <source>Connected</source>
         <translation>Ansluten</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1674"/>
+        <location filename="../ui/settings_window.py" line="1708"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Inte ansluten – ange API key + secret igen och klicka på Anslut</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1712"/>
+        <location filename="../ui/settings_window.py" line="1746"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Ange först din Last.fm API key och shared secret. Använd ”Skapa API-konto” för att registrera ett (gratis).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1758"/>
-        <location filename="../ui/settings_window.py" line="1802"/>
+        <location filename="../ui/settings_window.py" line="1792"/>
+        <location filename="../ui/settings_window.py" line="1836"/>
         <source>Last.fm connection failed</source>
         <translation>Anslutningen till Last.fm misslyckades</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1803"/>
+        <location filename="../ui/settings_window.py" line="1837"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1378,22 +1399,22 @@ Refrain stängs. Detta kan inte ångras.</translation>
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2015"/>
+        <location filename="../ui/settings_window.py" line="2062"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>Refrain startar om för att använda det nya språket.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2023"/>
+        <location filename="../ui/settings_window.py" line="2070"/>
         <source>Save and restart</source>
         <translation>Spara och starta om</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2081"/>
+        <location filename="../ui/settings_window.py" line="2128"/>
         <source>Could not save settings</source>
         <translation>Kunde inte spara inställningarna</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2083"/>
+        <location filename="../ui/settings_window.py" line="2130"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1406,12 +1427,12 @@ The settings you just changed will apply for this session but won&apos;t persist
 Inställningarna du just ändrade gäller under den här sessionen men finns inte kvar efter en omstart.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2095"/>
+        <location filename="../ui/settings_window.py" line="2142"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Kunde inte spara Last.fm-uppgifterna</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2097"/>
+        <location filename="../ui/settings_window.py" line="2144"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -2193,7 +2214,7 @@ I en skrivbordssession bör detta normalt vara tillgängligt automatiskt. Kontro
     <message>
         <location filename="../app.py" line="1110"/>
         <location filename="../app.py" line="1117"/>
-        <location filename="../app.py" line="1510"/>
+        <location filename="../app.py" line="1514"/>
         <source>Updates</source>
         <translation>Uppdateringar</translation>
     </message>
@@ -2253,7 +2274,7 @@ Kör följande för att ta bort själva programmet:
         <translation>Avinstallera</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1511"/>
+        <location filename="../app.py" line="1515"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>Ingen uppdateringsinformation finns än. Försök igen om en stund.</translation>
     </message>

@@ -439,7 +439,9 @@ class DaemonWorker(QObject):
     def __init__(self, config: Config):
         super().__init__()
         self._config = config
-        self._mpris = MPRISSource(config.sources.browser_hints_list())
+        self._mpris = MPRISSource(
+            config.sources.browser_hints_list(), config.sources.app_hints_list()
+        )
         self._bluetooth = BluetoothSource(config.sources.bluetooth_device)
         # The active RPC client_id is decided per-source (see
         # `_rpc_client_id_for`). Start with the default; it's swapped in
@@ -635,6 +637,7 @@ class DaemonWorker(QObject):
         self._config = config
         self._bluetooth.set_device(config.sources.bluetooth_device)
         self._mpris.set_browser_hints(config.sources.browser_hints_list())
+        self._mpris.set_app_hints(config.sources.app_hints_list())
         # Drop the active RPC if any of the relevant client_ids changed —
         # `_update_rpc` reconnects under the right per-source ID on the
         # next tick. Just nilling `_rpc_active_client_id` triggers the

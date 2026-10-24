@@ -110,9 +110,13 @@ def test_dataclasses_have_expected_fields():
         "app_icon",
         "app_icon_for_id",
     } == set(DiscordConfig.__dataclass_fields__)
-    assert {"mpris_enabled", "bluetooth_enabled", "bluetooth_device", "browser_hints"} == set(
-        SourcesConfig.__dataclass_fields__
-    )
+    assert {
+        "mpris_enabled",
+        "bluetooth_enabled",
+        "bluetooth_device",
+        "browser_hints",
+        "app_hints",
+    } == set(SourcesConfig.__dataclass_fields__)
     assert {"mode", "resume_mode"} == set(PrivacyConfig.__dataclass_fields__)
     assert {
         "autostart",

@@ -550,8 +550,8 @@
     <message>
         <location filename="../ui/settings_window.py" line="627"/>
         <location filename="../ui/settings_window.py" line="939"/>
-        <location filename="../ui/settings_window.py" line="1710"/>
-        <location filename="../ui/settings_window.py" line="1785"/>
+        <location filename="../ui/settings_window.py" line="1744"/>
+        <location filename="../ui/settings_window.py" line="1819"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
@@ -570,10 +570,10 @@
         <location filename="../ui/settings_window.py" line="903"/>
         <location filename="../ui/settings_window.py" line="914"/>
         <location filename="../ui/settings_window.py" line="931"/>
-        <location filename="../ui/settings_window.py" line="1474"/>
-        <location filename="../ui/settings_window.py" line="1573"/>
-        <location filename="../ui/settings_window.py" line="1647"/>
-        <location filename="../ui/settings_window.py" line="2024"/>
+        <location filename="../ui/settings_window.py" line="1508"/>
+        <location filename="../ui/settings_window.py" line="1607"/>
+        <location filename="../ui/settings_window.py" line="1681"/>
+        <location filename="../ui/settings_window.py" line="2071"/>
         <source>Cancel</source>
         <translation>Zrušit</translation>
     </message>
@@ -786,7 +786,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="913"/>
-        <location filename="../ui/settings_window.py" line="1668"/>
+        <location filename="../ui/settings_window.py" line="1702"/>
         <source>Disconnect</source>
         <translation>Odpojit</translation>
     </message>
@@ -857,7 +857,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1005"/>
-        <location filename="../ui/settings_window.py" line="1678"/>
+        <location filename="../ui/settings_window.py" line="1712"/>
         <source>Not connected</source>
         <translation>Nepřipojeno</translation>
     </message>
@@ -868,8 +868,8 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1008"/>
-        <location filename="../ui/settings_window.py" line="1676"/>
-        <location filename="../ui/settings_window.py" line="1679"/>
+        <location filename="../ui/settings_window.py" line="1710"/>
+        <location filename="../ui/settings_window.py" line="1713"/>
         <source>Connect…</source>
         <translation>Připojit…</translation>
     </message>
@@ -915,6 +915,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1098"/>
+        <location filename="../ui/settings_window.py" line="1131"/>
         <source>Other (comma-separated):</source>
         <translation>Další (oddělené čárkami):</translation>
     </message>
@@ -925,53 +926,73 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1110"/>
+        <source>Apple Music app (native)</source>
+        <translation>Aplikace Apple Music (nativní)</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1111"/>
+        <source>Detected apps:</source>
+        <translation>Rozpoznané aplikace:</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1130"/>
+        <source>e.g. another Apple Music client</source>
+        <translation>např. jiný klient Apple Music</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1135"/>
+        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. They share the switch above.</source>
+        <translation>Přehrávače, které jsou samy klientem Apple Music, rozpoznávané stejným způsobem. Nepřehrávají nic jiného, takže je Refrain rozpozná i bez adresy stránky. Sdílejí přepínač výše.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1144"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1111"/>
+        <location filename="../ui/settings_window.py" line="1145"/>
         <source>Enable Bluetooth source</source>
         <translation>Zapnout zdroj Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1117"/>
+        <location filename="../ui/settings_window.py" line="1151"/>
         <source>Refresh</source>
         <translation>Obnovit</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
+        <location filename="../ui/settings_window.py" line="1159"/>
         <source>Device:</source>
         <translation>Zařízení:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1129"/>
+        <location filename="../ui/settings_window.py" line="1163"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Vyberte spárované zařízení, nebo ponechte automatické rozpoznání a bude se číst ten zdroj s podporou AVRCP, který je právě připojen.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1142"/>
-        <location filename="../ui/settings_window.py" line="1154"/>
-        <location filename="../ui/settings_window.py" line="1928"/>
+        <location filename="../ui/settings_window.py" line="1176"/>
+        <location filename="../ui/settings_window.py" line="1188"/>
+        <location filename="../ui/settings_window.py" line="1974"/>
         <source>(auto-detect)</source>
         <translation>(rozpoznat automaticky)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1156"/>
+        <location filename="../ui/settings_window.py" line="1190"/>
         <source>(unknown device)</source>
         <translation>(neznámé zařízení)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1159"/>
+        <location filename="../ui/settings_window.py" line="1193"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (připojeno)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1179"/>
+        <location filename="../ui/settings_window.py" line="1213"/>
         <source>just now</source>
         <translation>právě teď</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1182"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>před %n minutou</numerusform>
@@ -980,7 +1001,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1185"/>
+        <location filename="../ui/settings_window.py" line="1219"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>před %n hodinou</numerusform>
@@ -989,7 +1010,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1187"/>
+        <location filename="../ui/settings_window.py" line="1221"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>před %n dnem</numerusform>
@@ -998,152 +1019,152 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1200"/>
+        <location filename="../ui/settings_window.py" line="1234"/>
         <source>never</source>
         <translation>nikdy</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1212"/>
+        <location filename="../ui/settings_window.py" line="1246"/>
         <source>Update checking</source>
         <translation>Kontrola aktualizací</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1215"/>
+        <location filename="../ui/settings_window.py" line="1249"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Kontrolovat automaticky při spuštění (nejvýše jednou denně)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1220"/>
+        <location filename="../ui/settings_window.py" line="1254"/>
         <source>Current version:</source>
         <translation>Aktuální verze:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1222"/>
+        <location filename="../ui/settings_window.py" line="1256"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1223"/>
+        <location filename="../ui/settings_window.py" line="1257"/>
         <source>Latest known:</source>
         <translation>Nejnovější známá:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1226"/>
+        <location filename="../ui/settings_window.py" line="1260"/>
         <source>Last checked:</source>
         <translation>Naposledy zkontrolováno:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1230"/>
+        <location filename="../ui/settings_window.py" line="1264"/>
         <source>Check for updates now</source>
         <translation>Zkontrolovat aktualizace nyní</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1237"/>
+        <location filename="../ui/settings_window.py" line="1271"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain se dotazuje GitHub Releases API. Způsob aktualizace závisí na tom, jak byl Refrain nainstalován (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1256"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>Latest release notes</source>
         <translation>Poznámky k nejnovějšímu vydání</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1262"/>
+        <location filename="../ui/settings_window.py" line="1296"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_Klikněte na_ **Zkontrolovat aktualizace nyní** _a z GitHubu se načte nejnovější seznam změn._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1285"/>
+        <location filename="../ui/settings_window.py" line="1319"/>
         <source>(check failed)</source>
         <translation>(kontrola selhala)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1287"/>
+        <location filename="../ui/settings_window.py" line="1321"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_Nelze se spojit s GitHubem. Zkontrolujte připojení k síti a zkuste to znovu._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1292"/>
+        <location filename="../ui/settings_window.py" line="1326"/>
         <source>{version} (update available)</source>
         <translation>{version} (k dispozici aktualizace)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1296"/>
+        <location filename="../ui/settings_window.py" line="1330"/>
         <source>{version} (up to date)</source>
         <translation>{version} (aktuální)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1298"/>
+        <location filename="../ui/settings_window.py" line="1332"/>
         <source>_No release notes provided._</source>
         <translation>_Poznámky k vydání nejsou k dispozici._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1308"/>
+        <location filename="../ui/settings_window.py" line="1342"/>
         <source>Performance</source>
         <translation>Výkon</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1314"/>
+        <location filename="../ui/settings_window.py" line="1348"/>
         <source>Poll interval:</source>
         <translation>Interval dotazování:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1321"/>
+        <location filename="../ui/settings_window.py" line="1355"/>
         <source>Notification delay:</source>
         <translation>Zpoždění oznámení:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1325"/>
+        <location filename="../ui/settings_window.py" line="1359"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>Interval dotazování určuje, jak často se Refrain ptá přehrávače, co hraje: nižší hodnota reaguje rychleji, ale trochu víc zatěžuje procesor. Zpoždění oznámení dává čas na načtení obalu.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1338"/>
+        <location filename="../ui/settings_window.py" line="1372"/>
         <source>Localization</source>
         <translation>Jazyk</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1341"/>
+        <location filename="../ui/settings_window.py" line="1375"/>
         <source>System default</source>
         <translation>Podle systému</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1358"/>
+        <location filename="../ui/settings_window.py" line="1392"/>
         <source>Language:</source>
         <translation>Jazyk:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1360"/>
+        <location filename="../ui/settings_window.py" line="1394"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Nový jazyk vyžaduje restart; Refrain se předtím zeptá.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1401"/>
+        <location filename="../ui/settings_window.py" line="1435"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Odinstalování smaže všechna data Refrainu a přihlašovací údaje Last.fm a poté zobrazí příkaz, který odstraní program. Tuto akci nelze vrátit zpět.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1719"/>
+        <location filename="../ui/settings_window.py" line="1753"/>
         <source>Requesting authorization token…</source>
         <translation>Vyžaduje se autorizační token…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1778"/>
+        <location filename="../ui/settings_window.py" line="1812"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Připojeno jako {user}. Scrobblování začne od další skladby.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1782"/>
+        <location filename="../ui/settings_window.py" line="1816"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Připojeno. Scrobblování začne od další skladby.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1784"/>
+        <location filename="../ui/settings_window.py" line="1818"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Zůstává pozastaveno, dokud je Soukromí nastaveno na Vypnuto.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1365"/>
+        <location filename="../ui/settings_window.py" line="1399"/>
         <source>Logging</source>
         <translation>Protokolování</translation>
     </message>
@@ -1168,89 +1189,89 @@
         <translation>Co Refrain sdílí během přehrávání. Vypnuto zastaví i Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1369"/>
+        <location filename="../ui/settings_window.py" line="1403"/>
         <source>Detailed (DEBUG)</source>
         <translation>Podrobné (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1370"/>
+        <location filename="../ui/settings_window.py" line="1404"/>
         <source>Normal (INFO)</source>
         <translation>Normální (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1371"/>
+        <location filename="../ui/settings_window.py" line="1405"/>
         <source>Warnings only</source>
         <translation>Jen varování</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1372"/>
+        <location filename="../ui/settings_window.py" line="1406"/>
         <source>Errors only</source>
         <translation>Jen chyby</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1375"/>
+        <location filename="../ui/settings_window.py" line="1409"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Při hlášení chyby zvolte Podrobné.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1376"/>
+        <location filename="../ui/settings_window.py" line="1410"/>
         <source>Log level:</source>
         <translation>Úroveň protokolování:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1378"/>
+        <location filename="../ui/settings_window.py" line="1412"/>
         <source>Open live-log window</source>
         <translation>Otevřít okno živého protokolu</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1380"/>
+        <location filename="../ui/settings_window.py" line="1414"/>
         <source>Open log folder</source>
         <translation>Otevřít složku s protokoly</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1389"/>
+        <location filename="../ui/settings_window.py" line="1423"/>
         <source>Maintenance</source>
         <translation>Údržba</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1390"/>
-        <location filename="../ui/settings_window.py" line="2021"/>
+        <location filename="../ui/settings_window.py" line="1424"/>
+        <location filename="../ui/settings_window.py" line="2068"/>
         <source>Restart Refrain</source>
         <translation>Restartovat Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1392"/>
+        <location filename="../ui/settings_window.py" line="1426"/>
         <source>Reset all settings to defaults</source>
         <translation>Obnovit výchozí hodnoty všech nastavení</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1395"/>
+        <location filename="../ui/settings_window.py" line="1429"/>
         <source>Uninstall Refrain…</source>
         <translation>Odinstalovat Refrain…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1410"/>
+        <location filename="../ui/settings_window.py" line="1444"/>
         <source>Developer</source>
         <translation>Vývojář</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1411"/>
-        <location filename="../ui/settings_window.py" line="1461"/>
+        <location filename="../ui/settings_window.py" line="1445"/>
+        <location filename="../ui/settings_window.py" line="1495"/>
         <source>Developer mode</source>
         <translation>Režim vývojáře</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1416"/>
+        <location filename="../ui/settings_window.py" line="1450"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Měří časování a to, jak Refrain používáte, pouze na tomto počítači. Nic se nikdy neodesílá. Výsledky jsou v okně živého protokolu.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1462"/>
+        <location filename="../ui/settings_window.py" line="1496"/>
         <source>Turn on developer mode?</source>
         <translation>Zapnout režim vývojáře?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1465"/>
+        <location filename="../ui/settings_window.py" line="1499"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1259,22 +1280,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Vše zůstává na tomto počítači a nikam se neodesílá. Měření stojí trochu výkonu. Znovu ho můžete vypnout v Pokročilém.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1473"/>
+        <location filename="../ui/settings_window.py" line="1507"/>
         <source>Turn on</source>
         <translation>Zapnout</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1537"/>
+        <location filename="../ui/settings_window.py" line="1571"/>
         <source>Checking…</source>
         <translation>Kontroluje se…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1557"/>
+        <location filename="../ui/settings_window.py" line="1591"/>
         <source>Reset all settings</source>
         <translation>Obnovit výchozí nastavení</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1560"/>
+        <location filename="../ui/settings_window.py" line="1594"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1283,47 +1304,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 Obnovení se uloží ihned a změny, které jste ještě neuložili, budou zahozeny.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1572"/>
+        <location filename="../ui/settings_window.py" line="1606"/>
         <source>Reset</source>
         <translation>Obnovit výchozí</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1599"/>
+        <location filename="../ui/settings_window.py" line="1633"/>
         <source>Unsaved changes</source>
         <translation>Neuložené změny</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1600"/>
+        <location filename="../ui/settings_window.py" line="1634"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Změnili jste nastavení, která ještě nejsou uložena.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1601"/>
+        <location filename="../ui/settings_window.py" line="1635"/>
         <source>Save</source>
         <translation>Uložit</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1602"/>
+        <location filename="../ui/settings_window.py" line="1636"/>
         <source>Discard</source>
         <translation>Zahodit</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1603"/>
+        <location filename="../ui/settings_window.py" line="1637"/>
         <source>Keep editing</source>
         <translation>Pokračovat v úpravách</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1630"/>
+        <location filename="../ui/settings_window.py" line="1664"/>
         <source>(no data files found)</source>
         <translation>(nenalezeny žádné datové soubory)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1636"/>
+        <location filename="../ui/settings_window.py" line="1670"/>
         <source>Uninstall Refrain</source>
         <translation>Odinstalovat Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1639"/>
+        <location filename="../ui/settings_window.py" line="1673"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1346,38 +1367,38 @@ Samotný program se NEODSTRANÍ – poté spusťte:
 Refrain se zavře. Tuto akci nelze vrátit zpět.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1646"/>
+        <location filename="../ui/settings_window.py" line="1680"/>
         <source>Uninstall</source>
         <translation>Odinstalovat</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1664"/>
+        <location filename="../ui/settings_window.py" line="1698"/>
         <source>Connected as {user}</source>
         <translation>Připojeno jako {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1667"/>
+        <location filename="../ui/settings_window.py" line="1701"/>
         <source>Connected</source>
         <translation>Připojeno</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1674"/>
+        <location filename="../ui/settings_window.py" line="1708"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Nepřipojeno – znovu zadejte klíč API + secret a klikněte na Připojit…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1712"/>
+        <location filename="../ui/settings_window.py" line="1746"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Nejprve zadejte klíč API a shared secret pro Last.fm. Bezplatný účet si zaregistrujete přes „Vytvořit účet API“.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1758"/>
-        <location filename="../ui/settings_window.py" line="1802"/>
+        <location filename="../ui/settings_window.py" line="1792"/>
+        <location filename="../ui/settings_window.py" line="1836"/>
         <source>Last.fm connection failed</source>
         <translation>Připojení k Last.fm selhalo</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1803"/>
+        <location filename="../ui/settings_window.py" line="1837"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1386,22 +1407,22 @@ Refrain se zavře. Tuto akci nelze vrátit zpět.</translation>
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2015"/>
+        <location filename="../ui/settings_window.py" line="2062"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>Refrain se restartuje, aby použil nový jazyk.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2023"/>
+        <location filename="../ui/settings_window.py" line="2070"/>
         <source>Save and restart</source>
         <translation>Uložit a restartovat</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2081"/>
+        <location filename="../ui/settings_window.py" line="2128"/>
         <source>Could not save settings</source>
         <translation>Nastavení nelze uložit</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2083"/>
+        <location filename="../ui/settings_window.py" line="2130"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1414,12 +1435,12 @@ The settings you just changed will apply for this session but won&apos;t persist
 Právě změněná nastavení platí pro tuto relaci, ale po restartu se neuchovají.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2095"/>
+        <location filename="../ui/settings_window.py" line="2142"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Nepodařilo se uložit přihlašovací údaje Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2097"/>
+        <location filename="../ui/settings_window.py" line="2144"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -2203,7 +2224,7 @@ V desktopové relaci by to obvykle mělo být dostupné automaticky. Zkontrolujt
     <message>
         <location filename="../app.py" line="1110"/>
         <location filename="../app.py" line="1117"/>
-        <location filename="../app.py" line="1510"/>
+        <location filename="../app.py" line="1514"/>
         <source>Updates</source>
         <translation>Aktualizace</translation>
     </message>
@@ -2263,7 +2284,7 @@ Chcete-li odstranit samotný program, spusťte:
         <translation>Odinstalovat</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1511"/>
+        <location filename="../app.py" line="1515"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>Zatím nejsou k dispozici žádné informace o aktualizacích. Zkuste to za chvíli znovu.</translation>
     </message>

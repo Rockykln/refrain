@@ -137,6 +137,22 @@ def test_typed_browser_names_are_kept_after_the_ticked_ones(win):
     assert win.sent[-1].sources.browser_hints == f"{first},vivaldi"
 
 
+def test_unticking_every_app_leaves_no_native_client(win):
+    for cb in win._app_checkboxes.values():
+        cb.setChecked(False)
+    win._on_apply_clicked()
+    assert win.sent[-1].sources.app_hints == ""
+
+
+def test_a_typed_app_name_joins_the_ticked_one(win):
+    for cb in win._app_checkboxes.values():
+        cb.setChecked(False)
+    win._app_checkboxes["slipmat"].setChecked(True)
+    win.app_extra_input.setText(" Scratter , SLIPMAT ")
+    win._on_apply_clicked()
+    assert win.sent[-1].sources.app_hints == "slipmat,scratter"
+
+
 # confirm boxes
 
 

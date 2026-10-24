@@ -39,6 +39,7 @@ FIXED = [
     ("discord", "client_id_bluetooth", "123\n456", ""),
     ("sources", "browser_hints", ",, ,", ",".join(DEFAULT_BROWSER_HINTS)),
     ("sources", "browser_hints", "firefox,<script>,zen", "firefox,zen"),
+    ("sources", "app_hints", "slipmat,<script>", "slipmat"),
     ("update", "last_check_ts", -5, 0),
     ("update", "last_check_ts", 99_999_999_999, 0),
 ]
@@ -73,6 +74,9 @@ KEPT = [
     ("discord", "client_id_mpris", "12345678901234567"),
     ("discord", "client_id_bluetooth", "12345678901234567890"),
     ("sources", "browser_hints", "Firefox, zen ,google chrome"),
+    # Unlike the browsers, no app at all is a choice and keeps no default.
+    ("sources", "app_hints", ""),
+    ("sources", "app_hints", "slipmat,cider"),
     ("update", "last_check_ts", 0),
     ("update", "last_check_ts", 1_700_000_000),
 ]

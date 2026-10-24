@@ -19,6 +19,7 @@ mpris_enabled = true
 bluetooth_enabled = true
 bluetooth_device = ""              # empty = auto-detect, or "AA:BB:CC:DD:EE:FF"
 browser_hints = "firefox,chromium,…"  # which MPRIS players count as a browser; edit if yours isn't detected
+app_hints = "slipmat,cider,…"      # native Apple Music clients; they need no page address
 
 [privacy]
 mode = "full"                      # "full" | "minimal" | "off"

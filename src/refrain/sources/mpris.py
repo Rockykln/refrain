@@ -1,6 +1,6 @@
-"""MPRIS source for Apple Music playing in a browser tab.
+"""MPRIS source for Apple Music in a browser tab or a native client.
 
-The highest-scoring browser player on music.apple.com wins; its bus name is kept for controls."""
+The highest-scoring player wins; its bus name is kept for controls."""
 
 from __future__ import annotations
 
@@ -45,6 +45,8 @@ BROWSER_HINTS = (
     # Per-DE bridge
     "plasma-browser-integration",
 )
+# Native Apple Music clients, which play nothing else and so need no URL.
+APP_HINTS = ("slipmat", "cider", "sidra")
 
 _ROOT_IFACE = "org.mpris.MediaPlayer2"
 _PLAYER_IFACE = "org.mpris.MediaPlayer2.Player"
@@ -123,7 +125,7 @@ def _is_apple_music_page_title(title: str) -> bool:
     return t == "apple music" or t.endswith("- apple music") or t.startswith("apple music -")
 
 
-def _looks_browser(name: str, identity: str, desktop_entry: str, hints: list[str]) -> bool:
+def _matches_hints(name: str, identity: str, desktop_entry: str, hints: list[str]) -> bool:
     hay = f"{name} {identity} {desktop_entry}".lower()
     return any(h in hay for h in hints)
 
@@ -173,12 +175,16 @@ def _clean_album(album: str, title: str) -> str:
 class MPRISSource:
     """Reads — and controls — the currently active Apple Music browser session.
 
-    ``browser_hints`` is the list of substrings to look for in MPRIS bus
-    names / desktop entries to identify a browser. Defaults to the major
-    Linux browsers; can be overridden via the Sources tab in settings.
+    ``browser_hints`` and ``app_hints`` are the substrings to look for in
+    MPRIS bus names / desktop entries to identify a browser, or a native
+    Apple Music client. Both can be overridden via the Sources tab.
     """
 
-    def __init__(self, browser_hints: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        browser_hints: list[str] | None = None,
+        app_hints: list[str] | None = None,
+    ) -> None:
         self._last_player_name: str | None = None
         self._control_fallback_names: list[str] = []
         # The browser's own MPRIS entries for an Apple Music tab — no URL,
@@ -189,6 +195,8 @@ class MPRISSource:
         # the change once rather than twice a second.
         self._overruled: PlaybackStatus | None = None
         self._browser_hints = list(browser_hints) if browser_hints else list(BROWSER_HINTS)
+        # None means "not configured"; an empty list is a choice and stays empty.
+        self._app_hints = list(app_hints) if app_hints is not None else list(APP_HINTS)
         # Per-player blacklist: bus-name → monotonic time when it
         # becomes eligible to retry. A single property timeout banishes
         # the player for `_BLACKLIST_S` seconds so subsequent reads
@@ -225,6 +233,9 @@ class MPRISSource:
     def set_browser_hints(self, hints: list[str]) -> None:
         if hints:
             self._browser_hints = list(hints)
+
+    def set_app_hints(self, hints: list[str]) -> None:
+        self._app_hints = list(hints)
 
     def _session_bus(self):
         """This source's own session-bus connection, with no main loop.
@@ -501,6 +512,11 @@ class MPRISSource:
             log.exception("MPRIS %s on %s unexpected error", method, name)
             return False
 
+    def _known_player(self, name: str, identity: str, desktop_entry: str) -> bool:
+        return _matches_hints(name, identity, desktop_entry, self._browser_hints) or _matches_hints(
+            name, identity, desktop_entry, self._app_hints
+        )
+
     def _read_player(self, bus, name: str) -> tuple[TrackInfo | None, int, str, str]:
         """Returns (track_info_or_None, score, apple_music_tab_status,
         no_url_browser_identity).
@@ -513,7 +529,7 @@ class MPRISSource:
         """
         try:
             ident = self._identities.get(name)
-            if ident is not None and not _looks_browser(name, *ident, self._browser_hints):
+            if ident is not None and not self._known_player(name, *ident):
                 return None, 0, "", ""
             props = self._proxies.get(name)
             if props is None:
@@ -534,8 +550,9 @@ class MPRISSource:
                 if complete:
                     self._identities[name] = ident
             identity, desktop_entry = ident
-            if not _looks_browser(name, identity, desktop_entry, self._browser_hints):
+            if not self._known_player(name, identity, desktop_entry):
                 return None, 0, "", ""
+            is_app = _matches_hints(name, identity, desktop_entry, self._app_hints)
 
             values, _ = self._read_props(
                 props, name, _PLAYER_IFACE, ("PlaybackStatus", "Metadata", "Position")
@@ -552,7 +569,7 @@ class MPRISSource:
             duration_ms = _safe_ms(metadata.get("mpris:length", 0) or 0, 1000)
             position_ms = _safe_ms(values.get("Position", 0) or 0, 1000)
 
-            if not _looks_apple_music(url):
+            if not is_app and not _looks_apple_music(url):
                 # Browser is playing *something* — it might be the same Apple
                 # Music tab seen from the browser's native MPRIS view, while
                 # KDE's plasma-browser-integration owns the rich URL/metadata.

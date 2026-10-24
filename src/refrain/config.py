@@ -223,6 +223,10 @@ DEFAULT_BROWSER_HINTS = (
     "plasma-browser-integration",
 )
 
+# Native Apple Music clients. They are Apple Music themselves, so unlike a
+# browser tab they need no `xesam:url` to prove what they are playing.
+DEFAULT_APP_HINTS = ("slipmat", "cider", "sidra")
+
 
 @dataclass
 class SourcesConfig:
@@ -233,9 +237,14 @@ class SourcesConfig:
     # picks up players whose name/identity matches one of these. Edit if
     # your browser isn't auto-detected.
     browser_hints: str = ",".join(DEFAULT_BROWSER_HINTS)
+    # Same syntax, for players that are an Apple Music client themselves.
+    app_hints: str = ",".join(DEFAULT_APP_HINTS)
 
     def browser_hints_list(self) -> list[str]:
         return [h.strip().lower() for h in self.browser_hints.split(",") if h.strip()]
+
+    def app_hints_list(self) -> list[str]:
+        return [h.strip().lower() for h in self.app_hints.split(",") if h.strip()]
 
 
 @dataclass
@@ -472,6 +481,15 @@ def _check_browser_hints(value: str):
     return value, None
 
 
+def _check_app_hints(value: str):
+    tokens = [t.strip().lower() for t in value.split(",") if t.strip()]
+    good = [t for t in tokens if _BROWSER_HINT_RE.fullmatch(t)]
+    # Empty is a valid answer here — someone who unticks every app wants none.
+    if len(good) != len(tokens):
+        return ",".join(good), "contains unusable entries"
+    return value, None
+
+
 def _check_timestamp(value):
     ts = _require_int(value)
     if ts < 0:
@@ -502,6 +520,7 @@ _RULES: tuple[tuple[str, str, _Check], ...] = (
     ("discord", "client_id_bluetooth", _check_client_id),
     ("sources", "bluetooth_device", _check_bluetooth_device),
     ("sources", "browser_hints", _check_browser_hints),
+    ("sources", "app_hints", _check_app_hints),
     # Not the default "full": a mistyped mode must not share more than intended.
     ("privacy", "mode", _one_of(PRIVACY_MODES, "minimal")),
     ("privacy", "resume_mode", _one_of(("full", "minimal"), "full")),

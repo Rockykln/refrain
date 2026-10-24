@@ -699,3 +699,39 @@ def test_a_slow_player_does_not_keep_the_rest_from_ever_being_read(bus, monkeypa
     read.clear()
     src.read()
     assert read == names[2:]
+
+
+SLIPMAT = "org.mpris.MediaPlayer2.Slipmat"
+
+
+def test_a_native_apple_music_app_is_read_without_a_url(bus):
+    bus({SLIPMAT: _player(identity="Slipmat", url=None)})
+    track = mpris.MPRISSource().read()
+    assert track.title == "Glass Tides"
+    assert track.artist == "Neon Harbor"
+    assert track.duration_ms == 215_914
+    assert track.url == ""
+    assert track.player == "Slipmat"
+
+
+def test_a_player_on_neither_list_is_still_ignored(bus):
+    bus({"org.mpris.MediaPlayer2.vlc": _player(identity="VLC", url=None)})
+    assert mpris.MPRISSource().read().title == ""
+
+
+def test_app_hints_can_name_another_client(bus):
+    bus({"org.mpris.MediaPlayer2.cider": _player(identity="Cider", url=None)})
+    assert mpris.MPRISSource(app_hints=["cider"]).read().title == "Glass Tides"
+
+
+def test_an_empty_app_hint_list_turns_native_apps_off(bus):
+    bus({SLIPMAT: _player(identity="Slipmat", url=None)})
+    src = mpris.MPRISSource()
+    assert src.read().title == "Glass Tides"
+    src.set_app_hints([])
+    assert src.read().title == ""
+
+
+def test_a_browser_still_needs_an_apple_music_url(bus):
+    bus({CHROMIUM: _player(url="https://www.youtube.com/watch?v=abc")})
+    assert mpris.MPRISSource().read().title == ""

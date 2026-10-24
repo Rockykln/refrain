@@ -128,6 +128,9 @@ class FakeSource:
     def set_browser_hints(self, hints: list[str]) -> None:
         self.hints = hints
 
+    def set_app_hints(self, hints: list[str]) -> None:
+        self.app_hints = hints
+
     def _control(self, name: str) -> bool:
         self.controls.append(name)
         return self.accepts

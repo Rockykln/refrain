@@ -1106,6 +1106,40 @@ class SettingsWindow(QDialog):
         )
         v.addWidget(mpris_group)
 
+        # Native Apple Music apps group
+        app_group, af = _new_group(self.tr("Apple Music app (native)"))
+        apps_label = QLabel(self.tr("Detected apps:"))
+        af.addRow(apps_label)
+
+        self._app_checkboxes: dict[str, QCheckBox] = {}
+        app_grid = QGridLayout()
+        app_grid.setHorizontalSpacing(18)
+        app_grid.setVerticalSpacing(4)
+        app_grid.setContentsMargins(0, 0, 0, 0)
+        known_apps = [("slipmat", "Slipmat"), ("cider", "Cider"), ("sidra", "Sidra")]
+        for idx, (token, label) in enumerate(known_apps):
+            cb = QCheckBox(label)
+            self._app_checkboxes[token] = cb
+            app_grid.addWidget(cb, idx // 2, idx % 2)
+        app_wrap = QWidget()
+        app_wrap.setLayout(app_grid)
+        af.addRow(app_wrap)
+
+        self.app_extra_input = QLineEdit()
+        self.app_extra_input.setFixedWidth(_INPUT_MAX_WIDTH)
+        self.app_extra_input.setPlaceholderText(self.tr("e.g. another Apple Music client"))
+        af.addRow(self.tr("Other (comma-separated):"), self.app_extra_input)
+        af.addRow(
+            _hint(
+                self.tr(
+                    "Players that are an Apple Music client themselves, matched the "
+                    "same way. They play nothing else, so Refrain picks them up "
+                    "without a page address. They share the switch above."
+                )
+            )
+        )
+        v.addWidget(app_group)
+
         # Bluetooth group
         bt_group, bf = _new_group(self.tr("Bluetooth (AVRCP)"))
         self.bluetooth_box = QCheckBox(self.tr("Enable Bluetooth source"))
@@ -1862,6 +1896,12 @@ class SettingsWindow(QDialog):
         extras = sorted(existing - set(self._browser_checkboxes))
         self.browser_extra_input.setText(",".join(extras))
 
+        existing_apps = {h.strip().lower() for h in c.sources.app_hints.split(",") if h.strip()}
+        for token, cb in self._app_checkboxes.items():
+            cb.setChecked(token in existing_apps)
+        app_extras = sorted(existing_apps - set(self._app_checkboxes))
+        self.app_extra_input.setText(",".join(app_extras))
+
         if c.sources.bluetooth_device:
             matched = False
             for i in range(self.bluetooth_device.count()):
@@ -1920,6 +1960,12 @@ class SettingsWindow(QDialog):
             extras = [e.strip().lower() for e in extra_text.split(",") if e.strip()]
             picked.extend(e for e in extras if e not in picked)
 
+        apps_picked = [t for t, cb in self._app_checkboxes.items() if cb.isChecked()]
+        app_extra_text = self.app_extra_input.text().strip()
+        if app_extra_text:
+            extras = [e.strip().lower() for e in app_extra_text.split(",") if e.strip()]
+            apps_picked.extend(e for e in extras if e not in apps_picked)
+
         index = self.bluetooth_device.currentIndex()
         text = self.bluetooth_device.currentText().strip()
         if index >= 0 and text == self.bluetooth_device.itemText(index).strip():
@@ -1955,6 +2001,7 @@ class SettingsWindow(QDialog):
             ("sources", "mpris_enabled"): self.mpris_box.isChecked(),
             ("sources", "bluetooth_enabled"): self.bluetooth_box.isChecked(),
             ("sources", "browser_hints"): ",".join(picked) if picked else None,
+            ("sources", "app_hints"): ",".join(apps_picked),
             ("sources", "bluetooth_device"): bt_device,
             ("privacy", "mode"): self.privacy_combo.currentData() or "full",
             ("advanced", "poll_interval_ms"): self.poll_spin.value(),
