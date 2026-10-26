@@ -44,6 +44,13 @@ def test_song_key_ignores_accents():
     assert song_key("Cafe", "X", "Y") == song_key("Café", "X", "Y")
 
 
+def test_song_key_keeps_two_edits_of_a_song_apart():
+    """Two edits are two lengths; before this they shared one key."""
+    assert song_key("Neon Harbor", "Night Signal [2023 Edit]", "Night Signal - Single") != song_key(
+        "Neon Harbor", "Night Signal [Psy Edit]", "Night Signal - Single"
+    )
+
+
 def test_song_key_treats_ampersand_as_and():
     assert song_key("Simon & Garfunkel", "X", "Y") == song_key("Simon and Garfunkel", "X", "Y")
 

@@ -123,6 +123,52 @@ def test_the_matching_result_wins_over_the_first(monkeypatch, cover_art):
     assert info.cover_url == "https://x/right/600x600bb.jpg"
 
 
+def test_the_edit_that_is_playing_wins_over_another_edit(monkeypatch, cover_art):
+    """Every edit cleans down to the same title, so only the tag tells them apart."""
+    results = [
+        _song(
+            "Neon Harbor",
+            "Night Signal (feat. Ilse Moreau) [Psy Edit]",
+            "Night Signal - Single",
+            ms=108600,
+        ),
+        _song(
+            "Neon Harbor",
+            "Night Signal (feat. Ilse Moreau) [2023 Edit]",
+            "Night Signal - Single",
+            ms=127800,
+        ),
+        _song(
+            "Neon Harbor",
+            "Night Signal (feat. Ilse Moreau) [Kick Edit]",
+            "Night Signal - Single",
+            ms=151800,
+        ),
+    ]
+    _install(monkeypatch, cover_art, _Store(default=results))
+    info = cover_art.lookup_track_info(
+        "Neon Harbor", "Night Signal (feat. Ilse Moreau) [2023 Edit]", "Night Signal - Single"
+    )
+    assert info.duration_ms == 127800
+
+
+def test_the_album_names_the_edit_when_the_title_does_not(monkeypatch, cover_art):
+    results = [
+        _song("Velvet Static", "Late Train Home", "Late Train Home (Radio Edit)", ms=108600),
+        _song("Velvet Static", "Late Train Home", "Late Train Home (Live)", ms=301000),
+    ]
+    _install(monkeypatch, cover_art, _Store(default=results))
+    info = cover_art.lookup_track_info("Velvet Static", "Late Train Home", "Late Train Home (Live)")
+    assert info.duration_ms == 301000
+
+
+def test_a_different_edit_is_still_better_than_nothing(monkeypatch, cover_art):
+    """The tag decides between results; on its own it never rejects one."""
+    only = _song("Velvet Static", "Late Train Home (Radio Edit)", ms=108600)
+    _install(monkeypatch, cover_art, _Store(default=[only]))
+    assert cover_art.lookup_track_info("Velvet Static", "Late Train Home (Live)").duration_ms
+
+
 def test_several_artists_fall_back_to_the_first(monkeypatch, cover_art):
     """MPRIS joins every credited artist; the catalog often lists fewer."""
     hit = _song("Wren & Ash", "Only If You Love Me")
@@ -167,6 +213,20 @@ def test_falls_back_to_the_us_store(monkeypatch, cover_art):
 )
 def test_clean_title(cover_art, title, clean):
     assert cover_art.clean_title(title) == clean
+
+
+@pytest.mark.parametrize(
+    "title,tags",
+    [
+        ("Night Signal (feat. Ilse Moreau) [2023 Edit]", {"2023edit"}),
+        ("Hey Jude - Remastered 2015", {"remastered2015"}),
+        ("Song (Live) [Deluxe]", {"live", "deluxe"}),
+        ("Late Train Home (feat. Ilse Moreau)", set()),
+        ("Possible", set()),
+    ],
+)
+def test_version_tags(cover_art, title, tags):
+    assert cover_art.version_tags(title) == tags
 
 
 # Cache

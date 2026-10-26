@@ -10,7 +10,7 @@ import logging
 import threading
 from pathlib import Path
 
-from refrain.cover_art import clean_title, normalize_name
+from refrain.cover_art import clean_title, normalize_name, version_tags
 from refrain.paths import state_dir, write_private
 
 log = logging.getLogger(__name__)
@@ -34,15 +34,19 @@ def song_key(artist: str, title: str, album: str) -> str:
     """A stable, opaque key for a song.
 
     Same normalisation as the catalog lookup, so "Overexposed (feat. …)" and
-    "Overexposed" are one song rather than two.
+    "Overexposed" are one song rather than two — but an edit keeps its own
+    key, because two edits of a song are two lengths. The tags are appended
+    only when there are any, so keys learned for plain titles stay valid.
     """
-    raw = "\x1f".join(
-        (
-            normalize_name(clean_title(title)),
-            normalize_name(artist),
-            normalize_name(clean_title(album)),
-        )
-    )
+    parts = [
+        normalize_name(clean_title(title)),
+        normalize_name(artist),
+        normalize_name(clean_title(album)),
+    ]
+    tags = version_tags(title) | version_tags(album)
+    if tags:
+        parts.append(" ".join(sorted(tags)))
+    raw = "\x1f".join(parts)
     return hashlib.blake2b(raw.encode("utf-8"), digest_size=8).hexdigest()
 
 

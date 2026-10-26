@@ -117,6 +117,21 @@ def bare_title(title: str) -> str:
     return out or clean_title(title)
 
 
+def version_tags(title: str) -> frozenset[str]:
+    """The version tags a title carries ("[2023 Edit]", "- Radio Edit").
+
+    Two edits of one song clean down to the same name, so the tags are all
+    that tells them apart.
+    """
+    base = _FEAT_TAIL.sub(" ", _FEAT_PAREN.sub(" ", title))
+    tags = {
+        normalize_name(m.group(0))
+        for pattern in (_TAG_PAREN, _TAG_DASH)
+        for m in pattern.finditer(base)
+    }
+    return frozenset(t for t in tags if t)
+
+
 def _split_artists(artist: str) -> list[str]:
     parts = [p.strip() for p in _ARTIST_SEP.split(artist) if p and p.strip()]
     return parts or [artist.strip()]
@@ -176,9 +191,10 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
     want_artists = {a for a in (normalize_name(x) for x in names) if a}
     want_title = normalize_name(clean_title(title))
     want_album = normalize_name(clean_title(album)) if album else ""
+    want_tags = version_tags(title) | version_tags(album)
     if not want_artists or not want_title:
         return None
-    best, best_score = None, -1
+    best, best_score = None, None
     for r in results:
         if not isinstance(r, dict) or r.get("kind", "song") != "song":
             continue
@@ -195,8 +211,15 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
         if not (exact or close):
             continue
         got_album = normalize_name(clean_title(str(r.get("collectionName", "") or "")))
+        got_tags = version_tags(str(r.get("trackName", "") or "")) | version_tags(
+            str(r.get("collectionName", "") or "")
+        )
         score = (2 if exact else 0) + (1 if want_album and want_album == got_album else 0)
-        if score > best_score:
+        # Outweighs the rest: with several edits of one song the titles are
+        # all equally exact, and only the tag says which edit is playing.
+        if want_tags and got_tags:
+            score += 4 if want_tags == got_tags else 1 if want_tags & got_tags else -4
+        if best_score is None or score > best_score:
             best, best_score = r, score
     return _to_lookup(best) if best is not None else None
 
