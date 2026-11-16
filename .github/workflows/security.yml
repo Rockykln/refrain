@@ -83,7 +83,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run TruffleHog
-        uses: trufflesecurity/trufflehog@31ce31ee1abbcc7dc8eee5764c17121c3044c8b2  # v3.99.7
+        uses: trufflesecurity/trufflehog@3bd2b5887eb0efb8fa18bfd1d296032924e4ffdc  # v3.99.9
         with:
           # --only-verified: a secret only counts as flagged when TruffleHog
           # successfully validates it against the live service. Drops the
