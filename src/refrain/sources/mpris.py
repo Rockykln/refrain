@@ -617,7 +617,10 @@ class MPRISSource:
                     duration_ms=duration_ms,
                     position_ms=position_ms,
                     status=status,
-                    url=url,
+                    # The app list decides which player to read, never which
+                    # address to trust: this one travels on to Discord as a
+                    # link labelled "Listen on Apple Music".
+                    url=url if _looks_apple_music(url) else "",
                     player=identity or desktop_entry,
                 ),
                 score,

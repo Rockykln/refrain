@@ -732,6 +732,19 @@ def test_an_empty_app_hint_list_turns_native_apps_off(bus):
     assert src.read().title == ""
 
 
+def test_a_native_client_cannot_smuggle_a_foreign_address(bus):
+    """The app list says which player to read, never which address to trust."""
+    bus({SLIPMAT: _player(identity="Slipmat", url="https://example.invalid/track/1")})
+    track = mpris.MPRISSource().read()
+    assert track.title == "Glass Tides"
+    assert track.url == ""
+
+
+def test_a_native_client_keeps_its_own_apple_music_address(bus):
+    bus({SLIPMAT: _player(identity="Slipmat", url=ALBUM_URL)})
+    assert mpris.MPRISSource().read().url == ALBUM_URL
+
+
 def test_a_browser_still_needs_an_apple_music_url(bus):
     bus({CHROMIUM: _player(url="https://www.youtube.com/watch?v=abc")})
     assert mpris.MPRISSource().read().title == ""

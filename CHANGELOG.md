@@ -16,9 +16,11 @@ lists every version and why.
   went unnoticed. Slipmat, Cider and Sidra are recognised out of the
   box, and `app_hints` in the Sources tab takes any other client. They
   report the song length themselves, so a song Apple's catalogue doesn't
-  know still gets a scrobble and an end time on the Discord card. What
-  they cannot give is the page address, so the *Listen on Apple Music*
-  button stays off for them.
+  know still gets a scrobble and an end time on the Discord card. The
+  *Listen on Apple Music* button links to the song in Apple's catalogue,
+  so it is there for a native client too — it stays off only for a song
+  the catalogue does not know, and an address a client reports itself is
+  used only when Apple Music is the site it points to.
 
 ### Changed
 
