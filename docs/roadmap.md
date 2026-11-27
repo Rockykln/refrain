@@ -635,6 +635,23 @@ were tracked internally as "v0.2.8" but never separately tagged.
   traceback, even when Qt itself links against it.
 - **Python 3.14** is tested and declared.
 
+## Done — v0.5.6
+
+- **Both song lists can be used from the keyboard.** The rows in
+  *Recently played* and in the Status window answered to the pointer
+  only, as did the links Refrain shows; Tab now walks both and a screen
+  reader is told what each row holds.
+- **A paused song stays on the Discord card**, and the last song leaves
+  the profile when Refrain quits, even if Discord started after it.
+- **Privacy "Off" keeps Refrain away from Discord**, instead of only
+  hiding the card.
+- **Every request goes through the same opener**, which refuses a
+  redirect from HTTPS to plain HTTP, reads with a size limit and gives
+  up on an answer that only trickles in.
+- **PySide6 6.6.1 is the oldest version Refrain runs on**, up from 6.5.
+- Plus a long list of smaller fixes, all in the
+  [CHANGELOG](../CHANGELOG.md).
+
 ## Up next — v0.5.x
 
 - **A length for the songs nothing can settle.** Apple's catalog, the
@@ -645,6 +662,9 @@ were tracked internally as "v0.2.8" but never separately tagged.
 - **Last.fm as a length source, not only a second opinion.** Refrain
   already asks `track.getInfo`, but only to confirm a length it measured
   itself. For a song it has no measurement for, it never asks at all.
+- **More native clients by name.** Slipmat, Cider and Sidra are
+  recognised already, and any other client can be named by hand. Only
+  Slipmat has actually been tested.
 - **Your own Apple Music API credentials** as a field in Settings.
   Refrain asks Apple's keyless search API today; a developer token,
   which needs an Apple Developer account, would let it ask the Apple

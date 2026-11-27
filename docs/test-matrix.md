@@ -16,8 +16,8 @@ For each row in the matrix:
    the failing check in "Notes".
 
 A row failing one minor optional check (e.g. notifications missing
-because `notify-send` isn't installed) is fine — that's documented
-graceful-degradation, not a regression.
+because `notify-send` isn't installed) is fine — that is documented
+behaviour when a part is absent, not a regression.
 
 ## Tier 1 — primary support, must pass every release
 
@@ -47,12 +47,12 @@ Less frequent verification — once per minor release is enough.
 |---|---|---|---|---|
 | [ ] | **EndeavourOS** | KDE | AUR `refrain` | Arch derivative |
 | [ ] | **Garuda Linux** | KDE | AUR `refrain` | Arch derivative |
-| [ ] | **Pop!_OS 24.04** | GNOME (or COSMIC) | AppImage | COSMIC tray TBD |
+| [ ] | **Pop!_OS 24.04** | GNOME (or COSMIC) | AppImage | COSMIC tray not checked yet |
 | [ ] | **KDE Neon** (User) | KDE Plasma 6 | PyPI / AppImage | Plasma testing target |
 | [ ] | **Ubuntu 25.04** | GNOME | PyPI in venv | Python 3.13 |
 | [ ] | **Debian 12** (Bookworm) | KDE / GNOME | AppImage | Python 3.11, Qt 5 — AppImage required. 2026-09-18 / 0.5.3 (dev): AppImage starts in a container |
 | [ ] | **Fedora 41 KDE Spin** | KDE Plasma 6 | Wayland | AppImage / PyPI | Fedora KDE flavour |
-| [ ] | **NixOS** unstable | KDE / GNOME | PyPI in nix-shell | flake.nix would be nice-to-have |
+| [ ] | **NixOS** unstable | KDE / GNOME | PyPI in nix-shell | a flake.nix is not written |
 
 ## Tier 3 — desktop / compositor edge cases
 
@@ -134,7 +134,7 @@ minute; the whole sweep is ≈ 6 minutes per system.
 
 - Tray icon → Status window → *Settings…*, or *Settings…* in the tray menu, opens the window.
 - Toggle any setting (e.g. *Notifications*), hit *Apply*.
-- Window stays open, *Apply* greys out again, setting persists in
+- Window stays open, *Apply* slides out again, setting persists in
   `~/.config/refrain/config.toml`; *OK* saves and closes.
 - No console errors, no Qt crashes.
 

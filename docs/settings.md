@@ -4,7 +4,9 @@ Every tab of the settings window, field by field.
 
 The settings window opens from *Settings…* in the Status window. **Apply** saves to `config.toml` and keeps the window open,
 **OK** saves and closes it, **Cancel** closes it without saving. Apply
-stays greyed out until something differs from what is saved. Closing the
+is not there at all until something differs from what is saved; it
+slides in with the first change and leaves again once the form matches
+the saved file. Closing the
 window with unsaved changes — Cancel, <kbd>Esc</kbd> or the window's close
 button — asks first: *Save*, *Discard* or *Keep editing*.
 
@@ -49,7 +51,8 @@ in Apple Music whenever Refrain knows its address — that needs no switch.
         <source media="(prefers-color-scheme: light)" srcset="screenshots/settings-sources-light.png"/>
         <img src="screenshots/settings-sources.png" alt="Settings — Sources" width="420"/>
       </picture>
-      <br/><sub>MPRIS / Bluetooth toggles + paired-device picker</sub>
+      <br/><sub>MPRIS / Bluetooth toggles, the browsers that count, the native Apple Music
+      clients that count, and the paired-device picker</sub>
     </td>
   </tr>
   <tr>

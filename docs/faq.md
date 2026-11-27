@@ -2,10 +2,13 @@
 
 ## Does Refrain work without the Apple Music desktop app?
 
-There is no Apple Music desktop app on Linux. Refrain reads metadata from
-the **browser** (Apple Music Web at `music.apple.com`) and from
-**Bluetooth AVRCP** when a phone or other device is connected. Both are
-detected automatically.
+Apple ships no desktop client for Linux, but Refrain does not need one.
+It reads metadata from three sources, all detected automatically:
+
+- the **browser** — Apple Music Web at `music.apple.com`,
+- a **native client** that plays Apple Music — Slipmat, Cider and Sidra
+  are recognised out of the box,
+- **Bluetooth AVRCP**, when a phone or other device is connected.
 
 ## My track shows in Discord, but the cover art is missing.
 
@@ -103,6 +106,18 @@ terminal — it lists every MPRIS player on your session bus.
 Enter a substring of the browser's MPRIS bus name. Find it via
 `playerctl -l` while a media tab is playing — e.g. for Floorp the
 substring is `floorp`. Save with *Apply*.
+
+## How do I add a native client that isn't in the Settings list?
+
+*Settings → Sources → Apple Music app (native) → Other
+(comma-separated)*. Enter a substring of the client's MPRIS bus name.
+Find it via `playerctl -l` while it is playing — for Cider the substring
+is `cider`. Save with *Apply*.
+
+A native client reports the song length itself, so a song Apple's
+catalog doesn't know still gets an end time on the Discord card. The
+*Listen on Apple Music* button needs the song in the catalog, because
+that is where its link comes from.
 
 ## How do I know my Discord Application ID is right?
 

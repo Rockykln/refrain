@@ -11,8 +11,8 @@
 [![security](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/security.yml?logo=shieldsdotio&logoColor=white&label=security)](https://github.com/Rockykln/refrain/actions/workflows/security.yml)
 
 Refrain shows what you're listening to on Apple Music as your Discord status
-— whether the audio is playing in a browser tab on `music.apple.com` or
-streaming from your phone over Bluetooth.
+— whether the audio is playing in a browser tab on `music.apple.com`, in a
+native client like Slipmat, or streaming from your phone over Bluetooth.
 
 <p align="center">
   <picture>
@@ -24,8 +24,10 @@ streaming from your phone over Bluetooth.
 ## What it does
 
 - Reads playback metadata from **MPRIS** — the standard way a Linux program
-  says what it is playing — for Apple Music in any major browser, and over
-  **Bluetooth** from any device that reports its track (AVRCP).
+  says what it is playing — for Apple Music in any major browser, for a
+  **native client** that plays Apple Music (Slipmat, Cider and Sidra are
+  recognised out of the box, any other by name), and over **Bluetooth**
+  from any device that reports its track (AVRCP).
   Firefox and its relatives report the page they play; Chromium-based
   browsers need KDE's Plasma Browser Integration, which works outside KDE
   too — see [troubleshooting](docs/troubleshooting.md).
@@ -86,9 +88,12 @@ and how to remove them again: [`docs/install.md`](docs/install.md).
 
 ### Tested on
 
-Ten distributions are tested before every release, from Arch to Debian 13,
-on Plasma, GNOME, XFCE, Cinnamon, LXQt, Budgie, MATE and the tiling window
-managers. [`docs/install.md`](docs/install.md#tested-on) names them, and
+Eleven distribution and desktop combinations are on the list that has to
+pass, from Arch to Debian 13, on Plasma, GNOME and Cinnamon. Four of them
+were last verified against 0.5.3, and the open rows say so. XFCE, LXQt,
+Budgie, MATE and the tiling window managers are reached through their own
+or an AppIndicator-bridged tray, but have no verified row yet.
+[`docs/install.md`](docs/install.md#tested-on) names them, and
 [`docs/test-matrix.md`](docs/test-matrix.md) has the per-row checks and the
 distros that are out of scope.
 

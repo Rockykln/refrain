@@ -15,8 +15,8 @@ or start Refrain with `refrain --debug`. The same lines are written to
 
 Refrain needs Linux with a D-Bus session bus and Python 3.11 or newer.
 There is no Windows or macOS version, and none is planned: on those two
-systems Apple Music already has grown-up Discord integrations, and Linux is
-where that was missing.
+systems Apple Music already has Discord integrations of its own, and
+Linux is where that was missing.
 
 ### A system tray is required
 
@@ -33,9 +33,10 @@ and there is no other way in. Without a tray it refuses to start.
 
 ### Browsers
 
-There is no Apple Music app for Linux, so Refrain reads Apple Music Web
+Apple ships no desktop client for Linux, so Refrain reads Apple Music Web
 (`music.apple.com`) from your browser over MPRIS, the standard Linux
-interface for media players.
+interface for media players. A third-party client is read the same way —
+see [Native clients](#native-clients) below.
 
 - Tested: **Firefox**, **Zen**, **Google Chrome**, **Chromium**,
   **Brave** and **Vivaldi**, on both KDE Plasma and Linux Mint /
@@ -77,6 +78,28 @@ interface for media players.
 - Browsers installed as a **Snap** can't publish MPRIS at all — Snap
   sandboxes it away, regardless of browser or desktop. See the
   [FAQ](faq.md#refrain-isnt-picking-up-my-browser).
+
+### Native clients
+
+A player that is an Apple Music client itself is read over MPRIS like a
+browser, but without the page address: it plays nothing else, so there
+is nothing to tell apart.
+
+- Recognised out of the box: **Slipmat**, **Cider** and **Sidra**. Any
+  other client goes into *Settings → Sources → Apple Music app (native)
+  → Other (comma-separated)* as a substring of its MPRIS bus name
+  (`playerctl -l` shows it while the client plays).
+- They report the song length themselves, so a song the iTunes catalog
+  doesn't know still gets an end time on the Discord card and a scrobble
+  with the right length. Slipmat takes that figure from MusicKit, which
+  is Apple's own for the recording that is playing.
+- The *Listen on Apple Music* button needs the song in the catalog,
+  because that is where its link comes from. An address the client
+  reports itself is used only when it points at Apple Music.
+- They share the *Enable browser source* switch: turning the browser
+  source off turns them off with it.
+- Only tested against **Slipmat**; Cider and Sidra are recognised by
+  name but untested.
 
 ### Silent tabs
 
