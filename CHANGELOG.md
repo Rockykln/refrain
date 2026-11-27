@@ -28,6 +28,9 @@ lists every version and why.
 - **Apply is only there when there is something to apply.** It used to
   sit greyed out next to OK and Cancel; it now slides in with the first
   change and leaves again once the form matches what is saved.
+- **The quiet buttons react to the mouse like the GitHub mark.** *Show
+  all* and *Legal* drew no frame under the pointer while the mark beside
+  them did, which read as if they were not buttons at all.
 ### Fixed
 
 - **A service line that is working is no longer greyed in.** *Visible on

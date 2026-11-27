@@ -588,8 +588,11 @@ class StatusWindow(QDialog):
         heading.setFont(self.discord.name.font())
         head.addWidget(heading)
         head.addStretch(1)
-        self.show_all = QPushButton(self.tr("Show all"))
-        self.show_all.setFlat(True)
+        # A tool button, like the GitHub mark below: a flat push button
+        # draws no frame under the mouse, so it was the odd one out.
+        self.show_all = QToolButton()
+        self.show_all.setText(self.tr("Show all"))
+        self.show_all.setAutoRaise(True)
         self.show_all.clicked.connect(self.historyRequested.emit)
         head.addWidget(self.show_all)
         recent.addLayout(head)

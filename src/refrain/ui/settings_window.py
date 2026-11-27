@@ -676,8 +676,11 @@ class SettingsWindow(QDialog):
         github_btn.setToolTip(self.tr("View Refrain on GitHub"))
         github_btn.clicked.connect(lambda: confirm_and_open(self, GITHUB_URL))
 
-        legal_btn = QPushButton(self.tr("Legal"))
-        legal_btn.setFlat(True)
+        # A tool button, like the GitHub mark beside it: a flat push button
+        # draws no frame under the mouse, so it was the odd one out.
+        legal_btn = QToolButton()
+        legal_btn.setText(self.tr("Legal"))
+        legal_btn.setAutoRaise(True)
         legal_btn.setToolTip(self.tr("License, trademark and affiliation notices"))
         legal_btn.clicked.connect(self._show_legal)
 

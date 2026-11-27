@@ -10,7 +10,7 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox  # noqa: E402
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QToolButton  # noqa: E402
 
 import refrain.ui.settings_window as sw  # noqa: E402
 from refrain.config import Config  # noqa: E402
@@ -409,3 +409,10 @@ def test_the_approval_dialog_ignores_a_late_answer(win):
     assert dialog.session_key == ""
     assert dialog.error == ""
     dialog.reject()
+
+
+def test_the_quiet_buttons_react_to_the_mouse_like_the_github_mark(win):
+    """A flat push button draws no frame under the mouse; a tool button does."""
+    legal = next(b for b in win.findChildren(QToolButton) if b.text() == "Legal")
+    assert legal.autoRaise()
+    assert win._github_btn.autoRaise()

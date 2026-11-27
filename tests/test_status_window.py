@@ -893,3 +893,9 @@ def test_a_working_service_line_is_not_greyed_in_while_the_window_waits(window):
     assert off != line
     assert off.name() != "#929595"
 
+
+def test_the_quiet_buttons_react_to_the_mouse_like_the_github_mark(window):
+    """A flat push button draws no frame under the mouse; a tool button does."""
+    assert isinstance(window.show_all, QToolButton)
+    assert window.show_all.autoRaise()
+    assert window.github_btn.autoRaise()
