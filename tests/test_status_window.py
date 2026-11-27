@@ -24,6 +24,7 @@ from PySide6.QtGui import (  # noqa: E402
 )
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import (  # noqa: E402
+    QAbstractButton,
     QApplication,
     QLabel,
     QPushButton,
@@ -567,7 +568,7 @@ def test_no_button_opens_with_the_focus_but_tab_still_reaches_them(window, app):
         app.processEvents()
     assert window.focusWidget() is window
     window.focusNextChild()
-    assert isinstance(window.focusWidget(), QPushButton)
+    assert isinstance(window.focusWidget(), QAbstractButton)
 
 
 def test_a_window_with_no_room_left_shows_no_songs(window):
@@ -899,6 +900,16 @@ def test_the_quiet_buttons_react_to_the_mouse_like_the_github_mark(window):
     assert isinstance(window.show_all, QToolButton)
     assert window.show_all.autoRaise()
     assert window.github_btn.autoRaise()
+
+
+def test_no_button_in_the_window_is_flat(window):
+    """Caught three buttons the first pass missed — the rule holds for all of them."""
+    window.recent_off.setVisible(True)
+    window.discord.show("Not running", "off", window.palette(), "Set up", "discord")
+    flat = [b.text() for b in window.findChildren(QPushButton) if b.isFlat()]
+    assert flat == []
+    assert window.recent_off.autoRaise()
+    assert window.discord.button.autoRaise()
 
 
 def test_the_remaster_tag_is_left_off_the_song_lines(window):

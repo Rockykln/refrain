@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -289,14 +290,15 @@ class WelcomeDialog(QDialog):
 
         layout.addStretch(1)
 
-        # Footer row — skip ghost-style on the left, apply primary on
-        # the right. setAutoDefault(False) on Skip so Enter doesn't
-        # accidentally dismiss the wizard without saving the ID.
+        # Footer row — skip quiet on the left, apply primary on the right.
         buttons = QHBoxLayout()
         buttons.setSpacing(8)
-        self._skip_btn = QPushButton(self.tr("Skip for now"))
-        self._skip_btn.setAutoDefault(False)
-        self._skip_btn.setFlat(True)
+        # A tool button, like the quiet ones elsewhere: a flat push button
+        # draws no frame under the mouse. It also keeps Enter on Apply,
+        # because only a push button can take the default on its own.
+        self._skip_btn = QToolButton()
+        self._skip_btn.setText(self.tr("Skip for now"))
+        self._skip_btn.setAutoRaise(True)
         self._skip_btn.clicked.connect(self._on_skip)
         buttons.addWidget(self._skip_btn)
         buttons.addStretch(1)

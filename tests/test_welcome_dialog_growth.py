@@ -13,7 +13,12 @@ pytest.importorskip("PySide6")
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton  # noqa: E402
+from PySide6.QtWidgets import (  # noqa: E402
+    QAbstractButton,
+    QApplication,
+    QLabel,
+    QPushButton,
+)
 
 BASE_H = 470
 SHORT = "reachable"
@@ -51,7 +56,20 @@ def _clipped(dlg):
 
 
 def _lowest_button(dlg):
-    return max(b.y() + b.height() for b in dlg.findChildren(QPushButton))
+    return max(b.y() + b.height() for b in dlg.findChildren(QAbstractButton))
+
+
+def test_no_button_in_the_wizard_is_flat(app):
+    """A flat push button draws no frame under the mouse; a tool button does."""
+    from refrain.ui.welcome_dialog import WelcomeDialog
+
+    dlg = WelcomeDialog()
+    try:
+        assert [b.text() for b in dlg.findChildren(QPushButton) if b.isFlat()] == []
+        assert dlg._skip_btn.autoRaise()
+    finally:
+        dlg.close()
+        dlg.deleteLater()
 
 
 @pytest.mark.parametrize(

@@ -311,7 +311,9 @@ class _ServiceRow:
         self.text.setWordWrap(True)
         self.text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         keep_on_text(self.text)
-        self.button = QPushButton()
+        # A tool button like the others: a flat push button draws no frame
+        # under the mouse, and this one is flat whenever the service is off.
+        self.button = QToolButton()
         self.button.setVisible(False)
         self.action = ""
         grid.addWidget(self.name, row, 0, Qt.AlignmentFlag.AlignVCenter)
@@ -333,7 +335,7 @@ class _ServiceRow:
         self.action = action
         self.button.setText(button)
         # An option most people never use gets a quiet button, not a call to action.
-        self.button.setFlat(tone == "off")
+        self.button.setAutoRaise(tone == "off")
         self.button.setVisible(bool(button))
 
 
@@ -606,8 +608,9 @@ class StatusWindow(QDialog):
         recent.addLayout(self.recent_rows)
         self.recent_empty = QLabel(self.tr("Songs you play show up here."))
         recent.addWidget(self.recent_empty)
-        self.recent_off = QPushButton(self.tr("Turn on Recently played"))
-        self.recent_off.setFlat(True)
+        self.recent_off = QToolButton()
+        self.recent_off.setText(self.tr("Turn on Recently played"))
+        self.recent_off.setAutoRaise(True)
         self.recent_off.clicked.connect(lambda: self.settingsRequested.emit("history"))
         recent.addWidget(self.recent_off, 0, Qt.AlignmentFlag.AlignLeft)
         # Room the songs don't fill stays below them instead of spreading them out.

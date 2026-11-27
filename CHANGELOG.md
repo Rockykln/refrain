@@ -31,8 +31,10 @@ lists every version and why.
   sit greyed out next to OK and Cancel; it now slides in with the first
   change and leaves again once the form matches what is saved.
 - **The quiet buttons react to the mouse like the GitHub mark.** *Show
-  all* and *Legal* drew no frame under the pointer while the mark beside
-  them did, which read as if they were not buttons at all.
+  all*, *Legal*, *Turn on Recently played*, *Skip for now* and the
+  button on a service line that is switched off drew no frame under the
+  pointer while the mark beside them did, which read as if they were not
+  buttons at all.
 - **A remaster tag is left off what you read.** "Glass Tides (2016
   Remastered)" shows as "Glass Tides" in the Status window, in the tray
   and on the Discord card: a remaster is the same
