@@ -97,6 +97,38 @@ jobs:
             exit 1
           fi
 
+      - name: Verify the AUR package files carry this version
+        # v0.4.2 shipped an AUR package still pointing at the version
+        # before it. Three files hold the number, and .SRCINFO holds it
+        # twice — pkgver and the #tag= in its source line.
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          PKGBUILD=packaging/aur/refrain/PKGBUILD
+          SRCINFO=packaging/aur/refrain/.SRCINFO
+          if ! grep -qE "^pkgver=${TAG}$" "$PKGBUILD"; then
+            echo "::error::$PKGBUILD is not at pkgver=${TAG}"
+            exit 1
+          fi
+          if ! grep -qE "^[[:space:]]+pkgver = ${TAG}$" "$SRCINFO"; then
+            echo "::error::$SRCINFO is not at pkgver = ${TAG}"
+            exit 1
+          fi
+          if ! grep -qF "#tag=v${TAG}?signed" "$SRCINFO"; then
+            echo "::error::$SRCINFO does not fetch tag v${TAG}"
+            exit 1
+          fi
+
+      - name: Verify the bug report form names this version
+        # The placeholder is what every reporter copies, so a stale one
+        # files new reports against the version before this.
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          FORM=.github/ISSUE_TEMPLATE/bug_report.yml
+          if ! grep -qF "placeholder: \"${TAG}\"" "$FORM"; then
+            echo "::error::$FORM does not offer ${TAG} as the version placeholder"
+            exit 1
+          fi
+
       - name: Build wheel + sdist
         run: |
           python -m build
