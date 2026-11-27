@@ -281,3 +281,19 @@ def test_moving_to_the_keyring_drops_the_plaintext_copy(keyring, xdg_tmp):
     store.set(LASTFM_SESSION_KEY, "sk-keyring")
     assert "sk-file" not in (xdg_tmp["config"] / "refrain" / "secrets.json").read_text()
     assert store.get(LASTFM_SESSION_KEY) == "sk-keyring"
+
+
+def test_a_symlink_in_the_way_fails_the_write_instead_of_following_it(
+    file_store, xdg_tmp, tmp_path
+):
+    """The temporary file's name is predictable, so it is bait worth planting."""
+    bait = tmp_path / "bait.json"
+    config = xdg_tmp["config"] / "refrain"
+    config.mkdir(parents=True, exist_ok=True)
+    (config / "secrets.json.tmp").symlink_to(bait)
+    (config / "secrets.tmp").symlink_to(bait)
+    assert file_store.set(LASTFM_SHARED_SECRET, "s3cr3t") is True
+    assert not bait.exists()
+    f = config / "secrets.json"
+    assert not f.is_symlink()
+    assert stat.S_IMODE(os.stat(f).st_mode) == 0o600

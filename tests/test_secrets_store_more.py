@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from refrain import secrets_store
+from refrain import paths, secrets_store
 from refrain.config import LastfmConfig
 from refrain.secrets_store import (
     LASTFM_SESSION_KEY,
@@ -182,9 +182,8 @@ def test_a_failed_write_leaves_no_temp_file_behind(file_store_mode, secrets_file
     def refuse(_src, _dst):
         raise OSError("disk full")
 
-    monkeypatch.setattr(secrets_store.os, "replace", refuse)
+    monkeypatch.setattr(paths.os, "replace", refuse)
     assert secrets_store._file_write_all({LASTFM_SESSION_KEY: "sk-new"}) is False
-    assert not secrets_file.with_suffix(".tmp").exists()
     assert json.loads(secrets_file.read_text()) == {LASTFM_SESSION_KEY: "sk-old"}
     assert sorted(os.listdir(secrets_file.parent)) == ["secrets.json"]
 

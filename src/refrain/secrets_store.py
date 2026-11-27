@@ -6,10 +6,9 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
-import os
 from pathlib import Path
 
-from refrain.paths import config_dir, make_private_dir
+from refrain.paths import config_dir, write_private
 
 log = logging.getLogger(__name__)
 
@@ -178,25 +177,11 @@ def _file_read_all() -> dict[str, str]:
 
 def _file_write_all(data: dict[str, str]) -> bool:
     p = _fallback_path()
-    tmp = p.with_suffix(".tmp")
     try:
-        make_private_dir(p.parent)
-        # Create with 0600 from the start (umask-independent) so the
-        # secret is never briefly world-readable between write and chmod.
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        try:
-            os.write(fd, json.dumps(data).encode("utf-8"))
-        finally:
-            os.close(fd)
-        os.chmod(tmp, 0o600)
-        os.replace(tmp, p)
-        os.chmod(p, 0o600)
+        write_private(p, json.dumps(data))
         return True
     except OSError as e:
         log.warning("Could not persist secrets fallback file (%s)", e)
-        with contextlib.suppress(OSError):
-            if tmp.exists():
-                tmp.unlink()
         return False
 
 

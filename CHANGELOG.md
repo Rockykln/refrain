@@ -46,6 +46,16 @@ lists every version and why.
   that scrobbling runs alongside Discord and pauses with Privacy; what
   is left is how to connect and where the secrets are kept.
 
+### Security
+
+- **The secrets file is written the way every other private file is.**
+  Without a keyring, the Last.fm secret and session key go to a file of
+  their own. The temporary file it is written through carried a
+  predictable name and was opened without `O_EXCL` and `O_NOFOLLOW`, so
+  a symlink planted in its place would have sent the secret wherever it
+  pointed. That write now goes through the same helper as the rest, which
+  refuses to follow one.
+
 ### Fixed
 
 - **Text that is working is no longer greyed in.** *Visible on your
