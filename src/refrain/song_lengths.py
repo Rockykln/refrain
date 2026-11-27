@@ -43,7 +43,9 @@ def song_key(artist: str, title: str, album: str) -> str:
         normalize_name(artist),
         normalize_name(clean_title(album)),
     ]
-    tags = version_tags(title) | version_tags(album)
+    # The title's tags only: BlueZ hands over the album raw where MPRIS hands
+    # it over cleaned, and an album tag would split one recording in two.
+    tags = version_tags(title)
     if tags:
         parts.append(" ".join(sorted(tags)))
     raw = "\x1f".join(parts)

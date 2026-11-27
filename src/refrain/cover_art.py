@@ -57,7 +57,7 @@ _MAX_IMAGE_BYTES = 2_000_000  # 2 MB — well above any 600x600 album cover
 # descriptions, not for a second order of magnitude.
 _MAX_JSON_BYTES = 512 * 1024
 
-_CACHE_VERSION = "v3"
+_CACHE_VERSION = "v4"
 # A miss is asked about again after this long: the catalog grows, and a
 # song that isn't there on release day often is a week later.
 _NEGATIVE_TTL_S = 3 * 24 * 3600
@@ -206,7 +206,8 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
     want_artists = {a for a in (normalize_name(x) for x in names) if a}
     want_title = normalize_name(clean_title(title))
     want_album = normalize_name(clean_title(album)) if album else ""
-    want_tags = version_tags(title) | version_tags(album)
+    want_title_tags = version_tags(title)
+    want_album_tags = version_tags(album) if album else frozenset()
     if not want_artists or not want_title:
         return None
     best, best_score = None, None
@@ -226,14 +227,24 @@ def _best_match(results, artist: str, title: str, album: str) -> TrackLookup | N
         if not (exact or close):
             continue
         got_album = normalize_name(clean_title(str(r.get("collectionName", "") or "")))
-        got_tags = version_tags(str(r.get("trackName", "") or "")) | version_tags(
-            str(r.get("collectionName", "") or "")
-        )
+        got_title_tags = version_tags(str(r.get("trackName", "") or ""))
+        got_album_tags = version_tags(str(r.get("collectionName", "") or ""))
         score = (2 if exact else 0) + (1 if want_album and want_album == got_album else 0)
         # Outweighs the rest: with several edits of one song the titles are
         # all equally exact, and only the tag says which edit is playing.
-        if want_tags and got_tags:
-            score += 4 if want_tags == got_tags else 1 if want_tags & got_tags else -4
+        if want_title_tags and got_title_tags:
+            score += (
+                4
+                if want_title_tags == got_title_tags
+                else 1
+                if want_title_tags & got_title_tags
+                else -4
+            )
+        # Weighed apart from the title's: an album tag names the release, not
+        # the take. Thrown in with the title's it stands in for a missing one,
+        # and the wrong recording wins.
+        if want_album_tags and got_album_tags:
+            score += 1 if want_album_tags & got_album_tags else -1
         if best_score is None or score > best_score:
             best, best_score = r, score
     return _to_lookup(best) if best is not None else None

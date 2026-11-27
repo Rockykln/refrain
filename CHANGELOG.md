@@ -66,9 +66,14 @@ lists every version and why.
 - **The edit that is playing is the one looked up.** A song released as
   several edits comes back from the catalogue several times, and Refrain
   took whichever came first — the length of a 1:48 edit ended a 2:07
-  song nineteen seconds early. The version tag in the title or the album
-  now picks the right one, and a length Refrain measured itself is kept
-  per edit instead of being shared between them.
+  song nineteen seconds early. The version tag in the title now picks
+  the right one; the album's tag helps where the title carries none, but
+  no longer stands in for one that contradicts it. A length Refrain
+  measured itself is kept per edit instead of being shared between them,
+  and the same recording counts as one song whether the album arrived
+  from a browser or over Bluetooth. Everything already looked up is
+  looked up once more, so the fix reaches the songs you have played
+  before.
 - **Discord is reached before the first song again.** With nothing
   playing, the Status window claimed the Discord app wasn't running, and
   a refused Application ID stayed hidden until a song started.

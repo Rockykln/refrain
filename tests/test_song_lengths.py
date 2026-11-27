@@ -34,6 +34,15 @@ def test_another_album_is_another_song():
     assert song_key("Lindemann", "Knebel", "Live") != song_key("Lindemann", "Knebel", "Zunge")
 
 
+def test_an_album_tag_is_not_part_of_the_song():
+    """BlueZ hands over the album raw, MPRIS cleaned — same recording either way."""
+    assert song_key("Kite Theory", "Overexposed", "Afterimage (Deluxe Edition)") == song_key(*A)
+
+
+def test_a_title_tag_is_still_its_own_song():
+    assert song_key("Kite Theory", "Overexposed (Live)", "Afterimage") != song_key(*A)
+
+
 def test_one_play_is_not_yet_a_length(tmp_path):
     lengths = _lengths(tmp_path)
     assert lengths.observe(*A, 157_000) is False

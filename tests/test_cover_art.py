@@ -162,6 +162,24 @@ def test_the_album_names_the_edit_when_the_title_does_not(monkeypatch, cover_art
     assert info.duration_ms == 301000
 
 
+def test_an_album_tag_does_not_cover_a_contradicting_title_tag(monkeypatch, cover_art):
+    """The title says which take is playing; the album only says which release.
+
+    Weighing both in one set lets a matching album tag stand in for a
+    missing title tag, and the studio recording wins over the live one
+    that is actually playing.
+    """
+    results = [
+        _song("Velvet Static", "Late Train Home", "Late Train Home (Deluxe Edition)", ms=108600),
+        _song("Velvet Static", "Late Train Home (Live)", "Late Train Home", ms=301000),
+    ]
+    _install(monkeypatch, cover_art, _Store(default=results))
+    info = cover_art.lookup_track_info(
+        "Velvet Static", "Late Train Home (Live)", "Late Train Home (Deluxe Edition)"
+    )
+    assert info.duration_ms == 301000
+
+
 def test_a_different_edit_is_still_better_than_nothing(monkeypatch, cover_art):
     """The tag decides between results; on its own it never rejects one."""
     only = _song("Velvet Static", "Late Train Home (Radio Edit)", ms=108600)
