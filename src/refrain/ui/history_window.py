@@ -65,6 +65,7 @@ from refrain.paths import assets_dir
 from refrain.ui import clock, icons
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
+from refrain.ui.restyle import repolish
 from refrain.ui.tooltips import keep_on_window, show_on_window
 
 log = logging.getLogger(__name__)
@@ -926,6 +927,7 @@ class HistoryWindow(QDialog):
             # Placeholders, muted text and symbolic glyphs are derived
             # from the palette.
             self._apply_themed_icons()
+            repolish(self)
             self._covers.clear()
             self._clear_rows()
             self._apply_muted_colors()

@@ -142,3 +142,24 @@ def test_growth_never_shrinks_the_dialog(app):
     finally:
         dlg.close()
         dlg.deleteLater()
+
+
+def test_the_card_border_follows_a_theme_change(app):
+    """The colour is mixed from the palette, so it has to be mixed again."""
+    from PySide6.QtCore import QEvent
+    from PySide6.QtGui import QColor, QPalette
+
+    from refrain.ui.welcome_dialog import WelcomeDialog
+
+    dlg = WelcomeDialog()
+    try:
+        light = dlg._diag_box.styleSheet()
+        dark = QPalette(dlg.palette())
+        dark.setColor(QPalette.ColorRole.Text, QColor("#f0f0f0"))
+        dlg.setPalette(dark)
+        app.sendEvent(dlg, QEvent(QEvent.Type.PaletteChange))
+        assert dlg._diag_box.styleSheet() != light
+        assert "240, 240, 240" in dlg._diag_box.styleSheet()
+    finally:
+        dlg.close()
+        dlg.deleteLater()

@@ -65,6 +65,12 @@ lists every version and why.
 
 ### Fixed
 
+- **A theme change reaches the last few colours too.** Qt writes the
+  colour a stylesheet takes from the palette once and never revisits
+  it, so the border of the first-run card, the hints in Settings and
+  the version line kept their old colour when the desktop switched
+  between light and dark. The Play and *Pause sharing* glyphs stayed
+  on the old shade after a style change as well.
 - **Unticking every browser no longer looks like it worked.** The empty
   list was thrown away on save, so Apply came and went as if something
   had happened and the next open showed all fifteen ticks back. The last
@@ -94,7 +100,9 @@ lists every version and why.
   palette is built from the GTK3 theme, and GNOME's dark mode only
   reaches GTK4 — so the window stayed light however the desktop was set.
   Refrain now reads the setting from the desktop portal and follows it,
-  live, and only where the palette contradicts it.
+  live, and only where the palette contradicts it. A desktop that goes
+  back to having no preference gets the choice back, rather than being
+  left on whatever Refrain last set.
 - **The edit that is playing is the one looked up.** A song released as
   several edits comes back from the catalogue several times, and Refrain
   took whichever came first — the length of a 1:48 edit ended a 2:07

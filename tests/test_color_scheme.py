@@ -10,7 +10,7 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import Qt  # noqa: E402
+from PySide6.QtCore import QObject, Qt  # noqa: E402
 from PySide6.QtDBus import QDBusMessage, QDBusVariant  # noqa: E402
 from PySide6.QtGui import QColor, QPalette  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
@@ -88,7 +88,13 @@ def _error():
 
 @pytest.mark.parametrize(
     ("value", "wanted"),
-    [(1, Qt.ColorScheme.Dark), (2, Qt.ColorScheme.Light), (0, None), ("dark", None)],
+    [
+        (1, Qt.ColorScheme.Dark),
+        (2, Qt.ColorScheme.Light),
+        # 0 is "no preference", which hands the choice back to the theme.
+        (0, Qt.ColorScheme.Unknown),
+        ("dark", None),
+    ],
 )
 def test_the_portals_numbers_name_a_scheme(app, bus, value, wanted):
     bus([_reply(value)])
@@ -201,6 +207,29 @@ def test_everywhere_else_the_portal_decides(app, bus, palette, asked, monkeypatc
     assert asked == [Qt.ColorScheme.Dark]
 
 
+def test_no_preference_hands_the_palette_back_to_the_theme(app, bus, palette, monkeypatch):
+    """Once forced dark, it stayed dark until the next start."""
+    unset = []
+    hints = cs.QGuiApplication.styleHints()
+    monkeypatch.setattr(hints, "colorScheme", lambda: Qt.ColorScheme.Dark, raising=False)
+    monkeypatch.setattr(hints, "unsetColorScheme", lambda: unset.append(1), raising=False)
+    bus([_reply(0)])
+    follower = cs.SchemeFollower()
+    follower.apply(follower.read())
+    assert unset == [1]
+
+
+def test_no_preference_with_nothing_forced_changes_nothing(app, bus, monkeypatch):
+    unset = []
+    hints = cs.QGuiApplication.styleHints()
+    monkeypatch.setattr(hints, "colorScheme", lambda: Qt.ColorScheme.Unknown, raising=False)
+    monkeypatch.setattr(hints, "unsetColorScheme", lambda: unset.append(1), raising=False)
+    bus([_reply(0)])
+    follower = cs.SchemeFollower()
+    follower.apply(follower.read())
+    assert unset == []
+
+
 def test_the_subscription_asks_for_the_signature_qt_expects(app, monkeypatch):
     """Every other test hands over a stand-in bus, so only this one sees the call."""
     seen: list[tuple] = []
@@ -239,7 +268,7 @@ def test_the_binding_accepts_that_signature(app):
             cs._PATH,
             cs._IFACE,
             "SettingChanged",
-            cs.SchemeFollower(),
+            QObject(),
             cs.SLOT("_on_setting_changed(QString,QString,QDBusVariant)"),
         )
         assert delivered is False

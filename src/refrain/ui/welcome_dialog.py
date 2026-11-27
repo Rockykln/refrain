@@ -17,6 +17,7 @@ from typing import cast
 from PySide6.QtCore import (
     QT_TRANSLATE_NOOP,
     QCoreApplication,
+    QEvent,
     QObject,
     Qt,
     QThread,
@@ -42,6 +43,7 @@ from refrain.cover_art import USER_AGENT
 from refrain.discord_app import looks_like_application_id
 from refrain.paths import assets_dir
 from refrain.ui.cursors import apply_interactive_cursors
+from refrain.ui.restyle import repolish
 
 log = logging.getLogger(__name__)
 
@@ -171,6 +173,26 @@ class WelcomeDialog(QDialog):
 
     applied = Signal(str)  # client_id
 
+    def _paint_diag_edge(self) -> None:
+        """The card's border, mixed from the current palette.
+
+        palette(mid) nearly vanishes on dark themes, so the colour is
+        built here instead — which means it has to be rebuilt whenever
+        the palette changes under an open wizard.
+        """
+        edge = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
+        self._diag_box.setStyleSheet(
+            "QFrame#diagBox { background: palette(alternate-base); "
+            f"border: 1px solid rgba({edge.red()}, {edge.green()}, {edge.blue()}, 70); "
+            "border-radius: 8px; }"
+        )
+
+    def changeEvent(self, event: QEvent) -> None:
+        if event.type() == QEvent.Type.PaletteChange:
+            self._paint_diag_edge()
+            repolish(self)
+        super().changeEvent(event)
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle(self.tr("Welcome"))
@@ -238,13 +260,8 @@ class WelcomeDialog(QDialog):
         # an empty box while the probes are running.
         diag_box = QFrame()
         diag_box.setObjectName("diagBox")
-        # palette(mid) nearly vanishes on dark themes; a faint text color shows on both.
-        edge = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
-        diag_box.setStyleSheet(
-            "QFrame#diagBox { background: palette(alternate-base); "
-            f"border: 1px solid rgba({edge.red()}, {edge.green()}, {edge.blue()}, 70); "
-            "border-radius: 8px; }"
-        )
+        self._diag_box = diag_box
+        self._paint_diag_edge()
         diag_layout = QVBoxLayout(diag_box)
         diag_layout.setContentsMargins(14, 10, 14, 10)
         diag_layout.setSpacing(6)

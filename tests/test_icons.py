@@ -359,3 +359,25 @@ def test_the_tray_menu_repaints_its_glyphs_when_the_palette_flips(app, icon_them
     assert _glyph_colour(tray._history_action.icon()) == "#00ffff"
     # The service rows carry a state, so they are set back to it afterwards.
     assert _glyph_colour(tray._discord_action.icon()) == "#00ffff"
+
+
+def test_a_style_change_refetches_the_play_and_sharing_glyphs(app, icon_theme, monkeypatch):
+    """Their glyph is set where playback state is decided, not with the rest."""
+    from PySide6.QtCore import QEvent
+
+    icon_theme(["media-playback-start", "media-playback-pause", "media-skip-backward"])
+    window = StatusWindow()
+    try:
+        fetched: list[str] = []
+        real = icons.themed_icon
+        monkeypatch.setattr(
+            icons, "themed_icon", lambda name: (fetched.append(name), real(name))[1]
+        )
+        monkeypatch.setattr(
+            "refrain.ui.status_window.icons.themed_icon",
+            lambda name: (fetched.append(name), real(name))[1],
+        )
+        window.changeEvent(QEvent(QEvent.Type.StyleChange))
+        assert "media-playback-start" in fetched or "media-playback-pause" in fetched
+    finally:
+        window.deleteLater()

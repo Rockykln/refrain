@@ -16,10 +16,18 @@ _PATH = "/org/freedesktop/portal/desktop"
 _IFACE = "org.freedesktop.portal.Settings"
 _NAMESPACE = "org.freedesktop.appearance"
 _KEY = "color-scheme"
-_TIMEOUT_MS = 2000
+# Two calls at worst (ReadOne, then Read), and both run before the first
+# window. A portal that is simply not there answers at once; one that
+# hangs must not hold the start up for four seconds.
+_TIMEOUT_MS = 1000
 
-# The portal's numbers. 0 is "no preference" and stays untouched.
-_SCHEMES = {1: Qt.ColorScheme.Dark, 2: Qt.ColorScheme.Light}
+# The portal's numbers. 0 is "no preference": the theme's own palette
+# decides again, which Qt spells `Unknown`.
+_SCHEMES = {
+    0: Qt.ColorScheme.Unknown,
+    1: Qt.ColorScheme.Dark,
+    2: Qt.ColorScheme.Light,
+}
 
 
 def palette_follows_desktop() -> bool:
@@ -85,6 +93,13 @@ class SchemeFollower(QObject):
 
     def apply(self, wanted: Qt.ColorScheme | None) -> None:
         if wanted is None:
+            return
+        if wanted == Qt.ColorScheme.Unknown:
+            # Handing the choice back, rather than leaving a scheme this
+            # followed forced until the next start.
+            if QGuiApplication.styleHints().colorScheme() != Qt.ColorScheme.Unknown:
+                log.info("Desktop has no preference; leaving the palette to the theme")
+                QGuiApplication.styleHints().unsetColorScheme()
             return
         if (wanted == Qt.ColorScheme.Dark) == _palette_is_dark():
             return

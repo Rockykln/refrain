@@ -64,6 +64,7 @@ from refrain.ui.history_window import (
     song_link,
 )
 from refrain.ui.legal_dialog import GITHUB_URL
+from refrain.ui.restyle import repolish
 from refrain.ui.tooltips import keep_on_text, keep_on_window, show_on_window
 
 log = logging.getLogger(__name__)
@@ -1109,6 +1110,11 @@ class StatusWindow(QDialog):
         if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
             self._apply_themed_icons()
             self._apply_github_icon()
+            # Their glyph depends on what is playing, so it is set where
+            # that is decided — which a style change alone never reaches.
+            self._refresh_controls()
+            self._refresh_sharing()
+            repolish(self)
         if event.type() == event.Type.PaletteChange:
             self._cover_url = ""
             self._refresh()

@@ -73,6 +73,7 @@ from refrain.scrobble import (
 from refrain.sources.bluetooth import BluetoothSource
 from refrain.ui.cursors import apply_interactive_cursors
 from refrain.ui.external_link import confirm_and_open
+from refrain.ui.restyle import repolish
 from refrain.ui.update_dialog import _open_https_link
 from refrain.updater import ReleaseInfo, prepare_release_notes
 
@@ -974,6 +975,7 @@ class SettingsWindow(QDialog):
         super().changeEvent(event)
         if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
             self._apply_github_icon()
+            repolish(self)
 
     def _apply_github_icon(self) -> None:
         # The same colour as the version label beside it.
