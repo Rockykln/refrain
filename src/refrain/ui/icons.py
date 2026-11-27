@@ -56,7 +56,9 @@ def _symbolic_icon(name: str) -> QIcon:
     itself. The symbolic files carry a hard-coded dark fill that Qt leaves
     alone, so they would be all but invisible on a dark palette.
     """
-    tint = QGuiApplication.palette().color(QPalette.ColorRole.ButtonText)
+    tint = QGuiApplication.palette().color(
+        QPalette.ColorGroup.Active, QPalette.ColorRole.ButtonText
+    )
     key = (QIcon.themeName(), name, tint.rgba())
     cached = _RECOLORED.get(key)
     if cached is not None:

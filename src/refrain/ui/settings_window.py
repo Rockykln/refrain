@@ -978,7 +978,7 @@ class SettingsWindow(QDialog):
         if button is None:
             return  # a theme change while the window is still being built
         svg = (assets_dir() / "icons" / "github-mark.svg").read_bytes()
-        color = self.palette().color(QPalette.ColorRole.Text)
+        color = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
         button.setIcon(themed_svg_icon(svg, color, 16, max(2.0, self.devicePixelRatioF())))
 
     def _set_discord_overrides_visible(self, visible: bool) -> None:

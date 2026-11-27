@@ -238,7 +238,7 @@ class WelcomeDialog(QDialog):
         diag_box = QFrame()
         diag_box.setObjectName("diagBox")
         # palette(mid) nearly vanishes on dark themes; a faint text color shows on both.
-        edge = self.palette().color(QPalette.ColorRole.Text)
+        edge = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
         diag_box.setStyleSheet(
             "QFrame#diagBox { background: palette(alternate-base); "
             f"border: 1px solid rgba({edge.red()}, {edge.green()}, {edge.blue()}, 70); "

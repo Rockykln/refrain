@@ -28,9 +28,13 @@ lists every version and why.
 - **Apply is only there when there is something to apply.** It used to
   sit greyed out next to OK and Cancel; it now slides in with the first
   change and leaves again once the form matches what is saved.
-
 ### Fixed
 
+- **A service line that is working is no longer greyed in.** *Visible on
+  your profile* and *Scrobbling as …* came out dimmer than the lines
+  that are dimmed on purpose. A refresh while the window sat in the
+  background picked up the colour the theme uses for an unfocused
+  window and wrote it in to stay.
 - **The playback buttons are visible outside Plasma.** Adwaita 48 and
   other current icon themes ship only the `-symbolic` spelling of a
   name, which Qt does not look for on its own, so Previous, Play, Next

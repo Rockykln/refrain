@@ -323,10 +323,13 @@ class _ServiceRow:
         self.text.setText(text)
         self.tone = tone
         self.dot.set_color(_tone_color(tone, palette))
-        _set_color(
-            self.text,
-            _muted(palette) if tone == "off" else palette.color(QPalette.ColorRole.WindowText),
-        )
+        if tone == "off":
+            _set_color(self.text, _muted(palette))
+        else:
+            # No colour of its own: the line then dims with the rest of the
+            # window instead of keeping whichever group was current when it
+            # was last refreshed.
+            self.text.setPalette(QPalette())
         self.action = action
         self.button.setText(button)
         # An option most people never use gets a quiet button, not a call to action.
@@ -708,7 +711,7 @@ class StatusWindow(QDialog):
         from refrain.ui.settings_window import themed_svg_icon
 
         svg = (assets_dir() / "icons" / "github-mark.svg").read_bytes()
-        color = self.palette().color(QPalette.ColorRole.Text)
+        color = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Text)
         self.github_btn.setIcon(themed_svg_icon(svg, color, 16, max(2.0, self.devicePixelRatioF())))
 
     def set_update_available(self, version: str) -> None:

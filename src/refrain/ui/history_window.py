@@ -338,7 +338,10 @@ def _placeholder_cover(palette: QPalette, dpr: float) -> QPixmap:
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     path = QPainterPath()
     path.addRoundedRect(QRectF(0, 0, px, px), _COVER_RADIUS * dpr, _COVER_RADIUS * dpr)
-    p.fillPath(path, _with_alpha(palette.color(QPalette.ColorRole.WindowText), 0.09))
+    p.fillPath(
+        path,
+        _with_alpha(palette.color(QPalette.ColorGroup.Active, QPalette.ColorRole.WindowText), 0.09),
+    )
     icon = icons.themed_icon("audio-x-generic")
     if icon.isNull():
         icon = QIcon(str(assets_dir() / "icons" / "refrain.svg"))
@@ -448,7 +451,9 @@ class _SongRow(QWidget):
             accent = QFont(when.font())
             accent.setBold(True)
             when.setFont(accent)
-            _set_color(when, self.palette().color(QPalette.ColorRole.Highlight))
+            _set_color(
+                when, self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight)
+            )
         else:
             when = QLabel(clock.when(locale, entry.started_at))
         when_line.addWidget(when)
@@ -603,7 +608,7 @@ class _SongRow(QWidget):
     def paintEvent(self, event) -> None:
         if not (self._hover or self._now_playing or self.hasFocus()):
             return
-        highlight = self.palette().color(QPalette.ColorRole.Highlight)
+        highlight = self.palette().color(QPalette.ColorGroup.Active, QPalette.ColorRole.Highlight)
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         path = QPainterPath()

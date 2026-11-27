@@ -23,7 +23,14 @@ from PySide6.QtGui import (  # noqa: E402
     QPalette,
 )
 from PySide6.QtTest import QTest  # noqa: E402
-from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QToolTip, QWidget  # noqa: E402
+from PySide6.QtWidgets import (  # noqa: E402
+    QApplication,
+    QLabel,
+    QPushButton,
+    QToolButton,
+    QToolTip,
+    QWidget,
+)
 from shiboken6 import Shiboken  # noqa: E402
 
 from refrain.cover_art import image_path_for_url  # noqa: E402
@@ -860,3 +867,29 @@ def test_the_placeholder_cover_is_the_logo_on_its_own(app):
         image.pixelColor(x, y).alpha() for x in range(image.width()) for y in range(image.height())
     }
     assert max(alphas) == 255
+
+
+def test_a_working_service_line_is_not_greyed_in_while_the_window_waits(window):
+    """A refresh with the window unfocused used to bake the dim colour in.
+
+    QWidget.palette() hands out the inactive group then — on GTK themes a
+    grey — and the colour written back from it landed in every group, so
+    the line stayed grey once the window had the focus again.
+    """
+    active, inactive = QPalette.ColorGroup.Active, QPalette.ColorGroup.Inactive
+    unfocused = QPalette()
+    unfocused.setColor(active, QPalette.ColorRole.WindowText, QColor("#000000"))
+    unfocused.setColor(inactive, QPalette.ColorRole.WindowText, QColor("#929595"))
+    unfocused.setCurrentColorGroup(inactive)
+
+    window.discord.show("Visible on your profile", "ok", unfocused, "", "")
+    line = window.discord.text.palette().color(active, QPalette.ColorRole.WindowText)
+    assert line == window.palette().color(active, QPalette.ColorRole.WindowText)
+    assert line.name() != "#929595"
+
+    # A line that is off is dimmed on purpose, and by its own rule.
+    window.discord.show("Hidden — sharing is off", "off", unfocused, "", "")
+    off = window.discord.text.palette().color(active, QPalette.ColorRole.WindowText)
+    assert off != line
+    assert off.name() != "#929595"
+
