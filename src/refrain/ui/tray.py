@@ -240,10 +240,10 @@ class TrayIcon(QObject):
         self._tray.show()
 
         self._apply_menu_icons()
-        # The menu lives outside any widget, so no PaletteChange reaches it.
-        app = QGuiApplication.instance()
-        if app is not None:
-            app.installEventFilter(self)
+        # Watched on the menu, not on the application: the application
+        # delivers the same change to every widget, and the filter then
+        # refetches every icon once per open window.
+        menu.installEventFilter(self)
 
         # Re-render tray glyphs when the system flips between dark and
         # light theme — Qt 6.5+ exposes this signal on styleHints().
@@ -410,8 +410,8 @@ class TrayIcon(QObject):
         self._show_icon()
 
     def set_service_status(self, status: StatusSnapshot) -> None:
-        self._service_status = status
         """The Discord and Last.fm rows, from the live state."""
+        self._service_status = status
         d = status.discord
         if d is DiscordStatus.NOT_SET_UP:
             text, icon = self.tr("Discord: not set up — add your Application ID"), "dialog-warning"

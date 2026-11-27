@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QColor, QPalette  # noqa: E402
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon  # noqa: E402
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QWidget  # noqa: E402
 
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot  # noqa: E402
 from refrain.sources.base import PlaybackStatus, TrackInfo  # noqa: E402
@@ -527,3 +527,26 @@ def test_the_remaster_tag_is_left_off_the_menu_and_the_tooltip(tray):
 def test_an_edit_keeps_its_name_in_the_menu(tray):
     tray.set_track(_track(title="Glass Tides (Radio Edit)"))
     assert tray._title_action.text() == "Glass Tides (Radio Edit)"
+
+
+def test_a_palette_change_refetches_the_menu_icons_once(app, tray, monkeypatch):
+    """Watched from the application object, the filter ran once per open widget."""
+    calls = []
+    monkeypatch.setattr(tray, "_apply_menu_icons", lambda: calls.append(1))
+    before = QPalette(app.palette())
+    widgets = [QWidget() for _ in range(3)]
+    try:
+        for w in widgets:
+            w.show()
+        app.processEvents()
+        dark = QPalette(before)
+        dark.setColor(QPalette.ColorRole.Window, QColor("#101010"))
+        app.setPalette(dark)
+        app.processEvents()
+        assert calls == [1]
+    finally:
+        app.setPalette(before)
+        for w in widgets:
+            w.close()
+            w.deleteLater()
+        app.processEvents()
