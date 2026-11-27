@@ -14,6 +14,8 @@ from PySide6.QtCore import (
     QDateTime,
     QLocale,
     QObject,
+    QParallelAnimationGroup,
+    QPropertyAnimation,
     QSize,
     Qt,
     QThread,
@@ -30,6 +32,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QFrame,
+    QGraphicsOpacityEffect,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -40,6 +43,7 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSizePolicy,
     QSpinBox,
+    QStyle,
     QTabWidget,
     QTextBrowser,
     QToolButton,
@@ -79,6 +83,10 @@ DEVELOPER_CLICK_GAP_S = 2.0
 _LASTFM_ACCOUNT_KEYS = (("lastfm", "session_key"), ("lastfm", "username"))
 
 log = logging.getLogger(__name__)
+
+
+# Qt's QWIDGETSIZE_MAX, which PySide does not export.
+_NO_WIDTH_LIMIT = (1 << 24) - 1
 
 
 class _VersionLabel(QLabel):
@@ -632,11 +640,25 @@ class SettingsWindow(QDialog):
         self.ok_btn = QPushButton(self.tr("OK"))
         self.apply_btn = QPushButton(self.tr("Apply"))
         self.cancel_btn = QPushButton(self.tr("Cancel"))
+        # Nothing to apply yet: the button slides in with the first change.
+        self._apply_shown = False
+        self._apply_fade = QGraphicsOpacityEffect(self.apply_btn)
+        self._apply_fade.setOpacity(0.0)
+        self.apply_btn.setGraphicsEffect(self._apply_fade)
+        self._apply_slide = QParallelAnimationGroup(self.apply_btn)
+        self._apply_width = QPropertyAnimation(self.apply_btn, b"maximumWidth", self._apply_slide)
+        self._apply_opacity = QPropertyAnimation(self._apply_fade, b"opacity", self._apply_slide)
+        for animation in (self._apply_width, self._apply_opacity):
+            self._apply_slide.addAnimation(animation)
+        self._apply_slide.finished.connect(self._on_apply_slide_finished)
         self.ok_btn.setDefault(True)
         button_box = QDialogButtonBox()
         button_box.addButton(self.ok_btn, QDialogButtonBox.ButtonRole.AcceptRole)
         button_box.addButton(self.apply_btn, QDialogButtonBox.ButtonRole.ApplyRole)
         button_box.addButton(self.cancel_btn, QDialogButtonBox.ButtonRole.RejectRole)
+        # Only once the box holds it: adding a widget to a layout shows it.
+        self.apply_btn.setMaximumWidth(0)
+        self.apply_btn.setVisible(False)
         self.ok_btn.clicked.connect(self._on_ok_clicked)
         self.apply_btn.clicked.connect(self._on_apply_clicked)
         self.cancel_btn.clicked.connect(self.reject)
@@ -2041,7 +2063,47 @@ class SettingsWindow(QDialog):
 
     def _update_dirty(self, *_args) -> None:
         if self._baseline is not None:
-            self.apply_btn.setEnabled(self.is_dirty())
+            dirty = self.is_dirty()
+            self.apply_btn.setEnabled(dirty)
+            self._show_apply(dirty)
+
+    def _show_apply(self, wanted: bool) -> None:
+        """Slide Apply in on the first change, and out once it has nothing to do.
+
+        Hidden rather than greyed out, so OK and Cancel are the only
+        choices while the form matches what is saved. Hiding it last
+        keeps it out of the tab order in between.
+        """
+        if wanted == self._apply_shown:
+            return
+        self._apply_shown = wanted
+        self._apply_slide.stop()
+        width = self.apply_btn.sizeHint().width()
+        duration = self.style().styleHint(
+            QStyle.StyleHint.SH_Widget_Animation_Duration, None, self.apply_btn
+        )
+        if wanted:
+            self.apply_btn.setVisible(True)
+        if duration <= 0:
+            self._apply_fade.setOpacity(1.0 if wanted else 0.0)
+            self.apply_btn.setMaximumWidth(_NO_WIDTH_LIMIT if wanted else 0)
+            self.apply_btn.setVisible(wanted)
+            return
+        self._apply_width.setDuration(duration)
+        self._apply_width.setStartValue(self.apply_btn.maximumWidth() if wanted else width)
+        self._apply_width.setEndValue(width if wanted else 0)
+        self._apply_opacity.setDuration(duration)
+        self._apply_opacity.setStartValue(self._apply_fade.opacity())
+        self._apply_opacity.setEndValue(1.0 if wanted else 0.0)
+        self._apply_slide.start()
+
+    def _on_apply_slide_finished(self) -> None:
+        # A width cap left behind would hold the button narrow when the
+        # text grows; out of sight, it is dropped from the tab order.
+        if self._apply_shown:
+            self.apply_btn.setMaximumWidth(_NO_WIDTH_LIMIT)
+        else:
+            self.apply_btn.setVisible(False)
 
     def _watch_form(self) -> None:
         # Spin boxes and editable combos hold a QLineEdit, so their typing

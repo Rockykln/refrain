@@ -25,6 +25,10 @@ lists every version and why.
 - **The cover stands on its own while nothing is playing.** The Refrain
   mark sat faded inside a grey square; it is now drawn larger and in its
   own colours, with nothing behind it.
+- **Apply is only there when there is something to apply.** It used to
+  sit greyed out next to OK and Cancel; it now slides in with the first
+  change and leaves again once the form matches what is saved.
+
 ### Fixed
 
 - **The playback buttons are visible outside Plasma.** Adwaita 48 and

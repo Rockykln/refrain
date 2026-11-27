@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 
 import pytest
 
@@ -350,3 +351,54 @@ def test_apply_stays_quiet_when_the_credentials_are_stored(win, xdg_tmp, monkeyp
     assert shown == []
     assert len(sent) == 1
     assert (xdg_tmp["config"] / "refrain" / "secrets.json").exists()
+
+
+def _settle(window, ms: int = 400) -> None:
+    end = time.monotonic() + ms / 1000
+    while time.monotonic() < end:
+        QApplication.processEvents()
+        time.sleep(0.01)
+
+
+def test_apply_stays_out_of_the_way_until_there_is_something_to_apply(win):
+    window, _config, _sent = win
+    window.show()
+    try:
+        assert not window.apply_btn.isVisibleTo(window)
+        window.poll_spin.setValue(3000)
+        assert window.apply_btn.isVisibleTo(window)
+        _settle(window)
+        assert window.apply_btn.width() > 0
+        window.poll_spin.setValue(1500)
+        _settle(window)
+        assert not window.apply_btn.isVisibleTo(window)
+    finally:
+        window.hide()
+
+
+def test_apply_leaves_again_once_it_has_been_applied(win):
+    window, _config, _sent = win
+    window.show()
+    try:
+        window.poll_spin.setValue(3000)
+        _settle(window)
+        window._on_apply_clicked()
+        _settle(window)
+        assert not window.apply_btn.isVisibleTo(window)
+    finally:
+        window.hide()
+
+
+def test_without_animations_apply_simply_appears(win, monkeypatch):
+    """GNOME and Plasma can switch animations off; the button still has to work."""
+    window, _config, _sent = win
+    monkeypatch.setattr(type(window.style()), "styleHint", lambda *a, **k: 0)
+    window.show()
+    try:
+        window.poll_spin.setValue(3000)
+        assert window.apply_btn.isVisibleTo(window)
+        assert window._apply_fade.opacity() == 1.0
+        window.poll_spin.setValue(1500)
+        assert not window.apply_btn.isVisibleTo(window)
+    finally:
+        window.hide()
