@@ -24,9 +24,9 @@ lists every version and why.
 
 ### Changed
 
-- **The cover stands on its own while nothing is playing.** The Refrain
-  mark sat faded inside a grey square; it is now drawn larger and in its
-  own colours, with nothing behind it.
+- **The cover stands on its own while nothing is playing.** In the
+  Status window the Refrain mark sat faded inside a grey square; it is
+  now drawn larger and in its own colours, with nothing behind it.
 - **Apply is only there when there is something to apply.** It used to
   sit greyed out next to OK and Cancel; it now slides in with the first
   change and leaves again once the form matches what is saved.
@@ -46,18 +46,20 @@ lists every version and why.
 
 ### Fixed
 
-- **A service line that is working is no longer greyed in.** *Visible on
-  your profile* and *Scrobbling as …* came out dimmer than the lines
-  that are dimmed on purpose. A refresh while the window sat in the
-  background picked up the colour the theme uses for an unfocused
-  window and wrote it in to stay.
+- **Text that is working is no longer greyed in.** *Visible on your
+  profile*, *Scrobbling as …* and the song, album and *Recently played*
+  lines came out dimmer than the text that is dimmed on purpose. A
+  refresh while the window sat in the background picked up the colour
+  the theme uses for an unfocused window and wrote it in to stay.
 - **The playback buttons are visible outside Plasma.** Adwaita 48 and
   other current icon themes ship only the `-symbolic` spelling of a
-  name, which Qt does not look for on its own, so Previous, Play, Next
-  and twelve other glyphs came out empty on GNOME. Refrain now falls
-  back to that spelling and paints it in the text colour, which also
-  keeps those icons readable in dark mode. Themes that carry the plain
-  names, Breeze among them, are untouched.
+  name, which Qt does not look for on its own, so sixteen of the names
+  Refrain asks for came out empty on GNOME, Previous, Play and Next
+  among them. Refrain now falls back to that spelling and paints it in
+  the text colour. The icons in the tray menu, the Status window and
+  *Recently played* are fetched again when the desktop switches between
+  light and dark, so they stay readable either way. Themes that carry
+  the plain names, Breeze among them, are untouched.
 - **The window follows the desktop's dark mode.** Outside Plasma, Qt's
   palette is built from the GTK3 theme, and GNOME's dark mode only
   reaches GTK4 — so the window stayed light however the desktop was set.
