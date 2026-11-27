@@ -1379,9 +1379,25 @@ def test_quitting_throws_the_queued_repaints_away(h):
     assert QEvent.Type.UpdateRequest not in arrived
 
 
-def test_the_desktop_colour_scheme_is_followed_from_the_start(h):
+def test_the_desktop_colour_scheme_is_followed_from_the_start(h, monkeypatch):
+    """Outside Plasma a follower is kept alive on the app; under it there is none."""
+    from refrain.ui.color_scheme import SchemeFollower
+
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "GNOME")
+    monkeypatch.setattr(SchemeFollower, "read", lambda _self: None)
     assert h.run() == 0
-    assert hasattr(h.app, "_refrain_color_scheme")
+    assert isinstance(h.app._refrain_color_scheme, SchemeFollower)
+
+
+def test_plasma_keeps_the_palette_its_own_theme_handed_over(h, monkeypatch):
+    monkeypatch.setenv("XDG_CURRENT_DESKTOP", "KDE")
+    asked = []
+    monkeypatch.setattr(
+        "refrain.ui.color_scheme.SchemeFollower.read", lambda _self: asked.append(1)
+    )
+    assert h.run() == 0
+    assert h.app._refrain_color_scheme is None
+    assert asked == []
 
 
 def test_a_desktop_without_the_portal_bindings_starts_anyway(h, monkeypatch, caplog):

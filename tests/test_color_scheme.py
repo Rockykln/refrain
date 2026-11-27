@@ -201,11 +201,47 @@ def test_everywhere_else_the_portal_decides(app, bus, palette, asked, monkeypatc
     assert asked == [Qt.ColorScheme.Dark]
 
 
-def test_the_subscription_is_spelled_the_way_the_binding_wants_it(app, monkeypatch):
-    """Guards the real call: PySide's stub asks for bytes, which it then refuses.
+def test_the_subscription_asks_for_the_signature_qt_expects(app, monkeypatch):
+    """Every other test hands over a stand-in bus, so only this one sees the call."""
+    seen: list[tuple] = []
 
-    Every other test here hands the follower a stand-in bus, so only this
-    one would notice the signature drifting.
-    """
-    monkeypatch.setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent/refrain-test")
+    class _Recording(_Bus):
+        def connect(self, *args):
+            seen.append(args)
+            return True
+
+    made = _Recording([])
+    monkeypatch.setattr(cs.QDBusConnection, "sessionBus", staticmethod(lambda: made))
     cs.SchemeFollower()
+    service, path, iface, member, receiver, slot = seen[0]
+    assert (service, path, iface, member) == (cs._SERVICE, cs._PATH, cs._IFACE, "SettingChanged")
+    assert isinstance(receiver, cs.SchemeFollower)
+    # The trap: PySide's stub asks for bytes here, and the binding then
+    # refuses them at runtime. `SLOT()` hands over a str.
+    assert isinstance(slot, str)
+    assert slot == "1_on_setting_changed(QString,QString,QDBusVariant)"
+
+
+def test_the_binding_accepts_that_signature(app):
+    """Against the real binding, on a connection that answers nothing.
+
+    A bytes argument is refused before delivery is even attempted, so the
+    call raises rather than returning False.
+    """
+    name = "refrain-signature-probe"
+    made = cs.QDBusConnection.connectToBus(
+        "unix:path=/nonexistent/refrain-test",
+        name,
+    )
+    try:
+        delivered = made.connect(  # type: ignore[call-overload]
+            cs._SERVICE,
+            cs._PATH,
+            cs._IFACE,
+            "SettingChanged",
+            cs.SchemeFollower(),
+            cs.SLOT("_on_setting_changed(QString,QString,QDBusVariant)"),
+        )
+        assert delivered is False
+    finally:
+        cs.QDBusConnection.disconnectFromBus(name)

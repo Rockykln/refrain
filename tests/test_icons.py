@@ -63,19 +63,31 @@ def app():
 
 @pytest.fixture
 def icon_theme(tmp_path):
-    """Activate a throwaway theme with the given names; always restored after."""
+    """Activate a throwaway theme with the given names; always restored after.
+
+    The fallback theme goes with it: Qt looks a missing name up there
+    next, so with Breeze or Adwaita installed a test can pass on a name
+    its own theme never carried.
+    """
     search_paths = QIcon.themeSearchPaths()
     theme_name = QIcon.themeName()
+    fallback_name = QIcon.fallbackThemeName()
+    fallback_paths = QIcon.fallbackSearchPaths()
     counter = [0]
 
     def _activate(names: list[str]) -> None:
         counter[0] += 1
         name = _make_theme(tmp_path, names, counter[0])
         QIcon.setThemeSearchPaths([str(tmp_path)])
+        QIcon.setFallbackSearchPaths([])
+        QIcon.setFallbackThemeName("")
         QIcon.setThemeName(name)
+        assert QIcon.fromTheme("document-save").isNull(), "the installed themes are still reachable"
 
     yield _activate
     QIcon.setThemeSearchPaths(search_paths)
+    QIcon.setFallbackSearchPaths(fallback_paths)
+    QIcon.setFallbackThemeName(fallback_name)
     QIcon.setThemeName(theme_name)
 
 

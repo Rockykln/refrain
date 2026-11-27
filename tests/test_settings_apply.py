@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import sys
-import time
 
 import pytest
 
@@ -354,10 +353,13 @@ def test_apply_stays_quiet_when_the_credentials_are_stored(win, xdg_tmp, monkeyp
 
 
 def _settle(window, ms: int = 400) -> None:
-    end = time.monotonic() + ms / 1000
-    while time.monotonic() < end:
-        QApplication.processEvents()
-        time.sleep(0.01)
+    """Run the slide to its end instead of waiting out its duration.
+
+    A fixed wait is both slower than it needs to be and short of the
+    whole animation on a loaded machine.
+    """
+    window._apply_slide.setCurrentTime(window._apply_slide.duration())
+    QApplication.processEvents()
 
 
 def test_apply_stays_out_of_the_way_until_there_is_something_to_apply(win):
