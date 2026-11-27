@@ -34,6 +34,28 @@ def _no_network(monkeypatch):
     monkeypatch.setattr(urllib.request.OpenerDirector, "open", _refuse)
 
 
+@pytest.fixture(autouse=True)
+def _no_session_bus(monkeypatch):
+    """No test talks to the real session bus through QtDBus.
+
+    Qt caches the connection, so setting DBUS_SESSION_BUS_ADDRESS only
+    works until something has opened one — which is how a colour-scheme
+    test came to read the developer's own desktop setting. Tests that
+    install their own stand-in win over this, exactly as with the
+    network above.
+    """
+    try:
+        from PySide6.QtDBus import QDBusConnection
+    except ImportError:  # pragma: no cover - PySide6 is optional
+        return
+
+    def _refuse():
+        raise AssertionError("the session bus is not available in tests")
+
+    monkeypatch.setattr(QDBusConnection, "sessionBus", staticmethod(_refuse))
+    monkeypatch.setattr(QDBusConnection, "systemBus", staticmethod(_refuse))
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _no_desktop_notifications(tmp_path_factory):
     """A stand-in notify-send first on PATH for the whole run.

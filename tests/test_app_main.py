@@ -1385,6 +1385,9 @@ def test_the_desktop_colour_scheme_is_followed_from_the_start(h, monkeypatch):
 
     monkeypatch.setenv("XDG_CURRENT_DESKTOP", "GNOME")
     monkeypatch.setattr(SchemeFollower, "read", lambda _self: None)
+    monkeypatch.setattr(
+        SchemeFollower, "__init__", lambda self, parent=None: QObject.__init__(self, parent)
+    )
     assert h.run() == 0
     assert isinstance(h.app._refrain_color_scheme, SchemeFollower)
 
