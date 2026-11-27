@@ -13,6 +13,7 @@ import socket
 import threading
 import time
 from collections import deque
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -339,6 +340,30 @@ def _scan_ipc_pipes() -> tuple[list[int], list[int]]:
     return live, stale
 
 
+def _describe_ipc_slots(live: list[int], stale: list[int]) -> str:
+    """Every ``discord-ipc-N`` that exists, with its state and its age.
+
+    A failed connect alone cannot tell "no Discord at all" apart from
+    "a client is running but left no socket" or "its socket is dead".
+    """
+    runtime_dir = _runtime_dir()
+    if runtime_dir is None:
+        return "no XDG_RUNTIME_DIR"
+    seen = []
+    for n in range(_IPC_SLOTS):
+        path = runtime_dir / f"discord-ipc-{n}"
+        try:
+            made = datetime.fromtimestamp(path.lstat().st_mtime)
+        except OSError:
+            continue
+        state = "answers" if n in live else "dead" if n in stale else "not a socket"
+        kind = "symlink, " if path.is_symlink() else ""
+        # The time it was made, not its age: a log read weeks later lines
+        # it up against the entries around it.
+        seen.append(f"{n}: {kind}{state}, made {made:%Y-%m-%d %H:%M:%S}")
+    return "; ".join(seen) or "none in XDG_RUNTIME_DIR"
+
+
 class DiscordRPC:
     def __init__(self, client_id: str, all_clients: bool = False):
         self.client_id = (client_id or "").strip()
@@ -543,6 +568,7 @@ class DiscordRPC:
                     ", ".join(f"discord-ipc-{n}" for n in live),
                     live[0],
                 )
+            log.debug("Discord IPC slots: %s", _describe_ipc_slots(live, stale))
             self._last_live_pipes = live
         # Pin the pipes we just proved are alive. Left to itself,
         # pypresence rescans and can abort on a stale socket before

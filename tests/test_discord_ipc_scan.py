@@ -125,3 +125,59 @@ def test_missing_runtime_dir_is_not_an_error(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path / "does-not-exist"))
 
     assert _scan_ipc_pipes() == ([], [])
+
+
+# What the debug log says about the slots, so a report weeks later can tell
+# "no Discord at all" from "a client that left no socket".
+
+
+def test_the_slot_line_names_every_file_and_its_state(runtime_dir):
+    from refrain.discord_rpc import _describe_ipc_slots, _scan_ipc_pipes
+
+    keep = []
+    try:
+        _dead_socket(runtime_dir / "discord-ipc-0")
+        _live_socket(runtime_dir / "discord-ipc-1", keep)
+        (runtime_dir / "discord-ipc-2").write_text("not a socket")
+
+        line = _describe_ipc_slots(*_scan_ipc_pipes())
+
+        assert "0: dead" in line
+        assert "1: answers" in line
+        assert "2: not a socket" in line
+        assert "made 2" in line
+    finally:
+        for s in keep:
+            s.close()
+
+
+def test_the_slot_line_says_so_when_there_is_nothing(runtime_dir):
+    from refrain.discord_rpc import _describe_ipc_slots
+
+    assert _describe_ipc_slots([], []) == "none in XDG_RUNTIME_DIR"
+
+
+def test_the_slot_line_marks_a_bridged_socket(runtime_dir, tmp_path):
+    """A Snap/Flatpak socket reaches the standard path as a symlink."""
+    from refrain.discord_rpc import _describe_ipc_slots, _scan_ipc_pipes
+
+    keep = []
+    try:
+        real = tmp_path / "sandbox-ipc"
+        real.parent.mkdir(parents=True, exist_ok=True)
+        _live_socket(real, keep)
+        (runtime_dir / "discord-ipc-0").symlink_to(real)
+
+        line = _describe_ipc_slots(*_scan_ipc_pipes())
+
+        assert "0: symlink, answers" in line
+    finally:
+        for s in keep:
+            s.close()
+
+
+def test_the_slot_line_survives_a_missing_runtime_dir(monkeypatch):
+    from refrain import discord_rpc
+
+    monkeypatch.setattr(discord_rpc, "_runtime_dir", lambda: None)
+    assert discord_rpc._describe_ipc_slots([], []) == "no XDG_RUNTIME_DIR"
