@@ -102,13 +102,18 @@ _ARTIST_SEP = re.compile(
 _REMASTER_PAREN = re.compile(
     r"\s*[\(\[][^\)\]]{0,120}\bremaster(?:ed)?\b[^\)\]]{0,120}[\)\]]", re.I
 )
-_REMASTER_DASH = re.compile(r"\s+[-–—]\s+[^-–—]*\bremaster(?:ed)?\b.*$", re.I)
+# Bounded on both sides: a trailing `.*` would take "- Live" with it,
+# and that names a different recording.
+_SPACES = re.compile(r"\s{2,}")
+_REMASTER_DASH = re.compile(r"\s+[-–—]\s+[^-–—]*\bremaster(?:ed)?\b[^-–—]*", re.I)
 
 
 def display_title(title: str) -> str:
     """The title as it is shown. Never what is looked up, scrobbled or stored."""
-    out = _REMASTER_DASH.sub("", _REMASTER_PAREN.sub("", title))
-    return out.strip() or title.strip()
+    # A space, not nothing: the dash form eats the blank that separates it
+    # from whatever follows, and "- Live" has to stay readable.
+    out = _REMASTER_DASH.sub(" ", _REMASTER_PAREN.sub("", title))
+    return _SPACES.sub(" ", out).strip() or title.strip()
 
 
 def clean_title(title: str) -> str:

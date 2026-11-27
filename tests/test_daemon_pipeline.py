@@ -825,6 +825,17 @@ def test_a_long_pause_hides_the_song_without_ending_the_listen(rig):
     assert worker._history.calls[-1]["track"].title == TITLE
 
 
+def test_the_bottom_line_drops_the_remaster_tag_too(rig):
+    """Without an artist the album is on both lines; one kept the tag."""
+    worker, player, _ = rig(behavior={"cover_art": False})
+    player.play(artist="", album="Low Light (2016 Remastered)")
+    player.tick()
+    payload = rpc().last[1]
+    assert payload["state"] == "Low Light"
+    # Both lines now say the same, so the bottom one is left off entirely.
+    assert "large_text" not in payload
+
+
 def test_the_card_drops_the_remaster_tag_but_lastfm_keeps_it(rig):
     """A remaster is the same performance; what Last.fm stores stays verbatim."""
     worker, player, _ = rig()

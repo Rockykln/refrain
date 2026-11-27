@@ -1750,7 +1750,10 @@ class DaemonWorker(QObject):
 
         names = (track.album, track.artist, track.title)
         if names != self._album_display[0]:
-            self._album_display = (names, _format_album_for_display(*names))
+            # display_title as well: the second line already drops the
+            # remaster tag, and the bottom line echoing it with the tag
+            # still attached reads as two different albums.
+            self._album_display = (names, display_title(_format_album_for_display(*names)))
         album_for_display = self._album_display[1]
 
         # Preview-clip mode for the Discord payload: drop start AND end
@@ -1841,6 +1844,9 @@ class DaemonWorker(QObject):
         global _NOTIFY_BIN
         if _NOTIFY_BIN is None:
             _NOTIFY_BIN = shutil.which("notify-send")
+        # track.title verbatim, remaster tag and all. The window, the tray
+        # and the Discord card drop it; this one keeps it by choice, as the
+        # one place that names the song exactly as the player does.
         body = track.artist
         if track.album:
             body = f"{track.artist} — {track.album}" if track.artist else track.album

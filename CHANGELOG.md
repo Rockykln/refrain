@@ -39,9 +39,11 @@ lists every version and why.
   Remastered)" shows as "Glass Tides" in the Status window, in the tray
   and on the Discord card: a remaster is the same
   performance at a new mix. An edit, a version, a live take and a
-  "feat." credit all stay, because each names a different recording.
-  Last.fm, the history and the catalogue lookup keep the title exactly
-  as the player reported it.
+  "feat." credit all stay, because each names a different recording —
+  "… - Remastered 2015 - Live" keeps its "- Live". The album line on the
+  Discord card drops the tag as well, instead of showing it again
+  underneath. Last.fm, the history and the catalogue lookup keep the
+  title exactly as the player reported it.
 - **The Last.fm page says less.** The note under the options repeated
   that scrobbling runs alongside Discord and pauses with Privacy; what
   is left is how to connect and where the secrets are kept.

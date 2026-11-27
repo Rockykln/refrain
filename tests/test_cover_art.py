@@ -369,6 +369,9 @@ def test_keeping_images_clears_out_everything_else_but_the_lookups(cover_art, tm
         ("Glass Tides (2016 Remastered)", "Glass Tides"),
         ("Glass Tides [Remastered]", "Glass Tides"),
         ("Glass Tides - Remastered 2015", "Glass Tides"),
+        # Only the remaster part goes; what follows names another recording.
+        ("Glass Tides - Remastered 2015 - Live", "Glass Tides - Live"),
+        ("Glass Tides - Live - Remastered 2015", "Glass Tides - Live"),
         ("Low Light (Deluxe Edition) [Remastered]", "Low Light (Deluxe Edition)"),
         # An edit, a version or a live take is a different recording, and a
         # "feat." credit names someone who played on it: all stay.
