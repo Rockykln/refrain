@@ -199,6 +199,19 @@ def test_sharing_off_keeps_the_thread_away_from_discord(discord):
         rpc.close()
 
 
+def test_sharing_off_also_stops_an_update_that_was_already_posted(discord):
+    """The serving thread checked the setting, update() connected anyway."""
+    rpc = drpc.DiscordRPC(CLIENT_ID)
+    rpc.set_sharing(False)
+    rpc.start()
+    try:
+        rpc.post(details="Glass Tides", state="Neon Harbor")
+        assert not until(rpc.is_connected, limit=0.5)
+        assert discord.made == []
+    finally:
+        rpc.close()
+
+
 def test_the_last_clear_still_goes_out_when_discord_is_slow(discord, monkeypatch):
     """A clear that misses its turn leaves the song on the profile."""
     monkeypatch.setattr(drpc, "_STOP_WAIT_S", 0.1)

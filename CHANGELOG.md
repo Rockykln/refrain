@@ -55,6 +55,11 @@ lists every version and why.
   seen came out readable by anyone on the machine. They now go through
   the same helper as everything else, which also means the crash marker
   is written at all when the state folder is still missing.
+- **Pausing sharing now also stops a song that was already on its way.**
+  *Pause sharing* kept the serving thread away from Discord, but a
+  payload handed over a moment earlier still opened a connection. It
+  never showed anything, and nothing was shared — but reaching for
+  Discord at all is what the setting forbids.
 - **The secrets file is written the way every other private file is.**
   Without a keyring, the Last.fm secret and session key go to a file of
   their own. The temporary file it is written through carried a

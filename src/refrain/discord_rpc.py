@@ -697,7 +697,10 @@ class DiscordRPC:
         return False
 
     def update(self, **payload) -> None:
-        if not self._ensure_connected():
+        # Checked here too, not only in the serving loop: a payload posted
+        # just before sharing went off is still in the inbox, and reaching
+        # for Discord is exactly what the setting forbids.
+        if self._sharing_off.is_set() or not self._ensure_connected():
             return
         # Without a type Discord renders "Playing Refrain" instead of
         # "Listening to <song>".
