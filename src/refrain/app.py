@@ -845,6 +845,15 @@ def _run(args: argparse.Namespace, crashed_before: bool = False) -> int:
     app.setDesktopFileName(desktop_entry())
     app.setQuitOnLastWindowClosed(False)
 
+    # Before the first widget is built: outside Plasma the platform theme
+    # can hand Qt a light palette while the desktop asks for dark.
+    try:
+        from refrain.ui.color_scheme import follow_desktop
+
+        _pin(app, color_scheme=follow_desktop(app))
+    except Exception as e:
+        log.debug("Not following the desktop colour scheme: %s", e)
+
     icon_path = assets_dir() / "icons" / "refrain.svg"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))

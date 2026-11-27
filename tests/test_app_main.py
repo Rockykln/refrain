@@ -1377,3 +1377,20 @@ def test_quitting_throws_the_queued_repaints_away(h):
     assert h.app.called("all_widgets") == [()]
     QCoreApplication.processEvents()
     assert QEvent.Type.UpdateRequest not in arrived
+
+
+def test_the_desktop_colour_scheme_is_followed_from_the_start(h):
+    assert h.run() == 0
+    assert hasattr(h.app, "_refrain_color_scheme")
+
+
+def test_a_desktop_without_the_portal_bindings_starts_anyway(h, monkeypatch, caplog):
+    """QtDBus is part of PySide6, but a stripped distribution package may drop it."""
+
+    def _missing(_app):
+        raise ImportError("no QtDBus in this build")
+
+    monkeypatch.setattr("refrain.ui.color_scheme.follow_desktop", _missing)
+    with caplog.at_level(logging.DEBUG, logger="refrain.app"):
+        assert h.run() == 0
+    assert "Not following the desktop colour scheme" in caplog.text

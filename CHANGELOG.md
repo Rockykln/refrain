@@ -29,6 +29,11 @@ lists every version and why.
   back to that spelling and paints it in the text colour, which also
   keeps those icons readable in dark mode. Themes that carry the plain
   names, Breeze among them, are untouched.
+- **The window follows the desktop's dark mode.** Outside Plasma, Qt's
+  palette is built from the GTK3 theme, and GNOME's dark mode only
+  reaches GTK4 — so the window stayed light however the desktop was set.
+  Refrain now reads the setting from the desktop portal and follows it,
+  live, and only where the palette contradicts it.
 - **The edit that is playing is the one looked up.** A song released as
   several edits comes back from the catalogue several times, and Refrain
   took whichever came first — the length of a 1:48 edit ended a 2:07
