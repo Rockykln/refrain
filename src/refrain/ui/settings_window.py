@@ -1043,10 +1043,8 @@ class SettingsWindow(QDialog):
             _hint(
                 self.tr(
                     "Register a free API account, paste the key + secret, then "
-                    "Connect to authorize in your browser. Scrobbling runs "
-                    "alongside Discord and never replaces it; it pauses "
-                    "while Privacy is set to Off. The shared secret and the "
-                    "session token are stored in your system keyring, never "
+                    "Connect to authorize in your browser. The shared secret and "
+                    "the session token are stored in your system keyring, never "
                     "in plain text."
                 )
             )

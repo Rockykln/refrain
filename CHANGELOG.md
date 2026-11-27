@@ -31,6 +31,10 @@ lists every version and why.
 - **The quiet buttons react to the mouse like the GitHub mark.** *Show
   all* and *Legal* drew no frame under the pointer while the mark beside
   them did, which read as if they were not buttons at all.
+- **The Last.fm page says less.** The note under the options repeated
+  that scrobbling runs alongside Discord and pauses with Privacy; what
+  is left is how to connect and where the secrets are kept.
+
 ### Fixed
 
 - **A service line that is working is no longer greyed in.** *Visible on
