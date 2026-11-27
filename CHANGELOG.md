@@ -22,6 +22,13 @@ lists every version and why.
 
 ### Fixed
 
+- **The playback buttons are visible outside Plasma.** Adwaita 48 and
+  other current icon themes ship only the `-symbolic` spelling of a
+  name, which Qt does not look for on its own, so Previous, Play, Next
+  and twelve other glyphs came out empty on GNOME. Refrain now falls
+  back to that spelling and paints it in the text colour, which also
+  keeps those icons readable in dark mode. Themes that carry the plain
+  names, Breeze among them, are untouched.
 - **The edit that is playing is the one looked up.** A song released as
   several edits comes back from the catalogue several times, and Refrain
   took whichever came first — the length of a 1:48 edit ended a 2:07

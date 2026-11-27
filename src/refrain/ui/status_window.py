@@ -539,14 +539,12 @@ class StatusWindow(QDialog):
         controls = QHBoxLayout()
         controls.setSpacing(0)
         self.previous_btn = QToolButton()
-        self.previous_btn.setIcon(icons.themed_icon("media-skip-backward"))
         self.previous_btn.setToolTip(self.tr("Previous song"))
         self.previous_btn.clicked.connect(self.previousRequested.emit)
         self.play_btn = QToolButton()
         self.play_btn.setToolTip(self.tr("Play or pause"))
         self.play_btn.clicked.connect(self.playPauseRequested.emit)
         self.next_btn = QToolButton()
-        self.next_btn.setIcon(icons.themed_icon("media-skip-forward"))
         self.next_btn.setToolTip(self.tr("Next song"))
         self.next_btn.clicked.connect(self.nextRequested.emit)
         self.controls = (self.previous_btn, self.play_btn, self.next_btn)
@@ -625,7 +623,6 @@ class StatusWindow(QDialog):
         buttons.addWidget(self.sharing_btn)
         buttons.addStretch(1)
         self.settings_btn = QPushButton(self.tr("Settings…"))
-        self.settings_btn.setIcon(icons.themed_icon("configure"))
         self.settings_btn.clicked.connect(lambda: self.settingsRequested.emit(""))
         buttons.addWidget(self.settings_btn)
         layout.addLayout(buttons)
@@ -650,6 +647,7 @@ class StatusWindow(QDialog):
         # the window holds the focus until Tab moves it.
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setFocus()
+        self._apply_themed_icons()
         self._restore_geometry()
         self._refresh()
         apply_interactive_cursors(self)
@@ -701,6 +699,16 @@ class StatusWindow(QDialog):
     def showEvent(self, event) -> None:
         super().showEvent(event)
         self.visibilityChanged.emit(True)
+
+    def _apply_themed_icons(self) -> None:
+        """(Re)fetch the theme icons that no other refresh touches.
+
+        A symbolic glyph is painted in the palette's text colour, so a
+        light/dark switch has to fetch it again.
+        """
+        self.previous_btn.setIcon(icons.themed_icon("media-skip-backward"))
+        self.next_btn.setIcon(icons.themed_icon("media-skip-forward"))
+        self.settings_btn.setIcon(icons.themed_icon("configure"))
 
     def _apply_github_icon(self) -> None:
         from refrain.ui.settings_window import themed_svg_icon
@@ -1092,6 +1100,7 @@ class StatusWindow(QDialog):
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
         if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
+            self._apply_themed_icons()
             self._apply_github_icon()
         if event.type() == event.Type.PaletteChange:
             self._cover_url = ""

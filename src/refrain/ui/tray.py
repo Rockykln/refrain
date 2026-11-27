@@ -7,7 +7,7 @@ import logging
 import time
 from enum import StrEnum
 
-from PySide6.QtCore import QObject, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
@@ -107,6 +107,7 @@ class TrayIcon(QObject):
         self._icon = icon
         self._current_status: PlaybackStatus = PlaybackStatus.STOPPED
         self._pending_status: PlaybackStatus | None = None
+        self._service_status: StatusSnapshot | None = None
         self._own_control_at = -1e9
         self._pause_timer = QTimer(self)
         self._pause_timer.setSingleShot(True)
@@ -135,28 +136,22 @@ class TrayIcon(QObject):
         # A click on one opens the Status window, which says the same
         # thing in full and offers the fix.
         self._title_action = QAction(self.tr("(nothing playing)"))
-        self._title_action.setIcon(icons.themed_icon("view-media-track"))
         self._title_action.triggered.connect(self.statusRequested.emit)
         self._artist_action = QAction("")
-        self._artist_action.setIcon(icons.themed_icon("view-media-artist"))
         self._artist_action.triggered.connect(self.statusRequested.emit)
         # Hidden until a real track populates it — otherwise it
         # renders as a tall empty row right under "(nothing playing)".
         self._artist_action.setVisible(False)
         self._progress_action = QAction("")
-        self._progress_action.setIcon(icons.themed_icon("chronometer"))
         self._progress_action.triggered.connect(self.statusRequested.emit)
         self._progress_action.setVisible(False)
         self._discord_action = QAction(self.tr("Discord: checking…"))
-        self._discord_action.setIcon(icons.themed_icon("network-disconnect"))
         self._discord_action.triggered.connect(self.statusRequested.emit)
         self._discord_action.setVisible(False)
         self._lastfm_action = QAction("")
-        self._lastfm_action.setIcon(icons.themed_icon("network-disconnect"))
         self._lastfm_action.triggered.connect(self.statusRequested.emit)
         self._lastfm_action.setVisible(False)
         self._developer_action = QAction(self.tr("Developer mode"))
-        self._developer_action.setIcon(icons.themed_icon("applications-development"))
         self._developer_action.triggered.connect(self.developerRequested.emit)
         self._developer_action.setVisible(False)
 
@@ -169,13 +164,10 @@ class TrayIcon(QObject):
         # icon falls back to a null QIcon and the row degrades to
         # text-only without breaking layout.
         self._previous_action = QAction(self.tr("Previous"))
-        self._previous_action.setIcon(icons.themed_icon("media-skip-backward"))
         self._previous_action.triggered.connect(self.previousRequested.emit)
         self._play_pause_action = QAction(self.tr("Play"))
-        self._play_pause_action.setIcon(icons.themed_icon("media-playback-start"))
         self._play_pause_action.triggered.connect(self._request_play_pause)
         self._next_action = QAction(self.tr("Next"))
-        self._next_action.setIcon(icons.themed_icon("media-skip-forward"))
         self._next_action.triggered.connect(self.nextRequested.emit)
 
         menu = QMenu()
@@ -205,20 +197,17 @@ class TrayIcon(QObject):
         # — a menu entry that opens an empty "turned off" window is a
         # dead end.
         self._history_action = QAction(self.tr("Recently played…"))
-        self._history_action.setIcon(icons.themed_icon("document-open-recent"))
         self._history_action.triggered.connect(self.historyRequested.emit)
         # Pausing sharing lives in the Status window, which a click on the icon
         # already opens; Settings stays here too, because this menu is where
         # people look for it.
         menu.addAction(self._history_action)
         self._settings_action = QAction(self.tr("Settings…"))
-        self._settings_action.setIcon(icons.themed_icon("configure"))
         self._settings_action.triggered.connect(self.settingsRequested.emit)
         menu.addAction(self._settings_action)
         # Rarely needed, and Restart sat right above Quit: tucked away,
         # still two clicks from the top.
         self._more_menu = menu.addMenu(self.tr("Troubleshooting"))
-        self._more_menu.setIcon(icons.themed_icon("tools-report-bug"))
         # The Discord and Last.fm rows live here, and only while they have
         # something to report. The icon carries the alarm now; a permanent
         # "Discord: visible on your profile" was a line that never changed.
@@ -226,10 +215,8 @@ class TrayIcon(QObject):
         self._more_menu.addAction(self._lastfm_action)
         self._more_menu.addSeparator()
         self._log_action = self._more_menu.addAction(self.tr("Live log…"))
-        self._log_action.setIcon(icons.themed_icon("view-list-text"))
         self._log_action.triggered.connect(self.logRequested.emit)
         self._restart_action = self._more_menu.addAction(self.tr("Restart Refrain"))
-        self._restart_action.setIcon(icons.themed_icon("view-refresh"))
         self._restart_action.triggered.connect(self.restartRequested.emit)
         menu.addSeparator()
         quit_action = menu.addAction(self.tr("Quit Refrain"))
@@ -251,6 +238,12 @@ class TrayIcon(QObject):
         self._tray.activated.connect(self._on_activated)
         self._tray.show()
 
+        self._apply_menu_icons()
+        # The menu lives outside any widget, so no PaletteChange reaches it.
+        app = QGuiApplication.instance()
+        if app is not None:
+            app.installEventFilter(self)
+
         # Re-render tray glyphs when the system flips between dark and
         # light theme — Qt 6.5+ exposes this signal on styleHints().
         hints = QGuiApplication.styleHints()
@@ -258,6 +251,36 @@ class TrayIcon(QObject):
         if signal is not None:
             with contextlib.suppress(Exception):
                 signal.connect(self._on_color_scheme_changed)
+
+    def _apply_menu_icons(self) -> None:
+        """(Re)fetch every theme icon in the menu.
+
+        A symbolic glyph is painted in the palette's text colour, so a
+        light/dark switch has to fetch them all again. The two rows that
+        carry a service state are then set back to that state.
+        """
+        for action, name in (
+            (self._title_action, "view-media-track"),
+            (self._artist_action, "view-media-artist"),
+            (self._progress_action, "chronometer"),
+            (self._developer_action, "applications-development"),
+            (self._previous_action, "media-skip-backward"),
+            (self._next_action, "media-skip-forward"),
+            (self._history_action, "document-open-recent"),
+            (self._settings_action, "configure"),
+            (self._more_menu.menuAction(), "tools-report-bug"),
+            (self._log_action, "view-list-text"),
+            (self._restart_action, "view-refresh"),
+        ):
+            action.setIcon(icons.themed_icon(name))
+        self._apply_status(self._current_status)
+        if self._service_status is not None:
+            self.set_service_status(self._service_status)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        if event.type() == QEvent.Type.ApplicationPaletteChange:
+            self._apply_menu_icons()
+        return super().eventFilter(watched, event)
 
     def _build_icons(self) -> dict[TrayState, QIcon]:
         # `tray-<state>.svg` is the set for a dark panel, `*-dark.svg` the
@@ -386,6 +409,7 @@ class TrayIcon(QObject):
         self._show_icon()
 
     def set_service_status(self, status: StatusSnapshot) -> None:
+        self._service_status = status
         """The Discord and Last.fm rows, from the live state."""
         d = status.discord
         if d is DiscordStatus.NOT_SET_UP:

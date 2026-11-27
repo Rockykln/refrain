@@ -16,7 +16,7 @@ pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QLocale, QPoint  # noqa: E402
-from PySide6.QtGui import QContextMenuEvent, QIcon  # noqa: E402
+from PySide6.QtGui import QColor, QContextMenuEvent, QIcon, QPalette  # noqa: E402
 from PySide6.QtWidgets import QApplication, QMenu  # noqa: E402
 
 from refrain.history import HistoryEntry, HistorySnapshot  # noqa: E402
@@ -267,3 +267,83 @@ def test_history_window_icons_all_have_icons_without_kde_names(app, icon_theme, 
         win.close()
         win.deleteLater()
         app.processEvents()
+
+
+# Adwaita 48 dropped the plain names and ships only "<name>-symbolic"
+
+
+def test_the_symbolic_spelling_is_used_when_only_it_exists(app, icon_theme):
+    icon_theme(["media-playback-start-symbolic"])
+    assert not icons.themed_icon("media-playback-start").isNull()
+
+
+def test_the_symbolic_spelling_covers_the_standard_fallback_too(app, icon_theme):
+    """ "configure" has neither spelling; its fallback has only the symbolic one."""
+    icon_theme(["preferences-system-symbolic"])
+    assert not icons.themed_icon("configure").isNull()
+
+
+def test_a_plain_name_wins_over_a_symbolic_one_anywhere_in_the_chain(app, icon_theme):
+    # Breeze has both spellings; its own full-colour glyph must still win,
+    # and untouched — the theme's fill, not the palette's text colour.
+    icon_theme(["preferences-system", "configure-symbolic"])
+    icon = icons.themed_icon("configure")
+    assert icon.name() == "preferences-system"
+    assert icon.pixmap(16, 16).toImage().pixelColor(8, 8).name() == "#123456"
+
+
+@pytest.fixture
+def text_colour(app):
+    """Repaint the application in a given text colour; always restored after."""
+    before = QPalette(app.palette())
+
+    def _set(colour: str) -> None:
+        palette = QPalette(app.palette())
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor(colour))
+        app.setPalette(palette)
+        app.processEvents()
+
+    yield _set
+    app.setPalette(before)
+    app.processEvents()
+
+
+def _glyph_colour(icon) -> str:
+    return icon.pixmap(16, 16).toImage().pixelColor(8, 8).name()
+
+
+def test_a_symbolic_glyph_is_painted_in_the_text_colour(app, icon_theme, text_colour):
+    """Its fill is hard-coded dark, so untouched it vanishes on a dark palette."""
+    icon_theme(["media-skip-forward-symbolic"])
+    for colour in ("#ff0000", "#00ff00"):
+        text_colour(colour)
+        assert _glyph_colour(icons.themed_icon("media-skip-forward")) == colour
+
+
+def test_the_status_window_repaints_its_glyphs_when_the_palette_flips(app, icon_theme, text_colour):
+    icon_theme(["media-skip-backward-symbolic", "media-skip-forward-symbolic"])
+    text_colour("#ff0000")
+    win = StatusWindow(QLocale("en_US"))
+    try:
+        assert _glyph_colour(win.previous_btn.icon()) == "#ff0000"
+        text_colour("#ff00ff")
+        assert _glyph_colour(win.previous_btn.icon()) == "#ff00ff"
+        assert _glyph_colour(win.next_btn.icon()) == "#ff00ff"
+    finally:
+        win.close()
+        win.deleteLater()
+        app.processEvents()
+
+
+def test_the_tray_menu_repaints_its_glyphs_when_the_palette_flips(app, icon_theme, text_colour):
+    """The menu lives outside any widget, so it listens to the application."""
+    icon_theme(["document-open-recent-symbolic", "network-offline-symbolic"])
+    text_colour("#ff0000")
+    tray = TrayIcon()
+    tray.set_service_status(StatusSnapshot(discord=DiscordStatus.PRIVACY_OFF))
+    assert _glyph_colour(tray._history_action.icon()) == "#ff0000"
+    assert _glyph_colour(tray._discord_action.icon()) == "#ff0000"
+    text_colour("#00ffff")
+    assert _glyph_colour(tray._history_action.icon()) == "#00ffff"
+    # The service rows carry a state, so they are set back to it afterwards.
+    assert _glyph_colour(tray._discord_action.icon()) == "#00ffff"

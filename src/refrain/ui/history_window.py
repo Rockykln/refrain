@@ -727,7 +727,6 @@ class HistoryWindow(QDialog):
         # top bar
         self.count_label = QLabel()
         self.clear_btn = QPushButton(self.tr("Clear history…"))
-        self.clear_btn.setIcon(icons.themed_icon("edit-clear-history"))
         self.clear_btn.clicked.connect(self._on_clear_clicked)
         top = QHBoxLayout()
         top.addWidget(self.count_label)
@@ -779,13 +778,10 @@ class HistoryWindow(QDialog):
         empty = QWidget()
         ev = QVBoxLayout(empty)
         ev.addStretch(1)
-        empty_icon = QLabel()
-        empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        glyph = icons.themed_icon("document-open-recent")
-        if glyph.isNull():
-            glyph = QIcon(str(icon_path))
-        empty_icon.setPixmap(glyph.pixmap(48, 48))
-        ev.addWidget(empty_icon)
+        self._empty_icon = QLabel()
+        self._empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._apply_themed_icons()
+        ev.addWidget(self._empty_icon)
         self.empty_title = QLabel()
         self.empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_font = QFont(self.empty_title.font())
@@ -906,10 +902,25 @@ class HistoryWindow(QDialog):
             self.search.setFocus()
             self.search.selectAll()
 
+    def _apply_themed_icons(self) -> None:
+        """(Re)fetch the theme icons outside the row list.
+
+        A symbolic glyph is painted in the palette's text colour, so a
+        light/dark switch has to fetch it again; the rows get theirs from
+        the rebuild below.
+        """
+        self.clear_btn.setIcon(icons.themed_icon("edit-clear-history"))
+        glyph = icons.themed_icon("document-open-recent")
+        if glyph.isNull():
+            glyph = QIcon(str(assets_dir() / "icons" / "refrain.svg"))
+        self._empty_icon.setPixmap(glyph.pixmap(48, 48))
+
     def changeEvent(self, event) -> None:
         super().changeEvent(event)
         if event.type() in (event.Type.PaletteChange, event.Type.StyleChange):
-            # Placeholders and muted text are derived from the palette.
+            # Placeholders, muted text and symbolic glyphs are derived
+            # from the palette.
+            self._apply_themed_icons()
             self._covers.clear()
             self._clear_rows()
             self._apply_muted_colors()
