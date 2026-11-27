@@ -823,3 +823,14 @@ def test_a_long_pause_hides_the_song_without_ending_the_listen(rig):
     assert rpc().last == ("clear", {})
     assert worker._scrobbler.calls[-1]["track"].title == TITLE
     assert worker._history.calls[-1]["track"].title == TITLE
+
+
+def test_the_card_drops_the_remaster_tag_but_lastfm_keeps_it(rig):
+    """A remaster is the same performance; what Last.fm stores stays verbatim."""
+    worker, player, _ = rig()
+    player.play(title=f"{TITLE} (2016 Remastered)")
+    player.tick(n=4)
+    kind, payload = rpc().last
+    assert kind == "update"
+    assert payload["details"] == TITLE
+    assert worker._scrobbler.calls[-1]["track"].title == f"{TITLE} (2016 Remastered)"

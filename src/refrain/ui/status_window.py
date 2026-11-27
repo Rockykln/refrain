@@ -47,7 +47,7 @@ from PySide6.QtWidgets import (
 
 from refrain import __version__, dev_metrics
 from refrain.browser import names_its_page
-from refrain.cover_art import image_path_for_url
+from refrain.cover_art import display_title, image_path_for_url
 from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot
 from refrain.paths import assets_dir, state_dir
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
@@ -383,7 +383,10 @@ class _RecentRow(QWidget):
         row.setContentsMargins(0, 5, 0, 5)
         row.setSpacing(8)
         muted = _muted(self.palette())
-        self.title = _Line(" · ".join(p for p in (entry.title, entry.artist) if p), on_change=False)
+        self.title = _Line(
+            " · ".join(p for p in (display_title(entry.title), entry.artist) if p),
+            on_change=False,
+        )
         self.title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         row.addWidget(self.title, 1)
         if entry.scrobbled:
@@ -398,7 +401,9 @@ class _RecentRow(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setToolTip(QCoreApplication.translate("StatusWindow", "Open in Apple Music"))
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setAccessibleName(" — ".join(p for p in (entry.title, entry.artist) if p))
+        self.setAccessibleName(
+            " — ".join(p for p in (display_title(entry.title), entry.artist) if p)
+        )
         self.setAccessibleDescription(
             QCoreApplication.translate("StatusWindow", "Open in Apple Music")
         )
@@ -794,8 +799,8 @@ class StatusWindow(QDialog):
             self._refresh_controls()
             return
         self.hint.setVisible(False)
-        self.title.setText(track.title)
-        self.artist.setText(" — ".join(p for p in (track.artist, track.album) if p))
+        self.title.setText(display_title(track.title))
+        self.artist.setText(" — ".join(p for p in (track.artist, display_title(track.album)) if p))
         self.artist.setVisible(bool(track.artist or track.album))
         if track.source == "bluetooth":
             source = self.tr("Bluetooth")

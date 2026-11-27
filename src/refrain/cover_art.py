@@ -96,6 +96,21 @@ _ARTIST_SEP = re.compile(
 )
 
 
+# Only the remaster tag, for what the user reads. A remaster is the same
+# performance at a new mix; an edit, a version or a live take is not, and a
+# "feat." credit names someone who played on it.
+_REMASTER_PAREN = re.compile(
+    r"\s*[\(\[][^\)\]]{0,120}\bremaster(?:ed)?\b[^\)\]]{0,120}[\)\]]", re.I
+)
+_REMASTER_DASH = re.compile(r"\s+[-–—]\s+[^-–—]*\bremaster(?:ed)?\b.*$", re.I)
+
+
+def display_title(title: str) -> str:
+    """The title as it is shown. Never what is looked up, scrobbled or stored."""
+    out = _REMASTER_DASH.sub("", _REMASTER_PAREN.sub("", title))
+    return out.strip() or title.strip()
+
+
 def clean_title(title: str) -> str:
     """The title without "feat." credits and remaster/version tags."""
     out = title

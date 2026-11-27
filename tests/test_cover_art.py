@@ -343,3 +343,36 @@ def test_keeping_images_clears_out_everything_else_but_the_lookups(cover_art, tm
     cover_art.keep_cover_images(set(), [tmp_path])
     assert not list(d.glob("*.jpg*"))
     assert lookup.exists()
+
+
+@pytest.mark.parametrize(
+    "title,shown",
+    [
+        ("Glass Tides (2016 Remastered)", "Glass Tides"),
+        ("Glass Tides [Remastered]", "Glass Tides"),
+        ("Glass Tides - Remastered 2015", "Glass Tides"),
+        ("Low Light (Deluxe Edition) [Remastered]", "Low Light (Deluxe Edition)"),
+        # An edit, a version or a live take is a different recording, and a
+        # "feat." credit names someone who played on it: all stay.
+        ("Night Signal (Radio Edit)", "Night Signal (Radio Edit)"),
+        ("Night Signal (Kite Theory Remix Edit)", "Night Signal (Kite Theory Remix Edit)"),
+        ("Night Signal (Hard Version)", "Night Signal (Hard Version)"),
+        ("Night Signal (Live)", "Night Signal (Live)"),
+        ("Neon Harbor (feat. Ilse Moreau)", "Neon Harbor (feat. Ilse Moreau)"),
+        (
+            "Neon Harbor (feat. Ilse Moreau) [2023 Edit]",
+            "Neon Harbor (feat. Ilse Moreau) [2023 Edit]",
+        ),
+        # Never hand back nothing.
+        ("(Remastered)", "(Remastered)"),
+        ("", ""),
+    ],
+)
+def test_display_title_drops_only_the_remaster_tag(cover_art, title, shown):
+    assert cover_art.display_title(title) == shown
+
+
+def test_the_lookup_still_sees_the_whole_title(cover_art):
+    """display_title is for the eye only; the catalog key must not change."""
+    assert cover_art.clean_title("Night Signal (Radio Edit)") == "Night Signal"
+    assert cover_art.display_title("Night Signal (Radio Edit)") == "Night Signal (Radio Edit)"

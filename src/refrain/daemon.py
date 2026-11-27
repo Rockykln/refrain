@@ -18,6 +18,7 @@ from PySide6.QtCore import QMetaObject, QObject, Qt, QThread, QTimer, Signal, Sl
 
 from refrain import dev_metrics
 from refrain.config import AdvancedConfig, Config
+from refrain.cover_art import display_title
 from refrain.cover_fetcher import CoverFetcher
 from refrain.discord_app import application_icon_url
 from refrain.discord_rpc import DiscordRPC, RPCState
@@ -1726,11 +1727,11 @@ class DaemonWorker(QObject):
         # how Spotify/other music RPCs render in Discord. Album is
         # filtered against artist / title so the bottom line never just
         # echoes what's already on a line above.
-        details = track.title
+        details = display_title(track.title)
         if track.artist:
             state = track.artist
         elif track.album:
-            state = track.album
+            state = display_title(track.album)
         else:
             state = "Apple Music"
         if is_paused:

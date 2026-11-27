@@ -31,6 +31,13 @@ lists every version and why.
 - **The quiet buttons react to the mouse like the GitHub mark.** *Show
   all* and *Legal* drew no frame under the pointer while the mark beside
   them did, which read as if they were not buttons at all.
+- **A remaster tag is left off what you read.** "Glass Tides (2016
+  Remastered)" shows as "Glass Tides" in the Status window, in the tray
+  and on the Discord card: a remaster is the same
+  performance at a new mix. An edit, a version, a live take and a
+  "feat." credit all stay, because each names a different recording.
+  Last.fm, the history and the catalogue lookup keep the title exactly
+  as the player reported it.
 - **The Last.fm page says less.** The note under the options repeated
   that scrobbling runs alongside Discord and pauses with Privacy; what
   is left is how to connect and where the secrets are kept.

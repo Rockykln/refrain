@@ -12,6 +12,7 @@ from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtWidgets import QMenu, QSystemTrayIcon
 
 from refrain import dev_metrics
+from refrain.cover_art import display_title
 from refrain.paths import assets_dir
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
@@ -512,16 +513,18 @@ class TrayIcon(QObject):
             self._current_progress_line = ""
             self._tray.setToolTip("Refrain")
             return
-        self._title_action.setText(_menu_text(track.title))
-        if track.artist and track.album:
-            line = f"{track.artist} • {track.album}"
+        shown_title = display_title(track.title)
+        shown_album = display_title(track.album)
+        self._title_action.setText(_menu_text(shown_title))
+        if track.artist and shown_album:
+            line = f"{track.artist} • {shown_album}"
         elif track.artist:
             line = track.artist
         else:
-            line = track.album or "—"
+            line = shown_album or "—"
         self._artist_action.setText(_menu_text(line))
         self._artist_action.setVisible(True)
-        new_track_line = f"{track.title}\n{line}"
+        new_track_line = f"{shown_title}\n{line}"
         # If the track text actually changed, drop the stale progress
         # line so the tooltip doesn't briefly show "Song B • 1:30/2:11"
         # using Song A's elapsed counter while a paused new track waits

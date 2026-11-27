@@ -899,3 +899,20 @@ def test_the_quiet_buttons_react_to_the_mouse_like_the_github_mark(window):
     assert isinstance(window.show_all, QToolButton)
     assert window.show_all.autoRaise()
     assert window.github_btn.autoRaise()
+
+
+def test_the_remaster_tag_is_left_off_the_song_lines(window):
+    """What is shown drops it; what the window holds on to does not."""
+    track = _playing(
+        title="Glass Tides (2016 Remastered)",
+        album="Low Light (Deluxe Edition) [Remastered]",
+    )
+    window.set_track(track)
+    assert window.title._full == "Glass Tides"
+    assert window.artist._full == "Neon Harbor — Low Light (Deluxe Edition)"
+    assert window._track.title == "Glass Tides (2016 Remastered)"
+
+
+def test_an_edit_keeps_its_name_on_the_song_lines(window):
+    window.set_track(_playing(title="Glass Tides (Radio Edit)"))
+    assert window.title._full == "Glass Tides (Radio Edit)"

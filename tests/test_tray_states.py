@@ -508,3 +508,22 @@ def test_an_ampersand_in_a_song_shows_as_itself_not_as_a_shortcut(tray):
     tray.set_track(_track(title="Salt & Stone", artist="Wren & Ash", album="Open Country"))
     assert tray._title_action.text() == "Salt && Stone"
     assert tray._artist_action.text().startswith("Wren && Ash")
+
+
+def test_the_remaster_tag_is_left_off_the_menu_and_the_tooltip(tray):
+    tray.set_track(
+        _track(
+            title="Glass Tides (2016 Remastered)",
+            artist="Neon Harbor",
+            album="Low Light [Remastered]",
+        )
+    )
+    assert tray._title_action.text() == "Glass Tides"
+    assert tray._artist_action.text() == "Neon Harbor • Low Light"
+    assert tray._tray.toolTip().startswith("Glass Tides\n")
+    assert "Remaster" not in tray._tray.toolTip()
+
+
+def test_an_edit_keeps_its_name_in_the_menu(tray):
+    tray.set_track(_track(title="Glass Tides (Radio Edit)"))
+    assert tray._title_action.text() == "Glass Tides (Radio Edit)"
