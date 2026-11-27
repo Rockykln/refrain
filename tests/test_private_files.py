@@ -87,3 +87,44 @@ def test_an_existing_cover_cache_dir_is_tightened(xdg_tmp, tmp_path):
     cover_art.keep_cover_images({url}, [tmp_path])
     assert cover_art.image_path_for_url(url).exists()
     assert _mode(cover_cache_dir()) == 0o700
+
+
+def test_a_kept_cover_is_owner_only(xdg_tmp, tmp_path):
+    """It came out 0644: the copy wrote through shutil, not write_private."""
+    from refrain import cover_art
+
+    url = "https://example.com/12345.jpg"
+    (tmp_path / cover_art.image_name(url)).write_bytes(b"\xff\xd8jpeg")
+    cover_art.keep_cover_images({url}, [tmp_path])
+    kept = cover_art.image_path_for_url(url)
+    assert kept.read_bytes() == b"\xff\xd8jpeg"
+    assert _mode(kept) == 0o600
+
+
+def test_the_window_geometry_is_owner_only(xdg_tmp):
+    import os
+    import sys
+
+    pytest.importorskip("PySide6")
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PySide6.QtWidgets import QApplication
+
+    from refrain.ui.status_window import StatusWindow, geometry_path
+
+    QApplication.instance() or QApplication(sys.argv)
+    window = StatusWindow()
+    try:
+        window._save_geometry()
+    finally:
+        window.deleteLater()
+    assert _mode(geometry_path()) == 0o600
+
+
+def test_the_crash_report_marker_is_owner_only(xdg_tmp, tmp_path):
+    from refrain import app
+    from refrain.paths import state_dir
+
+    report = tmp_path / "crash.log"
+    report.write_text("--- start ---\nboom\n", encoding="utf-8")
+    app._remember_crash_reports(report)
+    assert _mode(state_dir() / "crash-seen") == 0o600

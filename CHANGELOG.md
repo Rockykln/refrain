@@ -50,6 +50,11 @@ lists every version and why.
 
 ### Security
 
+- **Three more files are written owner-only.** The kept cover images,
+  the Status window's size and the marker for crash reports already
+  seen came out readable by anyone on the machine. They now go through
+  the same helper as everything else, which also means the crash marker
+  is written at all when the state folder is still missing.
 - **The secrets file is written the way every other private file is.**
   Without a keyring, the Last.fm secret and session key go to a file of
   their own. The temporary file it is written through carried a

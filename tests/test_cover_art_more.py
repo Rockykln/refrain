@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from refrain import https_only
+from refrain import https_only, paths
 from tests.test_cover_art import _install, _song, _Store, cover_art  # noqa: F401
 
 
@@ -155,11 +155,10 @@ def test_a_failed_copy_leaves_no_partial_cover(cover_art, monkeypatch, tmp_path)
     source.mkdir()
     (source / name).write_bytes(b"\xff\xd8cover")
 
-    def half_copy(src, dst):
-        open(dst, "wb").write(b"\xff")
+    def refuse(_src, _dst):
         raise OSError("disk full")
 
-    monkeypatch.setattr(cover_art.shutil, "copyfile", half_copy)
+    monkeypatch.setattr(paths.os, "replace", refuse)
     cover_art.keep_cover_images({url}, [source])
     assert list(cover_art.cover_cache_dir().iterdir()) == []
 

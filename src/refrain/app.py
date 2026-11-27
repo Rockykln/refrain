@@ -44,7 +44,14 @@ from refrain.daemon import Daemon
 from refrain.discord_app import NAME_TTL_S, refresh_application
 from refrain.https_only import use_system_certificates
 from refrain.logging_setup import attach_qt_log_bridge, setup_logging
-from refrain.paths import _xdg, assets_dir, desktop_entry, make_private_dir, state_dir
+from refrain.paths import (
+    _xdg,
+    assets_dir,
+    desktop_entry,
+    make_private_dir,
+    state_dir,
+    write_private,
+)
 from refrain.service_status import ServiceStatus
 from refrain.single_instance import AlreadyRunning, SessionBusUnavailable, listen_for_activation
 from refrain.single_instance import acquire as acquire_lock
@@ -729,7 +736,7 @@ def _crash_since_last_start(path: Path) -> bool:
 
 def _remember_crash_reports(path: Path) -> None:
     try:
-        (state_dir() / "crash-seen").write_text(str(_crash_reports(path)), encoding="utf-8")
+        write_private(state_dir() / "crash-seen", str(_crash_reports(path)))
     except OSError as e:
         log.debug("Could not remember the crash reports: %s", e)
 

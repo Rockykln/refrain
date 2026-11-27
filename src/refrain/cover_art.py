@@ -37,7 +37,6 @@ import json
 import logging
 import os
 import re
-import shutil
 import time
 import unicodedata
 import urllib.parse
@@ -420,15 +419,10 @@ def keep_cover_images(urls: set[str], sources: list[Path]) -> None:
         src = next((s / name for s in sources if has_image(s / name)), None)
         if src is None:
             continue
-        tmp = dest.with_suffix(dest.suffix + ".tmp")
         try:
-            make_private_dir(d)
-            shutil.copyfile(src, tmp)
-            os.replace(tmp, dest)
+            write_private(dest, src.read_bytes())
         except OSError as e:
             log.debug("Could not keep cover %s: %s", name, e)
-            with contextlib.suppress(OSError):
-                tmp.unlink()
     if not d.is_dir():
         return
     removed = 0

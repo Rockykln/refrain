@@ -49,7 +49,7 @@ from refrain import __version__, dev_metrics
 from refrain.browser import names_its_page
 from refrain.cover_art import display_title, image_path_for_url
 from refrain.history import PAUSE_SHOWN_AFTER_S, HistoryEntry, HistorySnapshot
-from refrain.paths import assets_dir, state_dir
+from refrain.paths import assets_dir, state_dir, write_private
 from refrain.service_status import DiscordStatus, LastfmStatus, StatusSnapshot
 from refrain.sources.base import PlaybackStatus, TrackInfo
 from refrain.ui import clock, icons
@@ -1093,8 +1093,7 @@ class StatusWindow(QDialog):
     def _save_geometry(self) -> None:
         data = {"geometry": bytes(self.saveGeometry().toBase64().data()).decode("ascii")}
         try:
-            geometry_path().parent.mkdir(parents=True, exist_ok=True)
-            geometry_path().write_text(json.dumps(data), encoding="utf-8")
+            write_private(geometry_path(), json.dumps(data))
         except OSError as e:
             log.debug("Could not remember the Status window's size: %s", e)
 
