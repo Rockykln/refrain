@@ -1,14 +1,20 @@
 # Refrain
 
-**Discord Rich Presence for Apple Music on Linux.**
+**Discord Rich Presence for Apple Music on Linux**
 
-[![release](https://img.shields.io/github/v/release/Rockykln/refrain?logo=github&logoColor=white&label=release&color=1f7a4d)](https://github.com/Rockykln/refrain/releases/latest)
-[![python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?logo=python&logoColor=white)](#requirements)
-[![license](https://img.shields.io/badge/license-Use--Only-orange?logo=opensourceinitiative&logoColor=white)](LICENSE)
+<!-- Badges are HTML on purpose: GitHub does not render Markdown inside a
+     block-level element, so the Markdown spelling would show as source. -->
+<p align="center">
+  <a href="https://github.com/Rockykln/refrain/releases/latest"><img src="https://img.shields.io/github/v/release/Rockykln/refrain?logo=github&logoColor=white&label=release&color=1f7a4d" alt="release"/></a>
+  <a href="#requirements"><img src="https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue?logo=python&logoColor=white" alt="python"/></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Use--Only-orange?logo=opensourceinitiative&logoColor=white" alt="license"/></a>
+</p>
 
-[![tests](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/tests.yml?logo=githubactions&logoColor=white&label=tests)](https://github.com/Rockykln/refrain/actions/workflows/tests.yml)
-[![codeql](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/codeql.yml?logo=github&logoColor=white&label=codeql)](https://github.com/Rockykln/refrain/actions/workflows/codeql.yml)
-[![security](https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/security.yml?logo=shieldsdotio&logoColor=white&label=security)](https://github.com/Rockykln/refrain/actions/workflows/security.yml)
+<p align="center">
+  <a href="https://github.com/Rockykln/refrain/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/tests.yml?logo=githubactions&logoColor=white&label=tests" alt="tests"/></a>
+  <a href="https://github.com/Rockykln/refrain/actions/workflows/codeql.yml"><img src="https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/codeql.yml?logo=github&logoColor=white&label=codeql" alt="codeql"/></a>
+  <a href="https://github.com/Rockykln/refrain/actions/workflows/security.yml"><img src="https://img.shields.io/github/actions/workflow/status/Rockykln/refrain/security.yml?logo=shieldsdotio&logoColor=white&label=security" alt="security"/></a>
+</p>
 
 Refrain shows what you're listening to on Apple Music as your Discord status
 — whether the audio is playing in a browser tab on `music.apple.com`, in a
