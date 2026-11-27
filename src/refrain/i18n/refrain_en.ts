@@ -47,7 +47,7 @@
 <context>
     <name>SettingsWindow</name>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1239"/>
+        <location filename="../ui/settings_window.py" line="1242"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n minute ago</numerusform>
@@ -55,7 +55,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1242"/>
+        <location filename="../ui/settings_window.py" line="1245"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n hour ago</numerusform>
@@ -63,7 +63,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1244"/>
+        <location filename="../ui/settings_window.py" line="1247"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n day ago</numerusform>
@@ -74,7 +74,7 @@
 <context>
     <name>StatusWindow</name>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="935"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble waiting to be sent</numerusform>
@@ -85,7 +85,7 @@
 <context>
     <name>TrayIcon</name>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="454"/>
+        <location filename="../ui/tray.py" line="455"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: %n scrobble waiting</numerusform>

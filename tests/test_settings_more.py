@@ -137,6 +137,40 @@ def test_typed_browser_names_are_kept_after_the_ticked_ones(win):
     assert win.sent[-1].sources.browser_hints == f"{first},vivaldi"
 
 
+def test_the_last_browser_cannot_be_unticked(win):
+    """Unticking it was accepted, dropped on save, and back on next open."""
+    for token, cb in win._browser_checkboxes.items():
+        cb.setChecked(token == "firefox")
+    win.browser_extra_input.setText("")
+    assert win._browser_checkboxes["firefox"].isEnabled() is False
+    win._browser_checkboxes["chromium"].setChecked(True)
+    assert win._browser_checkboxes["firefox"].isEnabled() is True
+
+
+def test_a_typed_name_frees_the_last_tick(win):
+    for token, cb in win._browser_checkboxes.items():
+        cb.setChecked(token == "firefox")
+    win.browser_extra_input.setText("qutebrowser")
+    assert win._browser_checkboxes["firefox"].isEnabled() is True
+    win._browser_checkboxes["firefox"].setChecked(False)
+    win._on_apply_clicked()
+    assert win.sent[-1].sources.browser_hints == "qutebrowser"
+
+
+def test_an_empty_browser_list_is_refused_with_a_reason(win, boxes):
+    """Reachable through the typed field, which no tick can hold open."""
+    for token, cb in win._browser_checkboxes.items():
+        cb.setChecked(token == "firefox")
+    win.browser_extra_input.setText("qutebrowser")
+    win._browser_checkboxes["firefox"].setChecked(False)
+    win.browser_extra_input.setText("")
+    sent_before = len(win.sent)
+    win._on_apply_clicked()
+    assert len(win.sent) == sent_before
+    assert [kind for kind, _title, _text in boxes] == ["warning"]
+    assert "one browser" in boxes[0][2]
+
+
 def test_unticking_every_app_leaves_no_native_client(win):
     for cb in win._app_checkboxes.values():
         cb.setChecked(False)

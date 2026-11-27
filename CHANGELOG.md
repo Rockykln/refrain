@@ -58,6 +58,17 @@ lists every version and why.
 
 ### Fixed
 
+- **Unticking every browser no longer looks like it worked.** The empty
+  list was thrown away on save, so Apply came and went as if something
+  had happened and the next open showed all fifteen ticks back. The last
+  tick is held down now, and the hint says what to do instead: turning
+  the browser source off reads none at all. A name typed in *Other*
+  frees the tick again, and emptying the group that way is refused with
+  a reason rather than in silence.
+- **The Sources tab says what it means.** *Detected browsers* and
+  *Detected apps* detect nothing — both are fixed lists of names Refrain
+  knows — and *They share the switch above* did not say that turning the
+  browser source off turns the native clients off with it.
 - **Text that is working is no longer greyed in.** *Visible on your
   profile*, *Scrobbling as …* and the song, album and *Recently played*
   lines came out dimmer than the text that is dimmed on purpose. A

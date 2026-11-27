@@ -1077,7 +1077,7 @@ class SettingsWindow(QDialog):
 
         # User-friendly browser picker: a checkbox per known browser in
         # a 2-column grid + a free-text field below for less-common ones.
-        browsers_label = QLabel(self.tr("Detected browsers:"))
+        browsers_label = QLabel(self.tr("Browsers Refrain knows:"))
         mf.addRow(browsers_label)
 
         self._browser_checkboxes: dict[str, QCheckBox] = {}
@@ -1123,7 +1123,9 @@ class SettingsWindow(QDialog):
             _hint(
                 self.tr(
                     "Refrain only picks up browsers whose process name or desktop "
-                    "entry contains one of these substrings. Tick what you use."
+                    "entry contains one of these substrings. Tick what you use. "
+                    "One has to stay — to read no browser at all, turn the source "
+                    "off above."
                 )
             )
         )
@@ -1131,7 +1133,7 @@ class SettingsWindow(QDialog):
 
         # Native Apple Music apps group
         app_group, af = _new_group(self.tr("Apple Music app (native)"))
-        apps_label = QLabel(self.tr("Detected apps:"))
+        apps_label = QLabel(self.tr("Clients Refrain knows:"))
         af.addRow(apps_label)
 
         self._app_checkboxes: dict[str, QCheckBox] = {}
@@ -1157,7 +1159,8 @@ class SettingsWindow(QDialog):
                 self.tr(
                     "Players that are an Apple Music client themselves, matched the "
                     "same way. They play nothing else, so Refrain picks them up "
-                    "without a page address. They share the switch above."
+                    "without a page address. Enable browser source above turns "
+                    "these on and off as well."
                 )
             )
         )
@@ -1918,6 +1921,7 @@ class SettingsWindow(QDialog):
             cb.setChecked(token in existing)
         extras = sorted(existing - set(self._browser_checkboxes))
         self.browser_extra_input.setText(",".join(extras))
+        self._lock_last_browser()
 
         existing_apps = {h.strip().lower() for h in c.sources.app_hints.split(",") if h.strip()}
         for token, cb in self._app_checkboxes.items():
@@ -1976,12 +1980,7 @@ class SettingsWindow(QDialog):
         # off, the overrides are cleared so the single default ID is used
         # everywhere and the hidden field contents can't linger.
         per_source = self.discord_per_source_box.isChecked()
-        # Known browsers in display order first, then the typed extras.
-        picked = [t for t, cb in self._browser_checkboxes.items() if cb.isChecked()]
-        extra_text = self.browser_extra_input.text().strip()
-        if extra_text:
-            extras = [e.strip().lower() for e in extra_text.split(",") if e.strip()]
-            picked.extend(e for e in extras if e not in picked)
+        picked = self._browser_tokens()
 
         apps_picked = [t for t, cb in self._app_checkboxes.items() if cb.isChecked()]
         app_extra_text = self.app_extra_input.text().strip()
@@ -2023,7 +2022,7 @@ class SettingsWindow(QDialog):
             ("update", "auto_check"): self.auto_check_box.isChecked(),
             ("sources", "mpris_enabled"): self.mpris_box.isChecked(),
             ("sources", "bluetooth_enabled"): self.bluetooth_box.isChecked(),
-            ("sources", "browser_hints"): ",".join(picked) if picked else None,
+            ("sources", "browser_hints"): ",".join(picked),
             ("sources", "app_hints"): ",".join(apps_picked),
             ("sources", "bluetooth_device"): bt_device,
             ("privacy", "mode"): self.privacy_combo.currentData() or "full",
@@ -2034,6 +2033,29 @@ class SettingsWindow(QDialog):
             ("history", "enabled"): self.history_box.isChecked(),
             ("history", "max_entries"): self.history_limit_combo.currentData() or None,
         }
+
+    def _browser_tokens(self) -> list[str]:
+        """What the browser group asks for: ticked names first, then typed ones."""
+        picked = [t for t, cb in self._browser_checkboxes.items() if cb.isChecked()]
+        extra_text = self.browser_extra_input.text().strip()
+        if extra_text:
+            extras = [e.strip().lower() for e in extra_text.split(",") if e.strip()]
+            picked.extend(e for e in extras if e not in picked)
+        return picked
+
+    def _lock_last_browser(self, *_args) -> None:
+        """Hold the last tick down while it is the only name in the group.
+
+        Unticking it used to be accepted and then dropped on save, so the
+        whole list came back on the next open. A name in the typed field
+        frees the tick again; emptying that field is caught on save.
+        """
+        ticked = [cb for cb in self._browser_checkboxes.values() if cb.isChecked()]
+        held = (
+            ticked[0] if len(ticked) == 1 and not self.browser_extra_input.text().strip() else None
+        )
+        for cb in self._browser_checkboxes.values():
+            cb.setEnabled(cb is not held)
 
     def _config_from_form(self) -> Config:
         # A new object, so everyone holding the old one can tell what changed.
@@ -2117,6 +2139,9 @@ class SettingsWindow(QDialog):
             combo.currentIndexChanged.connect(self._update_dirty)
         for spin in self.tabs.findChildren(QSpinBox):
             spin.valueChanged.connect(self._update_dirty)
+        for box in self._browser_checkboxes.values():
+            box.toggled.connect(self._lock_last_browser)
+        self.browser_extra_input.textChanged.connect(self._lock_last_browser)
 
     def _restart_reason(self, c: Config) -> str:
         # The translator is installed once at startup; a new Application ID
@@ -2152,6 +2177,15 @@ class SettingsWindow(QDialog):
             and not self.history_box.isChecked()
             and not self._confirm_history_off()
         ):
+            return False
+        if not self._browser_tokens():
+            QMessageBox.warning(
+                self,
+                self.tr("No browser selected"),
+                self.tr(
+                    "Pick at least one browser, or turn the browser source off to read none at all."
+                ),
+            )
             return False
         lastfm_state = lastfm_connection_state(
             self._lastfm_session_key,

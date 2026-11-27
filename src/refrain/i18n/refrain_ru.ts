@@ -550,8 +550,8 @@
     <message>
         <location filename="../ui/settings_window.py" line="635"/>
         <location filename="../ui/settings_window.py" line="964"/>
-        <location filename="../ui/settings_window.py" line="1767"/>
-        <location filename="../ui/settings_window.py" line="1842"/>
+        <location filename="../ui/settings_window.py" line="1770"/>
+        <location filename="../ui/settings_window.py" line="1845"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
@@ -570,10 +570,10 @@
         <location filename="../ui/settings_window.py" line="928"/>
         <location filename="../ui/settings_window.py" line="939"/>
         <location filename="../ui/settings_window.py" line="956"/>
-        <location filename="../ui/settings_window.py" line="1531"/>
-        <location filename="../ui/settings_window.py" line="1630"/>
-        <location filename="../ui/settings_window.py" line="1704"/>
-        <location filename="../ui/settings_window.py" line="2134"/>
+        <location filename="../ui/settings_window.py" line="1534"/>
+        <location filename="../ui/settings_window.py" line="1633"/>
+        <location filename="../ui/settings_window.py" line="1707"/>
+        <location filename="../ui/settings_window.py" line="2159"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
@@ -851,7 +851,7 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1030"/>
-        <location filename="../ui/settings_window.py" line="1735"/>
+        <location filename="../ui/settings_window.py" line="1738"/>
         <source>Not connected</source>
         <translation>Не подключено</translation>
     </message>
@@ -862,8 +862,8 @@
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1033"/>
-        <location filename="../ui/settings_window.py" line="1733"/>
         <location filename="../ui/settings_window.py" line="1736"/>
+        <location filename="../ui/settings_window.py" line="1739"/>
         <source>Connect…</source>
         <translation>Подключить…</translation>
     </message>
@@ -898,95 +898,75 @@
         <translation>Включить источник «браузер»</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1080"/>
-        <source>Detected browsers:</source>
-        <translation>Обнаруженные браузеры:</translation>
-    </message>
-    <message>
         <location filename="../ui/settings_window.py" line="1120"/>
         <source>e.g. waterfox, palemoon</source>
         <translation>например: waterfox, palemoon</translation>
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="1121"/>
-        <location filename="../ui/settings_window.py" line="1154"/>
+        <location filename="../ui/settings_window.py" line="1156"/>
         <source>Other (comma-separated):</source>
         <translation>Другие (через запятую):</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
-        <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use.</source>
-        <translation>Refrain распознаёт только браузеры, у которых имя процесса или desktop-файл содержит одну из этих подстрок. Отметьте те, которыми пользуетесь.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1133"/>
+        <location filename="../ui/settings_window.py" line="1135"/>
         <source>Apple Music app (native)</source>
         <translation>Приложение Apple Music (нативное)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1134"/>
-        <source>Detected apps:</source>
-        <translation>Обнаруженные приложения:</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1153"/>
+        <location filename="../ui/settings_window.py" line="1155"/>
         <source>e.g. another Apple Music client</source>
         <translation>например: другой клиент Apple Music</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1158"/>
-        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. They share the switch above.</source>
-        <translation>Проигрыватели, которые сами являются клиентом Apple Music, распознаются так же. Они не воспроизводят ничего другого, поэтому Refrain распознаёт их без адреса страницы. Они используют переключатель выше.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1167"/>
+        <location filename="../ui/settings_window.py" line="1170"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1168"/>
+        <location filename="../ui/settings_window.py" line="1171"/>
         <source>Enable Bluetooth source</source>
         <translation>Включить источник Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1174"/>
+        <location filename="../ui/settings_window.py" line="1177"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1182"/>
+        <location filename="../ui/settings_window.py" line="1185"/>
         <source>Device:</source>
         <translation>Устройство:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1186"/>
+        <location filename="../ui/settings_window.py" line="1189"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>Выберите сопряжённое устройство или оставьте автоопределение, чтобы использовать тот AVRCP-источник, который сейчас подключён.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1199"/>
-        <location filename="../ui/settings_window.py" line="1211"/>
-        <location filename="../ui/settings_window.py" line="1997"/>
+        <location filename="../ui/settings_window.py" line="1202"/>
+        <location filename="../ui/settings_window.py" line="1214"/>
+        <location filename="../ui/settings_window.py" line="1996"/>
         <source>(auto-detect)</source>
         <translation>(автоопределение)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1213"/>
+        <location filename="../ui/settings_window.py" line="1216"/>
         <source>(unknown device)</source>
         <translation>(неизвестное устройство)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1216"/>
+        <location filename="../ui/settings_window.py" line="1219"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (подключено)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1236"/>
+        <location filename="../ui/settings_window.py" line="1239"/>
         <source>just now</source>
         <translation>только что</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1239"/>
+        <location filename="../ui/settings_window.py" line="1242"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n минуту назад</numerusform>
@@ -995,7 +975,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1242"/>
+        <location filename="../ui/settings_window.py" line="1245"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n час назад</numerusform>
@@ -1004,7 +984,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1244"/>
+        <location filename="../ui/settings_window.py" line="1247"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n день назад</numerusform>
@@ -1013,209 +993,209 @@
         </translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1257"/>
+        <location filename="../ui/settings_window.py" line="1260"/>
         <source>never</source>
         <translation>никогда</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1269"/>
+        <location filename="../ui/settings_window.py" line="1272"/>
         <source>Update checking</source>
         <translation>Проверка обновлений</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1272"/>
+        <location filename="../ui/settings_window.py" line="1275"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>Проверять автоматически при запуске (не чаще раза в сутки)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1277"/>
+        <location filename="../ui/settings_window.py" line="1280"/>
         <source>Current version:</source>
         <translation>Текущая версия:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1279"/>
+        <location filename="../ui/settings_window.py" line="1282"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1280"/>
+        <location filename="../ui/settings_window.py" line="1283"/>
         <source>Latest known:</source>
         <translation>Последняя известная:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1283"/>
+        <location filename="../ui/settings_window.py" line="1286"/>
         <source>Last checked:</source>
         <translation>Последняя проверка:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1287"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>Check for updates now</source>
         <translation>Проверить обновления сейчас</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1294"/>
+        <location filename="../ui/settings_window.py" line="1297"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain опрашивает GitHub Releases API. Способ обновления зависит от того, как был установлен Refrain (AppImage / pip / Flatpak / AUR).</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1313"/>
+        <location filename="../ui/settings_window.py" line="1316"/>
         <source>Latest release notes</source>
         <translation>Заметки о последнем выпуске</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1319"/>
+        <location filename="../ui/settings_window.py" line="1322"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_Нажмите_ **Проверить обновления сейчас**, _чтобы получить последний список изменений с GitHub._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1342"/>
+        <location filename="../ui/settings_window.py" line="1345"/>
         <source>(check failed)</source>
         <translation>(проверка не удалась)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1344"/>
+        <location filename="../ui/settings_window.py" line="1347"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_Не удалось связаться с GitHub. Проверьте сеть и попробуйте снова._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1349"/>
+        <location filename="../ui/settings_window.py" line="1352"/>
         <source>{version} (update available)</source>
         <translation>{version} (доступно обновление)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1353"/>
+        <location filename="../ui/settings_window.py" line="1356"/>
         <source>{version} (up to date)</source>
         <translation>{version} (актуальная версия)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1355"/>
+        <location filename="../ui/settings_window.py" line="1358"/>
         <source>_No release notes provided._</source>
         <translation>_Заметки о выпуске не предоставлены._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1365"/>
+        <location filename="../ui/settings_window.py" line="1368"/>
         <source>Performance</source>
         <translation>Производительность</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1371"/>
+        <location filename="../ui/settings_window.py" line="1374"/>
         <source>Poll interval:</source>
         <translation>Интервал опроса:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1378"/>
+        <location filename="../ui/settings_window.py" line="1381"/>
         <source>Notification delay:</source>
         <translation>Задержка уведомления:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1382"/>
+        <location filename="../ui/settings_window.py" line="1385"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>Интервал опроса — как часто Refrain спрашивает плеер о том, что играет: меньшее значение реагирует быстрее, но чуть больше нагружает процессор. Задержка уведомления даёт время на загрузку обложки.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1395"/>
+        <location filename="../ui/settings_window.py" line="1398"/>
         <source>Localization</source>
         <translation>Локализация</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1398"/>
+        <location filename="../ui/settings_window.py" line="1401"/>
         <source>System default</source>
         <translation>Как в системе</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1415"/>
+        <location filename="../ui/settings_window.py" line="1418"/>
         <source>Language:</source>
         <translation>Язык:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1422"/>
+        <location filename="../ui/settings_window.py" line="1425"/>
         <source>Logging</source>
         <translation>Журналирование</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1426"/>
+        <location filename="../ui/settings_window.py" line="1429"/>
         <source>Detailed (DEBUG)</source>
         <translation>Подробный (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1427"/>
+        <location filename="../ui/settings_window.py" line="1430"/>
         <source>Normal (INFO)</source>
         <translation>Обычный (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1428"/>
+        <location filename="../ui/settings_window.py" line="1431"/>
         <source>Warnings only</source>
         <translation>Только предупреждения</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1429"/>
+        <location filename="../ui/settings_window.py" line="1432"/>
         <source>Errors only</source>
         <translation>Только ошибки</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1432"/>
+        <location filename="../ui/settings_window.py" line="1435"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>Выбирайте «Подробный», если сообщаете об ошибке.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1433"/>
+        <location filename="../ui/settings_window.py" line="1436"/>
         <source>Log level:</source>
         <translation>Уровень журнала:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1435"/>
+        <location filename="../ui/settings_window.py" line="1438"/>
         <source>Open live-log window</source>
         <translation>Открыть журнал в реальном времени</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1437"/>
+        <location filename="../ui/settings_window.py" line="1440"/>
         <source>Open log folder</source>
         <translation>Открыть папку журналов</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1446"/>
+        <location filename="../ui/settings_window.py" line="1449"/>
         <source>Maintenance</source>
         <translation>Обслуживание</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1447"/>
-        <location filename="../ui/settings_window.py" line="2131"/>
+        <location filename="../ui/settings_window.py" line="1450"/>
+        <location filename="../ui/settings_window.py" line="2156"/>
         <source>Restart Refrain</source>
         <translation>Перезапустить Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1449"/>
+        <location filename="../ui/settings_window.py" line="1452"/>
         <source>Reset all settings to defaults</source>
         <translation>Сбросить все настройки к значениям по умолчанию</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1452"/>
+        <location filename="../ui/settings_window.py" line="1455"/>
         <source>Uninstall Refrain…</source>
         <translation>Удалить Refrain…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1467"/>
+        <location filename="../ui/settings_window.py" line="1470"/>
         <source>Developer</source>
         <translation>Разработчик</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1468"/>
-        <location filename="../ui/settings_window.py" line="1518"/>
+        <location filename="../ui/settings_window.py" line="1471"/>
+        <location filename="../ui/settings_window.py" line="1521"/>
         <source>Developer mode</source>
         <translation>Режим разработчика</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1473"/>
+        <location filename="../ui/settings_window.py" line="1476"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>Измеряет время отклика и то, как вы используете Refrain, только на этом компьютере. Ничего никогда не отправляется. Результаты — в окне журнала в реальном времени.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1519"/>
+        <location filename="../ui/settings_window.py" line="1522"/>
         <source>Turn on developer mode?</source>
         <translation>Включить режим разработчика?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1522"/>
+        <location filename="../ui/settings_window.py" line="1525"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1224,22 +1204,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 Всё остаётся на этом компьютере и никуда не отправляется. Измерение немного снижает производительность. Отключить его можно в разделе «Дополнительно».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1530"/>
+        <location filename="../ui/settings_window.py" line="1533"/>
         <source>Turn on</source>
         <translation>Включить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1594"/>
+        <location filename="../ui/settings_window.py" line="1597"/>
         <source>Checking…</source>
         <translation>Проверка…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1614"/>
+        <location filename="../ui/settings_window.py" line="1617"/>
         <source>Reset all settings</source>
         <translation>Сбросить все настройки</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1617"/>
+        <location filename="../ui/settings_window.py" line="1620"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1248,47 +1228,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 Сброс сохраняется сразу, а несохранённые изменения будут отменены.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1629"/>
+        <location filename="../ui/settings_window.py" line="1632"/>
         <source>Reset</source>
         <translation>Сбросить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1656"/>
+        <location filename="../ui/settings_window.py" line="1659"/>
         <source>Unsaved changes</source>
         <translation>Несохранённые изменения</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1657"/>
+        <location filename="../ui/settings_window.py" line="1660"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>Вы изменили настройки, которые ещё не сохранены.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1658"/>
+        <location filename="../ui/settings_window.py" line="1661"/>
         <source>Save</source>
         <translation>Сохранить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1659"/>
+        <location filename="../ui/settings_window.py" line="1662"/>
         <source>Discard</source>
         <translation>Не сохранять</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1660"/>
+        <location filename="../ui/settings_window.py" line="1663"/>
         <source>Keep editing</source>
         <translation>Продолжить редактирование</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1687"/>
+        <location filename="../ui/settings_window.py" line="1690"/>
         <source>(no data files found)</source>
         <translation>(файлы данных не найдены)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1693"/>
+        <location filename="../ui/settings_window.py" line="1696"/>
         <source>Uninstall Refrain</source>
         <translation>Удалить Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1696"/>
+        <location filename="../ui/settings_window.py" line="1699"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1311,57 +1291,67 @@ Refrain will close. This cannot be undone.</source>
 Refrain будет закрыт. Отменить это нельзя.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1703"/>
+        <location filename="../ui/settings_window.py" line="1706"/>
         <source>Uninstall</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1721"/>
+        <location filename="../ui/settings_window.py" line="1724"/>
         <source>Connected as {user}</source>
         <translation>Подключено как {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1724"/>
+        <location filename="../ui/settings_window.py" line="1727"/>
         <source>Connected</source>
         <translation>Подключено</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1776"/>
+        <location filename="../ui/settings_window.py" line="1779"/>
         <source>Requesting authorization token…</source>
         <translation>Запрос токена авторизации…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1835"/>
+        <location filename="../ui/settings_window.py" line="1838"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>Подключено как {user}. Скробблинг начнётся со следующего трека.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1839"/>
+        <location filename="../ui/settings_window.py" line="1842"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>Подключено. Скробблинг начнётся со следующего трека.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1841"/>
+        <location filename="../ui/settings_window.py" line="1844"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>Он остаётся на паузе, пока в разделе «Конфиденциальность» установлено «Откл.».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2125"/>
+        <location filename="../ui/settings_window.py" line="2150"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>Refrain перезапустится, чтобы применить новый язык.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2133"/>
+        <location filename="../ui/settings_window.py" line="2158"/>
         <source>Save and restart</source>
         <translation>Сохранить и перезапустить</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2205"/>
+        <location filename="../ui/settings_window.py" line="2184"/>
+        <source>No browser selected</source>
+        <translation>Браузер не выбран</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="2186"/>
+        <source>Pick at least one browser, or turn the browser source off to read none at all.</source>
+        <translation>Выберите хотя бы один браузер или отключите источник «браузер», чтобы не читать ни одного.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="2239"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Не удалось сохранить данные Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2207"/>
+        <location filename="../ui/settings_window.py" line="2241"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -1371,7 +1361,7 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
     </message>
     <message>
         <location filename="../ui/settings_window.py" line="938"/>
-        <location filename="../ui/settings_window.py" line="1725"/>
+        <location filename="../ui/settings_window.py" line="1728"/>
         <source>Disconnect</source>
         <translation>Отключить</translation>
     </message>
@@ -1396,33 +1386,53 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
         <translation>Что Refrain показывает во время воспроизведения. «Откл.» останавливает и Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1417"/>
+        <location filename="../ui/settings_window.py" line="1080"/>
+        <source>Browsers Refrain knows:</source>
+        <translation>Браузеры, известные Refrain:</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1125"/>
+        <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use. One has to stay — to read no browser at all, turn the source off above.</source>
+        <translation>Refrain распознаёт только браузеры, у которых имя процесса или desktop-файл содержит одну из этих подстрок. Отметьте те, которыми пользуетесь. Один должен остаться отмеченным: чтобы не читать ни одного браузера, отключите источник выше.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1136"/>
+        <source>Clients Refrain knows:</source>
+        <translation>Клиенты, известные Refrain:</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1160"/>
+        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. Enable browser source above turns these on and off as well.</source>
+        <translation>Проигрыватели, которые сами являются клиентом Apple Music, распознаются так же. Они не воспроизводят ничего другого, поэтому Refrain распознаёт их без адреса страницы. Переключатель «Включить источник „браузер“» выше включает и отключает и их.</translation>
+    </message>
+    <message>
+        <location filename="../ui/settings_window.py" line="1420"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>Для нового языка нужен перезапуск; Refrain спросит перед этим.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1458"/>
+        <location filename="../ui/settings_window.py" line="1461"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>Удаление стирает все данные Refrain и учётные данные Last.fm, а затем показывает команду для удаления самой программы. Отменить это нельзя.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1731"/>
+        <location filename="../ui/settings_window.py" line="1734"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>Не подключено — введите API-ключ и секрет заново, затем нажмите «Подключить»</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1769"/>
+        <location filename="../ui/settings_window.py" line="1772"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>Сначала введите свой API-ключ и общий секрет Last.fm. Чтобы получить их бесплатно, нажмите «Создать API-аккаунт».</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1815"/>
-        <location filename="../ui/settings_window.py" line="1859"/>
+        <location filename="../ui/settings_window.py" line="1818"/>
+        <location filename="../ui/settings_window.py" line="1862"/>
         <source>Last.fm connection failed</source>
         <translation>Не удалось подключиться к Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1860"/>
+        <location filename="../ui/settings_window.py" line="1863"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1431,12 +1441,12 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2191"/>
+        <location filename="../ui/settings_window.py" line="2225"/>
         <source>Could not save settings</source>
         <translation>Не удалось сохранить настройки</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2193"/>
+        <location filename="../ui/settings_window.py" line="2227"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1452,201 +1462,201 @@ The settings you just changed will apply for this session but won&apos;t persist
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="391"/>
+        <location filename="../ui/status_window.py" line="396"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Заскробблено в Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="399"/>
-        <location filename="../ui/status_window.py" line="403"/>
+        <location filename="../ui/status_window.py" line="404"/>
+        <location filename="../ui/status_window.py" line="410"/>
         <source>Open in Apple Music</source>
         <translation>Открыть в Apple Music</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="457"/>
+        <location filename="../ui/status_window.py" line="464"/>
         <source>Status</source>
         <translation>Статус</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="539"/>
+        <location filename="../ui/status_window.py" line="546"/>
         <source>Previous song</source>
         <translation>Предыдущий трек</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="542"/>
+        <location filename="../ui/status_window.py" line="549"/>
         <source>Play or pause</source>
         <translation>Воспроизведение или пауза</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="545"/>
+        <location filename="../ui/status_window.py" line="552"/>
         <source>Next song</source>
         <translation>Следующий трек</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="573"/>
+        <location filename="../ui/status_window.py" line="580"/>
         <source>Update…</source>
         <translation>Обновление…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="587"/>
+        <location filename="../ui/status_window.py" line="594"/>
         <source>Recently played</source>
         <translation>Недавно прослушанное</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="594"/>
+        <location filename="../ui/status_window.py" line="601"/>
         <source>Show all</source>
         <translation>Показать все</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="602"/>
-        <location filename="../ui/status_window.py" line="1041"/>
+        <location filename="../ui/status_window.py" line="609"/>
+        <location filename="../ui/status_window.py" line="1049"/>
         <source>Songs you play show up here.</source>
         <translation>Прослушанные треки появятся здесь.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="604"/>
+        <location filename="../ui/status_window.py" line="612"/>
         <source>Turn on Recently played</source>
         <translation>Включить Недавно прослушанное</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="625"/>
+        <location filename="../ui/status_window.py" line="633"/>
         <source>Settings…</source>
         <translation>Настройки…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="637"/>
+        <location filename="../ui/status_window.py" line="645"/>
         <source>View Refrain on GitHub</source>
         <translation>Открыть Refrain на GitHub</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="670"/>
+        <location filename="../ui/status_window.py" line="678"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Оценка по месту трека до перезапуска Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="761"/>
+        <location filename="../ui/status_window.py" line="769"/>
         <source>Nothing playing</source>
         <translation>Ничего не играет</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="769"/>
+        <location filename="../ui/status_window.py" line="777"/>
         <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
         <translation>{player} воспроизводит музыку, но не сообщает, какая это страница. Refrain узнаёт Apple Music по адресу страницы, а приватное окно его не передаёт. Иначе проверьте, что воспроизводит вкладка с Apple Music.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="779"/>
+        <location filename="../ui/status_window.py" line="787"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player} воспроизводит музыку, но не сообщает, какая это страница. Установите Plasma Browser Integration (пакет plasma-browser-integration и расширение браузера «Plasma Integration») или используйте Firefox.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="787"/>
+        <location filename="../ui/status_window.py" line="795"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>Включите трек в Apple Music в браузере или на телефоне по Bluetooth.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="801"/>
+        <location filename="../ui/status_window.py" line="809"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="803"/>
+        <location filename="../ui/status_window.py" line="811"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="809"/>
+        <location filename="../ui/status_window.py" line="817"/>
         <source>Paused · {source}</source>
         <translation>На паузе · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="886"/>
+        <location filename="../ui/status_window.py" line="894"/>
         <source>Not set up yet</source>
         <translation>Ещё не настроено</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="887"/>
-        <location filename="../ui/status_window.py" line="918"/>
-        <location filename="../ui/status_window.py" line="924"/>
+        <location filename="../ui/status_window.py" line="895"/>
+        <location filename="../ui/status_window.py" line="926"/>
+        <location filename="../ui/status_window.py" line="932"/>
         <source>Set up…</source>
         <translation>Настроить…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="889"/>
+        <location filename="../ui/status_window.py" line="897"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Приложение Discord не запущено</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="891"/>
+        <location filename="../ui/status_window.py" line="899"/>
         <source>Application ID rejected</source>
         <translation>Application ID отклонён</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="892"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Fix…</source>
         <translation>Исправить…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="895"/>
+        <location filename="../ui/status_window.py" line="903"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord открыт, но вход не выполнен. Войдите в Discord, чтобы показывать статус.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="898"/>
+        <location filename="../ui/status_window.py" line="906"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord сейчас не отвечает</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="908"/>
         <source>Ready — waiting for music</source>
         <translation>Готово — ожидание музыки</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="902"/>
+        <location filename="../ui/status_window.py" line="910"/>
         <source>Visible on your profile</source>
         <translation>Виден в вашем профиле</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="904"/>
+        <location filename="../ui/status_window.py" line="912"/>
         <source>Showing “Listening to music”</source>
         <translation>Показывает «Listening to music»</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="914"/>
         <source>Showing the song as paused</source>
         <translation>Показывает песню на паузе</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="908"/>
+        <location filename="../ui/status_window.py" line="916"/>
         <source>Hidden — sharing is off</source>
         <translation>Скрыто — публикация выключена</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="918"/>
         <source>Checking…</source>
         <translation>Проверка…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="917"/>
+        <location filename="../ui/status_window.py" line="925"/>
         <source>Off</source>
         <translation>Откл.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="920"/>
+        <location filename="../ui/status_window.py" line="928"/>
         <source>Connected, but scrobbling is off</source>
         <translation>Подключено, но скробблинг выключен</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="921"/>
+        <location filename="../ui/status_window.py" line="929"/>
         <source>Open Last.fm settings…</source>
         <translation>Открыть настройки Last.fm…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="923"/>
+        <location filename="../ui/status_window.py" line="931"/>
         <source>Not connected yet</source>
         <translation>Ещё не подключено</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="935"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n скробл ожидает отправки</numerusform>
@@ -1655,77 +1665,77 @@ The settings you just changed will apply for this session but won&apos;t persist
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="929"/>
+        <location filename="../ui/status_window.py" line="937"/>
         <source>Sign-in expired</source>
         <translation>Сессия истекла</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="930"/>
+        <location filename="../ui/status_window.py" line="938"/>
         <source>Reconnect…</source>
         <translation>Переподключить…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="932"/>
+        <location filename="../ui/status_window.py" line="940"/>
         <source>Paused — sharing is off</source>
         <translation>На паузе — публикация выключена</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="934"/>
+        <location filename="../ui/status_window.py" line="942"/>
         <source>Scrobbling as {user}</source>
         <translation>Скробблинг от имени {user}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="936"/>
+        <location filename="../ui/status_window.py" line="944"/>
         <source>Scrobbling</source>
         <translation>Скробблинг</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="944"/>
+        <location filename="../ui/status_window.py" line="952"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>В прошлый раз Refrain закрылся неожиданно.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="945"/>
+        <location filename="../ui/status_window.py" line="953"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>Отчёт находится в &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="961"/>
+        <location filename="../ui/status_window.py" line="969"/>
         <source>You&apos;re all set.</source>
         <translation>Всё готово.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="963"/>
+        <location filename="../ui/status_window.py" line="971"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Включите трек в Apple Music — он появится в Discord через несколько секунд.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1043"/>
+        <location filename="../ui/status_window.py" line="1051"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>Недавно прослушанное выключено, поэтому Refrain не ведёт список ваших треков.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1053"/>
+        <location filename="../ui/status_window.py" line="1061"/>
         <source>Resume sharing</source>
         <translation>Возобновить публикацию</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1056"/>
+        <location filename="../ui/status_window.py" line="1064"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Снова показывать трек в Discord и отправлять скробблы в Last.fm.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1059"/>
+        <location filename="../ui/status_window.py" line="1067"/>
         <source>Pause sharing</source>
         <translation>Приостановить публикацию</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1062"/>
+        <location filename="../ui/status_window.py" line="1070"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>Скрыть статус Discord и остановить скробблинг до возобновления.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1070"/>
+        <location filename="../ui/status_window.py" line="1078"/>
         <source>Refrain {version} is available.</source>
         <translation>Доступен Refrain {version}.</translation>
     </message>
@@ -1733,146 +1743,146 @@ The settings you just changed will apply for this session but won&apos;t persist
 <context>
     <name>TrayIcon</name>
     <message>
-        <location filename="../ui/tray.py" line="138"/>
-        <location filename="../ui/tray.py" line="505"/>
+        <location filename="../ui/tray.py" line="139"/>
+        <location filename="../ui/tray.py" line="506"/>
         <source>(nothing playing)</source>
         <translation>(ничего не играет)</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="431"/>
+        <location filename="../ui/tray.py" line="432"/>
         <source>Discord: visible on your profile</source>
         <translation>Discord: виден в вашем профиле</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="435"/>
+        <location filename="../ui/tray.py" line="436"/>
         <source>Discord: showing the song as paused</source>
         <translation>Discord: песня показана на паузе</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="451"/>
+        <location filename="../ui/tray.py" line="452"/>
         <source>Last.fm: not connected</source>
         <translation>Last.fm: не подключено</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="154"/>
+        <location filename="../ui/tray.py" line="155"/>
         <source>Developer mode</source>
         <translation>Режим разработчика</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="148"/>
-        <location filename="../ui/tray.py" line="439"/>
+        <location filename="../ui/tray.py" line="149"/>
+        <location filename="../ui/tray.py" line="440"/>
         <source>Discord: checking…</source>
         <translation>Discord: проверка…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="166"/>
+        <location filename="../ui/tray.py" line="167"/>
         <source>Previous</source>
         <translation>Назад</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="168"/>
-        <location filename="../ui/tray.py" line="382"/>
+        <location filename="../ui/tray.py" line="169"/>
+        <location filename="../ui/tray.py" line="383"/>
         <source>Play</source>
         <translation>Воспроизвести</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="170"/>
+        <location filename="../ui/tray.py" line="171"/>
         <source>Next</source>
         <translation>Вперёд</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="189"/>
-        <location filename="../ui/tray.py" line="391"/>
+        <location filename="../ui/tray.py" line="190"/>
+        <location filename="../ui/tray.py" line="392"/>
         <source>Update available</source>
         <translation>Доступно обновление</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="199"/>
+        <location filename="../ui/tray.py" line="200"/>
         <source>Recently played…</source>
         <translation>Недавно прослушанное…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="205"/>
+        <location filename="../ui/tray.py" line="206"/>
         <source>Settings…</source>
         <translation>Настройки…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="210"/>
+        <location filename="../ui/tray.py" line="211"/>
         <source>Troubleshooting</source>
         <translation>Устранение неполадок</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="217"/>
+        <location filename="../ui/tray.py" line="218"/>
         <source>Live log…</source>
         <translation>Журнал…</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="219"/>
+        <location filename="../ui/tray.py" line="220"/>
         <source>Restart Refrain</source>
         <translation>Перезапустить Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="222"/>
+        <location filename="../ui/tray.py" line="223"/>
         <source>Quit Refrain</source>
         <translation>Выйти из Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="379"/>
+        <location filename="../ui/tray.py" line="380"/>
         <source>Pause</source>
         <translation>Пауза</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="388"/>
+        <location filename="../ui/tray.py" line="389"/>
         <source>Update available — v{version}</source>
         <translation>Доступно обновление — v{version}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="416"/>
+        <location filename="../ui/tray.py" line="417"/>
         <source>Discord: not set up — add your Application ID</source>
         <translation>Discord: не настроен — добавьте Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="418"/>
+        <location filename="../ui/tray.py" line="419"/>
         <source>Discord: app isn&apos;t running</source>
         <translation>Discord: приложение не запущено</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="420"/>
+        <location filename="../ui/tray.py" line="421"/>
         <source>Discord: Application ID rejected — check it</source>
         <translation>Discord: Application ID отклонён — проверьте его</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="423"/>
+        <location filename="../ui/tray.py" line="424"/>
         <source>Discord: not logged in — log in to show your status</source>
         <translation>Discord: не выполнен вход — войдите, чтобы показывать статус</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="427"/>
+        <location filename="../ui/tray.py" line="428"/>
         <source>Discord: not answering</source>
         <translation>Discord: не отвечает</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="429"/>
+        <location filename="../ui/tray.py" line="430"/>
         <source>Discord: ready — waiting for music</source>
         <translation>Discord: готово — ожидание музыки</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="433"/>
+        <location filename="../ui/tray.py" line="434"/>
         <source>Discord: showing “Listening to music”</source>
         <translation>Discord: показывает «Listening to music»</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="437"/>
+        <location filename="../ui/tray.py" line="438"/>
         <source>Discord: hidden — sharing is off</source>
         <translation>Discord: скрыто — публикация выключена</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="449"/>
+        <location filename="../ui/tray.py" line="450"/>
         <source>Last.fm: scrobbling is off</source>
         <translation>Last.fm: скробблинг выключен</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/tray.py" line="454"/>
+        <location filename="../ui/tray.py" line="455"/>
         <source>Last.fm: %n scrobble(s) waiting</source>
         <translation>
             <numerusform>Last.fm: %n скробл ожидает</numerusform>
@@ -1881,22 +1891,22 @@ The settings you just changed will apply for this session but won&apos;t persist
         </translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="457"/>
+        <location filename="../ui/tray.py" line="458"/>
         <source>Last.fm: sign-in expired — reconnect</source>
         <translation>Last.fm: сессия истекла — переподключитесь</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="459"/>
+        <location filename="../ui/tray.py" line="460"/>
         <source>Last.fm: paused — sharing is off</source>
         <translation>Last.fm: на паузе — публикация выключена</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="461"/>
+        <location filename="../ui/tray.py" line="462"/>
         <source>Last.fm: scrobbling as {user}</source>
         <translation>Last.fm: скробблинг от имени {user}</translation>
     </message>
     <message>
-        <location filename="../ui/tray.py" line="464"/>
+        <location filename="../ui/tray.py" line="465"/>
         <source>Last.fm: scrobbling</source>
         <translation>Last.fm: скробблинг</translation>
     </message>
@@ -1993,112 +2003,112 @@ The settings you just changed will apply for this session but won&apos;t persist
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="91"/>
+        <location filename="../ui/welcome_dialog.py" line="92"/>
         <source>Found Discord IPC at {path}</source>
         <translation>Discord IPC найден: {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="94"/>
+        <location filename="../ui/welcome_dialog.py" line="95"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Сокет Discord IPC не найден — запустите настольное приложение Discord.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="98"/>
+        <location filename="../ui/welcome_dialog.py" line="99"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API доступен.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="100"/>
+        <location filename="../ui/welcome_dialog.py" line="101"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>iTunes ответил, но данные выглядят некорректно.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="103"/>
+        <location filename="../ui/welcome_dialog.py" line="104"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>iTunes Search недоступен: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="105"/>
+        <location filename="../ui/welcome_dialog.py" line="106"/>
         <source>iTunes probe failed: {error}</source>
         <translation>Проверка iTunes не удалась: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="175"/>
+        <location filename="../ui/welcome_dialog.py" line="176"/>
         <source>Welcome</source>
         <translation>Добро пожаловать</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="211"/>
+        <location filename="../ui/welcome_dialog.py" line="212"/>
         <source>Welcome to Refrain</source>
         <translation>Добро пожаловать в Refrain</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="213"/>
+        <location filename="../ui/welcome_dialog.py" line="214"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Discord Rich Presence для Apple Music на Linux.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="228"/>
+        <location filename="../ui/welcome_dialog.py" line="229"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>Живёт в трее. &lt;b&gt;Клик&lt;/b&gt; — посмотреть статус; &lt;b&gt;правый клик&lt;/b&gt; — управление плеером.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="250"/>
+        <location filename="../ui/welcome_dialog.py" line="251"/>
         <source>Live diagnostics</source>
         <translation>Диагностика в реальном времени</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="253"/>
+        <location filename="../ui/welcome_dialog.py" line="254"/>
         <source>Discord — checking…</source>
         <translation>Discord — проверка…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="254"/>
+        <location filename="../ui/welcome_dialog.py" line="255"/>
         <source>Cover-art lookup — checking…</source>
         <translation>Поиск обложки — проверка…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="262"/>
+        <location filename="../ui/welcome_dialog.py" line="263"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="268"/>
+        <location filename="../ui/welcome_dialog.py" line="269"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>Зарегистрируйте бесплатное приложение в &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — выбранное название появится в вашем статусе как «Слушает &amp;lt;название&amp;gt;».</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="286"/>
+        <location filename="../ui/welcome_dialog.py" line="287"/>
         <source>e.g. 1234567890123456789</source>
         <translation>например: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="297"/>
+        <location filename="../ui/welcome_dialog.py" line="300"/>
         <source>Skip for now</source>
         <translation>Пока пропустить</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="303"/>
+        <location filename="../ui/welcome_dialog.py" line="305"/>
         <source>Apply</source>
         <translation>Применить</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="367"/>
+        <location filename="../ui/welcome_dialog.py" line="369"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="370"/>
+        <location filename="../ui/welcome_dialog.py" line="372"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Поиск обложки:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="419"/>
+        <location filename="../ui/welcome_dialog.py" line="421"/>
         <source>Discard the Application ID?</source>
         <translation>Отменить Application ID?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="422"/>
+        <location filename="../ui/welcome_dialog.py" line="424"/>
         <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
 
 Discard what you entered?</source>
@@ -2107,22 +2117,22 @@ Discard what you entered?</source>
 Отменить введённое?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="427"/>
+        <location filename="../ui/welcome_dialog.py" line="429"/>
         <source>Discard</source>
         <translation>Не сохранять</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="428"/>
+        <location filename="../ui/welcome_dialog.py" line="430"/>
         <source>Keep editing</source>
         <translation>Продолжить редактирование</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="446"/>
+        <location filename="../ui/welcome_dialog.py" line="448"/>
         <source>Skip Discord setup?</source>
         <translation>Пропустить настройку Discord?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="449"/>
+        <location filename="../ui/welcome_dialog.py" line="451"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2131,22 +2141,22 @@ Continue without Discord status?</source>
 Продолжить без статуса Discord?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="455"/>
+        <location filename="../ui/welcome_dialog.py" line="457"/>
         <source>Continue without Discord</source>
         <translation>Продолжить без Discord</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="457"/>
+        <location filename="../ui/welcome_dialog.py" line="459"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="465"/>
+        <location filename="../ui/welcome_dialog.py" line="467"/>
         <source>Invalid Application ID</source>
         <translation>Неверный Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="467"/>
+        <location filename="../ui/welcome_dialog.py" line="469"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID — это числовой snowflake (17–20 цифр). Проверьте значение, скопированное из Developer Portal.</translation>
     </message>
