@@ -144,20 +144,14 @@ def _clock(ms: int) -> str:
     return f"{seconds // 60}:{seconds % 60:02d}"
 
 
-def _placeholder(palette: QPalette, px: int, dpr: float) -> QPixmap:
+def _placeholder(px: int, dpr: float) -> QPixmap:
     size = round(px * dpr)
     out = QPixmap(size, size)
     out.fill(Qt.GlobalColor.transparent)
     p = QPainter(out)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    path = QPainterPath()
-    path.addRoundedRect(QRectF(0, 0, size, size), _COVER_RADIUS * dpr, _COVER_RADIUS * dpr)
-    tint = QColor(palette.color(QPalette.ColorRole.WindowText))
-    tint.setAlphaF(0.09)
-    p.fillPath(path, tint)
     icon = QIcon(str(assets_dir() / "icons" / "refrain.svg"))
-    glyph = round(size * 0.5)
-    p.setOpacity(0.55)
+    glyph = round(size * 0.8)
     icon.paint(p, (size - glyph) // 2, (size - glyph) // 2, glyph, glyph)
     p.end()
     out.setDevicePixelRatio(dpr)
@@ -788,7 +782,7 @@ class StatusWindow(QDialog):
                     )
                 )
             self.hint.setVisible(True)
-            self.cover.setPixmap(_placeholder(self.palette(), _COVER_PX, dpr))
+            self.cover.setPixmap(_placeholder(_COVER_PX, dpr))
             self._cover_url = ""
             self.elapsed.setVisible(False)
             self._refresh_controls()
@@ -872,7 +866,7 @@ class StatusWindow(QDialog):
                             pixmap = _rounded(image, _COVER_PX, _COVER_RADIUS, dpr)
                             break
         if pixmap is None:
-            pixmap = _placeholder(self.palette(), _COVER_PX, dpr)
+            pixmap = _placeholder(_COVER_PX, dpr)
             url = ""
         self._cover_url = url
         self.cover.setPixmap(pixmap)

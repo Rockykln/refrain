@@ -20,6 +20,11 @@ lists every version and why.
   they cannot give is the page address, so the *Listen on Apple Music*
   button stays off for them.
 
+### Changed
+
+- **The cover stands on its own while nothing is playing.** The Refrain
+  mark sat faded inside a grey square; it is now drawn larger and in its
+  own colours, with nothing behind it.
 ### Fixed
 
 - **The playback buttons are visible outside Plasma.** Adwaita 48 and

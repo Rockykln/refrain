@@ -847,3 +847,16 @@ def test_firefox_without_a_url_is_not_told_to_install_plasma(window):
     assert "Mozilla firefox-esr" in hint
     assert "Plasma" not in hint
     assert "page address" in hint
+
+
+def test_the_placeholder_cover_is_the_logo_on_its_own(app):
+    """No tinted box behind it, and the logo at its own colours."""
+    from refrain.ui.status_window import _COVER_PX, _placeholder
+
+    image = _placeholder(_COVER_PX, 1.0).toImage()
+    corners = ((0, 0), (image.width() - 1, 0), (0, image.height() - 1))
+    assert [image.pixelColor(x, y).alpha() for x, y in corners] == [0, 0, 0]
+    alphas = {
+        image.pixelColor(x, y).alpha() for x in range(image.width()) for y in range(image.height())
+    }
+    assert max(alphas) == 255
