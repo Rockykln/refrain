@@ -642,17 +642,34 @@ were tracked internally as "v0.2.8" but never separately tagged.
   only, as did the links Refrain shows; Tab now walks both and a screen
   reader is told what each row holds.
 - **A paused song stays on the Discord card**, and the last song leaves
-  the profile when Refrain quits, even if Discord started after it.
+  the profile when Refrain quits, even if Discord is slow to answer.
 - **Privacy "Off" keeps Refrain away from Discord**, instead of only
   hiding the card.
 - **Every request goes through the same opener**, which refuses a
   redirect from HTTPS to plain HTTP, reads with a size limit and gives
   up on an answer that only trickles in.
-- **PySide6 6.6.1 is the oldest version Refrain runs on**, up from 6.5.
+- **PySide6 6.6.1 is the oldest version Refrain runs on**, up from 6.6.
 - Plus a long list of smaller fixes, all in the
   [CHANGELOG](../CHANGELOG.md).
 
-## Up next — v0.5.x
+## Done — v0.6.0
+
+- **A native Apple Music client is a source of its own.** Slipmat, Cider
+  and Sidra are recognised out of the box, any other client by name, and
+  they report the song length themselves — so a song Apple's catalogue
+  doesn't know still gets an end time and a scrobble with the right
+  length.
+- **The edit that is playing is the one looked up.** The version tag in
+  the title decides between the editions a search comes back with, and a
+  length Refrain measured itself is kept per edit.
+- **The window follows the desktop's dark mode outside Plasma**, read
+  from the desktop portal, and the playback buttons are visible on GNOME
+  — Adwaita ships only the `-symbolic` spelling, which Qt does not look
+  for on its own.
+- Plus the smaller changes and fixes, all in the
+  [CHANGELOG](../CHANGELOG.md).
+
+## Up next — v0.6.x
 
 - **A length for the songs nothing can settle.** Apple's catalog, the
   number the player reports and the length Refrain measures from whole
@@ -662,15 +679,14 @@ were tracked internally as "v0.2.8" but never separately tagged.
 - **Last.fm as a length source, not only a second opinion.** Refrain
   already asks `track.getInfo`, but only to confirm a length it measured
   itself. For a song it has no measurement for, it never asks at all.
-- **More native clients by name.** Slipmat, Cider and Sidra are
-  recognised already, and any other client can be named by hand. Only
-  Slipmat has actually been tested.
+- **Cider and Sidra tested for real.** Both are recognised by name,
+  but only Slipmat has actually been run against Refrain.
 - **Your own Apple Music API credentials** as a field in Settings.
   Refrain asks Apple's keyless search API today; a developer token,
   which needs an Apple Developer account, would let it ask the Apple
   Music API itself.
 
-## Maybe — v0.5+
+## Maybe — v0.6+
 
 - **Flathub submission**, second attempt. The manifest under
   `packaging/flatpak/` is fully validated locally and ready to ship —

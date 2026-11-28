@@ -53,6 +53,18 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.6.0" date="2026-11-28">
+      <description>
+        <p>
+          Added a third source: a native Apple Music client such as Slipmat,
+          Cider or Sidra is now picked up alongside the browser and Bluetooth,
+          and reports the song length itself. Fixed which edit of a song is
+          looked up, made the window follow the desktop's dark mode outside
+          Plasma, and found the icon names GNOME ships so the playback buttons
+          are visible there.
+        </p>
+      </description>
+    </release>
     <release version="0.5.6" date="2026-10-22">
       <description>
         <p>
