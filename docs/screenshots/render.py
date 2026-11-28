@@ -5,11 +5,10 @@
 Needs KDE Plasma's kwin_wayland (for an invisible display) and the Breeze
 colour schemes. Writes every shot in Breeze Dark and Breeze Light (``-light``).
 
-Starts kwin with ``--no-global-shortcuts``: without it, the second kwin
-registers the desktop's shortcuts for itself and the running session is
-left without Alt+Tab until it is restarted. A session bus of its own
-would also do it, but then the portal and the keyring have to cold-start
-on that bus and the run hangs waiting for them.
+Runs on a session bus of its own, started from ``session-bus.conf``: a
+second kwin on the desktop's bus takes over its global shortcuts and
+leaves them dead when it exits. The file names no service directory, so
+nothing cold-starts on that bus and the run does not hang on it.
 """
 
 from __future__ import annotations
@@ -59,8 +58,26 @@ LOG = [
 ]
 
 
+def _own_session_bus() -> None:
+    """Start again on a bus of our own, unless we already are on one."""
+    if os.environ.get("REFRAIN_SHOTS_OWN_BUS"):
+        return
+    os.environ["REFRAIN_SHOTS_OWN_BUS"] = "1"
+    os.execvp(
+        "dbus-run-session",
+        [
+            "dbus-run-session",
+            f"--config-file={HERE / 'session-bus.conf'}",
+            "--",
+            sys.executable,
+            *sys.argv,
+        ],
+    )
+
+
 def main() -> int:
     version = sys.argv[1]
+    _own_session_bus()
     socket = f"refrain-shots-{os.getpid()}"
 
     # Dies when we do, however we go: a kwin that outlives its parent keeps
