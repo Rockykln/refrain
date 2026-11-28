@@ -40,16 +40,53 @@ def paint(app):
     app.processEvents()
 
 
-def _darkest(widget) -> str:
+def _channel_name(colour: QColor) -> str:
+    """Name a colour by the channel that dominates it, or spell it out.
+
+    Antialiased glyphs land near the colour, not on it, and how near
+    depends on the fonts the machine has.
+    """
+    red, green, blue = colour.red(), colour.green(), colour.blue()
+    # Wide enough to ignore what antialiasing leaves in the other channels,
+    # narrow enough that a grey is not mistaken for a colour.
+    margin = 60
+    if red > green + margin and red > blue + margin:
+        return "red"
+    if green > red + margin and green > blue + margin:
+        return "green"
+    return colour.name()
+
+
+def _text_colour(widget) -> str:
+    """The colour the text is drawn in: the darkest pixel is the least mixed."""
     image = widget.grab().toImage()
-    best, score = "#ffffff", 10**6
+    darkest, score = QColor("white"), 10**6
     for y in range(image.height()):
         for x in range(image.width()):
             colour = image.pixelColor(x, y)
             value = colour.red() + colour.green() + colour.blue()
             if value < score:
-                best, score = colour.name(), value
-    return best
+                darkest, score = colour, value
+    return _channel_name(darkest)
+
+
+@pytest.mark.parametrize(
+    ("pixel", "named"),
+    [
+        ("#ff0000", "red"),
+        ("#00aa00", "green"),
+        # The same two colours as a runner with other fonts drew them.
+        ("#ff0304", "red"),
+        ("#07ab1d", "green"),
+        # One channel leads, but not on its own: not a colour we name.
+        ("#ff00ff", "#ff00ff"),
+        ("#00ffff", "#00ffff"),
+        ("#808080", "#808080"),
+        ("#ffffff", "#ffffff"),
+    ],
+)
+def test_a_pixel_is_named_by_the_channel_that_dominates_it(pixel, named):
+    assert _channel_name(QColor(pixel)) == named
 
 
 def test_a_palette_colour_in_a_stylesheet_is_stale_until_repolished(app, paint):
@@ -61,12 +98,12 @@ def test_a_palette_colour_in_a_stylesheet_is_stale_until_repolished(app, paint):
     label.show()
     app.processEvents()
     try:
-        assert _darkest(label) == "#ff0000"
+        assert _text_colour(label) == "red"
         paint("#00aa00")
-        assert _darkest(label) == "#ff0000", "Qt started following the palette on its own"
+        assert _text_colour(label) == "red", "Qt started following the palette on its own"
         repolish(label)
         app.processEvents()
-        assert _darkest(label) == "#00aa00"
+        assert _text_colour(label) == "green"
     finally:
         label.close()
         label.deleteLater()
@@ -85,7 +122,7 @@ def test_repolish_reaches_the_children_too(app, paint):
         paint("#00aa00")
         repolish(box)
         app.processEvents()
-        assert _darkest(label) == "#00aa00"
+        assert _text_colour(label) == "green"
     finally:
         box.close()
         box.deleteLater()
@@ -117,11 +154,11 @@ def test_the_settings_window_repolishes_on_a_palette_change(app, paint):
         hint.resize(400, 40)
         hint.show()
         app.processEvents()
-        before = _darkest(hint)
+        before = _text_colour(hint)
         paint("#00aa00")
         window.changeEvent(QEvent(QEvent.Type.PaletteChange))
         app.processEvents()
-        assert _darkest(hint) != before
+        assert _text_colour(hint) != before
     finally:
         window.close()
         window.deleteLater()
