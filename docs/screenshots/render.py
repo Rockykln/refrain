@@ -4,6 +4,12 @@
 
 Needs KDE Plasma's kwin_wayland (for an invisible display) and the Breeze
 colour schemes. Writes every shot in Breeze Dark and Breeze Light (``-light``).
+
+Starts kwin with ``--no-global-shortcuts``: without it, the second kwin
+registers the desktop's shortcuts for itself and the running session is
+left without Alt+Tab until it is restarted. A session bus of its own
+would also do it, but then the portal and the keyring have to cold-start
+on that bus and the run hangs waiting for them.
 """
 
 from __future__ import annotations
@@ -12,6 +18,7 @@ import math
 import os
 import random
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -55,10 +62,31 @@ LOG = [
 def main() -> int:
     version = sys.argv[1]
     socket = f"refrain-shots-{os.getpid()}"
+
+    # Dies when we do, however we go: a kwin that outlives its parent keeps
+    # holding the desktop's global shortcuts, and nothing is left to stop it.
+    # One survived a crashed run by seven hours and took Alt+Tab with it.
+    def die_with_parent() -> None:
+        import ctypes
+
+        PR_SET_PDEATHSIG = 1
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(PR_SET_PDEATHSIG, signal.SIGTERM, 0, 0, 0)
+
     kwin = subprocess.Popen(
-        ["kwin_wayland", "--virtual", "--socket", socket, "--width", "2400", "--height", "1600"],
+        [
+            "kwin_wayland",
+            "--virtual",
+            "--no-global-shortcuts",
+            "--socket",
+            socket,
+            "--width",
+            "2400",
+            "--height",
+            "1600",
+        ],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        preexec_fn=die_with_parent,
     )
     try:
         runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
@@ -94,6 +122,11 @@ def main() -> int:
                 )
     finally:
         kwin.terminate()
+        try:
+            kwin.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            kwin.kill()
+            kwin.wait(timeout=10)
     return 0
 
 
