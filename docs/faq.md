@@ -107,12 +107,20 @@ Enter a substring of the browser's MPRIS bus name. Find it via
 `playerctl -l` while a media tab is playing — e.g. for Floorp the
 substring is `floorp`. Save with *Apply*.
 
-## How do I add a native client that isn't in the Settings list?
+## How do I add a native client Refrain doesn't know?
 
-*Settings → Sources → Apple Music app (native) → Other
-(comma-separated)*. Enter a substring of the client's MPRIS bus name.
-Find it via `playerctl -l` while it is playing — for Cider the substring
-is `cider`. Save with *Apply*.
+In `config.toml`, not in Settings — these clients have no page of their
+own in the window. The file explains it where the setting sits:
+
+```toml
+[sources]
+app_hints = "cider,myplayer"       # replaces the built-in list
+```
+
+Enter a substring of the client's MPRIS bus name; `playerctl -l` shows
+it while the client plays. Leaving `app_hints` empty keeps the clients
+Refrain knows (Slipmat, Cider, Sidra), and `app_enabled = false` turns
+them off altogether. Refrain picks the file up on its next start.
 
 A native client reports the song length itself, so a song Apple's
 catalog doesn't know still gets an end time on the Discord card. The

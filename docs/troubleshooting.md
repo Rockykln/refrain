@@ -85,10 +85,12 @@ A player that is an Apple Music client itself is read over MPRIS like a
 browser, but without the page address: it plays nothing else, so there
 is nothing to tell apart.
 
-- Recognised out of the box: **Slipmat**, **Cider** and **Sidra**. Any
-  other client goes into *Settings → Sources → Apple Music app (native)
-  → Other (comma-separated)* as a substring of its MPRIS bus name
-  (`playerctl -l` shows it while the client plays).
+- Recognised out of the box: **Slipmat**, **Cider** and **Sidra**.
+  There is no page for them in Settings — any other client goes into
+  `config.toml` as `app_hints = "cider,myplayer"`, a substring of its
+  MPRIS bus name (`playerctl -l` shows it while the client plays), and
+  `app_enabled = false` turns them off. The file says so where the
+  setting sits.
 - They report the song length themselves, so a song the iTunes catalog
   doesn't know still gets an end time on the Discord card and a scrobble
   with the right length. Slipmat takes that figure from MusicKit, which
@@ -96,8 +98,9 @@ is nothing to tell apart.
 - The *Listen on Apple Music* button needs the song in the catalog,
   because that is where its link comes from. An address the client
   reports itself is used only when it points at Apple Music.
-- They share the *Enable browser source* switch: turning the browser
-  source off turns them off with it.
+- Two switches reach them: *Enable browser source* in Settings turns
+  off everything Refrain reads over MPRIS, these included, and
+  `app_enabled = false` in `config.toml` turns off only them.
 - Only tested against **Slipmat**; Cider and Sidra are recognised by
   name but untested.
 

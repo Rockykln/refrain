@@ -237,14 +237,22 @@ class SourcesConfig:
     # picks up players whose name/identity matches one of these. Edit if
     # your browser isn't auto-detected.
     browser_hints: str = ",".join(DEFAULT_BROWSER_HINTS)
-    # Same syntax, for players that are an Apple Music client themselves.
-    app_hints: str = ",".join(DEFAULT_APP_HINTS)
+    # Players that are an Apple Music client themselves. On unless turned
+    # off here; there is no switch for them in Settings.
+    app_enabled: bool = True
+    # Empty means the clients Refrain knows. Naming any replaces that list
+    # rather than adding to it.
+    app_hints: str = ""
 
     def browser_hints_list(self) -> list[str]:
         return [h.strip().lower() for h in self.browser_hints.split(",") if h.strip()]
 
     def app_hints_list(self) -> list[str]:
-        return [h.strip().lower() for h in self.app_hints.split(",") if h.strip()]
+        """What counts as a native client: the names set here, else the built-in ones."""
+        if not self.app_enabled:
+            return []
+        named = [h.strip().lower() for h in self.app_hints.split(",") if h.strip()]
+        return named or list(DEFAULT_APP_HINTS)
 
 
 @dataclass
@@ -482,9 +490,14 @@ def _check_browser_hints(value: str):
 
 
 def _check_app_hints(value: str):
+    # A file carrying exactly the built-in names goes back to empty, so it
+    # follows whatever Refrain knows from here on.
+    if [t.strip().lower() for t in value.split(",") if t.strip()] == list(DEFAULT_APP_HINTS):
+        return "", None
     tokens = [t.strip().lower() for t in value.split(",") if t.strip()]
     good = [t for t in tokens if _BROWSER_HINT_RE.fullmatch(t)]
-    # Empty is a valid answer here — someone who unticks every app wants none.
+    # Empty is a valid answer here — it means the clients Refrain knows.
+    # Turning them off is `app_enabled = false`.
     if len(good) != len(tokens):
         return ",".join(good), "contains unusable entries"
     return value, None
@@ -686,13 +699,33 @@ class Config:
         log.info("Config saved to %s", path)
 
 
+# Written above the key the first time it goes into a file. Only for the
+# handful of settings that have no switch in Settings and would otherwise
+# be invisible.
+_EXAMPLES: dict[tuple[str, str], tuple[str, ...]] = {
+    ("sources", "app_enabled"): (
+        "# Apple Music clients that play on their own (not in a browser).",
+        "# false turns them off; there is no switch for this in Settings.",
+    ),
+    ("sources", "app_hints"): (
+        "# Empty = the clients Refrain knows: slipmat, cider, sidra.",
+        '# Name others to use those instead, e.g. app_hints = "cider,myplayer"',
+        "# (a substring of the player's MPRIS bus name; playerctl -l shows it).",
+    ),
+}
+
+
+def _with_example(section: str, key: str, value: Any) -> list[str]:
+    return [*_EXAMPLES.get((section, key), ()), f"{key} = {_format_value(value)}"]
+
+
 def _serialize(data: dict[str, Any]) -> str:
     """Minimal TOML writer for our flat-section schema (no nested tables)."""
     lines: list[str] = []
     for section, body in data.items():
         lines.append(f"[{section}]")
         for k, v in body.items():
-            lines.append(f"{k} = {_format_value(v)}")
+            lines.extend(_with_example(section, k, v))
         lines.append("")
     return "\n".join(lines)
 
@@ -752,7 +785,7 @@ def _merge_into_existing(existing: str, data: dict[str, Any]) -> str:
         if section is None or section not in remaining:
             return
         for k, v in remaining[section].items():
-            out.append(f"{k} = {_format_value(v)}")
+            out.extend(_with_example(section, k, v))
         remaining.pop(section, None)
 
     for line in existing.splitlines():
@@ -777,7 +810,7 @@ def _merge_into_existing(existing: str, data: dict[str, Any]) -> str:
         if section in remaining:
             out.append(f"[{section}]")
             for k, v in remaining[section].items():
-                out.append(f"{k} = {_format_value(v)}")
+                out.extend(_with_example(section, k, v))
             out.append("")
             remaining.pop(section, None)
 

@@ -113,6 +113,9 @@ def test_a_good_value_is_kept_without_a_warning(caplog, section, key, good):
         ("advanced", "language", "pt", "pt"),
         ("discord", "client_id", f"  {GOOD_ID} ", GOOD_ID),
         ("sources", "bluetooth_device", " AA:BB:CC:DD:EE:FF ", "AA:BB:CC:DD:EE:FF"),
+        # The names used to be written into every file; empty means them now.
+        ("sources", "app_hints", "slipmat,cider,sidra", ""),
+        ("sources", "app_hints", " SLIPMAT , Cider ,sidra ", ""),
     ],
 )
 def test_harmless_spelling_is_tidied_quietly(caplog, section, key, raw, tidy):

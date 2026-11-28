@@ -19,7 +19,9 @@ mpris_enabled = true
 bluetooth_enabled = true
 bluetooth_device = ""              # empty = auto-detect, or "AA:BB:CC:DD:EE:FF"
 browser_hints = "firefox,chromium,…"  # which MPRIS players count as a browser; edit if yours isn't detected
-app_hints = "slipmat,cider,…"      # native Apple Music clients; they need no page address
+app_enabled = true                 # Apple Music clients that play on their own; no switch in Settings
+app_hints = ""                     # empty = the clients Refrain knows (slipmat, cider, sidra)
+                                   # name others to use those instead, e.g. "cider,myplayer"
 
 [privacy]
 mode = "full"                      # "full" | "minimal" | "off"

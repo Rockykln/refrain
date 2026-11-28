@@ -14,13 +14,15 @@ lists every version and why.
 - **Native Apple Music clients are picked up.** Until now Refrain only
   listened to browser tabs on `music.apple.com`, so a desktop client
   went unnoticed. Slipmat, Cider and Sidra are recognised out of the
-  box, and `app_hints` in the Sources tab takes any other client. They
-  report the song length themselves, so a song Apple's catalogue doesn't
-  know still gets a scrobble and an end time on the Discord card. The
-  *Listen on Apple Music* button links to the song in Apple's catalogue,
-  so it is there for a native client too — it stays off only for a song
-  the catalogue does not know, and an address a client reports itself is
-  used only when Apple Music is the site it points to.
+  box, and `app_hints` in `config.toml` takes any other client. There
+  is no page for them in Settings; the config file explains itself
+  where the setting sits, and `app_enabled = false` turns them off.
+  They report the song length themselves, so a song Apple's catalogue
+  doesn't know still gets a scrobble and an end time on the Discord
+  card. The *Listen on Apple Music* button links to the song in Apple's
+  catalogue, so it is there for a native client too — it stays off only
+  for a song the catalogue does not know, and an address a client reports
+  itself is used only when Apple Music is the site it points to.
 
 ### Changed
 

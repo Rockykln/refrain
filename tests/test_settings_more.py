@@ -10,7 +10,14 @@ import pytest
 pytest.importorskip("PySide6")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox, QToolButton  # noqa: E402
+from PySide6.QtWidgets import (  # noqa: E402
+    QApplication,
+    QDialog,
+    QGroupBox,
+    QLabel,
+    QMessageBox,
+    QToolButton,
+)
 
 import refrain.ui.settings_window as sw  # noqa: E402
 from refrain.config import Config  # noqa: E402
@@ -171,20 +178,23 @@ def test_an_empty_browser_list_is_refused_with_a_reason(win, boxes):
     assert "one browser" in boxes[0][2]
 
 
-def test_unticking_every_app_leaves_no_native_client(win):
-    for cb in win._app_checkboxes.values():
-        cb.setChecked(False)
-    win._on_apply_clicked()
-    assert win.sent[-1].sources.app_hints == ""
+def test_the_native_clients_are_not_in_the_window_at_all(win):
+    """They are config-only: no group, no boxes, no field."""
+    assert not hasattr(win, "_app_checkboxes")
+    assert not hasattr(win, "app_extra_input")
+    texts = [w.text() for w in win.findChildren(QLabel)] + [
+        g.title() for g in win.findChildren(QGroupBox)
+    ]
+    assert not any("native" in t.lower() or "Slipmat" in t for t in texts)
 
 
-def test_a_typed_app_name_joins_the_ticked_one(win):
-    for cb in win._app_checkboxes.values():
-        cb.setChecked(False)
-    win._app_checkboxes["slipmat"].setChecked(True)
-    win.app_extra_input.setText(" Scratter , SLIPMAT ")
+def test_a_hand_written_client_list_survives_the_window(win):
+    """The window never writes app_hints, so what the file says stays."""
+    win._config.sources.app_hints = "cider,myplayer"
+    win.poll_spin.setValue(3000)
     win._on_apply_clicked()
-    assert win.sent[-1].sources.app_hints == "slipmat,scratter"
+    assert win.sent[-1].sources.app_hints == "cider,myplayer"
+    assert win.sent[-1].sources.app_enabled is True
 
 
 # confirm boxes

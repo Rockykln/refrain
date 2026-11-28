@@ -206,196 +206,196 @@
 <context>
     <name>HistoryWindow</name>
     <message>
-        <location filename="../ui/history_window.py" line="110"/>
+        <location filename="../ui/history_window.py" line="111"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="112"/>
+        <location filename="../ui/history_window.py" line="113"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="130"/>
+        <location filename="../ui/history_window.py" line="131"/>
         <source>Unknown artist</source>
         <translation>알 수 없는 아티스트</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="441"/>
-        <location filename="../ui/history_window.py" line="570"/>
+        <location filename="../ui/history_window.py" line="442"/>
+        <location filename="../ui/history_window.py" line="571"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm에 스크로블됨</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="447"/>
-        <location filename="../ui/history_window.py" line="1147"/>
+        <location filename="../ui/history_window.py" line="448"/>
+        <location filename="../ui/history_window.py" line="1149"/>
         <source>Now playing</source>
         <translation>지금 재생 중</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="449"/>
+        <location filename="../ui/history_window.py" line="450"/>
         <source>Paused</source>
         <translation>일시 정지됨</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="548"/>
+        <location filename="../ui/history_window.py" line="549"/>
         <source>Started: {when}</source>
         <translation>시작: {when}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="555"/>
+        <location filename="../ui/history_window.py" line="556"/>
         <source>Source: {source}</source>
         <translation>소스: {source}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="563"/>
+        <location filename="../ui/history_window.py" line="564"/>
         <source>Length: {length}</source>
         <translation>길이: {length}</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="575"/>
+        <location filename="../ui/history_window.py" line="576"/>
         <source>Click to open in Apple Music.</source>
         <translation>클릭하면 Apple Music에서 엽니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="494"/>
-        <location filename="../ui/history_window.py" line="665"/>
+        <location filename="../ui/history_window.py" line="495"/>
+        <location filename="../ui/history_window.py" line="666"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music에서 열기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="669"/>
+        <location filename="../ui/history_window.py" line="670"/>
         <source>Copy artist and title</source>
         <translation>아티스트와 제목 복사</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="675"/>
+        <location filename="../ui/history_window.py" line="676"/>
         <source>Remove from history</source>
         <translation>기록에서 제거</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="708"/>
+        <location filename="../ui/history_window.py" line="709"/>
         <source>Recently played</source>
         <translation>최근 재생한 곡</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="734"/>
+        <location filename="../ui/history_window.py" line="735"/>
         <source>Clear history…</source>
         <translation>기록 지우기…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="746"/>
+        <location filename="../ui/history_window.py" line="747"/>
         <source>Search title, artist or album…</source>
         <translation>제목, 아티스트 또는 앨범 검색…</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="808"/>
+        <location filename="../ui/history_window.py" line="809"/>
         <source>Close</source>
         <translation>닫기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="834"/>
+        <location filename="../ui/history_window.py" line="835"/>
         <source>just now</source>
         <translation>방금 전</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="837"/>
+        <location filename="../ui/history_window.py" line="838"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n분 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="840"/>
+        <location filename="../ui/history_window.py" line="841"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n시간 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="842"/>
+        <location filename="../ui/history_window.py" line="843"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n일 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="981"/>
+        <location filename="../ui/history_window.py" line="983"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%n곡 중 %1곡</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="984"/>
+        <location filename="../ui/history_window.py" line="986"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>최근 %n곡</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="991"/>
+        <location filename="../ui/history_window.py" line="993"/>
         <source>History is turned off</source>
         <translation>기록이 꺼져 있습니다</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="992"/>
+        <location filename="../ui/history_window.py" line="994"/>
         <source>Turn it on under Settings → Recently played to see what you played.</source>
         <translation>재생한 곡을 보려면 설정 → 최근 재생한 곡에서 켜세요.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="995"/>
+        <location filename="../ui/history_window.py" line="997"/>
         <source>No songs yet</source>
         <translation>아직 곡이 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="995"/>
+        <location filename="../ui/history_window.py" line="997"/>
         <source>Play something and it shows up here.</source>
         <translation>곡을 재생하면 여기에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="997"/>
+        <location filename="../ui/history_window.py" line="999"/>
         <source>No matches</source>
         <translation>일치하는 항목 없음</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="997"/>
+        <location filename="../ui/history_window.py" line="999"/>
         <source>Try a different search or source.</source>
         <translation>다른 검색어나 소스로 시도해 보세요.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1110"/>
+        <location filename="../ui/history_window.py" line="1112"/>
         <source>All sources</source>
         <translation>모든 소스</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1128"/>
+        <location filename="../ui/history_window.py" line="1130"/>
         <source>Today</source>
         <translation>오늘</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1130"/>
+        <location filename="../ui/history_window.py" line="1132"/>
         <source>Yesterday</source>
         <translation>어제</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1189"/>
-        <location filename="../ui/history_window.py" line="1192"/>
+        <location filename="../ui/history_window.py" line="1191"/>
+        <location filename="../ui/history_window.py" line="1194"/>
         <source>Clear history</source>
         <translation>기록 지우기</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1190"/>
+        <location filename="../ui/history_window.py" line="1192"/>
         <source>Remove every song from the history?</source>
         <translation>기록에서 모든 곡을 제거할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1191"/>
+        <location filename="../ui/history_window.py" line="1193"/>
         <source>This cannot be undone.</source>
         <translation>이 작업은 되돌릴 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/history_window.py" line="1195"/>
+        <location filename="../ui/history_window.py" line="1197"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
@@ -403,43 +403,43 @@
 <context>
     <name>LastfmApprovalDialog</name>
     <message>
-        <location filename="../ui/settings_window.py" line="482"/>
+        <location filename="../ui/settings_window.py" line="483"/>
         <source>Authorize Refrain</source>
         <translation>Refrain 허용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="485"/>
+        <location filename="../ui/settings_window.py" line="486"/>
         <source>A Last.fm page opened in your browser. Click “Yes, allow access” there — Refrain connects by itself as soon as you have.</source>
         <translation>브라우저에서 Last.fm 페이지가 열렸습니다. 그 페이지에서 “Yes, allow access”를 클릭하세요 — 클릭하면 Refrain이 자동으로 연결됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="490"/>
-        <location filename="../ui/settings_window.py" line="539"/>
+        <location filename="../ui/settings_window.py" line="491"/>
+        <location filename="../ui/settings_window.py" line="540"/>
         <source>Waiting for you to allow access…</source>
         <translation>액세스 허용을 기다리는 중…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="491"/>
+        <location filename="../ui/settings_window.py" line="492"/>
         <source>Open the page again</source>
         <translation>페이지 다시 열기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="493"/>
+        <location filename="../ui/settings_window.py" line="494"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="542"/>
+        <location filename="../ui/settings_window.py" line="543"/>
         <source>Can&apos;t reach Last.fm right now — still trying…</source>
         <translation>지금은 Last.fm에 연결할 수 없습니다 — 계속 시도하는 중…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="544"/>
+        <location filename="../ui/settings_window.py" line="545"/>
         <source>The Last.fm page has expired. Click Connect to start again.</source>
         <translation>Last.fm 페이지가 만료되었습니다. 다시 시작하려면 ‘연결…’을 클릭하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="549"/>
+        <location filename="../ui/settings_window.py" line="550"/>
         <source>No approval arrived. Click Connect to start again.</source>
         <translation>승인 응답이 없습니다. 다시 시작하려면 ‘연결…’을 클릭하세요.</translation>
     </message>
@@ -508,754 +508,733 @@
 <context>
     <name>SettingsWindow</name>
     <message>
-        <location filename="../ui/settings_window.py" line="129"/>
+        <location filename="../ui/settings_window.py" line="130"/>
         <source>Application name: “{name}”</source>
         <translation>애플리케이션 이름: “{name}”</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="135"/>
+        <location filename="../ui/settings_window.py" line="136"/>
         <source>No such Discord application</source>
         <translation>해당 Discord 애플리케이션이 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="136"/>
+        <location filename="../ui/settings_window.py" line="137"/>
         <source>Could not reach Discord</source>
         <translation>Discord에 연결할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="594"/>
+        <location filename="../ui/settings_window.py" line="595"/>
         <source>Settings</source>
         <translation>설정</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="633"/>
+        <location filename="../ui/settings_window.py" line="634"/>
         <source>General</source>
         <translation>일반</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="634"/>
+        <location filename="../ui/settings_window.py" line="635"/>
         <source>Sources</source>
         <translation>소스</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="635"/>
-        <location filename="../ui/settings_window.py" line="964"/>
-        <location filename="../ui/settings_window.py" line="1770"/>
-        <location filename="../ui/settings_window.py" line="1845"/>
+        <location filename="../ui/settings_window.py" line="636"/>
+        <location filename="../ui/settings_window.py" line="965"/>
+        <location filename="../ui/settings_window.py" line="1738"/>
+        <location filename="../ui/settings_window.py" line="1813"/>
         <source>Last.fm</source>
         <translation>Last.fm</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="637"/>
+        <location filename="../ui/settings_window.py" line="638"/>
         <source>Updates</source>
         <translation>업데이트</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="638"/>
+        <location filename="../ui/settings_window.py" line="639"/>
         <source>Advanced</source>
         <translation>고급</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="642"/>
-        <location filename="../ui/settings_window.py" line="928"/>
-        <location filename="../ui/settings_window.py" line="939"/>
-        <location filename="../ui/settings_window.py" line="956"/>
-        <location filename="../ui/settings_window.py" line="1534"/>
-        <location filename="../ui/settings_window.py" line="1633"/>
-        <location filename="../ui/settings_window.py" line="1707"/>
-        <location filename="../ui/settings_window.py" line="2159"/>
+        <location filename="../ui/settings_window.py" line="643"/>
+        <location filename="../ui/settings_window.py" line="929"/>
+        <location filename="../ui/settings_window.py" line="940"/>
+        <location filename="../ui/settings_window.py" line="957"/>
+        <location filename="../ui/settings_window.py" line="1502"/>
+        <location filename="../ui/settings_window.py" line="1601"/>
+        <location filename="../ui/settings_window.py" line="1675"/>
+        <location filename="../ui/settings_window.py" line="2114"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="641"/>
+        <location filename="../ui/settings_window.py" line="642"/>
         <source>Apply</source>
         <translation>적용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="676"/>
+        <location filename="../ui/settings_window.py" line="677"/>
         <source>View Refrain on GitHub</source>
         <translation>GitHub에서 Refrain 보기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="682"/>
+        <location filename="../ui/settings_window.py" line="683"/>
         <source>Legal</source>
         <translation>법적 고지</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="713"/>
+        <location filename="../ui/settings_window.py" line="714"/>
         <source>Discord</source>
         <translation>Discord</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="753"/>
+        <location filename="../ui/settings_window.py" line="754"/>
         <source>Look up the application&apos;s name on Discord</source>
         <translation>Discord에서 애플리케이션 이름 조회</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="768"/>
+        <location filename="../ui/settings_window.py" line="769"/>
         <source>Use a separate Discord application per source (advanced)</source>
         <translation>소스마다 별도의 Discord 애플리케이션 사용 (고급)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="774"/>
+        <location filename="../ui/settings_window.py" line="775"/>
         <source>Send the status to every running Discord client</source>
         <translation>실행 중인 모든 Discord 클라이언트에 상태 보내기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="829"/>
+        <location filename="../ui/settings_window.py" line="830"/>
         <source>Full — title, artist, album, cover</source>
         <translation>전체 — 제목, 아티스트, 앨범, 커버</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="807"/>
+        <location filename="../ui/settings_window.py" line="808"/>
         <source>Open Discord Developer Portal</source>
         <translation>Discord Developer Portal 열기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="855"/>
+        <location filename="../ui/settings_window.py" line="856"/>
         <source>Show desktop notification on track change</source>
         <translation>곡이 바뀔 때 데스크톱 알림 표시</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="852"/>
+        <location filename="../ui/settings_window.py" line="853"/>
         <source>Behavior</source>
         <translation>동작</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="853"/>
+        <location filename="../ui/settings_window.py" line="854"/>
         <source>Start Refrain automatically on login</source>
         <translation>로그인할 때 Refrain 자동 시작</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="636"/>
-        <location filename="../ui/settings_window.py" line="871"/>
+        <location filename="../ui/settings_window.py" line="637"/>
+        <location filename="../ui/settings_window.py" line="872"/>
         <source>Recently played</source>
         <translation>최근 재생한 곡</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="126"/>
+        <location filename="../ui/settings_window.py" line="127"/>
         <source>Expected 17–20 digits</source>
         <translation>17~20자리 예상</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="640"/>
+        <location filename="../ui/settings_window.py" line="641"/>
         <source>OK</source>
         <translation>확인</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="684"/>
+        <location filename="../ui/settings_window.py" line="685"/>
         <source>License, trademark and affiliation notices</source>
         <translation>라이선스, 상표 및 제휴 관련 고지</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="717"/>
+        <location filename="../ui/settings_window.py" line="718"/>
         <source>17–20 digit number</source>
         <translation>17~20자리 숫자</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="737"/>
+        <location filename="../ui/settings_window.py" line="738"/>
         <source>Application ID:</source>
         <translation>Application ID:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="781"/>
-        <location filename="../ui/settings_window.py" line="786"/>
+        <location filename="../ui/settings_window.py" line="782"/>
+        <location filename="../ui/settings_window.py" line="787"/>
         <source>(uses the main Application ID)</source>
         <translation>(기본 Application ID 사용)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="783"/>
+        <location filename="../ui/settings_window.py" line="784"/>
         <source>Apple Music:</source>
         <translation>Apple Music:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="788"/>
+        <location filename="../ui/settings_window.py" line="789"/>
         <source>Bluetooth:</source>
         <translation>Bluetooth:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="794"/>
+        <location filename="../ui/settings_window.py" line="795"/>
         <source>Show “Listen on Apple Music” button in Discord</source>
         <translation>Discord에 “Listen on Apple Music” 버튼 표시</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="795"/>
+        <location filename="../ui/settings_window.py" line="796"/>
         <source>Discord shows the button to others, not to you.</source>
         <translation>이 버튼은 다른 사람에게는 표시되지만 본인에게는 표시되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="798"/>
+        <location filename="../ui/settings_window.py" line="799"/>
         <source>Show a small icon on the cover in Discord</source>
         <translation>Discord 커버에 작은 아이콘 표시</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="815"/>
+        <location filename="../ui/settings_window.py" line="816"/>
         <source>Create a free application in the Discord Developer Portal and copy its Application ID. The application&apos;s name is what shows up next to “Listening to” in your Discord status.</source>
         <translation>Discord Developer Portal에서 무료 애플리케이션을 만들고 그 Application ID를 복사하세요. 애플리케이션 이름이 Discord 상태의 “Listening to” 옆에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="826"/>
+        <location filename="../ui/settings_window.py" line="827"/>
         <source>Privacy</source>
         <translation>개인정보 보호</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="830"/>
+        <location filename="../ui/settings_window.py" line="831"/>
         <source>Minimal — only “Listening to music”</source>
         <translation>최소 — “Listening to music”만</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="832"/>
+        <location filename="../ui/settings_window.py" line="833"/>
         <source>Off — pause Discord status and Last.fm scrobbling</source>
         <translation>꺼짐 — Discord·Last.fm 모두 중지</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="837"/>
+        <location filename="../ui/settings_window.py" line="838"/>
         <source>Sharing:</source>
         <translation>공유:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="838"/>
+        <location filename="../ui/settings_window.py" line="839"/>
         <source>Look up songs in Apple&apos;s catalog</source>
         <translation>Apple 카탈로그에서 곡 조회</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="843"/>
+        <location filename="../ui/settings_window.py" line="844"/>
         <source>Sends artist and title to Apple to get the cover, the song link and the length. Without it, Discord shows no cover and often no progress bar.</source>
         <translation>커버, 곡 링크, 길이를 가져오기 위해 아티스트와 제목을 Apple로 보냅니다. 끄면 Discord에 커버가 표시되지 않고, 진행 표시줄도 표시되지 않는 경우가 많습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="872"/>
+        <location filename="../ui/settings_window.py" line="873"/>
         <source>Keep a list of recently played songs</source>
         <translation>최근 재생한 곡 목록 보관</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="882"/>
+        <location filename="../ui/settings_window.py" line="883"/>
         <source>Songs to keep:</source>
         <translation>보관할 곡 수:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="884"/>
+        <location filename="../ui/settings_window.py" line="885"/>
         <source>Show recently played…</source>
         <translation>최근 재생한 곡 보기…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="890"/>
+        <location filename="../ui/settings_window.py" line="891"/>
         <source>Stored only on this computer and never sent anywhere, so privacy mode doesn&apos;t affect it. Turning it off deletes the list; a lower number drops the oldest songs.</source>
         <translation>이 컴퓨터에만 저장되고 어디로도 전송되지 않으므로 개인정보 보호 모드의 영향을 받지 않습니다. 끄면 목록이 삭제되며, 숫자를 줄이면 가장 오래된 곡부터 삭제됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="922"/>
+        <location filename="../ui/settings_window.py" line="923"/>
         <source>Turn off history?</source>
         <translation>기록을 끌까요?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="923"/>
+        <location filename="../ui/settings_window.py" line="924"/>
         <source>Turning the history off deletes the list of recently played songs.</source>
         <translation>기록을 끄면 최근 재생한 곡 목록이 삭제됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="924"/>
+        <location filename="../ui/settings_window.py" line="925"/>
         <source>This cannot be undone.</source>
         <translation>이 작업은 되돌릴 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="926"/>
+        <location filename="../ui/settings_window.py" line="927"/>
         <source>Turn off and delete</source>
         <translation>끄고 삭제</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="936"/>
+        <location filename="../ui/settings_window.py" line="937"/>
         <source>Disconnect from Last.fm?</source>
         <translation>Last.fm 연결을 해제할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="937"/>
+        <location filename="../ui/settings_window.py" line="938"/>
         <source>Nothing is scrobbled until you connect again.</source>
         <translation>다시 연결할 때까지 아무것도 스크로블되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="938"/>
-        <location filename="../ui/settings_window.py" line="1728"/>
+        <location filename="../ui/settings_window.py" line="939"/>
+        <location filename="../ui/settings_window.py" line="1696"/>
         <source>Disconnect</source>
         <translation>연결 해제</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="947"/>
+        <location filename="../ui/settings_window.py" line="948"/>
         <source>Last.fm isn&apos;t connected</source>
         <translation>Last.fm이 연결되어 있지 않습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="950"/>
+        <location filename="../ui/settings_window.py" line="951"/>
         <source>Scrobbling is switched on, but Refrain has no connection to Last.fm — nothing will be scrobbled.</source>
         <translation>스크로블이 켜져 있지만 Refrain이 Last.fm에 연결되어 있지 않습니다 — 아무것도 스크로블되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="954"/>
+        <location filename="../ui/settings_window.py" line="955"/>
         <source>Click Connect… on the Last.fm tab to connect.</source>
         <translation>Last.fm 탭에서 ‘연결…’을 클릭해 연결하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="955"/>
+        <location filename="../ui/settings_window.py" line="956"/>
         <source>Apply anyway</source>
         <translation>그래도 적용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="965"/>
+        <location filename="../ui/settings_window.py" line="966"/>
         <source>Last.fm is connected, but scrobbling is off.</source>
         <translation>Last.fm에 연결되어 있지만 스크로블은 꺼져 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="966"/>
+        <location filename="../ui/settings_window.py" line="967"/>
         <source>Turn on scrobbling</source>
         <translation>스크로블 켜기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="967"/>
+        <location filename="../ui/settings_window.py" line="968"/>
         <source>Keep off</source>
         <translation>끈 상태 유지</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1014"/>
+        <location filename="../ui/settings_window.py" line="1016"/>
         <source>Last.fm scrobbling</source>
         <translation>Last.fm 스크로블</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1016"/>
+        <location filename="../ui/settings_window.py" line="1018"/>
         <source>Enable Last.fm scrobbling</source>
         <translation>Last.fm 스크로블 사용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1020"/>
+        <location filename="../ui/settings_window.py" line="1022"/>
         <source>Last.fm API key</source>
         <translation>Last.fm API 키</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1022"/>
+        <location filename="../ui/settings_window.py" line="1024"/>
         <source>API key:</source>
         <translation>API 키:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1025"/>
+        <location filename="../ui/settings_window.py" line="1027"/>
         <source>Last.fm shared secret</source>
         <translation>Last.fm Shared secret</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1028"/>
+        <location filename="../ui/settings_window.py" line="1030"/>
         <source>Shared secret:</source>
         <translation>Shared secret:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1030"/>
-        <location filename="../ui/settings_window.py" line="1738"/>
+        <location filename="../ui/settings_window.py" line="1032"/>
+        <location filename="../ui/settings_window.py" line="1706"/>
         <source>Not connected</source>
         <translation>연결되지 않음</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1031"/>
+        <location filename="../ui/settings_window.py" line="1033"/>
         <source>Account:</source>
         <translation>계정:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1033"/>
-        <location filename="../ui/settings_window.py" line="1736"/>
-        <location filename="../ui/settings_window.py" line="1739"/>
+        <location filename="../ui/settings_window.py" line="1035"/>
+        <location filename="../ui/settings_window.py" line="1704"/>
+        <location filename="../ui/settings_window.py" line="1707"/>
         <source>Connect…</source>
         <translation>연결…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1035"/>
+        <location filename="../ui/settings_window.py" line="1037"/>
         <source>Create API account</source>
         <translation>API 계정 만들기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1039"/>
+        <location filename="../ui/settings_window.py" line="1041"/>
         <source>Also send a “Now playing” update</source>
         <translation>“지금 재생 중” 업데이트도 보내기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1054"/>
+        <location filename="../ui/settings_window.py" line="1056"/>
         <source>Scrobbling via Last.fm</source>
         <translation>Last.fm으로 스크로블</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1074"/>
+        <location filename="../ui/settings_window.py" line="1076"/>
         <source>Apple Music Web (browser)</source>
         <translation>Apple Music Web (브라우저)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1075"/>
+        <location filename="../ui/settings_window.py" line="1077"/>
         <source>Enable browser source</source>
         <translation>브라우저 소스 사용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1120"/>
+        <location filename="../ui/settings_window.py" line="1122"/>
         <source>e.g. waterfox, palemoon</source>
         <translation>예: waterfox, palemoon</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1121"/>
-        <location filename="../ui/settings_window.py" line="1156"/>
+        <location filename="../ui/settings_window.py" line="1123"/>
         <source>Other (comma-separated):</source>
         <translation>기타 (쉼표로 구분):</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1135"/>
-        <source>Apple Music app (native)</source>
-        <translation>Apple Music 앱 (네이티브)</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1155"/>
-        <source>e.g. another Apple Music client</source>
-        <translation>예: 다른 Apple Music 클라이언트</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1170"/>
+        <location filename="../ui/settings_window.py" line="1138"/>
         <source>Bluetooth (AVRCP)</source>
         <translation>Bluetooth (AVRCP)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1171"/>
+        <location filename="../ui/settings_window.py" line="1139"/>
         <source>Enable Bluetooth source</source>
         <translation>Bluetooth 소스 사용</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1177"/>
+        <location filename="../ui/settings_window.py" line="1145"/>
         <source>Refresh</source>
         <translation>새로 고침</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1185"/>
+        <location filename="../ui/settings_window.py" line="1153"/>
         <source>Device:</source>
         <translation>장치:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1189"/>
+        <location filename="../ui/settings_window.py" line="1157"/>
         <source>Pick a paired device, or leave on auto-detect to read whichever AVRCP-capable source is currently connected.</source>
         <translation>페어링된 장치를 선택하거나, ‘자동 감지’로 두면 현재 연결된 AVRCP 지원 소스를 읽습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1202"/>
-        <location filename="../ui/settings_window.py" line="1214"/>
-        <location filename="../ui/settings_window.py" line="1996"/>
+        <location filename="../ui/settings_window.py" line="1170"/>
+        <location filename="../ui/settings_window.py" line="1182"/>
+        <location filename="../ui/settings_window.py" line="1952"/>
         <source>(auto-detect)</source>
         <translation>(자동 감지)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1216"/>
+        <location filename="../ui/settings_window.py" line="1184"/>
         <source>(unknown device)</source>
         <translation>(알 수 없는 장치)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1219"/>
+        <location filename="../ui/settings_window.py" line="1187"/>
         <source>● {label} (connected)</source>
         <translation>● {label} (연결됨)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1239"/>
+        <location filename="../ui/settings_window.py" line="1207"/>
         <source>just now</source>
         <translation>방금 전</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1242"/>
+        <location filename="../ui/settings_window.py" line="1210"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n분 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1245"/>
+        <location filename="../ui/settings_window.py" line="1213"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n시간 전</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1247"/>
+        <location filename="../ui/settings_window.py" line="1215"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n일 전</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1260"/>
+        <location filename="../ui/settings_window.py" line="1228"/>
         <source>never</source>
         <translation>없음</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1272"/>
+        <location filename="../ui/settings_window.py" line="1240"/>
         <source>Update checking</source>
         <translation>업데이트 확인</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1275"/>
+        <location filename="../ui/settings_window.py" line="1243"/>
         <source>Automatically check on startup (max once per day)</source>
         <translation>시작할 때 자동으로 확인 (하루 최대 한 번)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1280"/>
+        <location filename="../ui/settings_window.py" line="1248"/>
         <source>Current version:</source>
         <translation>현재 버전:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1282"/>
+        <location filename="../ui/settings_window.py" line="1250"/>
         <source>—</source>
         <translation>—</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1283"/>
+        <location filename="../ui/settings_window.py" line="1251"/>
         <source>Latest known:</source>
         <translation>알려진 최신 버전:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1286"/>
+        <location filename="../ui/settings_window.py" line="1254"/>
         <source>Last checked:</source>
         <translation>마지막 확인:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1290"/>
+        <location filename="../ui/settings_window.py" line="1258"/>
         <source>Check for updates now</source>
         <translation>지금 업데이트 확인</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1297"/>
+        <location filename="../ui/settings_window.py" line="1265"/>
         <source>Refrain queries the GitHub Releases API. Update behavior depends on how Refrain was installed (AppImage / pip / Flatpak / AUR).</source>
         <translation>Refrain은 GitHub Releases API를 조회합니다. 업데이트 방식은 Refrain을 설치한 방법(AppImage / pip / Flatpak / AUR)에 따라 다릅니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1316"/>
+        <location filename="../ui/settings_window.py" line="1284"/>
         <source>Latest release notes</source>
         <translation>최신 릴리스 노트</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1322"/>
+        <location filename="../ui/settings_window.py" line="1290"/>
         <source>_Click_ **Check for updates now** _to fetch the latest changelog from GitHub._</source>
         <translation>_GitHub에서 최신 변경 내역을 가져오려면_ **지금 업데이트 확인** _버튼을 클릭하세요._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1345"/>
+        <location filename="../ui/settings_window.py" line="1313"/>
         <source>(check failed)</source>
         <translation>(확인 실패)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1347"/>
+        <location filename="../ui/settings_window.py" line="1315"/>
         <source>_Could not reach GitHub. Check your network and try again._</source>
         <translation>_GitHub에 연결할 수 없습니다. 네트워크를 확인한 후 다시 시도하세요._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1352"/>
+        <location filename="../ui/settings_window.py" line="1320"/>
         <source>{version} (update available)</source>
         <translation>{version} (업데이트 있음)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1356"/>
+        <location filename="../ui/settings_window.py" line="1324"/>
         <source>{version} (up to date)</source>
         <translation>{version} (최신 버전)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1358"/>
+        <location filename="../ui/settings_window.py" line="1326"/>
         <source>_No release notes provided._</source>
         <translation>_릴리스 노트가 없습니다._</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1368"/>
+        <location filename="../ui/settings_window.py" line="1336"/>
         <source>Performance</source>
         <translation>성능</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1374"/>
+        <location filename="../ui/settings_window.py" line="1342"/>
         <source>Poll interval:</source>
         <translation>폴링 간격:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1381"/>
+        <location filename="../ui/settings_window.py" line="1349"/>
         <source>Notification delay:</source>
         <translation>알림 지연:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1385"/>
+        <location filename="../ui/settings_window.py" line="1353"/>
         <source>The poll interval is how often Refrain asks the player what&apos;s playing: lower reacts faster but uses a little more CPU. The notification delay gives the cover time to load.</source>
         <translation>폴링 간격은 Refrain이 재생 중인 곡을 플레이어에 얼마나 자주 물어보는지를 나타냅니다. 값을 낮추면 더 빠르게 반응하지만 CPU를 조금 더 사용합니다. 알림 지연은 커버가 로드될 시간을 줍니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1398"/>
+        <location filename="../ui/settings_window.py" line="1366"/>
         <source>Localization</source>
         <translation>언어</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1401"/>
+        <location filename="../ui/settings_window.py" line="1369"/>
         <source>System default</source>
         <translation>시스템 기본값</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1418"/>
+        <location filename="../ui/settings_window.py" line="1386"/>
         <source>Language:</source>
         <translation>언어:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1420"/>
+        <location filename="../ui/settings_window.py" line="1388"/>
         <source>A new language needs a restart; Refrain asks before it restarts.</source>
         <translation>새 언어를 적용하려면 다시 시작해야 합니다. Refrain은 다시 시작하기 전에 확인합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1461"/>
+        <location filename="../ui/settings_window.py" line="1429"/>
         <source>Uninstall deletes all Refrain data and the Last.fm credentials, then shows the command that removes the program. This cannot be undone.</source>
         <translation>제거하면 모든 Refrain 데이터와 Last.fm 인증 정보가 삭제되고, 이어서 프로그램을 제거하는 명령어가 표시됩니다. 이 작업은 되돌릴 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1779"/>
+        <location filename="../ui/settings_window.py" line="1747"/>
         <source>Requesting authorization token…</source>
         <translation>인증 토큰 요청 중…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1838"/>
+        <location filename="../ui/settings_window.py" line="1806"/>
         <source>Connected as {user}. Scrobbling starts with the next song.</source>
         <translation>{user}(으)로 연결됨. 다음 곡부터 스크로블이 시작됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1842"/>
+        <location filename="../ui/settings_window.py" line="1810"/>
         <source>Connected. Scrobbling starts with the next song.</source>
         <translation>연결됨. 다음 곡부터 스크로블이 시작됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1844"/>
+        <location filename="../ui/settings_window.py" line="1812"/>
         <source>It stays paused while Privacy is set to Off.</source>
         <translation>개인정보 보호가 ‘꺼짐’으로 설정되어 있는 동안은 계속 일시 중지됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1425"/>
+        <location filename="../ui/settings_window.py" line="1393"/>
         <source>Logging</source>
         <translation>로그 기록</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="756"/>
+        <location filename="../ui/settings_window.py" line="757"/>
         <source>Shows what the ID is called, so a typo shows up. Asks Discord, sends only the ID.</source>
         <translation>ID의 이름을 보여 주어 오타를 알 수 있습니다. Discord에 ID만 보냅니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="777"/>
+        <location filename="../ui/settings_window.py" line="778"/>
         <source>Normally only the first Discord app found gets your status.</source>
         <translation>보통 처음 찾은 Discord만 상태를 받습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="800"/>
+        <location filename="../ui/settings_window.py" line="801"/>
         <source>Refrain&apos;s icon, or your application&apos;s own icon once its name is looked up.</source>
         <translation>Refrain 아이콘, 이름을 조회하면 애플리케이션 아이콘으로 바뀝니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="835"/>
+        <location filename="../ui/settings_window.py" line="836"/>
         <source>What Refrain shares while music plays. Off also stops Last.fm scrobbling.</source>
         <translation>재생 중 Refrain이 공유하는 내용. 꺼짐은 Last.fm도 중지합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1045"/>
+        <location filename="../ui/settings_window.py" line="1047"/>
         <source>Register a free API account, paste the key + secret, then Connect to authorize in your browser. The shared secret and the session token are stored in your system keyring, never in plain text.</source>
         <translation>무료 API 계정을 등록하고 키와 Shared secret을 붙여넣은 다음, ‘연결…’을 클릭해 브라우저에서 인증하세요. Shared secret과 세션 토큰은 시스템 키링에 저장되며, 평문으로 저장되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1080"/>
+        <location filename="../ui/settings_window.py" line="1082"/>
         <source>Browsers Refrain knows:</source>
         <translation>Refrain이 아는 브라우저:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1125"/>
+        <location filename="../ui/settings_window.py" line="1127"/>
         <source>Refrain only picks up browsers whose process name or desktop entry contains one of these substrings. Tick what you use. One has to stay — to read no browser at all, turn the source off above.</source>
         <translation>Refrain은 프로세스 이름이나 데스크톱 항목에 다음 문자열 중 하나가 포함된 브라우저만 인식합니다. 사용하는 브라우저를 선택하세요. 하나는 남겨 두어야 합니다. 브라우저를 전혀 읽지 않으려면 위의 소스를 끄세요.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1136"/>
-        <source>Clients Refrain knows:</source>
-        <translation>Refrain이 아는 클라이언트:</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1160"/>
-        <source>Players that are an Apple Music client themselves, matched the same way. They play nothing else, so Refrain picks them up without a page address. Enable browser source above turns these on and off as well.</source>
-        <translation>Apple Music 클라이언트 자체인 재생기를 같은 방식으로 인식합니다. 다른 것은 재생하지 않으므로 페이지 주소 없이도 Refrain이 인식합니다. 위의 ‘브라우저 소스 사용’은 이들도 함께 켜고 끕니다.</translation>
-    </message>
-    <message>
-        <location filename="../ui/settings_window.py" line="1429"/>
+        <location filename="../ui/settings_window.py" line="1397"/>
         <source>Detailed (DEBUG)</source>
         <translation>상세 (DEBUG)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1430"/>
+        <location filename="../ui/settings_window.py" line="1398"/>
         <source>Normal (INFO)</source>
         <translation>보통 (INFO)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1431"/>
+        <location filename="../ui/settings_window.py" line="1399"/>
         <source>Warnings only</source>
         <translation>경고만</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1432"/>
+        <location filename="../ui/settings_window.py" line="1400"/>
         <source>Errors only</source>
         <translation>오류만</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1435"/>
+        <location filename="../ui/settings_window.py" line="1403"/>
         <source>Choose Detailed when you report a bug.</source>
         <translation>버그를 신고할 때는 ‘상세’를 선택하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1436"/>
+        <location filename="../ui/settings_window.py" line="1404"/>
         <source>Log level:</source>
         <translation>로그 수준:</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1438"/>
+        <location filename="../ui/settings_window.py" line="1406"/>
         <source>Open live-log window</source>
         <translation>실시간 로그 창 열기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1440"/>
+        <location filename="../ui/settings_window.py" line="1408"/>
         <source>Open log folder</source>
         <translation>로그 폴더 열기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1449"/>
+        <location filename="../ui/settings_window.py" line="1417"/>
         <source>Maintenance</source>
         <translation>유지 관리</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1450"/>
-        <location filename="../ui/settings_window.py" line="2156"/>
+        <location filename="../ui/settings_window.py" line="1418"/>
+        <location filename="../ui/settings_window.py" line="2111"/>
         <source>Restart Refrain</source>
         <translation>Refrain 다시 시작</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1452"/>
+        <location filename="../ui/settings_window.py" line="1420"/>
         <source>Reset all settings to defaults</source>
         <translation>모든 설정을 기본값으로 초기화</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1455"/>
+        <location filename="../ui/settings_window.py" line="1423"/>
         <source>Uninstall Refrain…</source>
         <translation>Refrain 제거…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1470"/>
+        <location filename="../ui/settings_window.py" line="1438"/>
         <source>Developer</source>
         <translation>개발자</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1471"/>
-        <location filename="../ui/settings_window.py" line="1521"/>
+        <location filename="../ui/settings_window.py" line="1439"/>
+        <location filename="../ui/settings_window.py" line="1489"/>
         <source>Developer mode</source>
         <translation>개발자 모드</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1476"/>
+        <location filename="../ui/settings_window.py" line="1444"/>
         <source>Measures timings and how you use Refrain, on this computer only. Nothing is ever sent. The results are in the live-log window.</source>
         <translation>이 컴퓨터에서만 시간과 Refrain 사용 방식을 측정합니다. 어떤 것도 전송되지 않습니다. 결과는 실시간 로그 창에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1522"/>
+        <location filename="../ui/settings_window.py" line="1490"/>
         <source>Turn on developer mode?</source>
         <translation>개발자 모드를 켤까요?</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1525"/>
+        <location filename="../ui/settings_window.py" line="1493"/>
         <source>Refrain then measures its own timings and how you use it: which windows, tabs and buttons, and for how long. Never song titles or anything you type.
 
 Everything stays on this computer and is never sent anywhere. Measuring costs a little performance. You can turn it off again under Advanced.</source>
@@ -1264,22 +1243,22 @@ Everything stays on this computer and is never sent anywhere. Measuring costs a 
 모든 데이터는 이 컴퓨터에만 남고 어디로도 전송되지 않습니다. 측정에는 약간의 성능 비용이 듭니다. ‘고급’에서 언제든 다시 끌 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1533"/>
+        <location filename="../ui/settings_window.py" line="1501"/>
         <source>Turn on</source>
         <translation>켜기</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1597"/>
+        <location filename="../ui/settings_window.py" line="1565"/>
         <source>Checking…</source>
         <translation>확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1617"/>
+        <location filename="../ui/settings_window.py" line="1585"/>
         <source>Reset all settings</source>
         <translation>모든 설정 초기화</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1620"/>
+        <location filename="../ui/settings_window.py" line="1588"/>
         <source>Reset every setting to its default? All three Discord Application IDs (default + per-source), your connected Last.fm account and your Recently played list stay untouched — everything else (sources, privacy, autostart, advanced) goes back to the shipped defaults.
 
 The reset is saved right away, and changes you haven&apos;t saved yet are dropped.</source>
@@ -1288,47 +1267,47 @@ The reset is saved right away, and changes you haven&apos;t saved yet are droppe
 초기화는 즉시 저장되며, 아직 저장하지 않은 변경 사항은 사라집니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1632"/>
+        <location filename="../ui/settings_window.py" line="1600"/>
         <source>Reset</source>
         <translation>초기화</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1659"/>
+        <location filename="../ui/settings_window.py" line="1627"/>
         <source>Unsaved changes</source>
         <translation>저장하지 않은 변경 사항</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1660"/>
+        <location filename="../ui/settings_window.py" line="1628"/>
         <source>You changed settings that aren&apos;t saved yet.</source>
         <translation>아직 저장하지 않은 설정 변경 사항이 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1661"/>
+        <location filename="../ui/settings_window.py" line="1629"/>
         <source>Save</source>
         <translation>저장</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1662"/>
+        <location filename="../ui/settings_window.py" line="1630"/>
         <source>Discard</source>
         <translation>저장 안 함</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1663"/>
+        <location filename="../ui/settings_window.py" line="1631"/>
         <source>Keep editing</source>
         <translation>계속 편집</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1690"/>
+        <location filename="../ui/settings_window.py" line="1658"/>
         <source>(no data files found)</source>
         <translation>(데이터 파일 없음)</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1696"/>
+        <location filename="../ui/settings_window.py" line="1664"/>
         <source>Uninstall Refrain</source>
         <translation>Refrain 제거</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1699"/>
+        <location filename="../ui/settings_window.py" line="1667"/>
         <source>This permanently deletes all Refrain data and the Last.fm credentials from your keyring:
 
 {listing}
@@ -1351,38 +1330,38 @@ Refrain will close. This cannot be undone.</source>
 Refrain이 종료됩니다. 이 작업은 되돌릴 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1706"/>
+        <location filename="../ui/settings_window.py" line="1674"/>
         <source>Uninstall</source>
         <translation>제거</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1724"/>
+        <location filename="../ui/settings_window.py" line="1692"/>
         <source>Connected as {user}</source>
         <translation>연결됨: {user}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1727"/>
+        <location filename="../ui/settings_window.py" line="1695"/>
         <source>Connected</source>
         <translation>연결됨</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1734"/>
+        <location filename="../ui/settings_window.py" line="1702"/>
         <source>Not connected — re-enter the API key + secret, then Connect</source>
         <translation>연결되지 않음 — API 키와 Shared secret을 다시 입력한 후 ‘연결…’을 클릭하세요</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1772"/>
+        <location filename="../ui/settings_window.py" line="1740"/>
         <source>Enter your Last.fm API key and shared secret first. Use “Create API account” to register one (free).</source>
         <translation>먼저 Last.fm API 키와 Shared secret을 입력하세요. “API 계정 만들기”에서 무료로 등록할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1818"/>
-        <location filename="../ui/settings_window.py" line="1862"/>
+        <location filename="../ui/settings_window.py" line="1786"/>
+        <location filename="../ui/settings_window.py" line="1830"/>
         <source>Last.fm connection failed</source>
         <translation>Last.fm 연결 실패</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="1863"/>
+        <location filename="../ui/settings_window.py" line="1831"/>
         <source>Could not connect to Last.fm:
 
 {error}</source>
@@ -1391,32 +1370,32 @@ Refrain이 종료됩니다. 이 작업은 되돌릴 수 없습니다.</translati
 {error}</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2150"/>
+        <location filename="../ui/settings_window.py" line="2105"/>
         <source>Refrain restarts to apply the new language.</source>
         <translation>새 언어를 적용하려면 Refrain을 다시 시작합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2158"/>
+        <location filename="../ui/settings_window.py" line="2113"/>
         <source>Save and restart</source>
         <translation>저장하고 다시 시작</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2184"/>
+        <location filename="../ui/settings_window.py" line="2139"/>
         <source>No browser selected</source>
         <translation>선택된 브라우저가 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2186"/>
+        <location filename="../ui/settings_window.py" line="2141"/>
         <source>Pick at least one browser, or turn the browser source off to read none at all.</source>
         <translation>브라우저를 하나 이상 선택하거나, 전혀 읽지 않으려면 브라우저 소스를 끄세요.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2225"/>
+        <location filename="../ui/settings_window.py" line="2180"/>
         <source>Could not save settings</source>
         <translation>설정을 저장할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2227"/>
+        <location filename="../ui/settings_window.py" line="2182"/>
         <source>Refrain could not write to {path}:
 
 {error}
@@ -1429,12 +1408,12 @@ The settings you just changed will apply for this session but won&apos;t persist
 방금 변경한 설정은 이번 세션에는 적용되지만 다시 시작하면 유지되지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2239"/>
+        <location filename="../ui/settings_window.py" line="2194"/>
         <source>Could not store Last.fm credentials</source>
         <translation>Last.fm 인증 정보를 저장할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../ui/settings_window.py" line="2241"/>
+        <location filename="../ui/settings_window.py" line="2196"/>
         <source>Refrain could not store your Last.fm credentials, neither in the system keyring nor in {path}.
 
 Scrobbling works for this session, but you will have to connect Last.fm again after a restart.</source>
@@ -1446,278 +1425,278 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
 <context>
     <name>StatusWindow</name>
     <message>
-        <location filename="../ui/status_window.py" line="396"/>
+        <location filename="../ui/status_window.py" line="397"/>
         <source>Scrobbled to Last.fm</source>
         <translation>Last.fm에 스크로블됨</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="404"/>
-        <location filename="../ui/status_window.py" line="410"/>
+        <location filename="../ui/status_window.py" line="405"/>
+        <location filename="../ui/status_window.py" line="411"/>
         <source>Open in Apple Music</source>
         <translation>Apple Music에서 열기</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="464"/>
+        <location filename="../ui/status_window.py" line="465"/>
         <source>Status</source>
         <translation>상태</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="546"/>
+        <location filename="../ui/status_window.py" line="547"/>
         <source>Previous song</source>
         <translation>이전 곡</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="549"/>
+        <location filename="../ui/status_window.py" line="550"/>
         <source>Play or pause</source>
         <translation>재생 또는 일시 정지</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="552"/>
+        <location filename="../ui/status_window.py" line="553"/>
         <source>Next song</source>
         <translation>다음 곡</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="580"/>
+        <location filename="../ui/status_window.py" line="581"/>
         <source>Update…</source>
         <translation>업데이트…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="594"/>
+        <location filename="../ui/status_window.py" line="595"/>
         <source>Recently played</source>
         <translation>최근 재생한 곡</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="601"/>
+        <location filename="../ui/status_window.py" line="602"/>
         <source>Show all</source>
         <translation>모두 보기</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="609"/>
-        <location filename="../ui/status_window.py" line="1049"/>
+        <location filename="../ui/status_window.py" line="610"/>
+        <location filename="../ui/status_window.py" line="1050"/>
         <source>Songs you play show up here.</source>
         <translation>재생한 곡이 여기에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="612"/>
+        <location filename="../ui/status_window.py" line="613"/>
         <source>Turn on Recently played</source>
         <translation>최근 재생한 곡 켜기</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="633"/>
+        <location filename="../ui/status_window.py" line="634"/>
         <source>Settings…</source>
         <translation>설정…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="645"/>
+        <location filename="../ui/status_window.py" line="646"/>
         <source>View Refrain on GitHub</source>
         <translation>GitHub에서 Refrain 보기</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="678"/>
+        <location filename="../ui/status_window.py" line="679"/>
         <source>Estimated from where the song was before Refrain restarted</source>
         <translation>Refrain 재시작 전 재생 위치 기준 추정값</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="769"/>
+        <location filename="../ui/status_window.py" line="770"/>
         <source>Nothing playing</source>
         <translation>재생 중인 항목 없음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="777"/>
+        <location filename="../ui/status_window.py" line="778"/>
         <source>{player} is playing, but didn&apos;t say which page. Refrain recognises Apple Music by the page address, and a private window never sends one. Otherwise, check that the Apple Music tab is the one playing.</source>
         <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Refrain은 페이지 주소로 Apple Music을 구분하는데, 사생활 보호 창은 주소를 보내지 않습니다. 그렇지 않다면 재생 중인 탭이 Apple Music인지 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="787"/>
+        <location filename="../ui/status_window.py" line="788"/>
         <source>{player} is playing, but doesn&apos;t say which page. Install Plasma Browser Integration (package plasma-browser-integration plus the browser extension &quot;Plasma Integration&quot;) or use Firefox.</source>
         <translation>{player}가 재생 중이지만 어떤 페이지인지 알 수 없습니다. Plasma Browser Integration (패키지 plasma-browser-integration과 브라우저 확장 프로그램 “Plasma Integration”)을 설치하거나 Firefox를 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="795"/>
+        <location filename="../ui/status_window.py" line="796"/>
         <source>Start a song in Apple Music in your browser, or on your phone over Bluetooth.</source>
         <translation>브라우저의 Apple Music에서 곡을 재생하거나, 휴대폰에서 Bluetooth로 재생하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="809"/>
+        <location filename="../ui/status_window.py" line="810"/>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="811"/>
+        <location filename="../ui/status_window.py" line="812"/>
         <source>Apple Music Web</source>
         <translation>Apple Music Web</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="817"/>
+        <location filename="../ui/status_window.py" line="818"/>
         <source>Paused · {source}</source>
         <translation>일시 정지됨 · {source}</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="894"/>
+        <location filename="../ui/status_window.py" line="895"/>
         <source>Not set up yet</source>
         <translation>아직 설정하지 않음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="895"/>
-        <location filename="../ui/status_window.py" line="926"/>
-        <location filename="../ui/status_window.py" line="932"/>
+        <location filename="../ui/status_window.py" line="896"/>
+        <location filename="../ui/status_window.py" line="927"/>
+        <location filename="../ui/status_window.py" line="933"/>
         <source>Set up…</source>
         <translation>설정…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="897"/>
+        <location filename="../ui/status_window.py" line="898"/>
         <source>The Discord app isn&apos;t running</source>
         <translation>Discord 앱이 실행되고 있지 않습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="899"/>
+        <location filename="../ui/status_window.py" line="900"/>
         <source>Application ID rejected</source>
         <translation>Application ID가 거부되었습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="900"/>
+        <location filename="../ui/status_window.py" line="901"/>
         <source>Fix…</source>
         <translation>수정…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="903"/>
+        <location filename="../ui/status_window.py" line="904"/>
         <source>Discord is open but not logged in. Log in to Discord to show your status.</source>
         <translation>Discord가 열려 있지만 로그인되어 있지 않습니다. 상태를 표시하려면 Discord에 로그인하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="906"/>
+        <location filename="../ui/status_window.py" line="907"/>
         <source>Discord isn&apos;t answering right now</source>
         <translation>Discord가 지금 응답하지 않습니다</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="908"/>
+        <location filename="../ui/status_window.py" line="909"/>
         <source>Ready — waiting for music</source>
         <translation>준비됨 — 음악 대기 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="910"/>
+        <location filename="../ui/status_window.py" line="911"/>
         <source>Visible on your profile</source>
         <translation>프로필에 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="912"/>
+        <location filename="../ui/status_window.py" line="913"/>
         <source>Showing “Listening to music”</source>
         <translation>“Listening to music” 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="914"/>
+        <location filename="../ui/status_window.py" line="915"/>
         <source>Showing the song as paused</source>
         <translation>곡을 일시정지 상태로 표시 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="916"/>
+        <location filename="../ui/status_window.py" line="917"/>
         <source>Hidden — sharing is off</source>
         <translation>숨김 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="918"/>
+        <location filename="../ui/status_window.py" line="919"/>
         <source>Checking…</source>
         <translation>확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="925"/>
+        <location filename="../ui/status_window.py" line="926"/>
         <source>Off</source>
         <translation>꺼짐</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="928"/>
+        <location filename="../ui/status_window.py" line="929"/>
         <source>Connected, but scrobbling is off</source>
         <translation>연결됨, 하지만 스크로블이 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="929"/>
+        <location filename="../ui/status_window.py" line="930"/>
         <source>Open Last.fm settings…</source>
         <translation>Last.fm 설정 열기…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="931"/>
+        <location filename="../ui/status_window.py" line="932"/>
         <source>Not connected yet</source>
         <translation>아직 연결되지 않음</translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="935"/>
+        <location filename="../ui/status_window.py" line="936"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>전송 대기 중인 스크로블 %n개</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="937"/>
+        <location filename="../ui/status_window.py" line="938"/>
         <source>Sign-in expired</source>
         <translation>로그인이 만료됨</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="938"/>
+        <location filename="../ui/status_window.py" line="939"/>
         <source>Reconnect…</source>
         <translation>다시 연결…</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="940"/>
+        <location filename="../ui/status_window.py" line="941"/>
         <source>Paused — sharing is off</source>
         <translation>일시 중지됨 — 공유가 꺼져 있음</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="942"/>
+        <location filename="../ui/status_window.py" line="943"/>
         <source>Scrobbling as {user}</source>
         <translation>{user}(으)로 스크로블 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="944"/>
+        <location filename="../ui/status_window.py" line="945"/>
         <source>Scrobbling</source>
         <translation>스크로블 중</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="952"/>
+        <location filename="../ui/status_window.py" line="953"/>
         <source>Refrain closed unexpectedly last time.</source>
         <translation>지난번에 Refrain이 예기치 않게 종료되었습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="953"/>
+        <location filename="../ui/status_window.py" line="954"/>
         <source>The report is in &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;.</source>
         <translation>보고서는 &lt;a href=&quot;crash&quot;&gt;{path}&lt;/a&gt;에 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="969"/>
+        <location filename="../ui/status_window.py" line="970"/>
         <source>You&apos;re all set.</source>
         <translation>모든 준비가 끝났습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="971"/>
+        <location filename="../ui/status_window.py" line="972"/>
         <source>Play a song in Apple Music — it shows up in Discord within a few seconds.</source>
         <translation>Apple Music에서 곡을 재생해 보세요 — 몇 초 안에 Discord에 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1051"/>
+        <location filename="../ui/status_window.py" line="1052"/>
         <source>Recently played is off, so Refrain keeps no list of your songs.</source>
         <translation>최근 재생한 곡이 꺼져 있어 Refrain이 곡 목록을 보관하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1061"/>
+        <location filename="../ui/status_window.py" line="1062"/>
         <source>Resume sharing</source>
         <translation>공유 재개</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1064"/>
+        <location filename="../ui/status_window.py" line="1065"/>
         <source>Show your song in Discord and scrobble to Last.fm again.</source>
         <translation>Discord에 곡을 다시 표시하고 Last.fm 스크로블도 다시 시작합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1067"/>
+        <location filename="../ui/status_window.py" line="1068"/>
         <source>Pause sharing</source>
         <translation>공유 일시 중지</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1070"/>
+        <location filename="../ui/status_window.py" line="1071"/>
         <source>Hide your Discord status and stop scrobbling until you resume.</source>
         <translation>다시 시작할 때까지 Discord 상태를 숨기고 스크로블을 중지합니다.</translation>
     </message>
     <message>
-        <location filename="../ui/status_window.py" line="1078"/>
+        <location filename="../ui/status_window.py" line="1079"/>
         <source>Refrain {version} is available.</source>
         <translation>Refrain {version}을(를) 사용할 수 있습니다.</translation>
     </message>
@@ -1983,112 +1962,112 @@ Scrobbling works for this session, but you will have to connect Last.fm again af
 <context>
     <name>WelcomeDialog</name>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="92"/>
+        <location filename="../ui/welcome_dialog.py" line="94"/>
         <source>Found Discord IPC at {path}</source>
         <translation>Discord IPC 발견: {path}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="95"/>
+        <location filename="../ui/welcome_dialog.py" line="97"/>
         <source>No Discord IPC socket found — start the Discord desktop app.</source>
         <translation>Discord IPC 소켓을 찾을 수 없습니다 — Discord 데스크톱 앱을 실행하세요.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="99"/>
+        <location filename="../ui/welcome_dialog.py" line="101"/>
         <source>iTunes Search API reachable.</source>
         <translation>iTunes Search API에 연결할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="101"/>
+        <location filename="../ui/welcome_dialog.py" line="103"/>
         <source>iTunes responded but the payload looked off.</source>
         <translation>iTunes가 응답했지만 응답 데이터가 올바르지 않은 것 같습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="104"/>
+        <location filename="../ui/welcome_dialog.py" line="106"/>
         <source>iTunes Search unreachable: {reason}</source>
         <translation>iTunes Search에 연결할 수 없음: {reason}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="106"/>
+        <location filename="../ui/welcome_dialog.py" line="108"/>
         <source>iTunes probe failed: {error}</source>
         <translation>iTunes 확인 실패: {error}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="176"/>
+        <location filename="../ui/welcome_dialog.py" line="198"/>
         <source>Welcome</source>
         <translation>환영합니다</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="212"/>
+        <location filename="../ui/welcome_dialog.py" line="234"/>
         <source>Welcome to Refrain</source>
         <translation>Refrain에 오신 것을 환영합니다</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="214"/>
+        <location filename="../ui/welcome_dialog.py" line="236"/>
         <source>Discord Rich Presence for Apple Music on Linux.</source>
         <translation>Linux용 Apple Music Discord Rich Presence.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="229"/>
+        <location filename="../ui/welcome_dialog.py" line="251"/>
         <source>Lives in the tray. &lt;b&gt;Click&lt;/b&gt; it to see its status; &lt;b&gt;right-click&lt;/b&gt; for player controls.</source>
         <translation>트레이에 상주합니다. &lt;b&gt;클릭&lt;/b&gt;하면 상태를 확인할 수 있고, &lt;b&gt;마우스 오른쪽 버튼 클릭&lt;/b&gt;하면 재생 컨트롤을 사용할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="251"/>
+        <location filename="../ui/welcome_dialog.py" line="268"/>
         <source>Live diagnostics</source>
         <translation>실시간 진단</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="254"/>
+        <location filename="../ui/welcome_dialog.py" line="271"/>
         <source>Discord — checking…</source>
         <translation>Discord — 확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="255"/>
+        <location filename="../ui/welcome_dialog.py" line="272"/>
         <source>Cover-art lookup — checking…</source>
         <translation>커버 아트 검색 — 확인 중…</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="263"/>
+        <location filename="../ui/welcome_dialog.py" line="280"/>
         <source>Discord Application ID</source>
         <translation>Discord Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="269"/>
+        <location filename="../ui/welcome_dialog.py" line="286"/>
         <source>Register a free app on the &lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt; — the name you pick appears as &quot;Listening to &amp;lt;name&amp;gt;&quot; in your status.</source>
         <translation>&lt;a href=&quot;{url}&quot;&gt;Discord Developer Portal&lt;/a&gt;에서 무료 앱을 등록하세요 — 선택한 이름이 상태에 “&amp;lt;이름&amp;gt; 듣는 중”으로 표시됩니다.</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="287"/>
+        <location filename="../ui/welcome_dialog.py" line="304"/>
         <source>e.g. 1234567890123456789</source>
         <translation>예: 1234567890123456789</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="300"/>
+        <location filename="../ui/welcome_dialog.py" line="317"/>
         <source>Skip for now</source>
         <translation>지금은 건너뛰기</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="305"/>
+        <location filename="../ui/welcome_dialog.py" line="322"/>
         <source>Apply</source>
         <translation>적용</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="369"/>
+        <location filename="../ui/welcome_dialog.py" line="386"/>
         <source>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;Discord:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="372"/>
+        <location filename="../ui/welcome_dialog.py" line="389"/>
         <source>{mark} &lt;b&gt;Cover-art lookup:&lt;/b&gt; {msg}</source>
         <translation>{mark} &lt;b&gt;커버 아트 검색:&lt;/b&gt; {msg}</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="421"/>
+        <location filename="../ui/welcome_dialog.py" line="438"/>
         <source>Discard the Application ID?</source>
         <translation>Application ID를 취소할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="424"/>
+        <location filename="../ui/welcome_dialog.py" line="441"/>
         <source>You entered an Application ID but haven&apos;t applied it. Closing now starts Refrain without Discord status.
 
 Discard what you entered?</source>
@@ -2097,22 +2076,22 @@ Discard what you entered?</source>
 입력한 내용을 취소할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="429"/>
+        <location filename="../ui/welcome_dialog.py" line="446"/>
         <source>Discard</source>
         <translation>저장 안 함</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="430"/>
+        <location filename="../ui/welcome_dialog.py" line="447"/>
         <source>Keep editing</source>
         <translation>계속 편집</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="448"/>
+        <location filename="../ui/welcome_dialog.py" line="465"/>
         <source>Skip Discord setup?</source>
         <translation>Discord 설정을 건너뛸까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="451"/>
+        <location filename="../ui/welcome_dialog.py" line="468"/>
         <source>No Application ID entered. Refrain will start without Discord status (you can paste the ID later in Settings → General).
 
 Continue without Discord status?</source>
@@ -2121,22 +2100,22 @@ Continue without Discord status?</source>
 Discord 상태 없이 계속할까요?</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="457"/>
+        <location filename="../ui/welcome_dialog.py" line="474"/>
         <source>Continue without Discord</source>
         <translation>Discord 없이 계속</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="459"/>
+        <location filename="../ui/welcome_dialog.py" line="476"/>
         <source>Cancel</source>
         <translation>취소</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="467"/>
+        <location filename="../ui/welcome_dialog.py" line="484"/>
         <source>Invalid Application ID</source>
         <translation>잘못된 Application ID</translation>
     </message>
     <message>
-        <location filename="../ui/welcome_dialog.py" line="469"/>
+        <location filename="../ui/welcome_dialog.py" line="486"/>
         <source>The Discord Application ID is a numeric snowflake (17–20 digits). Double-check the value you copied from the Developer Portal.</source>
         <translation>Discord Application ID는 숫자로 된 snowflake(17~20자리)입니다. Developer Portal에서 복사한 값을 다시 확인하세요.</translation>
     </message>
@@ -2152,22 +2131,22 @@ Discord 상태 없이 계속할까요?</translation>
 <context>
     <name>app</name>
     <message>
-        <location filename="../app.py" line="876"/>
+        <location filename="../app.py" line="883"/>
         <source>Already running</source>
         <translation>이미 실행 중</translation>
     </message>
     <message>
-        <location filename="../app.py" line="877"/>
+        <location filename="../app.py" line="884"/>
         <source>Refrain is already running.</source>
         <translation>Refrain이 이미 실행 중입니다.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="888"/>
+        <location filename="../app.py" line="895"/>
         <source>D-Bus session bus unavailable</source>
         <translation>D-Bus 세션 버스를 사용할 수 없음</translation>
     </message>
     <message>
-        <location filename="../app.py" line="889"/>
+        <location filename="../app.py" line="896"/>
         <source>Refrain needs a working D-Bus session bus to run (it&apos;s used for the single-instance lock, MPRIS metadata from your browser, and the Plasma-panel media-controls publication).
 
 Underlying error: {error}
@@ -2180,22 +2159,22 @@ On a desktop session this should normally be available automatically. Check that
 일반적인 데스크톱 세션에서는 이것이 자동으로 제공되어야 합니다. dbus-daemon이 실행 중인지, 환경 변수 DBUS_SESSION_BUS_ADDRESS가 설정되어 있는지 확인하세요.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="920"/>
+        <location filename="../app.py" line="927"/>
         <source>Refrain can&apos;t start</source>
         <translation>Refrain을 시작할 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../app.py" line="921"/>
+        <location filename="../app.py" line="928"/>
         <source>This desktop has no system tray, and Refrain lives in one. On GNOME, install the AppIndicator extension; on other desktops, use a bar with StatusNotifierItem support.</source>
         <translation>이 데스크톱에는 시스템 트레이가 없지만 Refrain은 트레이에 상주합니다. GNOME에서는 AppIndicator 확장을 설치하고, 다른 데스크톱에서는 StatusNotifierItem을 지원하는 바를 사용하세요.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="930"/>
+        <location filename="../app.py" line="937"/>
         <source>No system tray</source>
         <translation>시스템 트레이 없음</translation>
     </message>
     <message>
-        <location filename="../app.py" line="931"/>
+        <location filename="../app.py" line="938"/>
         <source>No system tray available. Refrain lives in the tray, so it needs a StatusNotifierItem-aware host. Common fixes:
 
 • GNOME — install the &apos;AppIndicator and KStatusNotifierItem Support&apos; extension, then re-run Refrain.
@@ -2212,29 +2191,29 @@ On a desktop session this should normally be available automatically. Check that
 • KDE Plasma / Cinnamon / LXQt / Budgie — 별도 설정 없이 바로 동작해야 합니다. 그렇지 않다면 패널이나 바가 충돌했을 수 있으니 로그아웃 후 다시 로그인해 보세요.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1119"/>
         <location filename="../app.py" line="1126"/>
-        <location filename="../app.py" line="1523"/>
+        <location filename="../app.py" line="1133"/>
+        <location filename="../app.py" line="1530"/>
         <source>Updates</source>
         <translation>업데이트</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1120"/>
+        <location filename="../app.py" line="1127"/>
         <source>You&apos;re already on the latest version ({version}).</source>
         <translation>이미 최신 버전({version})입니다.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1250"/>
+        <location filename="../app.py" line="1257"/>
         <source>Refrain keeps running in the tray.</source>
         <translation>Refrain은 트레이에서 계속 실행됩니다.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1275"/>
+        <location filename="../app.py" line="1282"/>
         <source>Refrain closed unexpectedly last time. Click to open the report.</source>
         <translation>지난번에 Refrain이 예기치 않게 종료되었습니다. 클릭하면 보고서를 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1335"/>
+        <location filename="../app.py" line="1342"/>
         <source>All Refrain data and the Last.fm keyring credentials were removed. Refrain will now close.
 
 To remove the program itself, run:
@@ -2247,7 +2226,7 @@ To remove the program itself, run:
   {cmd}</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1342"/>
+        <location filename="../app.py" line="1349"/>
         <source>All Refrain data was removed, but the Last.fm credentials may still be in your keyring. Unlock it and uninstall again, or delete the entries labelled “Refrain” in your keyring app.
 
 Refrain will now close.
@@ -2264,17 +2243,17 @@ Refrain이 곧 종료됩니다.
   {cmd}</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1353"/>
+        <location filename="../app.py" line="1360"/>
         <source>Some files could not be removed:</source>
         <translation>일부 파일을 제거하지 못했습니다:</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1357"/>
+        <location filename="../app.py" line="1364"/>
         <source>Uninstall</source>
         <translation>제거</translation>
     </message>
     <message>
-        <location filename="../app.py" line="1524"/>
+        <location filename="../app.py" line="1531"/>
         <source>No update information available yet. Try again in a moment.</source>
         <translation>아직 업데이트 정보가 없습니다. 잠시 후 다시 시도하세요.</translation>
     </message>

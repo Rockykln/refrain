@@ -115,6 +115,7 @@ def test_dataclasses_have_expected_fields():
         "bluetooth_enabled",
         "bluetooth_device",
         "browser_hints",
+        "app_enabled",
         "app_hints",
     } == set(SourcesConfig.__dataclass_fields__)
     assert {"mode", "resume_mode"} == set(PrivacyConfig.__dataclass_fields__)
@@ -337,3 +338,53 @@ def test_saves_from_two_threads_do_not_trip_over_the_shared_tmp_file(tmp_path, m
 
     assert errors == []
     assert Config.load(path).discord.app_name == "Worker"
+
+
+def test_a_fresh_config_explains_the_native_clients(tmp_path):
+    """They have no switch in Settings, so the file has to say how they work."""
+    from refrain.config import Config
+
+    path = tmp_path / "config.toml"
+    Config().save(path)
+    text = path.read_text(encoding="utf-8")
+    assert 'app_hints = ""' in text
+    assert "app_enabled = true" in text
+    assert "slipmat, cider, sidra" in text
+    assert 'app_hints = "cider,myplayer"' in text
+
+
+def test_the_example_lines_are_not_repeated_on_every_save(tmp_path):
+    from refrain.config import Config
+
+    path = tmp_path / "config.toml"
+    Config().save(path)
+    Config().save(path)
+    assert path.read_text(encoding="utf-8").count("# Empty = the clients Refrain knows") == 1
+
+
+def test_an_empty_hint_list_means_the_clients_refrain_knows():
+    from refrain.config import DEFAULT_APP_HINTS, SourcesConfig
+
+    assert SourcesConfig().app_hints_list() == list(DEFAULT_APP_HINTS)
+
+
+def test_naming_clients_replaces_the_built_in_ones():
+    from refrain.config import SourcesConfig
+
+    assert SourcesConfig(app_hints="cider, MyPlayer").app_hints_list() == ["cider", "myplayer"]
+
+
+def test_turning_them_off_leaves_no_client():
+    from refrain.config import SourcesConfig
+
+    assert SourcesConfig(app_enabled=False).app_hints_list() == []
+    assert SourcesConfig(app_enabled=False, app_hints="cider").app_hints_list() == []
+
+
+def test_the_hint_lists_match_the_source_that_uses_them():
+    """config and the MPRIS source each hold their own copy; they have to agree."""
+    from refrain.config import DEFAULT_APP_HINTS, DEFAULT_BROWSER_HINTS
+    from refrain.sources.mpris import APP_HINTS, BROWSER_HINTS
+
+    assert DEFAULT_BROWSER_HINTS == BROWSER_HINTS
+    assert DEFAULT_APP_HINTS == APP_HINTS

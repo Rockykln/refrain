@@ -51,8 +51,8 @@ in Apple Music whenever Refrain knows its address — that needs no switch.
         <source media="(prefers-color-scheme: light)" srcset="screenshots/settings-sources-light.png"/>
         <img src="screenshots/settings-sources.png" alt="Settings — Sources" width="420"/>
       </picture>
-      <br/><sub>MPRIS / Bluetooth toggles, the browsers that count, the native Apple Music
-      clients that count, and the paired-device picker</sub>
+      <br/><sub>MPRIS / Bluetooth toggles, the browsers that count, and the
+      paired-device picker</sub>
     </td>
   </tr>
   <tr>

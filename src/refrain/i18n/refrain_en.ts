@@ -4,7 +4,7 @@
 <context>
     <name>HistoryWindow</name>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="837"/>
+        <location filename="../ui/history_window.py" line="838"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n minute ago</numerusform>
@@ -12,7 +12,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="840"/>
+        <location filename="../ui/history_window.py" line="841"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n hour ago</numerusform>
@@ -20,7 +20,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="842"/>
+        <location filename="../ui/history_window.py" line="843"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n day ago</numerusform>
@@ -28,7 +28,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="981"/>
+        <location filename="../ui/history_window.py" line="983"/>
         <source>%1 of %n song(s)</source>
         <translation>
             <numerusform>%1 of %n song</numerusform>
@@ -36,7 +36,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/history_window.py" line="984"/>
+        <location filename="../ui/history_window.py" line="986"/>
         <source>Last %n song(s)</source>
         <translation>
             <numerusform>Last song</numerusform>
@@ -47,7 +47,7 @@
 <context>
     <name>SettingsWindow</name>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1242"/>
+        <location filename="../ui/settings_window.py" line="1210"/>
         <source>%n minute(s) ago</source>
         <translation>
             <numerusform>%n minute ago</numerusform>
@@ -55,7 +55,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1245"/>
+        <location filename="../ui/settings_window.py" line="1213"/>
         <source>%n hour(s) ago</source>
         <translation>
             <numerusform>%n hour ago</numerusform>
@@ -63,7 +63,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../ui/settings_window.py" line="1247"/>
+        <location filename="../ui/settings_window.py" line="1215"/>
         <source>%n day(s) ago</source>
         <translation>
             <numerusform>%n day ago</numerusform>
@@ -74,7 +74,7 @@
 <context>
     <name>StatusWindow</name>
     <message numerus="yes">
-        <location filename="../ui/status_window.py" line="935"/>
+        <location filename="../ui/status_window.py" line="936"/>
         <source>%n scrobble(s) waiting to be sent</source>
         <translation>
             <numerusform>%n scrobble waiting to be sent</numerusform>
