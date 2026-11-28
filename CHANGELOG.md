@@ -26,6 +26,12 @@ lists every version and why.
 
 ### Changed
 
+- **PySide6 6.6.2 is now the oldest version Refrain runs on, up from
+  6.6.1.** Reading the desktop's dark mode from the portal asks the
+  reply to unwrap a D-Bus variant, and on 6.6.1 that loses the value or
+  crashes outright, so on GNOME Refrain would not have started. The fix
+  landed in 6.6.2. Distributions carry far newer versions; this only
+  matters if you pinned 6.6.1 by hand.
 - **The cover stands on its own while nothing is playing.** In the
   Status window the Refrain mark sat faded inside a grey square; it is
   now drawn larger and in its own colours, with nothing behind it.

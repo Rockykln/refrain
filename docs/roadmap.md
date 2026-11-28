@@ -666,6 +666,8 @@ were tracked internally as "v0.2.8" but never separately tagged.
   from the desktop portal, and the playback buttons are visible on GNOME
   — Adwaita ships only the `-symbolic` spelling, which Qt does not look
   for on its own.
+- **PySide6 6.6.2 is the oldest version Refrain runs on**, up from 6.6.1,
+  which cannot read that setting without losing it or crashing.
 - Plus the smaller changes and fixes, all in the
   [CHANGELOG](../CHANGELOG.md).
 
